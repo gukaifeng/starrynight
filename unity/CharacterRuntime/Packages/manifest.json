@@ -1,0 +1,19 @@
+{
+  "dependencies": {
+    "com.unity.render-pipelines.universal": "17.3.0",
+    "com.unity.cloud.gltfast": "file:../../../.local/dependencies/upm/com.unity.cloud.gltfast-6.16.1.tgz",
+    "com.unity.modules.animation": "1.0.0",
+    "com.unity.modules.imageconversion": "1.0.0",
+    "com.unity.modules.jsonserialize": "1.0.0",
+    "com.unity.modules.unitywebrequest": "1.0.0",
+    "com.unity.modules.unitywebrequesttexture": "1.0.0",
+    "com.unity.burst": "file:../../../.local/dependencies/upm/com.unity.burst-1.8.24.tgz",
+    "com.unity.collections": "file:../../../.local/dependencies/upm/com.unity.collections-2.4.3.tgz",
+    "com.unity.mathematics": "file:../../../.local/dependencies/upm/com.unity.mathematics-1.3.2.tgz",
+    "com.unity.searcher": "file:../../../.local/dependencies/upm/com.unity.searcher-4.9.5.tgz",
+    "com.unity.test-framework": "1.6.0",
+    "com.unity.nuget.mono-cecil": "file:../../../.local/dependencies/upm/com.unity.nuget.mono-cecil-1.11.4.tgz",
+    "com.unity.test-framework.performance": "file:../../../.local/dependencies/upm/com.unity.test-framework.performance-3.0.3.tgz",
+    "com.unity.ext.nunit": "2.0.5"
+  }
+}

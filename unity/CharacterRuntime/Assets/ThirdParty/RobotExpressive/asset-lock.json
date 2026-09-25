@@ -1,0 +1,31 @@
+{
+  "asset_id": "robot_expressive",
+  "repository": "https://github.com/mrdoob/three.js",
+  "ref": "r180",
+  "resolved_commit": "0af9729d0c143a86a1d725d6e2c3ad83301f3f34",
+  "model_url": "https://raw.githubusercontent.com/mrdoob/three.js/r180/examples/models/gltf/RobotExpressive/RobotExpressive.glb",
+  "readme_url": "https://raw.githubusercontent.com/mrdoob/three.js/r180/examples/models/gltf/RobotExpressive/README.md",
+  "sha256": "047f5e5fb3bb6d378bd1df16ca6137f2a596c99b3a1b5690b4020c05aaf6f319",
+  "bytes": 463988,
+  "fetched_at_utc": "2026-09-25T02:32:21.598629+00:00",
+  "license_declared_by_source": "CC0-1.0",
+  "author": "Tomás Laulhé (Quaternius)",
+  "example_modifications": "Don McCurdy",
+  "gltf_version": "2.0",
+  "mesh_count": 14,
+  "animation_count": 14,
+  "validation": {
+    "glb_container": "passed",
+    "unity_import": "passed",
+    "ios_rendering": "not_tested",
+    "unity_import_details": {
+      "editor": "6000.3.25f1",
+      "urp": "17.3.0",
+      "gltfast": "6.16.1",
+      "renderer_count": 14,
+      "material_references": "passed",
+      "checked_at_utc": "2026-09-25T14:02:49.596017+00:00"
+    }
+  },
+  "notes": "Upstream tag pinned; content hash recorded after fetching. No animation is enabled by this script."
+}

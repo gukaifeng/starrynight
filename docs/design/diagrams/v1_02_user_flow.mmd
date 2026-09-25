@@ -1,0 +1,20 @@
+flowchart LR
+    Launch(["▶ 打开 App"]) --> Home["模型首页<br/>一个 RobotExpressive 卡片"]
+    Home -->|打开模型| Loading["准备模型<br/>可返回"]
+    Loading -->|场景就绪且允许显示| Viewer["3D 查看<br/>拖动 / 缩放 / 复位"]
+    Loading -->|失败或超时| Error["可读错误<br/>返回 / 条件允许时重试"]
+    Error --> Home
+    Error -->|可恢复| Loading
+    Loading -->|取消查看| Home
+    Viewer -->|返回，暂停 Unity| Home
+    Home --> About["关于<br/>版本 / 操作说明 / 模型来源"]
+    About --> Home
+    Viewer -->|后台或锁屏| Suspended["暂停渲染与手势"]
+    Suspended -->|前台且仍在查看页| Viewer
+    Suspended -->|用户已返回首页| Home
+    classDef page fill:#e8f0ff,stroke:#254b83,color:#12243b
+    classDef state fill:#fff2d9,stroke:#8c601b,color:#4b310b
+    classDef problem fill:#fde8e6,stroke:#943d35,color:#4e201b
+    class Home,Viewer,About page
+    class Loading,Suspended state
+    class Error problem

@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "unityEditor": "6000.3.25f1",
+  "urp": "17.3.0",
+  "status": "PINNED_DOWNLOAD_MANIFEST",
+  "packages": [
+    {
+      "name": "com.unity.cloud.gltfast",
+      "version": "6.16.1",
+      "url": "https://download.packages.unity.com/com.unity.cloud.gltfast/-/com.unity.cloud.gltfast-6.16.1.tgz",
+      "sha1": "e6a172d771cbe47ab230bcb074d345ef5af94e05",
+      "dependencies": {
+        "com.unity.burst": "1.8.24",
+        "com.unity.collections": "1.2.4",
+        "com.unity.mathematics": "1.2.6",
+        "com.unity.modules.jsonserialize": "1.0.0",
+        "com.unity.modules.unitywebrequest": "1.0.0"
+      }
+    },
+    {
+      "name": "com.unity.burst",
+      "version": "1.8.24",
+      "url": "https://download.packages.unity.com/com.unity.burst/-/com.unity.burst-1.8.24.tgz",
+      "sha1": "f7a407abf4d5abf19ce630824dcde261e02ed97e",
+      "dependencies": {
+        "com.unity.mathematics": "1.2.1",
+        "com.unity.modules.jsonserialize": "1.0.0"
+      }
+    },
+    {
+      "name": "com.unity.collections",
+      "version": "2.4.3",
+      "url": "https://download.packages.unity.com/com.unity.collections/-/com.unity.collections-2.4.3.tgz",
+      "sha1": "eba9b2ae55c09c3548eaeac72a96dda87b0640cf",
+      "dependencies": {
+        "com.unity.burst": "1.8.13",
+        "com.unity.test-framework": "1.4.3",
+        "com.unity.nuget.mono-cecil": "1.11.4",
+        "com.unity.test-framework.performance": "3.0.3"
+      }
+    },
+    {
+      "name": "com.unity.mathematics",
+      "version": "1.3.2",
+      "url": "https://download.packages.unity.com/com.unity.mathematics/-/com.unity.mathematics-1.3.2.tgz",
+      "sha1": "8017b507cc74bf0a1dd14b18aa860569f807314d",
+      "dependencies": {}
+    },
+    {
+      "name": "com.unity.searcher",
+      "version": "4.9.5",
+      "url": "https://download.packages.unity.com/com.unity.searcher/-/com.unity.searcher-4.9.5.tgz",
+      "sha1": "a463122f2c00f83398f41790942a0793431e70ea",
+      "dependencies": {}
+    },
+    {
+      "name": "com.unity.nuget.mono-cecil",
+      "version": "1.11.4",
+      "url": "https://download.packages.unity.com/com.unity.nuget.mono-cecil/-/com.unity.nuget.mono-cecil-1.11.4.tgz",
+      "sha1": "d6f9955a5d5f84d45442ff1ad0fb694cc6e2fd62",
+      "dependencies": {}
+    },
+    {
+      "name": "com.unity.test-framework.performance",
+      "version": "3.0.3",
+      "url": "https://download.packages.unity.com/com.unity.test-framework.performance/-/com.unity.test-framework.performance-3.0.3.tgz",
+      "sha1": "fb0dc592af8b524f1a06c50d7caf95552f1bcd2f",
+      "dependencies": {
+        "com.unity.test-framework": "1.1.31",
+        "com.unity.modules.jsonserialize": "1.0.0"
+      }
+    }
+  ],
+  "editorBundledOverrides": {
+    "com.unity.test-framework": "1.6.0",
+    "com.unity.ext.nunit": "2.0.5"
+  },
+  "validationEvidence": "Unity-generated Packages/packages-lock.json and .local/checks/ results; this manifest alone is not proof of compilation."
+}

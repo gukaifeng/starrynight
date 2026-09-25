@@ -1,0 +1,28 @@
+flowchart TB
+    User["👤 用户：iPhone 17 / iPad Pro 11 M4"]
+    subgraph App["同一个原生 App / 单进程"]
+        UI["原生页面与覆盖控件<br/>SwiftUI + UIKit"]
+        State["页面与运行状态<br/>ViewerCoordinator"]
+        Bridge["原生与 Unity 通信<br/>Objective-C++ / JSON<br/>C 回调"]
+        Runtime["单个 UnityFramework<br/>URP + Metal"]
+        Scene["模型查看场景<br/>模型 + 相机 + 灯光<br/>触摸交互"]
+        Assets["📦 本地资源<br/>RobotExpressive<br/>材质 / 缩略图"]
+    end
+    Dev["⚙ 开发时<br/>Unity CLI + Pipeline<br/>驱动本机 Unity Editor"]
+    Build["构建时<br/>项目内 Editor 脚本 / iOS 导出<br/>后处理 + Xcode workspace"]
+    User --> UI
+    User -->|查看区域手势| Scene
+    UI --> State
+    State <--> Bridge
+    Bridge <--> Runtime
+    Runtime --> Scene
+    Assets --> UI
+    Assets --> Scene
+    Dev -.-> Build
+    Build -.-> App
+    classDef native fill:#e8f0ff,stroke:#254b83,color:#12243b
+    classDef engine fill:#e5f4ec,stroke:#28724b,color:#123926
+    classDef tools fill:#fff2d9,stroke:#8c601b,color:#4b310b
+    class UI,State,Bridge native
+    class Runtime,Scene,Assets engine
+    class Dev,Build tools

@@ -1,0 +1,17 @@
+.DS_Store
+.local/
+build/
+**/Library/
+**/Temp/
+**/Obj/
+**/Logs/
+**/UserSettings/
+**/DerivedData/
+**/xcuserdata/
+*.xcuserstate
+ios/Config/Local.xcconfig
+*.mobileprovision
+*.p12
+*.pfx
+*.cer
+__pycache__/
