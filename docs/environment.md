@@ -2,6 +2,8 @@
 
 检查日期：2026-09-25。任务范围：准备后续开发所需的工具、库和示例资源。
 
+实施补充（2026-09-26）：正式 Swift 6 宿主、Unity as a Library 桥接、ViewerScene、动作及头部点击均已实现。新增 Pipeline 0.7.0-exp.1，并通过官方 CLI 实际操作 Editor / 导出。完整 App 的 Simulator ARM64 构建已通过，iPhone 17 模拟器功能结果单列于[模拟器验收](simulator-acceptance.md)；下面的准备阶段探针记录保留。
+
 **状态：本机开发依赖已准备就绪。Unity 许可证、包解析、C# 编译、模型导入、iOS 导出及 UnityFramework 的 iOS ARM64 未签名编译全部通过。两台真机均 NOT TESTED。**
 
 ## 本机环境
@@ -19,7 +21,7 @@
 | iOS 平台组件 | 已补装 iOS 26.4（23E244）arm64 组件并启用平台，下载约 8.46 GB |
 | Xcode 初次启动 | `xcodebuild -checkFirstLaunchStatus` 返回 0；`-runFirstLaunch -checkForNewerComponents` 返回无新增更新 |
 | Swift 编译器 | Apple Swift 6.3，swiftlang-6.3.0.123.5 |
-| Swift language mode | 原生编译探针使用 Swift 5；正式宿主工程待创建 |
+| Swift language mode | 准备阶段探针 Swift 5；正式宿主现为 Swift 6 |
 | Clang | Apple clang 21.0.0，clang-2100.0.123.102 |
 | Metal Toolchain | 已新增下载，Xcode component 17E188；metal 版本 32023.883 |
 | Rosetta 2 | 已有；x86_64 执行探针成功 |
@@ -31,7 +33,7 @@
 | Unity Editor 路径 | `/Applications/Unity/Hub/Editor/6000.3.25f1/Unity.app` |
 | iOS Build Support | 模块已安装，编辑器确认支持 iOS，并成功导出 IL2CPP 工程 |
 | Unity 许可证 | 用户已在 Hub 激活 Unity Personal；实际 batchmode 执行通过 |
-| Deployment Target | 原生探针与 Unity iOS 导出探针均使用 iOS 17.0；正式宿主配置待开发 |
+| Deployment Target | 原生宿主与 Unity 均为 iOS 17.0；Universal（iPhone / iPad） |
 
 本机满足 Unity 6.3 的基础硬件和操作系统要求。[官方系统要求](https://docs.unity3d.com/6000.3/Documentation/Manual/system-requirements.html)
 

@@ -1,0 +1,12 @@
+{
+  "bundleId": "com.modelspace.viewer",
+  "version": "1.0",
+  "minimumOSVersion": "17.0",
+  "deviceFamily": [
+    1,
+    2
+  ],
+  "unityDataEmbedded": true,
+  "hostSHA256": "0e58c2130a909a232a497e04bafddb04516d711c41ec2f49c94f5159ab40fb73",
+  "frameworkSHA256": "7e0ee387b28e17bd0da2257999a2349777214531a2652350779002f54102df2f"
+}

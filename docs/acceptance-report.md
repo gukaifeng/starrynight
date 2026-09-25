@@ -2,6 +2,8 @@
 
 所有运行结果初始为 NOT TESTED，不是通过证明。D01：iPhone 17 标准版；D02：11 英寸 iPad Pro（M4，2024）。
 
+2026-09-26 更新：本表专用于两台**真机**，本轮按用户要求未连接设备，状态继续保持 NOT TESTED。已实现完整 App 及动作交互，iPhone 17 模拟器的独立证据见[模拟器验收](simulator-acceptance.md)，不能移填为实机 PASS。
+
 实施依据：[V1 完整开发方案](design/2026-09-25-v1-development-plan.md)。保留原交接文档 T01–T23，新增 NV01–NV12 覆盖首页、旋转/缩放/复位、iPad 扩展布局与异常时序。原用例定义见[交接方案第 14 节](../ios_3d_mvp_technical_spec_v1_1.md)。
 
 文档/源码版本：待填。构建标识：待填。环境记录：待填。

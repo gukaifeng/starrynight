@@ -1,0 +1,2 @@
+// Personal signing settings stay outside source control.
+#include? "Local.xcconfig"

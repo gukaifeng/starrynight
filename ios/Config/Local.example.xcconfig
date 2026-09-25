@@ -1,0 +1,2 @@
+// Copy to Local.xcconfig only when configuring a physical device.
+// DEVELOPMENT_TEAM = YOUR_TEAM_ID

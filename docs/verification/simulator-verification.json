@@ -1,0 +1,18 @@
+{
+  "status": "PASS",
+  "sceneReadyCount": 1,
+  "verifiedPresentations": 22,
+  "initialDistance": 21.35622787475586,
+  "rotatedYaw": 56.90715026855469,
+  "rotatedPitch": 2.9687204360961914,
+  "zoomedDistance": 7.571327209472656,
+  "resetCount": 24,
+  "eventCount": 72,
+  "actionsVerified": [
+    "Wave",
+    "Jump",
+    "Dance",
+    "No"
+  ],
+  "headHitCount": 1
+}
