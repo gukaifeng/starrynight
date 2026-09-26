@@ -1,2 +1,4 @@
 // Copy to Local.xcconfig only when configuring a physical device.
 // DEVELOPMENT_TEAM = YOUR_TEAM_ID
+// Optional unique identifier for personal device testing; simulator ID is unchanged.
+// MODELSPACE_DEVICE_BUNDLE_IDENTIFIER = com.yourname.modelspace.dev

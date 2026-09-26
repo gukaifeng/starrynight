@@ -68,6 +68,7 @@ resources=obj('resources','PBXResourcesBuildPhase',buildActionMask='2147483647',
 frameworks=obj('frameworks','PBXFrameworksBuildPhase',buildActionMask='2147483647',files=[buildfile('link-unity',framework)],runOnlyForDeploymentPostprocessing='0')
 embed=obj('embed','PBXCopyFilesBuildPhase',buildActionMask='2147483647',dstPath='',dstSubfolderSpec='10',name='Embed Frameworks',files=[buildfile('embed-unity',framework,settings={'ATTRIBUTES':['CodeSignOnCopy','RemoveHeadersOnCopy']})],runOnlyForDeploymentPostprocessing='0')
 settings={'PRODUCT_NAME':'$(TARGET_NAME)','PRODUCT_BUNDLE_IDENTIFIER':'com.modelspace.viewer',
+    'PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]':'$(MODELSPACE_DEVICE_BUNDLE_IDENTIFIER)',
     'INFOPLIST_FILE':'CharacterHost/Info.plist','SWIFT_VERSION':'6.0','SWIFT_OBJC_BRIDGING_HEADER':'CharacterHost/Bridge/CharacterHost-Bridging-Header.h',
     'IPHONEOS_DEPLOYMENT_TARGET':'17.0','TARGETED_DEVICE_FAMILY':'1,2','SDKROOT':'iphoneos',
     'SUPPORTED_PLATFORMS':'iphoneos iphonesimulator','CLANG_ENABLE_MODULES':'YES','CLANG_ENABLE_OBJC_ARC':'YES',
@@ -91,6 +92,7 @@ test_frameworks=obj('test-frameworks','PBXFrameworksBuildPhase',buildActionMask=
 host_proxy=obj('host-proxy','PBXContainerItemProxy',containerPortal=uid('project'),proxyType='1',remoteGlobalIDString=target,remoteInfo='CharacterHost')
 host_dependency=obj('host-dependency','PBXTargetDependency',target=target,targetProxy=host_proxy)
 test_settings={'PRODUCT_NAME':'$(TARGET_NAME)','PRODUCT_BUNDLE_IDENTIFIER':'com.modelspace.viewer.uitests','GENERATE_INFOPLIST_FILE':'YES',
+    'PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]':'$(MODELSPACE_DEVICE_BUNDLE_IDENTIFIER).uitests',
     'SWIFT_VERSION':'6.0','IPHONEOS_DEPLOYMENT_TARGET':'17.0','TARGETED_DEVICE_FAMILY':'1,2','SDKROOT':'iphoneos',
     'TEST_TARGET_NAME':'CharacterHost','CODE_SIGN_STYLE':'Automatic','CLANG_ENABLE_MODULES':'YES','ARCHS':'arm64'}
 test_target=obj('test-target','PBXNativeTarget',name='CharacterHostUITests',productName='CharacterHostUITests',productType='com.apple.product-type.bundle.ui-testing',productReference=test_product,
@@ -114,13 +116,14 @@ def reference(identifier,name,product,container):
     return f'<BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="{identifier}" BuildableName="{product}" BlueprintName="{name}" ReferencedContainer="container:{container}"/>'
 host_ref=reference(target,'CharacterHost','CharacterHost.app','CharacterHost.xcodeproj')
 test_ref=reference(test_target,'CharacterHostUITests','CharacterHostUITests.xctest','CharacterHost.xcodeproj')
+run_configuration = 'Release' if args.platform == 'device' else 'Debug'
 scheme=f'''<?xml version="1.0" encoding="UTF-8"?>
 <Scheme LastUpgradeVersion="2640" version="1.3">
  <BuildAction parallelizeBuildables="YES" buildImplicitDependencies="YES"><BuildActionEntries>
   <BuildActionEntry buildForTesting="YES" buildForRunning="YES" buildForProfiling="YES" buildForArchiving="YES" buildForAnalyzing="YES">{host_ref}</BuildActionEntry>
  </BuildActionEntries></BuildAction>
  <TestAction buildConfiguration="Debug" selectedDebuggerIdentifier="Xcode.DebuggerFoundation.Debugger.LLDB" selectedLauncherIdentifier="Xcode.IDEFoundation.Launcher.LLDB" shouldUseLaunchSchemeArgsEnv="YES" disablePerformanceAntipatternChecker="YES"><Testables><TestableReference skipped="NO">{test_ref}</TestableReference></Testables></TestAction>
- <LaunchAction buildConfiguration="Debug" selectedDebuggerIdentifier="Xcode.DebuggerFoundation.Debugger.LLDB" selectedLauncherIdentifier="Xcode.IDEFoundation.Launcher.LLDB" launchStyle="0" useCustomWorkingDirectory="NO" ignoresPersistentStateOnLaunch="NO" debugDocumentVersioning="YES" allowLocationSimulation="YES" disablePerformanceAntipatternChecker="YES"><BuildableProductRunnable runnableDebuggingMode="0">{host_ref}</BuildableProductRunnable></LaunchAction>
+ <LaunchAction buildConfiguration="{run_configuration}" selectedDebuggerIdentifier="Xcode.DebuggerFoundation.Debugger.LLDB" selectedLauncherIdentifier="Xcode.IDEFoundation.Launcher.LLDB" launchStyle="0" useCustomWorkingDirectory="NO" ignoresPersistentStateOnLaunch="NO" debugDocumentVersioning="YES" allowLocationSimulation="YES" disablePerformanceAntipatternChecker="YES"><BuildableProductRunnable runnableDebuggingMode="0">{host_ref}</BuildableProductRunnable></LaunchAction>
  <ProfileAction buildConfiguration="Release" shouldUseLaunchSchemeArgsEnv="YES" savedToolIdentifier="" useCustomWorkingDirectory="NO" debugDocumentVersioning="YES"><BuildableProductRunnable runnableDebuggingMode="0">{host_ref}</BuildableProductRunnable></ProfileAction>
  <AnalyzeAction buildConfiguration="Debug"/><ArchiveAction buildConfiguration="Release" revealArchiveInOrganizer="YES"/>
 </Scheme>'''

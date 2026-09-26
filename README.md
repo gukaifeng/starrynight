@@ -4,11 +4,11 @@ SwiftUI / UIKit 原生宿主与 Unity as a Library 组成的 Universal App。首
 
 2026-09-26 画质升级：默认角色为原创 **Luma**，带圆润陶瓷外壳、金属关节、玻璃面罩、棚拍灯光与实时阴影。启用原生分辨率、4× MSAA、HDR 工作缓冲和 ACES 色调映射。默认请求 **120 FPS**，查看器支持 60／120 切换并显示实测帧率；目标值不等于已达到的帧率，持续高于 60 和 120 FPS 须以真机报告为准。
 
-本轮按用户最新要求在 **iPhone 17 / iOS 26.4 模拟器**交付，不连接真机。iPhone 使用竖屏，iPad 源码支持横竖屏和宽屏首页。两台指定真机及 iPad 模拟器均不在本轮实测范围，见[Luma 画质与性能报告](docs/luma-quality-performance.md)、[首版历史报告](docs/simulator-acceptance.md)与[真机验收表](docs/acceptance-report.md)。
+完整交互已在 **iPhone 17 / iOS 26.4 模拟器**交付；随后完成真机 Release 编译准备，当前安装进度见[真机安装说明](docs/device-installation.md)。iPhone 使用竖屏，iPad 源码支持横竖屏和宽屏首页。两台指定真机的运行 / 性能及 iPad 模拟器尚未验收，见[Luma 画质与性能报告](docs/luma-quality-performance.md)、[首版历史报告](docs/simulator-acceptance.md)与[真机验收表](docs/acceptance-report.md)。
 
 ## 直接运行
 
-在 Xcode 打开 **ios/CharacterPrototype.xcworkspace**，选择 **CharacterHost** scheme 和 **iPhone 17**，点击 Run。必须从 workspace 的宿主 scheme 运行完整 App。这台机器已保留 Unity 模拟器导出和构建缓存，也可重新安装运行现有构建：
+运行模拟器时，先用 `python3 scripts/generate_host.py --platform simulator` 切换 workspace，再在 Xcode 打开 **ios/CharacterPrototype.xcworkspace**，选择 **CharacterHost** scheme 和 **iPhone 17 模拟器**，点击 Run。必须从 workspace 的宿主 scheme 运行完整 App。这台机器已保留 Unity 模拟器导出和构建缓存，也可重新安装运行现有构建：
 
 ```bash
 bash scripts/run_simulator.sh
@@ -102,7 +102,7 @@ python3 scripts/fetch_sample_asset.py --output unity/CharacterRuntime/Assets/Thi
 
 ## 后续真机测试
 
-需要真机时再导出和生成对应 workspace：
+2026-09-26 已增加真机 Release 编译准备和个人测试安装入口；安装步骤与当前边界见[真机安装说明](docs/device-installation.md)。真机 / 模拟器导出和缓存分别保留，同一个 workspace 按平台切换。重新导出时：
 
 ```bash
 python3 scripts/export_unity_ios.py --platform device
@@ -110,7 +110,14 @@ python3 scripts/generate_host.py --platform device
 open ios/CharacterPrototype.xcworkspace
 ```
 
-将 `ios/Config/Local.example.xcconfig` 复制为 Git 忽略的 `Local.xcconfig`，配置 DEVELOPMENT_TEAM；连接并信任设备、按系统要求启用开发者模式后，用 CharacterHost scheme Run。切回模拟器时运行 `python3 scripts/generate_host.py --platform simulator`。
+将 `ios/Config/Local.example.xcconfig` 复制为 Git 忽略的 `Local.xcconfig`（已有文件则保留），配置 DEVELOPMENT_TEAM；可用 MODELSPACE_DEVICE_BUNDLE_IDENTIFIER 配置自己的真机 App ID。个人测试可使用免费 Apple Account / Personal Team。连接、信任设备并启用开发者模式后，确认设备 UDID：
+
+```bash
+xcrun devicectl list devices
+bash scripts/run_device.sh DEVICE_UDID
+```
+
+未连接设备时可用 `bash scripts/build_device.sh --unsigned` 提前完成 Release 编译；该产物必须经过开发签名才能安装。也可在 Xcode 中选择 CharacterHost、自己的 Team 和真实手机后 Run。切回模拟器时运行 `python3 scripts/generate_host.py --platform simulator`。
 
 本轮没有进行真机签名、安装、帧率、发热或耗电验收，也没有发布到 TestFlight / App Store。
 

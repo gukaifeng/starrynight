@@ -135,3 +135,22 @@ Skill 检索执行 `npx skills find 'unity rendering'`。继续使用项目内 U
 ### Luma 最终证据
 
 `ViewerFlow-20260926-084457`：3 tests passed / 0 failures / 0 skipped，102 条引擎事件校验 PASS，22 次展示、24 次复位、四动作与头部正负例通过。30 个性能窗口保留；请求 120 的组为 3119 帧 / 52.233s，平均 59.71 FPS，Unity 应用值与报告刷新率均为 60，最慢帧 105.340ms。该功能自动化样本不满足每帧严格高于 60，真机 120 / 长时性能仍 NOT_TESTED；没有将配置支持冒充性能验收通过。完整证据、新版 18 张截图与实际动作录像见 `docs/luma-quality-performance.md`。
+
+
+## 2026-09-26 · 真机安装准备
+
+### D09：先完成 Release 编译，签名绑定用户自己的账号和设备
+
+用户要求自己测试并提前准备全部前置步骤。检索真机签名相关 skill 后，没有采用匹配度不足的第三方包；Unity 导出继续使用项目内官方 unity-cli skill，个人签名与设备模式依据 Apple 官方文档。本机未登录 Xcode Apple Account、有效开发签名证书为 0，因此先执行无签名 Device SDK 导出和 ARM64 Release 全量编译，将安装和签名与可提前完成的编译区分。
+
+新增 `build_device.sh` 和 `run_device.sh`：沿用自动签名、使用单独 DeviceDerivedData 缓存，安装必须显式指定设备、存在有效本地 Team 配置，并通过签名 / 描述文件检查；实际安装和启动分别保留 Apple devicectl JSON 证据。没有付费会员要求。真机 workspace 的 Run 使用 Release，模拟器仍为 Debug。
+
+个人 App ID 放在 Git 忽略的 Local.xcconfig，通过 iphoneos 条件配置作用于宿主和 UI 测试，避免重新生成工程覆盖个人设置；模拟器标识不变。UnityFramework 的固定 bundle ID 保留，因为它是运行时 Unity Data 的定位依据。通过两个 SDK 的实际 showBuildSettings 确认真机覆盖正确、模拟器仍为原 ID。签名缺失、未指定设备、无签名模式错误绑定设备三种前置检查均正确停止，未误发安装请求。
+
+### 真机编译证据与后续边界
+
+Unity 导出 `837b624959234d28b8b4f59732853d4e` 完成，报告 0 errors。`host-device-20260926-092226.log` 为 BUILD SUCCEEDED。App 目录约 123.6 MB，宿主与 UnityFramework 都是 IOS / arm64，最低 iOS 17；Data、Universal 设备族及 ProMotion 宿主配置校验通过，构建哈希保存于 `docs/verification/device/preparation.json`。Unity 重新生成场景产生对象 ID 排列变化，画质和交互逻辑没有变更。
+
+用户在编译期间接入 iPhone 17 / iOS 27.0。USB 识别和 devicectl 配对成功；最新返回的明确阻碍为 Developer Mode disabled，同时账号登录 / 开发签名仍未完成。用户确认提示为“需要软件更新才能连接到 iPhone”，正在自行安装该连接支持更新。iOS DDI 本地静态检查为 usable，不代表已挂载到这台手机。devicectl 启动时另有 provisioning provider 警告，但仍能完成识别、配对和状态查询，不能将该警告直接定为连接失败根因。后续以更新后设备实测为准，不为版本号差异未经验证地升级整个系统。
+
+当前未安装、未启动真机 App，也未验证真机 120 FPS。个人设备序列号与账号详情不进入版本库。下一步只需补用户本人账号登录、开发者模式确认，以及更新后的连接检查，随后签名、安装并验证启动。

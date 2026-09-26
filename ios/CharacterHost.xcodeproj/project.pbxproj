@@ -137,7 +137,7 @@
 "CB3255F92114B0395E8C3EE9" = {
 "isa" = "PBXFileReference";
 "lastKnownFileType" = "wrapper.pb-project";
-"path" = "../build/unity-simulator/Unity-iPhone.xcodeproj";
+"path" = "../build/unity-device/Unity-iPhone.xcodeproj";
 "sourceTree" = "<group>";
 };
 "03F62868DF10F8439BA3F58E" = {
@@ -222,6 +222,7 @@
 "buildSettings" = {
 "PRODUCT_NAME" = "$(TARGET_NAME)";
 "PRODUCT_BUNDLE_IDENTIFIER" = "com.modelspace.viewer";
+"PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]" = "$(MODELSPACE_DEVICE_BUNDLE_IDENTIFIER)";
 "INFOPLIST_FILE" = "CharacterHost/Info.plist";
 "SWIFT_VERSION" = "6.0";
 "SWIFT_OBJC_BRIDGING_HEADER" = "CharacterHost/Bridge/CharacterHost-Bridging-Header.h";
@@ -256,6 +257,7 @@
 "buildSettings" = {
 "PRODUCT_NAME" = "$(TARGET_NAME)";
 "PRODUCT_BUNDLE_IDENTIFIER" = "com.modelspace.viewer";
+"PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]" = "$(MODELSPACE_DEVICE_BUNDLE_IDENTIFIER)";
 "INFOPLIST_FILE" = "CharacterHost/Info.plist";
 "SWIFT_VERSION" = "6.0";
 "SWIFT_OBJC_BRIDGING_HEADER" = "CharacterHost/Bridge/CharacterHost-Bridging-Header.h";
@@ -347,6 +349,7 @@
 "PRODUCT_NAME" = "$(TARGET_NAME)";
 "PRODUCT_BUNDLE_IDENTIFIER" = "com.modelspace.viewer.uitests";
 "GENERATE_INFOPLIST_FILE" = "YES";
+"PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]" = "$(MODELSPACE_DEVICE_BUNDLE_IDENTIFIER).uitests";
 "SWIFT_VERSION" = "6.0";
 "IPHONEOS_DEPLOYMENT_TARGET" = "17.0";
 "TARGETED_DEVICE_FAMILY" = "1,2";
@@ -369,6 +372,7 @@
 "PRODUCT_NAME" = "$(TARGET_NAME)";
 "PRODUCT_BUNDLE_IDENTIFIER" = "com.modelspace.viewer.uitests";
 "GENERATE_INFOPLIST_FILE" = "YES";
+"PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]" = "$(MODELSPACE_DEVICE_BUNDLE_IDENTIFIER).uitests";
 "SWIFT_VERSION" = "6.0";
 "IPHONEOS_DEPLOYMENT_TARGET" = "17.0";
 "TARGETED_DEVICE_FAMILY" = "1,2";
