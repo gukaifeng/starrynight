@@ -20,6 +20,7 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
     @ObservationIgnored private var timer: Timer?
     @ObservationIgnored private var foregroundWait = 0.0
     @ObservationIgnored private var openTime = Date()
+    @ObservationIgnored private var targetFPS = 120
 #if DEBUG
     @ObservationIgnored private var didDeferTestReady = false
 #endif
@@ -97,6 +98,11 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
             overlay.onBack = { [weak self] in self?.closeViewer() }
             overlay.onReset = { [weak self] in self?.resetView() }
             overlay.onAction = { [weak self] action in self?.playAction(action) }
+            overlay.onFrameRate = { [weak self] fps in
+                guard let self else { return }
+                self.targetFPS = fps
+                self.send("configurePerformance",payload:["targetFPS":fps])
+            }
             overlay.onResize = { [weak self] in self?.send("configureViewport") }
             root.addChild(overlay); root.view.addSubview(overlay.view)
             overlay.view.translatesAutoresizingMaskIntoConstraints = false
@@ -112,6 +118,7 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
         page = .viewer
         timer?.invalidate(); timer = nil
         send("configureViewport")
+        send("configurePerformance",payload:["targetFPS":targetFPS])
         logger.info("viewer_visible elapsed=\(Date().timeIntervalSince(self.openTime)) presentation=\(self.presentation)")
     }
     nonisolated func runtimeDidReceive(_ json: String) {
@@ -153,6 +160,11 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
         case "headTapped":
             guard desiredVisible, event["presentationId"] as? Int == presentation else { return }
             UIImpactFeedbackGenerator(style:.light).impactOccurred()
+        case "performance":
+            guard desiredVisible, event["presentationId"] as? Int == presentation else { return }
+            overlay?.setPerformance(fps:event["fps"] as? Double ?? 0,
+                target:event["targetFPS"] as? Int ?? targetFPS,
+                screenMaximum:scene?.screen.maximumFramesPerSecond ?? 60)
         case "error":
             guard desiredVisible else { return }
             errorMessage = "请返回首页后重新尝试。如果仍无法打开，请关闭并重新打开 App。"

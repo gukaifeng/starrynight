@@ -9,7 +9,7 @@ namespace ModelSpace
     {
         public bool immediate;
         public float topInset, bottomInset;
-        public int targetFPS = 60;
+        public int targetFPS = 120;
         public string action;
     }
     [Serializable] public class BridgeCommand
@@ -22,7 +22,7 @@ namespace ModelSpace
     [Serializable] public class BridgeEvent
     {
         public int schemaVersion = 1;
-        public string kind = "event", name, requestId = "", modelId = "robot-expressive";
+        public string kind = "event", name, requestId = "", modelId = "studio-robot";
         public int presentationId;
         public float yaw, pitch, distance, defaultDistance;
         public string message = "";
@@ -36,8 +36,9 @@ namespace ModelSpace
         {
             float tangent = Mathf.Tan(verticalFov * Mathf.Deg2Rad * .5f);
             float horizontalRadius = new Vector2(bounds.extents.x, bounds.extents.z).magnitude;
-            return Mathf.Max(bounds.extents.y * 1.38f / tangent,
-                horizontalRadius * 1.15f / (tangent * Mathf.Max(.2f, aspect))) + horizontalRadius;
+            return Mathf.Max(bounds.extents.y * 1.65f / tangent,
+                // Reserve horizontal room for the raised hand throughout its arc.
+                horizontalRadius * 1.8f / (tangent * Mathf.Max(.2f, aspect))) + horizontalRadius;
         }
         public static float ClampPitch(float pitch) => Mathf.Clamp(pitch, -8f, 65f);
         public static float ClampDistance(float value, float minimum, float normal)
@@ -71,7 +72,7 @@ namespace ModelSpace
 #endif
         void Awake()
         {
-            Application.targetFrameRate = 60;
+            Application.targetFrameRate = 120;
             QualitySettings.vSyncCount = 0;
             Input.multiTouchEnabled = true;
             Input.simulateMouseWithTouches = false;
@@ -246,6 +247,8 @@ namespace ModelSpace
                         break;
                     case "configureViewport":
                         Reframe(true); break;
+                    case "configurePerformance":
+                        GetComponent<RenderPerformance>().Configure(command.payload?.targetFPS ?? 120, presentation); break;
                     case "clearInput": ClearInput(); break;
                     case "playAction": actions?.Play(command.payload?.action, "button"); break;
                     default: throw new ArgumentException("未知操作");

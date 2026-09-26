@@ -1,5 +1,7 @@
 # iPhone 17 模拟器验收 · 模型空间 V1
 
+> 本文保留最初 RobotExpressive 版本验收；当前 Luma 升级见 [画质与性能报告](luma-quality-performance.md)。
+
 完成于 2026-09-26，验证范围是用户授权的无人值守本机开发和 **iPhone 17 模拟器完整运行**。包含后续追加的动作按钮与触头摇头。构建标记：V1-sim-20260926.1，App 版本 1.0（1）。
 
 **结论：PASS。XCTest 3 个测试通过、0 失败、0 跳过；实际 Unity 相机 / 动作事件断言 PASS。** 原始测试执行使用真实 UnityFramework 和真实 GLB 模型，没有用替代渲染器、静态图片或假动作绕过集成。

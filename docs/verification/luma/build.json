@@ -1,0 +1,19 @@
+{
+  "unityExport": {
+    "status": "PASS",
+    "editor": "6000.3.25f1",
+    "sdk": "iphonesimulator",
+    "errors": 0
+  },
+  "exportJobId": "1c0879cbac554707b5800f56c6478db6",
+  "device": "iPhone 17 Simulator",
+  "runtime": "iOS 26.4 (23E244)",
+  "deviceUDID": "99F5FAC6-A73A-4C59-A723-D57D648B342E",
+  "proMotionHostEnabled": true,
+  "embeddedData": true,
+  "sha256": {
+    "host": "713e2cd326981d4128d709f95b93122c4715631ac651099148b68cf1e1e8d295",
+    "framework": "9412d85bb022b722222b2dd984cacbed735a80f32f89c99b2fced5ebea866ebb"
+  },
+  "physicalDevice": "NOT_TESTED"
+}

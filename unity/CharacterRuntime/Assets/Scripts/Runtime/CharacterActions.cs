@@ -4,11 +4,12 @@ using UnityEngine;
 
 namespace ModelSpace
 {
-    // The source GLB already owns these legacy clips; no duplicate animation assets.
+    // Continuous transform clips work at both 60 and 120 rendered frames per second.
     public sealed class CharacterActions : MonoBehaviour
     {
         Animation animationPlayer;
         SkinnedMeshRenderer head;
+        MeshFilter rigidHead;
         Camera viewCamera;
         Mesh hitMesh;
         Action<string,string,string> report;
@@ -21,7 +22,9 @@ namespace ModelSpace
             animationPlayer = model.GetComponentInChildren<Animation>(true);
             foreach (var renderer in model.GetComponentsInChildren<SkinnedMeshRenderer>())
                 if (renderer.name == "Head") head = renderer;
-            if (!animationPlayer || !head) throw new InvalidOperationException("角色动画或头部缺失");
+            foreach (var filter in model.GetComponentsInChildren<MeshFilter>())
+                if (filter.name == "Head") rigidHead = filter;
+            if (!animationPlayer || (!head && !rigidHead)) throw new InvalidOperationException("角色动画或头部缺失");
             foreach (string clip in new[] { "Idle", "Wave", "Jump", "Dance", "No" })
                 if (!animationPlayer.GetClip(clip)) throw new InvalidOperationException("缺少动作 " + clip);
             viewCamera = camera; report = callback;
@@ -65,15 +68,17 @@ namespace ModelSpace
         }
         public bool TapHead(Vector2 screenPoint)
         {
-            if (Time.unscaledTime < nextHeadTap || !head) return false;
+            if (Time.unscaledTime < nextHeadTap || (!head && !rigidHead)) return false;
             // Bake only on a tap, so the ray follows the current animated head exactly.
-            head.BakeMesh(hitMesh);
-            hitMesh.RecalculateBounds();
+            Mesh mesh;
+            Transform headTransform;
+            if (head) { head.BakeMesh(hitMesh); hitMesh.RecalculateBounds(); mesh=hitMesh; headTransform=head.transform; }
+            else { mesh=rigidHead.sharedMesh; headTransform=rigidHead.transform; }
             var worldRay = viewCamera.ScreenPointToRay(screenPoint);
-            var ray = new Ray(head.transform.InverseTransformPoint(worldRay.origin),
-                head.transform.InverseTransformVector(worldRay.direction));
-            if (!hitMesh.bounds.IntersectRay(ray)) return false;
-            var vertices = hitMesh.vertices; var indices = hitMesh.triangles;
+            var ray = new Ray(headTransform.InverseTransformPoint(worldRay.origin),
+                headTransform.InverseTransformVector(worldRay.direction));
+            if (!mesh.bounds.IntersectRay(ray)) return false;
+            var vertices = mesh.vertices; var indices = mesh.triangles;
             for (int i = 0; i < indices.Length; i += 3)
             {
                 if (!HitTriangle(ray, vertices[indices[i]], vertices[indices[i+1]], vertices[indices[i+2]])) continue;

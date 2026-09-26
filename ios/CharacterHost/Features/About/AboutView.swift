@@ -22,12 +22,12 @@ struct AboutView: View {
                     }.font(.subheadline)
                     Divider()
                     VStack(alignment:.leading,spacing:9) {
-                        Text("模型与致谢").font(.headline)
-                        Text("RobotExpressive").font(.body.weight(.medium))
-                        Text("模型作者：Tomás Laulhé（Quaternius）\n示例整理：Don McCurdy\n许可：CC0 1.0")
+                        Text("模型与画质").font(.headline)
+                        Text("Luma · Studio Robot").font(.body.weight(.medium))
+                        Text("项目原创模型与动作\n陶瓷外壳 · 金属关节 · 实时柔和阴影\n原生分辨率 · 4 倍抗锯齿")
                             .font(.subheadline).foregroundStyle(Theme.secondary)
-                        Link("查看模型来源 ↗",destination:URL(string:"https://github.com/mrdoob/three.js/tree/r180/examples/models/gltf/RobotExpressive")!)
-                            .font(.subheadline).tint(Theme.blue)
+                        Text("默认以 120 FPS 为渲染目标，可在查看器切换为 60 FPS。上方数字为实测渲染循环帧率；屏幕刷新率、系统设置与设备温度会影响实际表现。")
+                            .font(.subheadline).foregroundStyle(Theme.secondary)
                     }
                     Text("版本 1.0 · 所有模型资源均已内置")
                         .font(.footnote).foregroundStyle(Theme.secondary)

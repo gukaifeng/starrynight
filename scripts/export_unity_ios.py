@@ -35,13 +35,13 @@ if live:
     # briefly outlive a C# domain reload. Read-only probes may safely be retried.
     deadline=time.monotonic()+120
     while time.monotonic()<deadline:
-        probe=subprocess.run(['unity','command','eval','return !UnityEditor.EditorApplication.isCompiling && !UnityEditor.EditorApplication.isUpdating && !UnityEditor.EditorApplication.isPlaying;',
+        probe=subprocess.run(['unity','command','eval','return !UnityEditor.EditorUtility.scriptCompilationFailed && !UnityEditor.EditorApplication.isCompiling && !UnityEditor.EditorApplication.isUpdating && !UnityEditor.EditorApplication.isPlaying;',
             '--project-path',str(PROJECT),'--json'],capture_output=True,text=True)
         try: responsive=json.loads(probe.stdout).get('data',{}).get('result',{}).get('result') is True
         except (ValueError,AttributeError): responsive=False
         if responsive: break
         time.sleep(2)
-    else: raise SystemExit('Editor is compiling, updating, or in Play Mode; finish that operation before exporting')
+    else: raise SystemExit('Editor has compilation errors, is compiling/updating, or is in Play Mode; resolve before exporting')
     command=['unity','command','eval',f'{method}(); return "export-complete";', '--project-path',str(PROJECT),'--detach','--json']
     response=subprocess.run(command,capture_output=True,text=True)
     if response.returncode:

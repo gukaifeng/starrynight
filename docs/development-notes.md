@@ -85,3 +85,53 @@ Unity 源码与宿主源码分别维护；模拟器和真机导出到不同目�
 开发入口已整理为 `export_unity_ios.py`、`build_host.sh`、`run_simulator.sh`、`test_simulator.sh`；README 说明日常修改、Xcode workspace 入口、从干净目录恢复和未来真机签名。原始交接文档保持原文，设计方案顶部注明新的模拟器 / 动作范围。
 
 本轮未连接真机，iPad 仅完成源码布局和 Universal 配置；真机性能与 iPad 运行结果均保持 NOT TESTED。下一阶段可直接用现有 device 导出路径进行签名和逐设备测试。
+
+## 2026-09-26 · Luma 画质与高刷新率升级
+
+### D06：原创简单模型，把预算用于表面质量和实时渲染
+
+用户新增要求为高清模型、阴影和高于 60 / 支持 120 FPS。保留原有查看器、生命周期与四种交互动作，将默认 GLB 替换为项目原创 Luma。几何体、PBR 材质、棚拍反射和连续动画都由 `StudioRobotBuilder.cs` 生成，无需外部美术服务、账号或新下载。当前模型 35 个 Renderer、70,980 个三角面，6 种共享材质。圆角采用解析法线；薄面板使用各轴独立半径，避免厚度小于圆角半径时翻折。静态关节模型用 Transform 动画，免去每帧蒙皮成本；触头只在点击时进行网格射线检测。
+
+### D07：120 是请求，实测与验收单独保留
+
+Unity 原先的 `Application.targetFrameRate=60` 和关闭的 `appleEnableProMotion` 都需修改；宿主已有的 `CADisableMinimumFrameDurationOnPhone=true` 保留。现默认请求 120，菜单可切 60，关闭按需跳帧，每个渲染帧连续求值动作。复用 Unity 的 iOS display link，不额外创建竞争的 display link，也不绕过系统热管理。
+
+`RenderPerformance` 记录墙钟帧间隔：平均 FPS、P95/P99、最慢帧、8.33/16.67ms 超预算数量、请求值 / 引擎实际配置值 / 显示刷新率 / 分辨率。固定数组避免逐帧分配；每两秒统计一次。配置或焦点、暂停恢复后的首秒明确作为预热排除，其他慢帧全部保留。界面显示实测与目标两项，避免把 120 的设置值当作 120 的测量值。该统计是 Unity player loop，不是 Metal GPU 完成或屏幕真实呈现时间。严格每帧高于 60 不能靠限帧 API 保证；真机持续测试仍需单列验收。
+
+画质配置为原生分辨率 renderScale=1、4× MSAA、HDR 内部缓冲、ACES、4096 主光阴影图、两级级联、高质量软阴影、补光和轮廓光、预生成反射。没有为了数字好看而降低分辨率或关闭阴影。
+
+依据：
+- [Unity 6.3 targetFrameRate](https://docs.unity3d.com/6000.3/Documentation/ScriptReference/Application-targetFrameRate.html)：移动设备刷新率上限与 ProMotion 开关。
+- [Apple ProMotion](https://developer.apple.com/documentation/quartzcore/optimizing-iphone-and-ipad-apps-to-support-promotion-displays)：宿主 plist 与刷新请求。
+- [Apple preferredFrameRateRange](https://developer.apple.com/documentation/quartzcore/cametaldisplaylink/preferredframeraterange)：低电量、温度及系统策略会影响可用刷新率。
+- [iPhone 17](https://www.apple.com/iphone-17/specs/)、[iPad Pro 11 英寸 M4](https://support.apple.com/en-us/119892)：指定型号支持最高 120 Hz。
+
+Skill 检索执行 `npx skills find 'unity rendering'`。继续使用项目内 Unity 官方 `unity-cli` skill；检索到的 2D pixel-perfect 与当前 3D 需求不匹配，通用第三方渲染 skill 未采用。渲染 API 以本机固定 URP 包源码与 Unity / Apple 一手资料为准。
+
+### E08：编译失败时，CLI 仍可能运行旧程序集
+
+尝试通过公开属性设置软阴影与 ProMotion 时，当前版本报出只读属性 / 不存在 API 的错误。虽然 CLI eval 返回成功，实际执行的是此前加载的程序集。改用 Editor `SerializedObject` 设置真实字段，并将 `EditorUtility.scriptCompilationFailed` 纳入导出前探针和 Setup 检查；编译失败不能作为成功场景继续导出。
+
+动画端点因浮点 sin(π) 略小于零，经分数次幂生成 NaN，使 SmoothTangents 失败。对包络先 clamp 到非负值，再计算幂，消除根因。
+
+### E09：Mesh 的 CPU 数据更新，不代表 GPU 缓冲已经更新
+
+薄面板几何修正后，CPU 顶点 / bounds / 三角形方向都正确，截图却仍出现面罩中央被壳体遮挡。逐个隔离 Renderer、着色诊断与重设网格缓冲确认：`EditorUtility.CopySerialized` 保留了旧 GPU 数据。生成器改为对已有 Mesh 调用 Clear，并显式赋值 vertices / normals / uv / triangles，刷新真实渲染缓存。Cubemap 同样通过 SetPixels / Apply 更新；普通 AnimationClip 继续序列化复制。重建时 GUID 不变，引用稳定，编辑器预览与打包数据一致。
+
+### E10：导出等待的是 macOS 授权弹窗，不是编译
+
+导出停在 shader 序列化后，采样主线程定位 `IsXcodeProjectOpen → ScriptingBridge → Apple Event`，界面为 Unity 请求控制 Xcode。拒绝额外自动化权限后，Unity 正常继续 IL2CPP 导出，命令行 Xcode 构建无需该授权。无需重启工程或重复发出导出命令。
+
+### E11：新模型的真实触头坐标与验收边界
+
+首轮升级测试 `ViewerFlow-20260926-082959` 的加载取消 / 超时恢复通过，完整流程在触头处失败。实际复位截图显示新模型头部位于屏幕高度约 21%–39%，旧用例点击 40% 已处于颈部。将真实点击与从头部开始拖动的坐标改为 31%，不放宽头部命中区域，也不删除身体 / 空白负例。此轮同时观察到目标 120、引擎应用值 60、显示刷新率 60；据此补充可见的屏幕上限，避免误解。
+
+真机上的 120 或严格高于 60 尚未验收。Simulator 60 Hz 限制属于本轮实测边界，不用提高请求数字、丢弃慢帧或伪造统计绕过。
+
+### D08：默认构图覆盖完整动作，阴影覆盖整个缩放范围
+
+功能通过后，截图审查发现挥手外摆会被默认画面边缘裁掉。扩大默认横向 / 纵向动作留白，以每条动画 61 个时刻、每个 Renderer 的包围盒角点投影验证 iPhone 17、iPad 11 英寸纵横屏三种比例；这只是编辑器数值验证，不替代 iPad 实机 / 模拟器测试。最终 iPhone 默认取景下所有动作的横向范围约为 9%–92%，头部正例坐标随最终构图更新为屏幕高度 37%。同时将阴影距离设为 50，覆盖最大 2.2 倍缩远时的模型，避免只在默认视角有影子。
+
+### Luma 最终证据
+
+`ViewerFlow-20260926-084457`：3 tests passed / 0 failures / 0 skipped，102 条引擎事件校验 PASS，22 次展示、24 次复位、四动作与头部正负例通过。30 个性能窗口保留；请求 120 的组为 3119 帧 / 52.233s，平均 59.71 FPS，Unity 应用值与报告刷新率均为 60，最慢帧 105.340ms。该功能自动化样本不满足每帧严格高于 60，真机 120 / 长时性能仍 NOT_TESTED；没有将配置支持冒充性能验收通过。完整证据、新版 18 张截图与实际动作录像见 `docs/luma-quality-performance.md`。

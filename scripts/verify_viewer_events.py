@@ -32,10 +32,15 @@ head_hits = [e for e in events if e['name'] == 'headTapped']
 assert len(head_hits) == 1, 'Only the deliberate head tap may trigger a shake; body, background and drag must not'
 assert any(e['action'] == 'No' and e['source'] == 'head' for e in started)
 assert any(e['action'] == 'Dance' and e['presentationId'] == 22 for e in completed), 'Animation must recover after backgrounding'
+performance = [e for e in events if e['name'] == 'performance']
+assert {60,120}.issubset({e['targetFPS'] for e in performance}), 'Both render targets must produce measured samples'
+assert all(e['fps'] > 0 and e['frameCount'] > 0 and e['p99Ms'] >= e['p95Ms'] > 0 for e in performance)
+assert all(e['width'] == 1206 and e['height'] == 2622 for e in performance), 'iPhone 17 must retain native rendering resolution'
 summary = dict(status='PASS', sceneReadyCount=len(ready), verifiedPresentations=22,
     initialDistance=normal, rotatedYaw=rotated['yaw'], rotatedPitch=rotated['pitch'],
     zoomedDistance=zoomed['distance'], resetCount=len(resets), eventCount=len(events),
-    actionsVerified=['Wave','Jump','Dance','No'], headHitCount=len(head_hits))
+    actionsVerified=['Wave','Jump','Dance','No'], headHitCount=len(head_hits),
+    performanceWindows=len(performance), renderTargetsVerified=[60,120])
 output = path.with_suffix('.verification.json')
 output.write_text(json.dumps(summary,indent=2)+'\n')
 print(json.dumps(summary,indent=2))

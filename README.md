@@ -2,7 +2,9 @@
 
 SwiftUI / UIKit 原生宿主与 Unity as a Library 组成的 Universal App。首页打开内置机器人，支持**单指旋转、双指缩放、复位、挥手 / 跳跃 / 跳舞按钮，以及轻触头部摇头**。模型、材质、动画和缩略图全部内置。
 
-本轮按用户最新要求在 **iPhone 17 / iOS 26.4 模拟器**交付，不连接真机。iPhone 使用竖屏，iPad 源码支持横竖屏和宽屏首页。两台指定真机及 iPad 模拟器均不在本轮实测范围，见[模拟器报告](docs/simulator-acceptance.md)与[真机验收表](docs/acceptance-report.md)。
+2026-09-26 画质升级：默认角色为原创 **Luma**，带圆润陶瓷外壳、金属关节、玻璃面罩、棚拍灯光与实时阴影。启用原生分辨率、4× MSAA、HDR 工作缓冲和 ACES 色调映射。默认请求 **120 FPS**，查看器支持 60／120 切换并显示实测帧率；目标值不等于已达到的帧率，持续高于 60 和 120 FPS 须以真机报告为准。
+
+本轮按用户最新要求在 **iPhone 17 / iOS 26.4 模拟器**交付，不连接真机。iPhone 使用竖屏，iPad 源码支持横竖屏和宽屏首页。两台指定真机及 iPad 模拟器均不在本轮实测范围，见[Luma 画质与性能报告](docs/luma-quality-performance.md)、[首版历史报告](docs/simulator-acceptance.md)与[真机验收表](docs/acceptance-report.md)。
 
 ## 直接运行
 
@@ -41,7 +43,7 @@ bash scripts/run_simulator.sh
 bash scripts/test_simulator.sh
 ```
 
-XCTest 操作真实 App：加载取消及重试、15 秒前台等待超时及恢复、首页和关于、真实手势、四种动作、头部 / 身体 / 空白点击区别、动作切换、20 次进出、后台恢复。随后 Python 对 Unity 回传的实际相机参数和动作事件断言。
+XCTest 操作真实 App：加载取消及重试、15 秒前台等待超时及恢复、首页和关于、真实手势、四种动作、头部 / 身体 / 空白点击区别、动作切换、20 次进出、后台恢复。同时验证 60／120 帧率切换及原生分辨率。随后 Python 对 Unity 回传的实际相机参数、动作和性能事件断言。性能数据为渲染循环墙钟间隔，并非真机显示呈现的证明。
 
 每轮日志、`.xcresult`、截图、事件证据分别保存在 `.local/logs/`、`.local/checks/`，保留历史。测试延迟注入与事件落盘只在 DEBUG 且显式传入 `--ui-testing` 时启用。
 
@@ -49,7 +51,7 @@ XCTest 操作真实 App：加载取消及重试、15 秒前台等待超时及恢
 
 | 路径 | 职责 |
 |---|---|
-| `unity/CharacterRuntime/` | Unity 源工程：URP、GLB、动作、镜头和触摸交互 |
+| `unity/CharacterRuntime/` | Unity 源工程：URP、原创模型、动作、镜头和触摸交互 |
 | `ios/CharacterHost/` | 原生源码：SwiftUI 首页、UIKit 控件、生命周期和桥接 |
 | `build/unity-simulator/` | Unity 生成的 ARM64 Simulator SDK Xcode 工程 |
 | `build/unity-device/` | 独立 Device SDK 导出，不与模拟器框架混用 |
@@ -90,7 +92,7 @@ Apple Silicon / ARM64，Unity **6000.3.25f1 LTS** + iOS Build Support，Xcode **
 
 4. 如需复查 Xcode / Unity 的完整编译组合，执行 `python3 scripts/check_ios_toolchain.py`。
 
-模型已作为本地资源保存，无须重复下载。仅在模型文件缺失时执行：
+当前 Luma 由 `StudioRobotBuilder.cs` 自动生成，无须下载模型或贴图。旧版 RobotExpressive 保留作历史资源，不进入当前场景；只有复查旧版本且其文件缺失时才需要：
 
 ```bash
 python3 scripts/fetch_sample_asset.py --output unity/CharacterRuntime/Assets/ThirdParty/RobotExpressive

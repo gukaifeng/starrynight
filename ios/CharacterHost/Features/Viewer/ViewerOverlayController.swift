@@ -17,19 +17,26 @@ final class ViewerOverlayController: UIViewController {
     var onReset: (() -> Void)?
     var onResize: (() -> Void)?
     var onAction: ((String) -> Void)?
+    var onFrameRate: ((Int) -> Void)?
+    private let performance = UIButton(type:.system)
     private var previousSize: CGSize = .zero
     private let subtitle = UILabel()
     private var actionButtons: [String:UIButton] = [:]
 
     func setAction(_ action: String) {
         let names = ["Wave":"挥手", "Jump":"跳跃", "Dance":"跳舞", "No":"摇头"]
-        subtitle.text = names[action].map { "正在" + $0 } ?? "ROBOT EXPRESSIVE"
+        subtitle.text = names[action].map { "正在" + $0 } ?? "LUMA · STUDIO ROBOT"
         for (name,button) in actionButtons {
             button.isSelected = name == action
             button.accessibilityValue = name == action ? "正在播放" : "轻点播放"
             button.configuration?.baseBackgroundColor = name == action
                 ? UIColor(red:0.86,green:0.9,blue:1,alpha:1) : .white.withAlphaComponent(0.95)
         }
+    }
+    func setPerformance(fps:Double,target:Int,screenMaximum:Int) {
+        performance.configuration?.title = String(format:"%.0f FPS  ·  目标 %d",fps,target)
+        performance.configuration?.subtitle = "当前屏幕上限 \(screenMaximum) Hz"
+        performance.accessibilityValue = String(format:"实测渲染循环 %.1f 帧，目标 %d 帧，屏幕上限 %d 赫兹",fps,target,screenMaximum)
     }
 
     override func loadView() { view = TouchThroughView(); view.backgroundColor = .clear }
@@ -54,10 +61,10 @@ final class ViewerOverlayController: UIViewController {
         reset.configuration = resetConfig
         reset.accessibilityIdentifier = "resetViewButton"
         reset.addAction(UIAction { [weak self] _ in self?.onReset?() },for:.touchUpInside)
-        let title = UILabel(); title.text = "示例机器人"; title.textColor = ink
+        let title = UILabel(); title.text = "Luma"; title.textColor = ink
         title.font = .preferredFont(forTextStyle:.headline); title.adjustsFontForContentSizeCategory = true
         title.textAlignment = .center
-        subtitle.text = "ROBOT EXPRESSIVE"; subtitle.textAlignment = .center
+        subtitle.text = "LUMA · STUDIO ROBOT"; subtitle.textAlignment = .center
         subtitle.font = .monospacedSystemFont(ofSize:9,weight:.medium); subtitle.textColor = ink.withAlphaComponent(0.48)
         let hint = UILabel(); hint.text = "拖动旋转 · 双指缩放 · 点头部互动"
         hint.font = .preferredFont(forTextStyle:.caption1); hint.textColor = ink.withAlphaComponent(0.66)
@@ -85,7 +92,26 @@ final class ViewerOverlayController: UIViewController {
             view.addSubview(item); item.translatesAutoresizingMaskIntoConstraints = false
         }
         let safe = view.safeAreaLayoutGuide
+        var fpsConfig = UIButton.Configuration.tinted()
+        fpsConfig.title = "目标 120 FPS · 测量中"; fpsConfig.cornerStyle = .capsule
+        fpsConfig.baseForegroundColor = ink; fpsConfig.baseBackgroundColor = .white
+        fpsConfig.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { incoming in
+            var outgoing = incoming; outgoing.font = .monospacedDigitSystemFont(ofSize:11,weight:.medium); return outgoing
+        }
+        fpsConfig.subtitleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { incoming in
+            var outgoing = incoming; outgoing.font = .systemFont(ofSize:9); return outgoing
+        }
+        performance.configuration = fpsConfig
+        performance.accessibilityIdentifier = "frameRateButton"
+        performance.accessibilityLabel = "帧率设置与实测"
+        performance.menu = UIMenu(title:"渲染目标（实际帧率由设备与系统决定）",children:[
+            UIAction(title:"120 FPS · 高刷新率") { [weak self] _ in self?.onFrameRate?(120) },
+            UIAction(title:"60 FPS · 标准") { [weak self] _ in self?.onFrameRate?(60) }])
+        performance.showsMenuAsPrimaryAction = true
+        view.addSubview(performance); performance.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
+            performance.topAnchor.constraint(equalTo:back.bottomAnchor,constant:18),
+            performance.centerXAnchor.constraint(equalTo:view.centerXAnchor),performance.heightAnchor.constraint(equalToConstant:44),
             back.leadingAnchor.constraint(equalTo:safe.leadingAnchor,constant:20),
             back.topAnchor.constraint(equalTo:safe.topAnchor,constant:12),
             back.widthAnchor.constraint(equalToConstant:46),back.heightAnchor.constraint(equalToConstant:46),

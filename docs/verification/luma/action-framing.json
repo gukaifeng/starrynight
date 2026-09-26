@@ -1,0 +1,142 @@
+{
+  "environment": "Unity Editor numerical projection; not iPad runtime validation",
+  "samplesPerClip": 61,
+  "status": "PASS",
+  "poses": [
+    {
+      "aspect": 0.459954232,
+      "action": "Idle",
+      "minX": 0.272976816,
+      "maxX": 0.7340671,
+      "minY": 0.295555085,
+      "maxY": 0.6993756,
+      "distance": 16.82108
+    },
+    {
+      "aspect": 0.459954232,
+      "action": "Wave",
+      "minX": 0.09251475,
+      "maxX": 0.733058631,
+      "minY": 0.295555085,
+      "maxY": 0.697538257,
+      "distance": 16.82108
+    },
+    {
+      "aspect": 0.459954232,
+      "action": "Jump",
+      "minX": 0.113860011,
+      "maxX": 0.9234632,
+      "minY": 0.295555085,
+      "maxY": 0.785780966,
+      "distance": 16.82108
+    },
+    {
+      "aspect": 0.459954232,
+      "action": "Dance",
+      "minX": 0.116369575,
+      "maxX": 0.9198121,
+      "minY": 0.295555085,
+      "maxY": 0.723610461,
+      "distance": 16.82108
+    },
+    {
+      "aspect": 0.459954232,
+      "action": "No",
+      "minX": 0.210847721,
+      "maxX": 0.786525548,
+      "minY": 0.295555085,
+      "maxY": 0.7004894,
+      "distance": 16.82108
+    },
+    {
+      "aspect": 0.6892562,
+      "action": "Idle",
+      "minX": 0.280306041,
+      "maxX": 0.7252531,
+      "minY": 0.204540387,
+      "maxY": 0.7818601,
+      "distance": 11.7466269
+    },
+    {
+      "aspect": 0.6892562,
+      "action": "Wave",
+      "minX": 0.115519382,
+      "maxX": 0.7244889,
+      "minY": 0.204540387,
+      "maxY": 0.7792704,
+      "distance": 11.7466269
+    },
+    {
+      "aspect": 0.6892562,
+      "action": "Jump",
+      "minX": 0.134844452,
+      "maxX": 0.914044,
+      "minY": 0.204540387,
+      "maxY": 0.9178014,
+      "distance": 11.7466269
+    },
+    {
+      "aspect": 0.6892562,
+      "action": "Dance",
+      "minX": 0.13810876,
+      "maxX": 0.909212351,
+      "minY": 0.204540387,
+      "maxY": 0.8139044,
+      "distance": 11.7466269
+    },
+    {
+      "aspect": 0.6892562,
+      "action": "No",
+      "minX": 0.2181977,
+      "maxX": 0.7738638,
+      "minY": 0.204540387,
+      "maxY": 0.780983746,
+      "distance": 11.7466269
+    },
+    {
+      "aspect": 1.45083928,
+      "action": "Idle",
+      "minX": 0.395629078,
+      "maxX": 0.6070119,
+      "minY": 0.204540387,
+      "maxY": 0.7818601,
+      "distance": 11.7466269
+    },
+    {
+      "aspect": 1.45083928,
+      "action": "Wave",
+      "minX": 0.317343235,
+      "maxX": 0.606648862,
+      "minY": 0.204540387,
+      "maxY": 0.7792704,
+      "distance": 11.7466269
+    },
+    {
+      "aspect": 1.45083928,
+      "action": "Jump",
+      "minX": 0.326524079,
+      "maxX": 0.696701646,
+      "minY": 0.204540387,
+      "maxY": 0.9178014,
+      "distance": 11.7466269
+    },
+    {
+      "aspect": 1.45083928,
+      "action": "Dance",
+      "minX": 0.328074872,
+      "maxX": 0.6944062,
+      "minY": 0.204540387,
+      "maxY": 0.8139044,
+      "distance": 11.7466269
+    },
+    {
+      "aspect": 1.45083928,
+      "action": "No",
+      "minX": 0.366123021,
+      "maxX": 0.6301056,
+      "minY": 0.204540387,
+      "maxY": 0.780983746,
+      "distance": 11.7466269
+    }
+  ]
+}

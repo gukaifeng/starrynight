@@ -6,6 +6,6 @@ struct ModelDescriptor: Identifiable {
     let originalName: String
     let description: String
     let thumbnail: String
-    static let robot = ModelDescriptor(id: "robot-expressive", name: "示例机器人",
-        originalName: "Robot Expressive", description: "会挥手、会跳舞，还会回应你的触碰。", thumbnail: "RobotThumbnail")
+    static let robot = ModelDescriptor(id: "studio-robot", name: "Luma",
+        originalName: "Studio Robot", description: "温润陶瓷，微光眼眸。触碰一下，和它打个招呼。", thumbnail: "RobotThumbnail")
 }

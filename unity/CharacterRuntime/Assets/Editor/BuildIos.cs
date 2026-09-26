@@ -19,13 +19,25 @@ public static class BuildIos
     [MenuItem("Model Space/Set up viewer")]
     public static void Setup()
     {
+        if (EditorUtility.scriptCompilationFailed) throw new Exception("Cannot generate a scene while C# compilation has errors");
         Directory.CreateDirectory("Assets/Prefabs");
         Directory.CreateDirectory("Assets/Materials");
         AssetDatabase.Refresh();
         var pipeline = AssetDatabase.LoadAssetAtPath<UniversalRenderPipelineAsset>("Assets/Settings/Mobile_RPAsset.asset");
         if (!pipeline) throw new Exception("Mobile URP asset missing");
         pipeline.renderScale = 1f; pipeline.msaaSampleCount = 4;
-        pipeline.shadowDistance = 45; pipeline.supportsHDR = false;
+        // Covers the model even at the maximum permitted orbit distance (2.2× fit).
+        pipeline.shadowDistance = 50; pipeline.supportsHDR = true;
+        pipeline.mainLightShadowmapResolution = 4096;
+        pipeline.shadowCascadeCount = 2; pipeline.cascade2Split = .45f;
+        var pipelineSettings = new SerializedObject(pipeline);
+        pipelineSettings.FindProperty("m_SoftShadowsSupported").boolValue = true;
+        pipelineSettings.FindProperty("m_SoftShadowQuality").intValue = (int)SoftShadowQuality.High;
+        pipelineSettings.ApplyModifiedPropertiesWithoutUndo();
+        pipeline.supportsCameraOpaqueTexture = false;
+        pipeline.supportsCameraDepthTexture = false;
+        pipeline.useSRPBatcher = true;
+        EditorUtility.SetDirty(pipeline);
         GraphicsSettings.defaultRenderPipeline = pipeline;
         for (int i = 0; i < QualitySettings.names.Length; i++)
         { QualitySettings.SetQualityLevel(i); QualitySettings.renderPipeline = pipeline; }
@@ -34,6 +46,10 @@ public static class BuildIos
         PlayerSettings.colorSpace = ColorSpace.Linear;
         PlayerSettings.iOS.targetOSVersionString = "17.0";
         PlayerSettings.iOS.targetDevice = iOSTargetDevice.iPhoneAndiPad;
+        var appleSettings = new SerializedObject(AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/ProjectSettings.asset")[0]);
+        appleSettings.FindProperty("appleEnableProMotion").boolValue = true;
+        appleSettings.ApplyModifiedPropertiesWithoutUndo();
+        PlayerSettings.enableFrameTimingStats = true;
         PlayerSettings.defaultInterfaceOrientation = UIOrientation.AutoRotation;
         PlayerSettings.allowedAutorotateToPortrait = true;
         PlayerSettings.allowedAutorotateToPortraitUpsideDown = true;
@@ -43,13 +59,8 @@ public static class BuildIos
         PlayerSettings.SetScriptingBackend(NamedBuildTarget.iOS, ScriptingImplementation.IL2CPP);
         PlayerSettings.SetManagedStrippingLevel(NamedBuildTarget.iOS, ManagedStrippingLevel.Minimal);
         var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
-        var source = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ThirdParty/RobotExpressive/RobotExpressive.glb");
-        if (!source) throw new Exception("RobotExpressive missing; cannot build viewer");
-        var wrapper = new GameObject("DefaultCharacter");
-        var model = (GameObject)PrefabUtility.InstantiatePrefab(source, wrapper.transform);
-        foreach (var animator in model.GetComponentsInChildren<Animator>(true)) animator.enabled = false;
-        foreach (var animation in model.GetComponentsInChildren<Animation>(true)) animation.enabled = false;
-        var renderers = model.GetComponentsInChildren<Renderer>();
+        var wrapper = StudioRobotBuilder.Create();
+        var renderers = wrapper.GetComponentsInChildren<Renderer>();
         Bounds bounds = renderers[0].bounds;
         foreach (var r in renderers) bounds.Encapsulate(r.bounds);
         wrapper.transform.position = new Vector3(-bounds.center.x, -bounds.min.y, -bounds.center.z);
@@ -57,16 +68,35 @@ public static class BuildIos
         var camera = new GameObject("MainCamera").AddComponent<Camera>();
         camera.tag = "MainCamera"; camera.fieldOfView = 35; camera.nearClipPlane = .05f; camera.farClipPlane = 100;
         camera.clearFlags = CameraClearFlags.SolidColor;
-        camera.backgroundColor = new Color(245/255f,247/255f,251/255f);
-        camera.gameObject.AddComponent<UniversalAdditionalCameraData>().renderPostProcessing = false;
+        camera.backgroundColor = new Color(.60f,.69f,.75f);
+        camera.allowHDR = true; camera.allowMSAA = true;
+        var cameraData = camera.gameObject.AddComponent<UniversalAdditionalCameraData>();
+        cameraData.renderPostProcessing = true; cameraData.dithering = true;
+        var volume = new GameObject("StudioToneMapping").AddComponent<Volume>(); volume.isGlobal = true;
+        var profile = AssetDatabase.LoadAssetAtPath<VolumeProfile>("Assets/StudioRobot/StudioVolume.asset");
+        if (!profile) { profile = ScriptableObject.CreateInstance<VolumeProfile>(); AssetDatabase.CreateAsset(profile,"Assets/StudioRobot/StudioVolume.asset"); }
+        if (!profile.TryGet<Tonemapping>(out var tone)) { tone = profile.Add<Tonemapping>(true); AssetDatabase.AddObjectToAsset(tone,profile); }
+        tone.mode.Override(TonemappingMode.ACES); EditorUtility.SetDirty(profile); volume.sharedProfile = profile;
         var key = new GameObject("KeyLight").AddComponent<Light>();
-        key.type = LightType.Directional; key.intensity = 2.1f;
-        key.transform.rotation = Quaternion.Euler(42, -35, 0); key.shadows = LightShadows.Soft;
+        key.type = LightType.Directional; key.intensity = 1.6f; key.color = new Color(1,.94f,.85f);
+        key.transform.rotation = Quaternion.Euler(50, 145, 0); key.shadows = LightShadows.Soft;
+        key.shadowBias = .035f; key.shadowNormalBias = .18f; key.shadowStrength = .85f;
+        var lightData = key.gameObject.AddComponent<UniversalAdditionalLightData>();
+        lightData.usePipelineSettings = false; lightData.softShadowQuality = SoftShadowQuality.High;
         var fill = new GameObject("FillLight").AddComponent<Light>();
-        fill.type = LightType.Directional; fill.intensity = .65f;
-        fill.color = new Color(.78f,.85f,1); fill.transform.rotation = Quaternion.Euler(20,145,0);
-        RenderSettings.ambientMode = AmbientMode.Flat;
-        RenderSettings.ambientLight = new Color(.70f,.74f,.82f);
+        fill.type = LightType.Directional; fill.intensity = .35f;
+        fill.color = new Color(.78f,.85f,1); fill.transform.rotation = Quaternion.Euler(20,-115,0);
+        var rim = new GameObject("RimLight").AddComponent<Light>(); rim.type = LightType.Directional;
+        rim.intensity = .8f; rim.color = new Color(.78f,.88f,1); rim.transform.rotation = Quaternion.Euler(35,-20,0);
+        RenderSettings.ambientMode = AmbientMode.Trilight;
+        RenderSettings.ambientSkyColor = new Color(.48f,.50f,.53f);
+        RenderSettings.ambientEquatorColor = new Color(.27f,.29f,.31f);
+        RenderSettings.ambientGroundColor = new Color(.10f,.12f,.15f);
+        RenderSettings.defaultReflectionMode = DefaultReflectionMode.Custom;
+        RenderSettings.customReflectionTexture = StudioRobotBuilder.StudioReflection();
+        RenderSettings.reflectionIntensity = 1;
+        RenderSettings.fog = true; RenderSettings.fogMode = FogMode.ExponentialSquared;
+        RenderSettings.fogColor = camera.backgroundColor; RenderSettings.fogDensity = .014f;
         var ground = GameObject.CreatePrimitive(PrimitiveType.Plane);
         ground.name = "Ground"; ground.transform.localScale = Vector3.one * 20;
         UnityEngine.Object.DestroyImmediate(ground.GetComponent<Collider>());
@@ -76,11 +106,12 @@ public static class BuildIos
             material = new Material(Shader.Find("Universal Render Pipeline/Lit"));
             AssetDatabase.CreateAsset(material, "Assets/Materials/Ground.mat");
         }
-        material.SetColor("_BaseColor", new Color(.88f,.91f,.96f));
-        material.SetFloat("_Smoothness", .05f);
+        material.SetColor("_BaseColor", new Color(.35f,.43f,.48f));
+        material.SetFloat("_Smoothness", .18f); EditorUtility.SetDirty(material);
         ground.GetComponent<Renderer>().sharedMaterial = material;
         var receiver = new GameObject("AppBridgeReceiver").AddComponent<ViewerController>();
         receiver.gameObject.AddComponent<CharacterActions>();
+        receiver.gameObject.AddComponent<RenderPerformance>();
         receiver.model = wrapper.transform; receiver.viewCamera = camera;
         EditorSceneManager.SaveScene(scene, ScenePath);
         EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
@@ -110,6 +141,8 @@ public static class BuildIos
         if (renderers.Length == 0 || renderers.Any(r=>r.sharedMaterials.Any(m=>!m || !m.shader))) throw new Exception("Model/material invalid");
         if (viewers[0].model.GetComponentsInChildren<Animator>().Any(a=>a.enabled) || viewers[0].model.GetComponentsInChildren<Animation>().Any(a=>a.enabled)) throw new Exception("Automatic animation enabled");
         if (!viewers[0].GetComponent<CharacterActions>()) throw new Exception("Action controller missing");
+        var appleSettings = new SerializedObject(AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/ProjectSettings.asset")[0]);
+        if (!appleSettings.FindProperty("appleEnableProMotion").boolValue) throw new Exception("ProMotion must be enabled");
         var animation = viewers[0].model.GetComponentInChildren<Animation>();
         foreach (string clip in new[] { "Idle", "Wave", "Jump", "Dance", "No" })
             if (!animation || !animation.GetClip(clip)) throw new Exception("Action missing: " + clip);

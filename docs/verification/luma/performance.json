@@ -1,0 +1,55 @@
+{
+  "environment": "iPhone 17 / iOS 26.4 Simulator on Apple M3 Pro",
+  "measurement": "Unity player-loop wall-clock intervals; not physical display presentation or GPU timing",
+  "sampling": "Two-second windows; first second after configure/focus/pause excluded; no other slow-frame rejection",
+  "source": "ViewerFlow-20260926-084457-events.jsonl",
+  "physicalDevice120FPS": "NOT_TESTED",
+  "sustainedAbove60Acceptance": "NOT_PROVEN",
+  "resolution": [
+    "1206x2622"
+  ],
+  "groups": [
+    {
+      "requestedFPS": 60,
+      "appliedFPS": [
+        60
+      ],
+      "reportedRefreshHz": [
+        60.0
+      ],
+      "windows": 4,
+      "frames": 479,
+      "measuredSeconds": 8.033,
+      "averageFPS": 59.63,
+      "minimumWindowFPS": 58.51,
+      "maximumWindowFPS": 60.0,
+      "worstWindowP95Ms": 17.614,
+      "worstWindowP99Ms": 33.505,
+      "worstFrameMs": 39.749,
+      "framesOver16_7ms": 242,
+      "percentOver16_7ms": 50.52,
+      "everyMeasuredFrameStrictlyAbove60": false
+    },
+    {
+      "requestedFPS": 120,
+      "appliedFPS": [
+        60
+      ],
+      "reportedRefreshHz": [
+        60.0
+      ],
+      "windows": 26,
+      "frames": 3119,
+      "measuredSeconds": 52.233,
+      "averageFPS": 59.71,
+      "minimumWindowFPS": 56.53,
+      "maximumWindowFPS": 60.01,
+      "worstWindowP95Ms": 17.239,
+      "worstWindowP99Ms": 44.58,
+      "worstFrameMs": 105.34,
+      "framesOver16_7ms": 1561,
+      "percentOver16_7ms": 50.05,
+      "everyMeasuredFrameStrictlyAbove60": false
+    }
+  ]
+}

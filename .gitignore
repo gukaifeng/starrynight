@@ -15,3 +15,7 @@ ios/Config/Local.xcconfig
 *.pfx
 *.cer
 __pycache__/
+
+# Unity automatic scene recovery, retained locally
+**/_Recovery/
+**/_Recovery.meta

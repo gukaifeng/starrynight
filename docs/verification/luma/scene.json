@@ -1,0 +1,22 @@
+{
+  "model": "Luma",
+  "renderers": 35,
+  "triangles": 70980,
+  "renderScale": 1,
+  "msaa": 4,
+  "hdr": true,
+  "shadowDistance": 50,
+  "shadowResolution": 4096,
+  "shadowCascades": 2,
+  "softShadows": true,
+  "proMotion": true,
+  "materials": [
+    "Porcelain",
+    "Titanium",
+    "Enamel",
+    "Light",
+    "Visor",
+    "Graphite"
+  ],
+  "failed": false
+}
