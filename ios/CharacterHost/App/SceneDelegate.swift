@@ -10,6 +10,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
         guard let windowScene = scene as? UIWindowScene else { return }
+        LaunchTrace.begin()
         let window = UIWindow(windowScene: windowScene)
         self.window = window
         let placeholder = UIViewController()
@@ -107,8 +108,8 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         if ProcessInfo.processInfo.arguments.contains(where: { ["--speech-playback-check", "--greeting-core-check", "--view-presets-check", "--experience-core-check", "--export-core-check", "--export-ui-check", "--social-core-check", "--cache-core-check"].contains($0) }) { return }
 #endif
         guard coordinator == nil, bootstrapTask == nil else { return }
-        // Commit the native animation before reading account/catalog data or
-        // synchronously starting Unity. No fake progress and no serial intro wait.
+        // Paint the lightweight brand cover, then prepare only the native shell.
+        // Unity is scheduled after the cover has gone and the menu is usable.
         bootstrapTask = Task { @MainActor [weak self] in
             do { try await Task.sleep(for:.milliseconds(80)) } catch { return }
             guard let self, let window = self.window else { return }
@@ -117,7 +118,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             }
             let coordinator = ViewerCoordinator(window:window,scene:windowScene)
             self.coordinator = coordinator
-            coordinator.onInitialContentReady = { [weak self] in
+            coordinator.onShellReady = { [weak self] in
                 self?.startup?.finish { [weak self] in
                     guard let self else { return }
                     self.coordinator?.completeStartup()

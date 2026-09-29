@@ -10,19 +10,23 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
     var selectedTab: AppTab = .home
     var loginPresented = false
     private(set) var startupInProgress = true
-    @ObservationIgnored var onInitialContentReady: (() -> Void)?
-    @ObservationIgnored private var initialContentReady = false
-    private func finishInitialPreparation() {
-        guard startupInProgress, !initialContentReady else { return }
-        initialContentReady = true
-        onInitialContentReady?()
+    @ObservationIgnored var onShellReady: (() -> Void)?
+    @ObservationIgnored private var shellReady = false
+    private func finishShellPreparation() {
+        guard startupInProgress, !shellReady else { return }
+        shellReady = true
+        LaunchTrace.mark("nativeShellPrepared")
+        onShellReady?()
     }
     func completeStartup() {
+        guard startupInProgress else { return }
         startupInProgress = false
-        onInitialContentReady = nil
+        onShellReady = nil
         overlay?.view.accessibilityElementsHidden = page != .viewer
         window?.rootViewController?.view.accessibilityElementsHidden = page == .viewer
+        LaunchTrace.mark("nativeShellVisible")
         recordTestEvent("{\"name\":\"appStartupCompleted\",\"presentationId\":\(presentation)}")
+        scheduleRuntimeStart()
         greetVisibleConversation()
     }
     private(set) var transitionSourceTab: AppTab?
@@ -87,8 +91,9 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
         activateLibrary()
         if ProcessInfo.processInfo.arguments.contains("--shell-discover") { selectedTab = .discover }
         else if page == .home { resumeLastCharacter(reason:.appLaunch) }
-        // An empty account or a non-chat launch has no Unity scene to await.
-        if page == .home { DispatchQueue.main.async { [weak self] in self?.finishInitialPreparation() } }
+        // The native page is sufficient to dismiss startup, even when its 3D
+        // character is still pending. Commit its layout before fading the cover.
+        DispatchQueue.main.async { [weak self] in self?.finishShellPreparation() }
     }
     private func activateLibrary() {
         let id = account.session?.accountID ?? "guest"
@@ -175,6 +180,7 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
     @ObservationIgnored private var postureRequests: [String:CheckedContinuation<String?,Never>] = [:]
     private(set) var page: Page = .home
     private(set) var stageLoadingVisible = false
+    private(set) var preparingInitialConversation = false
     var showsLoadingIndicator: Bool { page == .error } // Legacy gallery error surface only.
     private(set) var errorMessage = ""
     private(set) var selectedModel = ModelDescriptor.defaultCharacter
@@ -385,13 +391,14 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
         return companionStore.error
     }
     func openViewer(_ model: ModelDescriptor = .defaultCharacter, asCompanion: Bool = false) {
-        guard page == .home, let scene else { return }
+        guard page == .home, scene != nil else { return }
         if !asCompanion { companion?.stop(); companion = nil }
         cancelOpeningTasks()
         selectedModel = model; characterPort.reset()
         bundledBackdropVisible = false
         pendingReset = ""; pendingReveal = ""; frameReady = false
         stageLoadingVisible = true
+        preparingInitialConversation = startupInProgress
         presentation += 1; desiredVisible = true; page = .loading
         characterPerformance.begin(modelID:model.runtimeID,presentation:presentation)
         // Keep a fully opaque native canvas above Unity even if its startup makes a
@@ -399,17 +406,26 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
         if let window { windowHandoff.cover(window) }
         window?.rootViewController?.view.accessibilityElementsHidden = false
         window?.makeKeyAndVisible()
-        let openingPresentation = presentation
         foregroundWait = 0; openTime = Date()
         loadingPresentation.begin(now:ProcessInfo.processInfo.systemUptime)
         logger.info("viewer_open presentation=\(self.presentation) warm=\(self.ready)")
         startTimeout()
-        // Let the loading canvas paint before Unity's synchronous startup.
+        scheduleRuntimeStart()
+    }
+    private func scheduleRuntimeStart() {
+        guard !startupInProgress, active, desiredVisible, page == .loading, let scene else { return }
+        launchTask?.cancel()
+        let openingPresentation = presentation
+        // First commit the usable native page. Unity requires the main thread;
+        // do not start it underneath the full-screen brand transition.
         launchTask = Task { @MainActor [weak self] in
-            do { try await Task.sleep(for:.milliseconds(48)) } catch { return }
-            guard let self, self.desiredVisible, self.page == .loading, self.presentation == openingPresentation else { return }
+            do { try await Task.sleep(for:.milliseconds(80)) } catch { return }
+            guard let self, self.active, !self.startupInProgress, self.desiredVisible,
+                  self.page == .loading, self.presentation == openingPresentation else { return }
             if !self.bridge.started {
+                LaunchTrace.mark("unityStartBegin")
                 self.bridge.start(in:scene)
+                LaunchTrace.mark("unityStartReturned")
                 self.window?.makeKeyAndVisible()
             } else {
                 self.bridge.setPaused(false)
@@ -581,6 +597,7 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
         let returning = !active && backgroundConversation
         active = true
         backgroundConversation = false
+        if page == .loading, !bridge.started { scheduleRuntimeStart() }
         if ProcessInfo.processInfo.arguments.contains("--preview-companion"), page == .home, !bridge.started {
             openCompanion(.defaultCharacter)
         } else if previewEnabled, page == .home, !bridge.started { openViewer(.defaultCharacter) }
@@ -731,7 +748,7 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
             self.presentPendingCustomization()
             self.conversationVisible = true
             self.send("getState")
-            self.finishInitialPreparation()
+            LaunchTrace.mark("conversationVisible")
             self.greetVisibleConversation()
         }
         window.rootViewController?.view.accessibilityElementsHidden = true
@@ -845,6 +862,7 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
             // The engine already applied this value. Echoing configureFraming would interrupt input.
             overlay?.setFraming(framing); overlay?.setRuntimeFraming(event)
         case "sceneReady":
+            LaunchTrace.mark("unitySceneReadyReceived")
             ready = true
             if desiredVisible && active { preparePresentation() }
             else { bridge.setPaused(true); window?.makeKeyAndVisible() }
@@ -859,6 +877,7 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
                   event["requestId"] as? String == pendingReveal,
                   (event["stableRenderedFrames"] as? Int ?? 0) >= 3 else { return }
             pendingReveal = ""; frameReady = true
+            LaunchTrace.mark("characterFrameReady")
             scheduleReveal()
         case "actionStarted", "actionCompleted", "actionIdle":
             guard event["presentationId"] as? Int == presentation,
@@ -885,7 +904,6 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
             window?.rootViewController?.view.accessibilityElementsHidden = false
             timer?.invalidate(); bridge.setPaused(true)
             if let window { windowHandoff.showShellImmediately(window) }
-            finishInitialPreparation()
         default: break
         }
     }
@@ -951,7 +969,6 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
                     self.window?.rootViewController?.view.accessibilityElementsHidden = false
                     self.timer?.invalidate(); self.bridge.setPaused(true)
                     if let window = self.window { self.windowHandoff.showShellImmediately(window) }
-                    self.finishInitialPreparation()
                 }
             }
         }

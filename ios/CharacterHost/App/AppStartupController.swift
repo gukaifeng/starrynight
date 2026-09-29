@@ -1,8 +1,7 @@
 import UIKit
 
-/// A separate, short-lived window lets the brand animation stay above both the
-/// native shell and Unity's startup window. Its committed layer animations keep
-/// moving while Unity performs the synchronous part of its embedded startup.
+/// A brief brand transition ends when the native shell is ready. Character and
+/// network preparation never extend this cover's lifetime.
 final class AppStartupController: UIViewController {
     static let night = UIColor(red:16/255,green:17/255,blue:20/255,alpha:1)
     private let content = UIView()
@@ -18,7 +17,7 @@ final class AppStartupController: UIViewController {
     private var phaseTask: Task<Void,Never>?
     private var leaving = false
     private var paused = false
-    private var introDuration:TimeInterval { UIAccessibility.isReduceMotionEnabled ? 0.2 : 1.2 }
+    private var introDuration:TimeInterval { UIAccessibility.isReduceMotionEnabled ? 0.12 : 0.42 }
     override var prefersStatusBarHidden:Bool { true }
 
     override func viewDidLoad() {
@@ -80,7 +79,7 @@ final class AppStartupController: UIViewController {
         startedAt = ProcessInfo.processInfo.systemUptime
         configureAnimation()
         phaseTask = Task { @MainActor [weak self] in
-            do { try await Task.sleep(for:.seconds(self?.introDuration ?? 1.2)) } catch { return }
+            do { try await Task.sleep(for:.seconds(self?.introDuration ?? 0.42)) } catch { return }
             guard let self, !self.leaving else { return }
             self.view.accessibilityValue = "等待就绪"
         }
@@ -97,30 +96,30 @@ final class AppStartupController: UIViewController {
             fade.timingFunction = CAMediaTimingFunction(name:.easeInEaseOut)
             layer.add(fade,forKey:"entrance")
         }
-        entrance(glyph.layer,delay:0.08,duration:0.8)
-        entrance(halo,delay:0.08,duration:1.1)
-        entrance(wordmark.layer,delay:0.32,duration:0.72)
-        entrance(caption.layer,delay:0.62,duration:0.58)
+        entrance(glyph.layer,delay:0,duration:0.30)
+        entrance(halo,delay:0,duration:0.42)
+        entrance(wordmark.layer,delay:0.08,duration:0.26)
+        entrance(caption.layer,delay:0.16,duration:0.24)
         let scale = CABasicAnimation(keyPath:"transform.scale")
-        scale.fromValue = 0.86; scale.toValue = 1; scale.duration = 1.05
+        scale.fromValue = 0.94; scale.toValue = 1; scale.duration = 0.42
         scale.timingFunction = CAMediaTimingFunction(controlPoints:0.16,0.8,0.24,1)
         glyph.layer.add(scale,forKey:"gather")
 
-        // Schedule the idle loops now, not in an intro-completion callback: the
-        // render server can continue them even if the main thread is loading.
+        // A slow local-data recovery can still breathe without waiting for a
+        // main-thread completion; Unity has not started behind this cover.
         let breathe = CAKeyframeAnimation(keyPath:"opacity")
         breathe.values = [1,0.60,1]; breathe.keyTimes = [0,0.5,1]
-        breathe.duration = 3.6; breathe.beginTime = now+1.2; breathe.repeatCount = .infinity
+        breathe.duration = 3.6; breathe.beginTime = now+0.42; breathe.repeatCount = .infinity
         breathe.timingFunctions = [.init(name:.easeInEaseOut),.init(name:.easeInEaseOut)]
         glyph.layer.add(breathe,forKey:"waiting-breath")
         let glow = CAKeyframeAnimation(keyPath:"transform.scale")
         glow.values = [1,1.13,1]; glow.keyTimes = [0,0.5,1]
-        glow.duration = 3.6; glow.beginTime = now+1.2; glow.repeatCount = .infinity
+        glow.duration = 3.6; glow.beginTime = now+0.42; glow.repeatCount = .infinity
         glow.timingFunctions = breathe.timingFunctions
         halo.add(glow,forKey:"waiting-glow")
         let flow = CAKeyframeAnimation(keyPath:"transform.translation.x")
         flow.values = [0,0,260,260]; flow.keyTimes = [0,0.12,0.70,1]
-        flow.duration = 3.6; flow.beginTime = now+1.2; flow.repeatCount = .infinity
+        flow.duration = 3.6; flow.beginTime = now+0.42; flow.repeatCount = .infinity
         beam.add(flow,forKey:"waiting-flow")
     }
     @objc private func motionPreferenceChanged() {
@@ -141,7 +140,7 @@ final class AppStartupController: UIViewController {
             guard let self, !self.leaving, !self.paused else { return }
             self.leaving = true; self.phaseTask?.cancel()
             self.view.accessibilityValue = "进入页面"
-            UIView.animate(withDuration:UIAccessibility.isReduceMotionEnabled ? 0.2 : 0.55,
+            UIView.animate(withDuration:UIAccessibility.isReduceMotionEnabled ? 0.12 : 0.22,
                            delay:0,options:[.curveEaseInOut,.beginFromCurrentState],animations:{
                 self.view.alpha = 0
             }) { [weak self] _ in

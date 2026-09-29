@@ -17,8 +17,12 @@ struct AppRootView: View {
             }
             VStack(spacing:0) {
                 Group {
-                    if coordinator.stageLoadingVisible && !coordinator.startupInProgress {
-                        CharacterArrivalView(name:coordinator.profile(for:coordinator.selectedModel).name)
+                    if coordinator.stageLoadingVisible {
+                        if coordinator.preparingInitialConversation {
+                            InitialConversationLanding(coordinator:coordinator)
+                        } else {
+                            CharacterArrivalView(name:coordinator.profile(for:coordinator.selectedModel).name)
+                        }
                     } else { switch coordinator.visibleShellTab {
                     case .home: ConversationLanding(coordinator:coordinator)
                     case .messages: MessagesPage(coordinator:coordinator)
@@ -40,6 +44,51 @@ struct AppRootView: View {
             }
             .task { coordinator.startShell() }
             .onChange(of:coordinator.account.session) { _,_ in coordinator.accountChanged() }
+    }
+}
+
+/// Native content is usable before Unity starts. Only bundled artwork and the
+/// existing local transcript are read here; no network request or fake reply.
+private struct InitialConversationLanding: View {
+    let coordinator: ViewerCoordinator
+    private var model: ModelDescriptor { coordinator.selectedModel }
+    private var profile: CharacterProfile { coordinator.profile(for:model) }
+    private var lastMessage: CompanionMessage? {
+        coordinator.companionStore.record(model.id).messages.last { !$0.text.isEmpty && !$0.interrupted }
+    }
+    var body: some View {
+        ZStack {
+            CharacterCover(model:model).opacity(0.3)
+                .mask(LinearGradient(colors:[.clear,.white,.white.opacity(0.2),.clear],
+                    startPoint:.top,endPoint:.bottom))
+                .allowsHitTesting(false)
+            VStack(alignment:.leading,spacing:0) {
+                HStack(spacing:9) {
+                    CharacterAvatar(model:model,profile:profile,portraits:coordinator.portraits,
+                                    size:28,floatingEnabled:false)
+                    Text(profile.name).font(.system(size:14,weight:.medium)).lineLimit(1)
+                }.padding(.leading,9).padding(.trailing,14).padding(.vertical,7)
+                    .background(Theme.surface.opacity(Theme.controlOpacity),in:Capsule())
+                    .overlay(Capsule().stroke(Theme.ink.opacity(0.09),lineWidth:0.5))
+                    .padding(.top,8)
+                Spacer(minLength:24)
+                if let lastMessage {
+                    VStack(alignment:.leading,spacing:10) {
+                        Text("上次聊到").font(.system(size:11)).foregroundStyle(Theme.secondary)
+                        Text(lastMessage.text).font(.system(size:15)).lineSpacing(5)
+                            .lineLimit(4).foregroundStyle(Theme.ink.opacity(0.85))
+                    }.padding(16).frame(maxWidth:.infinity,alignment:.leading)
+                        .background(Theme.surface.opacity(0.48),in:RoundedRectangle(cornerRadius:22))
+                        .accessibilityIdentifier("lastConversationPreview")
+                        .padding(.bottom,22)
+                }
+                HStack(spacing:10) {
+                    ProgressView().controlSize(.mini).tint(Theme.secondary)
+                    Text("\(profile.name)正在来到你身边")
+                        .font(.system(size:12)).foregroundStyle(Theme.secondary)
+                }.frame(maxWidth:.infinity).padding(.bottom,28)
+            }.padding(.horizontal,22)
+        }.accessibilityElement(children:.contain).accessibilityIdentifier("conversationPreparing")
     }
 }
 private struct ConversationLanding: View {

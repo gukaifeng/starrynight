@@ -4,7 +4,9 @@
 
 正式英文名 **StarryNight**，仓库和根目录统一为 `starrynight`。当前根目录 `/Users/gukaifeng/Documents/starrynight`，Xcode 真机入口为 `ios/StarryNight.xcworkspace`，模拟器入口为 `ios/StarryNight-Simulator.xcworkspace`，scheme 均为 `CharacterHost`。命名约定与迁移记录见 [英文命名与目录](docs/project-naming.md)。
 
-以精致 3D 角色为核心的 AI 陪伴产品。当前源码 **v0.48.0 / build 69**，名称保持「星夜」，默认月白深色主题，保留彩色星夜等可选主题，Logo 更新为极简月白星月矢量标志。原生 SwiftUI / UIKit + Unity as a Library，当前优先 **iPhone 手机版**，暂停新增 iPad 测试。
+以精致 3D 角色为核心的 AI 陪伴产品。当前源码 **v0.49.0 / build 70**，名称保持「星夜」，默认月白深色主题，保留彩色星夜等可选主题，Logo 更新为极简月白星月矢量标志。原生 SwiftUI / UIKit + Unity as a Library，当前优先 **iPhone 手机版**，暂停新增 iPad 测试。
+
+v0.49.0 将启动页退出条件改为原生首页就绪，不再等待 Unity 和角色首帧。先显示角色封面、身份、已有对话预览与可用菜单，角色准备好后平滑显示。iPhone 17 模拟器单次测量原生首页于场景连接后约 0.68 秒出现；这不代表 3D 已加载完成，也不包含系统启动阶段。三项启动流程测试通过，已安装 iPhone 17 并读回 0.49.0 / 70。见[启动优化与验证记录](docs/verification/native-first-startup/README.md)。
 
 v0.48.0 移除测试对话库、固定问候/分支故事回复和内置离线推理引擎，接入真实百炼角色对话、实时识别及每角色独立原创音色。采用 Plan → 资源匹配 → Narration 的两阶段编排；只有台词与声音事件进入 TTS。API Key 仅保留后端，付费测试显式开启，缓存播放不重复计费。开发后端目前运行在这台 Mac，手机需要同一网络；独立云部署尚未进行。详见[真实 AI 实施与运维](docs/design/2026-09-30-real-character-ai.md)和[验收记录](docs/verification/real-character-ai/README.md)。
 
