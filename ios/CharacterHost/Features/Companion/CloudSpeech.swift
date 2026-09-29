@@ -73,7 +73,9 @@ private final class MicrophonePCM: @unchecked Sendable {
     @ObservationIgnored private var beat = ""
     @ObservationIgnored private var beatPCM = Data()
     @ObservationIgnored private var totalDuration = 0.0
+    @ObservationIgnored private var beatStartTime = 0.0
     @ObservationIgnored private var beatFrames = 0
+    @ObservationIgnored private var playbackSegment = UUID()
     @ObservationIgnored private var cacheGeneration = UUID()
     @ObservationIgnored private var cacheMessage = ""
     @ObservationIgnored private var measured = false
@@ -91,24 +93,29 @@ private final class MicrophonePCM: @unchecked Sendable {
     func prepare(_ message: UUID, script: AIScript) {
         stop(); error = nil; activeMessageID = message; cacheMessage = script.messageId
         cacheGeneration = SpeechClipCache.shared.generation
-        isBusy = true; totalDuration = 0; onState?("thinking")
+        isBusy = true; totalDuration = 0; beatStartTime = 0; beatFrames = 0; playbackElapsed = 0; onState?("thinking")
     }
     private func key(_ beat: String) -> String { SpeechClipCache.shared.key(scope:cacheScope,text:cacheMessage+"|"+beat,speed:1) }
     func accept(_ event: AIEvent) async throws {
         switch event.type {
         case "segment.audio.started":
-            try await drain(); player?.stop(); engine?.stop(); engine = nil; player = nil
+            try await drain()
+            timer?.invalidate(); timer = nil; playbackSegment = UUID()
+            player?.stop(); engine?.stop(); engine = nil; player = nil
             beat = event.beatId ?? ""; beatPCM = Data(); beatFrames = 0; measured = false
+            beatStartTime = totalDuration; playbackElapsed = beatStartTime; playbackLevel = 0
+            onFrame?(playbackElapsed,0)
             try soundscape.beginVoice(.speech)
             let engine = AVAudioEngine(), player = AVAudioPlayerNode()
             engine.attach(player); engine.connect(player,to:engine.mainMixerNode,format:AVAudioFormat(standardFormatWithSampleRate:24000,channels:1))
             self.engine = engine; self.player = player; refreshVolume()
             let current = generation
+            let segment = playbackSegment
             // Meter audio that actually reaches the output mixer. Network chunks
             // can arrive far ahead of playback, especially during cached replay.
             engine.mainMixerNode.installTap(onBus:0,bufferSize:1024,format:nil,block:Self.meteringTap { [weak self] level in
                 Task { @MainActor [weak self] in
-                    guard let self, self.generation == current else { return }
+                    guard let self, self.generation == current, self.playbackSegment == segment else { return }
                     self.playbackLevel = level
                     if !self.measured && level > 0.02 { self.measured = true; self.audibleSegments += 1 }
                 }
@@ -119,6 +126,10 @@ private final class MicrophonePCM: @unchecked Sendable {
             append(data)
         case "segment.audio.ready":
             try await drain()
+            playbackSegment = UUID() // Retire late mixer/timer callbacks during the next beat's network wait.
+            timer?.invalidate(); timer = nil; playbackLevel = 0
+            playbackElapsed = beatStartTime+Double(beatFrames)/24000
+            onFrame?(playbackElapsed,0)
             if !beatPCM.isEmpty {
                 SpeechClipCache.shared.insert(Self.wave(beatPCM),key:key(beat),generation:cacheGeneration)
                 totalDuration += Double(beatPCM.count)/48000
@@ -153,13 +164,16 @@ private final class MicrophonePCM: @unchecked Sendable {
             }
         }
         let current = generation
+        let segment = playbackSegment
         if beatPCM.isEmpty {
             onBeat?(beat); isSpeaking = true; isBusy = false; onState?("speaking")
             timer?.invalidate()
             timer = Timer.scheduledTimer(withTimeInterval:0.04,repeats:true) { [weak self] _ in
                 Task { @MainActor in
-                    guard let self, self.generation == current else { return }
-                    self.onFrame?(Double(self.beatFrames)/24000,self.playbackLevel)
+                    guard let self, self.generation == current, self.playbackSegment == segment else { return }
+                    // Unity orders frames for the whole utterance, not each beat.
+                    // Keep this offset stable even when ready updates totalDuration.
+                    self.onFrame?(self.beatStartTime+Double(self.beatFrames)/24000,self.playbackLevel)
                 }
             }
         }
@@ -167,9 +181,9 @@ private final class MicrophonePCM: @unchecked Sendable {
         let frames = Int(buffer.frameLength)
         player.scheduleBuffer(buffer,completionCallbackType:.dataPlayedBack) { [weak self] _ in
             Task { @MainActor in
-                guard let self, self.generation == current else { return }
+                guard let self, self.generation == current, self.playbackSegment == segment else { return }
                 self.buffers = max(0,self.buffers-1); self.beatFrames += frames
-                self.playbackElapsed = self.totalDuration+Double(self.beatFrames)/24000
+                self.playbackElapsed = self.beatStartTime+Double(self.beatFrames)/24000
                 if self.buffers == 0 { self.playbackLevel = 0 }
             }
         }
@@ -198,9 +212,10 @@ private final class MicrophonePCM: @unchecked Sendable {
         finish(); return true
     }
     func finish() {
+        playbackSegment = UUID(); buffers = 0
         timer?.invalidate(); timer = nil; player?.stop(); engine?.stop(); player = nil; engine = nil
         isSpeaking = false; isBusy = false; activeMessageID = nil; playbackLevel = 0
-        onFrame?(0,0); onState?("idle"); soundscape.endVoice()
+        onFrame?(playbackElapsed,0); onState?("idle"); soundscape.endVoice()
     }
     func toggleRecording() {
         if isRecording { finishRecording(); return }

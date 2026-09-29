@@ -4,7 +4,9 @@
 
 正式英文名 **StarryNight**，仓库和根目录统一为 `starrynight`。当前根目录 `/Users/gukaifeng/Documents/starrynight`，Xcode 真机入口为 `ios/StarryNight.xcworkspace`，模拟器入口为 `ios/StarryNight-Simulator.xcworkspace`，scheme 均为 `CharacterHost`。命名约定与迁移记录见 [英文命名与目录](docs/project-naming.md)。
 
-以精致 3D 角色为核心的 AI 陪伴产品。当前源码 **v0.51.0 / build 72**，名称保持「星夜」，默认月白深色主题，保留彩色星夜等可选主题，Logo 更新为极简月白星月矢量标志。原生 SwiftUI / UIKit + Unity as a Library，当前优先 **iPhone 手机版**，暂停新增 iPad 测试。
+以精致 3D 角色为核心的 AI 陪伴产品。当前源码 **v0.52.0 / build 73**，名称保持「星夜」，默认月白深色主题，保留彩色星夜等可选主题，Logo 更新为极简月白星月矢量标志。原生 SwiftUI / UIKit + Unity as a Library，当前优先 **iPhone 手机版**，暂停新增 iPad 测试。
+
+v0.52.0 核实琪宝、豆日向的原始 Prefab 与 FBX 均提供 15 个 VRChat 口型，当前 App 已保留 5 个原作元音形变，朗读由实际音频振幅驱动原作张嘴形变。修复连续语音分句和停止时的时间戳倒退，防止 Unity 拒绝后续口型；等待下一段音频时归零，并隔离过期的音频回调。真实 AVAudioEngine 播放回归通过，Unity 两角色实际网格检查共 23 项通过，未增加程序化说话头部动作。本轮没有付费 AI 调用，已安装 iPhone 17 并读回 **0.52.0 / 73**。详见[原作口型核查与同步修复](docs/verification/authored-lip-sync/README.md)。
 
 v0.51.0 压缩「我的」页：头像、身份与设置同排，简介和四项关系入口组成紧凑信息区；作者主页移至「我的 → 角色」内，在同一窗口渐变进入。核查当前两份 VRChat 模型源包后，确认没有自带音频或音源组件，移除未接实际播放器的「角色音效」通道。声音面板只保留朗读、背景音乐与配乐选择，两项音量为零时正确显示静音，旧偏好兼容读取。三个针对性测试最终通过，已通过 Wi-Fi 安装 iPhone 17 并读回 **0.51.0 / 72**。详见[布局、音源审计与验证](docs/verification/compact-profile-audio/README.md)。
 
