@@ -10,6 +10,9 @@ python3 scripts/generate_host.py --platform simulator
 xcrun simctl boot "$DEVICE_ID" 2>/dev/null || true
 python3 scripts/wait_for_simulator.py "$DEVICE_ID"
 xcrun simctl terminate "$DEVICE_ID" com.modelspace.viewer 2>/dev/null || true
+# A reused unsigned runner has executed an older loaded test bundle despite a
+# newly linked binary. Replace only the test harness; preserve the app's data.
+xcrun simctl uninstall "$DEVICE_ID" com.modelspace.viewer.uitests.xctrunner 2>/dev/null || true
 TEST_FILTERS=()
 for CASE in ${(s:,:)TEST_CASE}; do TEST_FILTERS+=("-only-testing:CharacterHostUITests/$CASE"); done
 xcodebuild -workspace ios/StarryNight-Simulator.xcworkspace -scheme CharacterHost -configuration Debug \

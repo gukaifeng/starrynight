@@ -16,9 +16,16 @@ struct CharacterPerformanceProfile: Decodable, Sendable {
         let description: String?
         let duration: Double?
         let loop: Bool?
+        let defaultOn: Bool?
         var isToggle: Bool { kind == "toggle" }
     }
     let schemaVersion: Int
     let groups: [Group]
     let options: [Option]
+
+    func isDefault(group: String, selections: Set<String>) -> Bool {
+        let choices = options.filter { $0.group == group }
+        let actual = selections.intersection(Set(choices.map(\.id)))
+        return actual == Set(choices.filter { $0.defaultOn == true }.map(\.id))
+    }
 }

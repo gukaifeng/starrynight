@@ -24,8 +24,8 @@ environment_catalog=ROOT/'ios/CharacterHost/Resources/EnvironmentCatalog.json'
 if content.get('environmentApi')!=1 or not environment_catalog.exists() or content.get('environmentCatalogSha256')!=hashlib.sha256(environment_catalog.read_bytes()).hexdigest():
     raise SystemExit('Environment catalog differs from Unity export. Re-export this platform before building.')
 images = ROOT / 'ios/CharacterHost/Resources/Assets.xcassets'
-if content.get('autonomyRevision', 0) < 1:
-    raise SystemExit('Unity export lacks natural idle v1; re-export this platform before building.')
+if content.get('autonomyRevision', 0) < 2:
+    raise SystemExit('Unity export lacks visible natural idle v2; re-export this platform before building.')
 if content.get('inspectionGestureRevision', 0) < 6:
     raise SystemExit('error: Unity export does not support unrestricted position editing v6. '
                      f'Run: python3 scripts/export_unity_ios.py --platform {args.platform}; then rebuild CharacterHost. '

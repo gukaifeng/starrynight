@@ -47,7 +47,7 @@ struct CharacterPerformancePanel: View {
     let profile: CharacterPerformanceProfile
     let state: CharacterPerformanceState
     var onSelect: (String, Bool) -> Void
-    var onReset: () -> Void
+    var onReset: (String) -> Void
     var onVisibilityChanged: (Bool) -> Void = { _ in }
     @State private var selectedGroup = ""
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -62,11 +62,12 @@ struct CharacterPerformancePanel: View {
     var body: some View {
         VStack(spacing:0) {
             PanelPageHeader("角色表现 · " + model.name,backID:"closeCharacterPerformance") {
-                Button(action:onReset) {
-                    Image(systemName:"arrow.counterclockwise").font(.system(size:13,weight:.medium))
-                        .frame(width:40,height:44).contentShape(Rectangle())
+                Button { onReset("") } label: {
+                    Label("全部默认",systemImage:"arrow.counterclockwise")
+                        .font(.system(size:11,weight:.medium))
+                        .foregroundStyle(Theme.secondary).frame(minHeight:44).contentShape(Rectangle())
                 }.buttonStyle(.plain).disabled(!canSelect)
-                    .accessibilityLabel("恢复原作默认").accessibilityIdentifier("performanceReset")
+                    .accessibilityLabel("全部恢复默认").accessibilityIdentifier("performanceReset")
             }
             ScrollView(.horizontal) {
                 HStack(spacing:6) {
@@ -88,9 +89,10 @@ struct CharacterPerformancePanel: View {
             }.scrollIndicators(.hidden).padding(.bottom,4).accessibilityIdentifier("performanceGroups")
             ScrollView {
                 LazyVGrid(columns:[GridItem(.adaptive(minimum:138),spacing:7)],spacing:7) {
+                    defaultButton
                     ForEach(options) { option in optionButton(option) }
                 }.padding(.horizontal,18).padding(.bottom,12)
-            }.scrollIndicators(.hidden).accessibilityIdentifier("performanceOptions")
+            }.id(currentGroup).scrollIndicators(.hidden).accessibilityIdentifier("performanceOptions")
             if let error = state.error {
                 Text(error).font(.system(size:11)).foregroundStyle(Theme.peach)
                     .padding(.horizontal,18).padding(.bottom,12).accessibilityIdentifier("performanceError")
@@ -100,6 +102,32 @@ struct CharacterPerformancePanel: View {
             // replacing their explicit identifiers. Keep identifiers on controls only.
             .onAppear { onVisibilityChanged(true) }
             .onDisappear { onVisibilityChanged(false) }
+    }
+
+    private var defaultButton: some View {
+        let selected = state.ready && profile.isDefault(group:currentGroup,selections:state.selections)
+        let pending = state.pendingOption == currentGroup
+        let label = ["expression":"默认表情","pose":"默认待机","hands":"默认手势",
+                     "ears":"默认耳朵","tail":"默认尾巴","appearance":"默认穿搭"][currentGroup] ?? "默认"
+        return Button { onReset(currentGroup) } label: {
+            HStack(spacing:7) {
+                Image(systemName:"arrow.counterclockwise").font(.system(size:11,weight:.medium))
+                    .foregroundStyle(Theme.secondary)
+                Text(label).font(.system(size:12,weight:.medium)).frame(maxWidth:.infinity,alignment:.leading)
+                if pending { ProgressView().controlSize(.mini).frame(width:17) }
+                else {
+                    Image(systemName:selected ? "checkmark" : "circle.dotted")
+                        .font(.system(size:12,weight:.medium))
+                        .foregroundStyle(selected ? Theme.accent : Theme.secondary.opacity(0.6)).frame(width:17)
+                }
+            }.padding(.horizontal,11).frame(minHeight:46)
+                .background(selected ? Theme.accent.opacity(0.12) : Theme.surface.opacity(0.56),in:RoundedRectangle(cornerRadius:12))
+                .overlay(RoundedRectangle(cornerRadius:12).stroke(Theme.accent.opacity(selected ? 0.35 : 0.12),lineWidth:0.6))
+                .contentShape(RoundedRectangle(cornerRadius:12))
+        }.buttonStyle(.plain).disabled(!canSelect)
+            .accessibilityIdentifier("performanceDefault-"+currentGroup)
+            .accessibilityValue(pending ? "等待回应" : (selected ? "已选择" : "未选择"))
+            .accessibilityHint("只恢复当前分类，保留其他表现和角色位置")
     }
 
     private func optionButton(_ option: CharacterPerformanceProfile.Option) -> some View {

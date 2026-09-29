@@ -1,7 +1,7 @@
 import XCTest
 
 final class NaturalIdleTests: XCTestCase {
-    @MainActor func testBothCharactersMoveWithoutTouchAndKeepSourceExpressionPriority() {
+    @MainActor func testVisibleIdleAndCategoryDefaultsPreserveOtherSelections() {
         let app=XCUIApplication()
         app.launchArguments=["--ui-testing","--companion-testing","--auth-testing","--layout-motion-review"]
         app.launch()
@@ -16,6 +16,8 @@ final class NaturalIdleTests: XCTestCase {
                 app.waitForCharacter({ $0["modelId"] as? String == role && self.autonomy($0)["enabled"] as? Bool == true },timeout:35)
             }
             let before=autonomy(app.characterRuntime)
+            XCTAssertEqual(number(before,"revision"),2)
+            XCTAssertEqual(number(before,"blinkDurationSeconds"),0.455,accuracy:0.002)
             let settled=expectation(description:"observe autonomous activity with no touches")
             DispatchQueue.main.asyncAfter(deadline:.now()+22){settled.fulfill()}
             wait(for:[settled],timeout:25)
@@ -31,13 +33,57 @@ final class NaturalIdleTests: XCTestCase {
             app.buttons["conversationPerformanceButton"].tap()
             XCTAssertTrue(app.buttons["closeCharacterPerformance"].waitForExistence(timeout:8))
             app.buttons["performanceGroup-expression"].tap()
+            let defaultExpression=app.buttons["performanceDefault-expression"]
+            XCTAssertTrue(defaultExpression.waitForExistence(timeout:5))
+            XCTAssertEqual(defaultExpression.value as? String,"已选择")
             let expression=app.buttons.matching(NSPredicate(format:"identifier BEGINSWITH %@","performanceOption-")).firstMatch
             XCTAssertTrue(expression.waitForExistence(timeout:5));expression.tap()
+            let expressionID=String(expression.identifier.dropFirst("performanceOption-".count))
+            app.waitForCharacter {
+                let selections=($0["characterPlatform"] as? [String:Any])?["performanceSelections"] as? [String] ?? []
+                return selections.contains(expressionID)
+            }
+            app.buttons["performanceGroup-pose"].tap()
+            let poseID=role=="anime-kipfel" ? "kipfel-sit" : "mamehinata-sit"
+            let pose=app.buttons["performanceOption-"+poseID]
+            for _ in 0..<6 {
+                let options=app.scrollViews["performanceOptions"]
+                if options.frame.insetBy(dx:0,dy:6).contains(pose.frame) { break }
+                options.swipeUp()
+            }
+            XCTAssertTrue(pose.waitForExistence(timeout:5));pose.tap()
+            app.buttons["performanceGroup-expression"].tap()
+            XCTAssertTrue(defaultExpression.isHittable,"Each category opens at its visible default choice")
+            capture(role+"-default-option",app)
+            defaultExpression.tap()
+            app.waitForCharacter {
+                let selections=($0["characterPlatform"] as? [String:Any])?["performanceSelections"] as? [String] ?? []
+                return !selections.contains(expressionID) && selections.contains(poseID)
+            }
+            XCTAssertEqual(defaultExpression.value as? String,"已选择")
             app.buttons["closeCharacterPerformance"].tap()
             refresh(app)
-            app.waitForCharacter { self.autonomy($0)["blinkSuppressed"] as? Bool == true }
-            capture(role+"-expression-priority",app)
+            app.waitForCharacter { self.autonomy($0)["blinkSuppressed"] as? Bool == false }
+            capture(role+"-expression-restored-pose-retained",app)
             app.buttons["conversationPerformanceButton"].tap()
+            app.buttons["performanceGroup-pose"].tap()
+            app.buttons["performanceDefault-pose"].tap()
+            app.waitForCharacter {
+                let selections=($0["characterPlatform"] as? [String:Any])?["performanceSelections"] as? [String] ?? []
+                return !selections.contains(poseID)
+            }
+            XCTAssertEqual(app.buttons["performanceDefault-pose"].value as? String,"已选择")
+            let appearanceGroup=app.buttons["performanceGroup-appearance"]
+            for _ in 0..<4 {
+                let groups=app.scrollViews["performanceGroups"]
+                // Off-screen SwiftUI cells can make isHittable itself fail in
+                // XCTest. Scroll by geometry before asking for an activation point.
+                if groups.frame.insetBy(dx:6,dy:0).contains(appearanceGroup.frame) { break }
+                groups.swipeLeft()
+            }
+            XCTAssertTrue(appearanceGroup.isHittable);appearanceGroup.tap()
+            XCTAssertEqual(app.buttons["performanceDefault-appearance"].value as? String,"已选择",
+                           "Authored default-on accessories are part of the default state")
             app.buttons["performanceReset"].tap()
             app.buttons["closeCharacterPerformance"].tap()
             refresh(app)

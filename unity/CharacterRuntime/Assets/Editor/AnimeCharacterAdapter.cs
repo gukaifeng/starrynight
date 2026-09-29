@@ -31,8 +31,8 @@ public static class AnimeCharacterAdapter
             return t;
         }
         var motion=character.gameObject.AddComponent<AvatarSecondaryMotion>();
-        if(!float.IsFinite(data.ambientHairAngle) || data.ambientHairAngle<0 || data.ambientHairAngle>4 ||
-            !float.IsFinite(data.ambientClothAngle) || data.ambientClothAngle<0 || data.ambientClothAngle>2)
+        if(!float.IsFinite(data.ambientHairAngle) || data.ambientHairAngle<0 || data.ambientHairAngle>AvatarSecondaryMotion.MaxHairAngle ||
+            !float.IsFinite(data.ambientClothAngle) || data.ambientClothAngle<0 || data.ambientClothAngle>AvatarSecondaryMotion.MaxClothAngle)
             throw new Exception("SECONDARY_MOTION_AMBIENT_ANGLE_INVALID");
         motion.ambientHairAngle=data.ambientHairAngle;
         motion.ambientClothAngle=data.ambientClothAngle;

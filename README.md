@@ -4,13 +4,17 @@
 
 正式英文名 **StarryNight**，仓库和根目录统一为 `starrynight`。当前根目录 `/Users/gukaifeng/Documents/starrynight`，Xcode 真机入口为 `ios/StarryNight.xcworkspace`，模拟器入口为 `ios/StarryNight-Simulator.xcworkspace`，scheme 均为 `CharacterHost`。命名约定与迁移记录见 [英文命名与目录](docs/project-naming.md)。
 
-以精致 3D 角色为核心的 AI 陪伴产品。当前源码 **v0.46.0 / build 67**，名称保持「星夜」，默认月白深色主题，保留彩色星夜等可选主题，Logo 更新为极简月白星月矢量标志。原生 SwiftUI / UIKit + Unity as a Library，当前优先 **iPhone 手机版**，暂停新增 iPad 测试。
+以精致 3D 角色为核心的 AI 陪伴产品。当前源码 **v0.47.0 / build 68**，名称保持「星夜」，默认月白深色主题，保留彩色星夜等可选主题，Logo 更新为极简月白星月矢量标志。原生 SwiftUI / UIKit + Unity as a Library，当前优先 **iPhone 手机版**，暂停新增 iPad 测试。
+
+v0.47.0 增强两位角色的自然待机：只放大上半身呼吸（琪宝4倍、豆日向3倍），更明显的头发与衣物风动，单次眨眼放慢至0.455秒且保留原间隔。表现面板每组增加明确的默认入口，恢复表情保留姿势/穿搭，顶部可全部默认；穿搭默认遵循作者defaultOn。原作动画与源资源保持，适配独立声明。见[方案](docs/design/2026-09-30-visible-idle-and-defaults.md)及[本轮验收](docs/verification/idle-refinement/README.md)。
+
+以下0.46及更早段落为历史交付记录。
 
 v0.46.0 只打包琪宝、豆日向，新增自然眨眼、原作呼吸与头发/衣物微风。豆日向补回遗漏的Auto_Blink形变和自动控制，琪宝用原闭眼形变配本地节奏；静态站/坐等姿势仍有原作呼吸，表情和睡眠优先。使用可选core.autonomy@1，原作130项表现及用户会话数据保留。详见[设计](docs/design/2026-09-30-natural-idle.md)、[制作标准](docs/character-standard/07-natural-idle-standard.md)与[本轮验收](docs/verification/natural-idle/README.md)。
 
 **0.46.0 / 67 已通过Wi-Fi安装iPhone17，设备版本读回一致。** 自动打开被手机锁定状态拒绝，用户解锁点星夜即可，不需重新安装。iPhone17模拟器的双角色自然待机/表情优先级完整流程通过，普通模式已启动；本轮未把模拟器60/120 Hz数值审查当作真机FPS实测。
 
-以下保留历史版本的能力与交付记录；旧角色数量、入口位置、安装失败记录等仅描述对应版本，当前状态以上文 0.46.0 为准。
+以下保留历史版本的能力与交付记录；旧角色数量、入口位置、安装失败记录等仅描述对应版本，当前状态以上文 0.47.0 为准。
 
 0.42.0 / 63 已完成输入区域外点按收键盘保留草稿、集中声音控制、原作待机/口型及动作恢复；声音单击总静音、长按分项设置，音乐支持手机静音模式下播放。当时的松手自动复位查看规则已由 0.43 的草稿与显式保存取代。见[0.42验收](docs/verification/conversation-controls/README.md)。
 

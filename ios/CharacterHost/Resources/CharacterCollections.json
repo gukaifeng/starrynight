@@ -7,7 +7,7 @@
       "version": "1.1.0",
       "modelID": "anime-kipfel",
       "modelPackageID": "app.starry.characters.anime-kipfel",
-      "modelPackageVersion": "2.1.0",
+      "modelPackageVersion": "2.2.0",
       "actions": [],
       "environments": [
         "garden"
@@ -62,7 +62,7 @@
       "version": "1.1.0",
       "modelID": "anime-mamehinata",
       "modelPackageID": "app.starry.characters.anime-mamehinata",
-      "modelPackageVersion": "2.1.0",
+      "modelPackageVersion": "2.2.0",
       "actions": [],
       "environments": [
         "sunroom"

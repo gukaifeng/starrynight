@@ -274,7 +274,7 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
     var library:CharacterLibrary!
     var characterPerformance:CharacterPerformanceState!
     var onSelectPerformance:((String,Bool)->Void)?
-    var onResetPerformance:(()->Void)?
+    var onResetPerformance:((String)->Void)?
     var onOpenCharacterFromDetails: ((String,Bool) -> Void)?
     var onDetailsClosed: (() -> Void)?
     private var nextCharacterAfterDetails: (String,Bool)?
@@ -306,7 +306,7 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
                 onChat:{ close.request() },customization:{ AnyView(panel) },session:session,
                 performanceState:characterPerformance,
                 onSelectPerformance:{ [weak self] id,enabled in self?.onSelectPerformance?(id,enabled) },
-                onResetPerformance:{ [weak self] in self?.onResetPerformance?() },
+                onResetPerformance:{ [weak self] group in self?.onResetPerformance?(group) },
                 onPerformanceVisibility:{ [weak self] visible in self?.resizePerformancePanel(visible) },
                 onOpenCharacter:{ [weak self] id,customize in
                     self?.nextCharacterAfterDetails = (id,customize); close.request()
@@ -344,7 +344,7 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
         presentConversationPanel(height:302) {
             CharacterPerformancePanel(model:model,profile:profile,state:characterPerformance,
                 onSelect:{ [weak self] id,on in self?.onSelectPerformance?(id,on) },
-                onReset:{ [weak self] in self?.onResetPerformance?() })
+                onReset:{ [weak self] group in self?.onResetPerformance?(group) })
         }
     }
     private func openConversationSound() {

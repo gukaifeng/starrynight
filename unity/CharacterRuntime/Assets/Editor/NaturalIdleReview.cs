@@ -14,6 +14,7 @@ public static class NaturalIdleReview
     {
         public string id; public int hz,blinks,staticPoses;
         public float blinkPeak,closedMeshDelta,headTravel,chestTravel,hairTravel,clothTravel,maxWindAngle;
+        public float blinkDuration,sourceHeadRange,headRange,sourceChestRange,chestRange;
         public bool speechPreserved,expressionPriority,sleepPriority,rebindRestored,windWithoutBodyMotion;
     }
     [Serializable] sealed class Report
@@ -23,9 +24,10 @@ public static class NaturalIdleReview
         public List<Row> characters=new List<Row>();
     }
     static Report report;
-    static string Output=>Path.Combine(CharacterPackageBuilder.Root,"docs/verification/natural-idle");
+    static string Output=>Path.Combine(CharacterPackageBuilder.Root,"docs/verification/idle-refinement");
     static void Check(bool ok,string reason){if(!ok)throw new Exception("NATURAL_IDLE_REVIEW: "+reason);report.assertions++;}
     public static void BuildAndReview(){BuildIos.Setup();BuildIos.Validate();Run();}
+    public static void ReviewAndExportSimulator(){BuildAndReview();BuildIos.ExportPreparedSimulator();}
     public static void DiagnoseWind()
     {
         EditorSceneManager.OpenScene("Assets/Scenes/ViewerScene.unity");var viewer=UnityEngine.Object.FindFirstObjectByType<ViewerController>();
@@ -53,6 +55,9 @@ public static class NaturalIdleReview
             {
                 actions.Initialize(c.transform,viewer.viewCamera,null);perf.Bind(c);auto.Bind(c,perf,745);
                 var anim=c.GetComponent<Animation>();var idle=anim["Idle"];
+                CheckVisibleAmplitude(c,anim,row);
+                row.blinkDuration=auto.State.blinkDurationSeconds;
+                Check(row.blinkDuration>.44f && row.blinkDuration<.47f,c.modelId+" slower individual blink, unchanged interval schedule");
                 var lid=c.Manifest.autonomy.blink.bindings[0];var skin=CharacterContract.Resolve(c.transform,lid.renderer).GetComponent<SkinnedMeshRenderer>();
                 int index=skin.sharedMesh.GetBlendShapeIndex(lid.shape);float scale=CharacterContract.MorphScale(skin,index);
                 Check(scale>0,c.modelId+" usable original eyelid scale");
@@ -92,12 +97,14 @@ public static class NaturalIdleReview
                 for(int i=0;i<hz*3;i++)Frame(1f/hz);
                 row.speechPreserved=Mathf.Abs(skin.GetBlendShapeWeight(mi)/CharacterContract.MorphScale(skin,mi)-.42f)<.001f;
                 Check(row.speechPreserved,c.modelId+" blink does not overwrite speech");
+                var poseForReset=c.Manifest.autonomy.breathing.poseOptions.First();perf.Select(poseForReset,1);
                 var expression=c.Manifest.performance.options.First(o=>o.group=="expression");perf.Select(expression.id,1);
                 for(int i=0;i<hz;i++)Frame(1f/hz);
                 int count=auto.State.blinkCount;
                 for(int i=0;i<hz*12;i++)Frame(1f/hz);
                 row.expressionPriority=auto.State.blinkSuppressed && auto.State.blinkWeight==0 && auto.State.blinkCount==count;
                 Check(row.expressionPriority,c.modelId+" author expression owns eyelids");perf.Reset("expression");
+                Check(perf.Selections.Contains(poseForReset),c.modelId+" default expression preserves the selected pose");
                 for(int i=0;i<hz*4;i++)Frame(1f/hz);
                 Check(!auto.State.blinkSuppressed && auto.State.blinkCount>count,c.modelId+" blink resumes after expression fade");
                 foreach(string pose in c.Manifest.autonomy.breathing.poseOptions)
@@ -135,6 +142,38 @@ public static class NaturalIdleReview
         }
         File.WriteAllText(Path.Combine(Output,"runtime-review.json"),JsonUtility.ToJson(report,true)+"\n");
         EditorSceneManager.OpenScene("Assets/Scenes/ViewerScene.unity");Debug.Log("NATURAL_IDLE_REVIEW_PASS assertions="+report.assertions);
+    }
+    static void CheckVisibleAmplitude(ViewerCharacter c,Animation anim,Row row)
+    {
+        var head=CharacterContract.Resolve(c.transform,c.Manifest.rig.head);
+        var chest=CharacterContract.Resolve(c.transform,c.Manifest.rig.neck).parent;
+        var hips=CharacterContract.Resolve(c.transform,"armature/Hips");
+        // The comparison clip stays in the source GLB; production binds only
+        // declared clips. Do not add a review-only animation to the mobile app.
+        var original=UnityEditor.AssetDatabase.LoadAllAssetsAtPath("Assets/CharacterPackages/Imported/"+c.modelId+"/model.glb")
+            .OfType<AnimationClip>().Single(x=>x.name=="Source_Idle");
+        var adapted=anim.GetClip("Idle");
+        Check(original && adapted,c.modelId+" original idle preserved beside adapted clip");
+        original.SampleAnimation(c.gameObject,0);
+        Quaternion h0=head.localRotation,c0=chest.localRotation;
+        for(int i=0;i<=150;i++)
+        {
+            float t=original.length*i/150;
+            original.SampleAnimation(c.gameObject,t);
+            row.sourceHeadRange=Mathf.Max(row.sourceHeadRange,CharacterAutonomy.MotionAngle(h0,head.localRotation));
+            row.sourceChestRange=Mathf.Max(row.sourceChestRange,CharacterAutonomy.MotionAngle(c0,chest.localRotation));
+            var hp=hips.localPosition;var hq=hips.localRotation;
+            adapted.SampleAnimation(c.gameObject,t);
+            row.headRange=Mathf.Max(row.headRange,CharacterAutonomy.MotionAngle(h0,head.localRotation));
+            row.chestRange=Mathf.Max(row.chestRange,CharacterAutonomy.MotionAngle(c0,chest.localRotation));
+            Check(Vector3.Distance(hp,hips.localPosition)<.00001f && CharacterAutonomy.MotionAngle(hq,hips.localRotation)<.003f,
+                c.modelId+" amplitude adaptation does not amplify hips/foot motion");
+        }
+        float gain=c.modelId=="anime-kipfel"?4:3;
+        Check(Mathf.Abs(row.headRange/row.sourceHeadRange-gain)<.015f && Mathf.Abs(row.chestRange/row.sourceChestRange-gain)<.015f,
+            c.modelId+" actual imported upper-body amplitude gain");
+        Check(row.headRange>2.5f && row.chestRange>3.3f && row.chestRange<5,c.modelId+" visible, bounded upper-body idle");
+        adapted.SampleAnimation(c.gameObject,0);
     }
     static void Capture(ViewerCharacter c,ViewerController viewer,string suffix)
     {

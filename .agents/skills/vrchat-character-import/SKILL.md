@@ -16,7 +16,7 @@ description: Inspect and convert user-supplied VRChat avatar archives into this 
 - 默认外观以作者主 Prefab 为准，包括嵌套覆盖、激活状态、Renderer 开关、材质槽和默认 morph。裸 FBX 全部显示通常不是作者的角色成品。
 - 按证据报告阶段：静态审计 → 隔离导入检查 → GLB/XCP 转换 → 实际画面/交互 → 目标设备性能。前一阶段通过不能代替后一阶段；不把非零 `.anim` 数量当作可用身体动作数量。
 
-## 当前发布名册（0.46.0）
+## 当前发布名册（0.47.0）
 
 实际打包由 `assets/characters/active-roster.json` 决定，目前只有琪宝、豆日向，默认琪宝。其他角色来源与历史资料仍在工作区，不代表还随 App 发布。导入新包后，只有用户要求将它上线时才更新名册及对应集合、封面；导出会校验实际场景与目录一致。不要为通过旧的 Luma/初音测试而重新加入已下架模型。
 
@@ -67,7 +67,7 @@ python3 scripts/vrchat_physics.py \
 
 ## 转换时守住的语义
 
-**当前琪宝/豆日向保留原作动作，并支持本次授权的自然待机。** 用户2026-09-30明确要求补自动眨眼、呼吸待机和环境风，取代早期对这些附加行为的禁止。按 [自然待机参考](references/natural-idle.md) 处理，模型包2.1.0通过可选 `core.autonomy@1` 标明来源与适配；保留原曲线、viseme与表现。不要借此恢复旧Overte/Hanami九动作、触屏摇头、自动头眼跟随或语音点头。原始来源资产不改；旧[原作恢复记录](../../../docs/verification/vrchat-original-motion/README.md)仅描述0.39.1当时范围。
+**当前琪宝/豆日向保留原作动作，并支持本次授权的自然待机。** 用户2026-09-30明确要求补自动眨眼、呼吸待机和环境风，取代早期对这些附加行为的禁止。按 [自然待机参考](references/natural-idle.md) 处理，模型包2.2.0通过可选 `core.autonomy@1` 标明来源与适配；保留原曲线、viseme与表现。不要借此恢复旧Overte/Hanami九动作、触屏摇头、自动头眼跟随或语音点头。原始来源资产不改；旧[原作恢复记录](../../../docs/verification/vrchat-original-motion/README.md)仅描述0.39.1当时范围。
 
 1. **隔离数据导入。** 仅将已经审阅的 FBX、贴图和必要的 Unity 数据资产放入临时 stage；由仓库维护的 Inspector 读取 Prefab 实例。来源 C#、DLL、Editor 扩展、SDK 和未知 Shader 不进入生产工程，也不为消除 Missing Script 盲目安装依赖。
 2. **还原作者默认状态。** 用实例检查结果解析 GUID/fileID、节点路径、默认可见性和形变。不要按名字猜测衣服、身体或阴影层该删还是该留；先记录变更，再比较近景外观。

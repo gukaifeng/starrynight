@@ -296,7 +296,10 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
         guard selectedModel.performance?.options.contains(where:{ $0.id == option }) == true else { return }
         sendPerformance(CharacterIntent(eventName:"performance.select",target:option,intensity:enabled ? 1 : 0))
     }
-    private func resetPerformance() { sendPerformance(CharacterIntent(eventName:"performance.reset")) }
+    private func resetPerformance(group: String) {
+        guard group.isEmpty || selectedModel.performance?.groups.contains(where:{ $0.id == group }) == true else { return }
+        sendPerformance(CharacterIntent(eventName:"performance.reset",target:group))
+    }
     private func sendPerformance(_ intent: CharacterIntent) {
         guard page == .viewer, desiredVisible, selectedModel.performance != nil,
               characterPerformance.ready, characterPerformance.pendingID == nil else { return }
@@ -604,7 +607,7 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
             overlay.portraits = portraits; overlay.library = library
             overlay.characterPerformance = characterPerformance
             overlay.onSelectPerformance = { [weak self] option,enabled in self?.selectPerformance(option,enabled:enabled) }
-            overlay.onResetPerformance = { [weak self] in self?.resetPerformance() }
+            overlay.onResetPerformance = { [weak self] group in self?.resetPerformance(group:group) }
             overlay.onOpenCharacterFromDetails = { [weak self] id,customize in self?.openCharacter(id,customize:customize) }
             overlay.onDetailsClosed = { [weak self] in
                 guard let self, !self.library.subscriptions.contains(self.selectedModel.id) else { return }

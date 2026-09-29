@@ -166,16 +166,18 @@ def package(role,index,geometry_only=False,output_root=None):
     motions,motion_notes=append_source_motions(b,role['key'])
     performance,performance_notes=convert_profile(b,inspection,recipe,motions)
     report['sourceIdle']=append_source_idle(b,role['key'],motions,performance)
+    from vrchat_autonomy import append_visible_idle
+    report['sourceIdle']['adaptation']=append_visible_idle(b,role['key'],report['sourceIdle'])
     durations={'Idle':report['sourceIdle']['duration']}
     report['secondaryMotion']=secondary(g,role,folder)
-    g['asset']['generator']='Starry VRChat data adapter 2.0 / original motions only / Blender 4.5 / no VRChat SDK'
+    g['asset']['generator']='Starry VRChat data adapter 2.2 / preserved source motions + declared visible idle / Blender 4.5 / no VRChat SDK'
     b.write(folder/'model.glb')
     manifest=json.loads((ROOT/'character-packages/imported/anime-vita/character.json').read_text())
-    manifest.update(id=role['id'],packageId='app.starry.characters.'+role['id'],packageVersion='2.1.0')
+    manifest.update(id=role['id'],packageId='app.starry.characters.'+role['id'],packageVersion='2.2.0')
     manifest['performance']=performance
     manifest['compatibility']['required']=['core.animation@1']
     manifest['compatibility']['optional']=['core.speech.amplitude@1','core.speech.viseme@1','core.secondary-motion@1','core.performance@1']
-    manifest['actions']=[dict(id='Idle',clip='Idle',semantic='idle',label='原作待机',symbol='figure.stand',button=False,framing='conversation',gaze='release')]
+    manifest['actions']=[dict(id='Idle',clip='Idle',semantic='idle',label='自然待机',symbol='figure.stand',button=False,framing='conversation',gaze='release')]
     manifest['display']=dict(name=role['name'],originalName=role['original']+' · もち山金魚',description=role['description'],invitation=role['invitation'],tagline=role['tagline'],symbol='leaf',thumbnail='Anime_'+role['key'],cardIdentifier='card-'+role['id'],openIdentifier='open-'+role['id'],style='anime',thumbnailScale=1,order=90+index*10)
     manifest['source']=dict(format='glb',model='model.glb',scale=1,yaw=0)
     manifest['rig']=dict(head=p[human['head']],neck=p[human['neck']],leftEye=p[human['leftEye']],rightEye=p[human['rightEye']],headRenderer=p[face],conversationStart=.52)

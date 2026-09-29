@@ -25,9 +25,9 @@ namespace ModelSpace
     }
     [Serializable] public sealed class CharacterAutonomyState
     {
-        public int revision=1,blinkCount;
+        public int revision=2,blinkCount;
         public bool enabled,blinkSuppressed;
-        public float blinkWeight,poseBreathWeight,headMotionDegrees,chestMotionDegrees;
+        public float blinkWeight,blinkDurationSeconds,poseBreathWeight,headMotionDegrees,chestMotionDegrees;
         public float hairTravel,clothTravel;
         public int windStrands;
     }
@@ -85,6 +85,7 @@ namespace ModelSpace
             State=new CharacterAutonomyState {enabled=CharacterAutonomyContract.Supported(c.Manifest)};
             if(!State.enabled)return;
             profile=c.Manifest.autonomy;random=new System.Random(seed==0?Environment.TickCount:seed);
+            State.blinkDurationSeconds=profile.blink.closeSeconds+profile.blink.closedSeconds+profile.blink.openSeconds;
             var restore=GetComponent<CharacterAutonomyRestore>() ?? gameObject.AddComponent<CharacterAutonomyRestore>();restore.driver=this;
             lids=profile.blink.bindings.Select(b=>{
                 var skin=CharacterContract.Resolve(c.transform,b.renderer)?.GetComponent<SkinnedMeshRenderer>();

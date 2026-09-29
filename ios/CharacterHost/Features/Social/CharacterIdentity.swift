@@ -87,7 +87,7 @@ struct CharacterDetailsPanel: View {
     var session: CompanionSession? = nil
     var performanceState: CharacterPerformanceState? = nil
     var onSelectPerformance: (String,Bool) -> Void = { _,_ in }
-    var onResetPerformance: () -> Void = {}
+    var onResetPerformance: (String) -> Void = { _ in }
     var onPerformanceVisibility: (Bool) -> Void = { _ in }
     var onOpenCharacter: ((String,Bool) -> Void)? = nil
     var allowsAuthorNavigation = true

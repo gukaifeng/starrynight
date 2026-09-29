@@ -1,4 +1,4 @@
-琪宝 · 2.1.0
+琪宝 · 2.2.0
 琪宝 / Kipfel 1.0.3 · もち山金魚
 素材原作者：もち山金魚 / MOCHIYAMA
 许可：Mochiyama avatar terms (private preview)
@@ -24,13 +24,13 @@ This package contains only source-avatar motion data. The previous third-party O
 
 Author: もち山金魚 / MOCHIYAMA.
 
-Unchanged source stand + breath; source additive breath also layers onto authored static poses. Never double breath in neutral Idle or sleep clips.
+App-adapted Chest/Head rotation amplitude 4x around original first keys. Hips and feet, original 2.5 s timing, Source_Idle and VRC clips unchanged. Static poses use App_VisibleBreath; neutral and sleep never double breath.
 
-Original eye_close morph with App-authored irregular blink timing; no verified source automatic schedule claimed.
+Original eye_close morph and unchanged App interval schedule; App timing: close 0.16 s, hold 0.035 s, open 0.26 s (0.455 s total). Timing adaptation, not original SDK behavior.
 
 Manual expressions and sleep transitions suppress automatic blinking. Mouth visemes remain separate.
 
-App-authored low-amplitude horizontal breeze, independent hair/cloth budgets, source chains and collision spheres; no upward gusts or direct bone sine animation.
+App-authored visible horizontal breeze: 7.5 degree hair and 3.2 degree cloth force budgets, 0.9/0.85 response; original chain-angle and collision constraints remain. No upward gusts or direct bone sine animation.
 
 Original facial, hand, ear, tail and appearance options are retained. No SDK code or default VRChat motions are included. Source archives and samples remain unchanged. The standalone spring approximation is not the VRChat PhysBone solver.
 
@@ -80,20 +80,54 @@ Original facial, hand, ear, tail and appearance options are retained. No SDK cod
         "samples": 151,
         "maxReconstructionError": 0.0
       }
-    ]
+    ],
+    "adaptation": {
+      "revision": 2,
+      "sourceIdleClip": "Source_Idle",
+      "idleClip": "Idle",
+      "breathClip": "App_VisibleBreath",
+      "upperBodyGain": 4.0,
+      "channels": [
+        {
+          "clip": "Idle",
+          "bone": "armature/Hips/Spine/Chest/Neck/Head",
+          "gain": 4.0,
+          "peakDegrees": 2.6518867551371543
+        },
+        {
+          "clip": "Idle",
+          "bone": "armature/Hips/Spine/Chest",
+          "gain": 4.0,
+          "peakDegrees": 3.3819938402954053
+        },
+        {
+          "clip": "App_VisibleBreath",
+          "bone": "armature/Hips/Spine/Chest",
+          "gain": 4.0,
+          "peakDegrees": 3.3819936345367947
+        },
+        {
+          "clip": "App_VisibleBreath",
+          "bone": "armature/Hips/Spine/Chest/Neck/Head",
+          "gain": 4.0,
+          "peakDegrees": 2.651885821274136
+        }
+      ],
+      "policy": "App amplitude adaptation on original Chest/Head motion; source clips, timeline, hips and foot motion unchanged."
+    }
   },
   "autonomy": {
-    "revision": 1,
-    "authorization": "2026-09-30: automatic blinking, breathing/idle and ambient wind requested",
-    "breathing": "Unchanged source stand + breath; source additive breath also layers onto authored static poses. Never double breath in neutral Idle or sleep clips.",
-    "blink": "Original eye_close morph with App-authored irregular blink timing; no verified source automatic schedule claimed.",
+    "revision": 2,
+    "authorization": "2026-09-30: clearly visible idle and hair/cloth motion, slower individual blinks requested",
+    "breathing": "App-adapted Chest/Head rotation amplitude 4x around original first keys. Hips and feet, original 2.5 s timing, Source_Idle and VRC clips unchanged. Static poses use App_VisibleBreath; neutral and sleep never double breath.",
+    "blink": "Original eye_close morph and unchanged App interval schedule; App timing: close 0.16 s, hold 0.035 s, open 0.26 s (0.455 s total). Timing adaptation, not original SDK behavior.",
     "priority": "Manual expressions and sleep transitions suppress automatic blinking. Mouth visemes remain separate.",
-    "wind": "App-authored low-amplitude horizontal breeze, independent hair/cloth budgets, source chains and collision spheres; no upward gusts or direct bone sine animation."
+    "wind": "App-authored visible horizontal breeze: 7.5 degree hair and 3.2 degree cloth force budgets, 0.9/0.85 response; original chain-angle and collision constraints remain. No upward gusts or direct bone sine animation."
   }
 }
 
 
-豆日向 · 2.1.0
+豆日向 · 2.2.0
 豆日向 / まめひなた 1.53 · もち山金魚
 素材原作者：もち山金魚 / MOCHIYAMA
 许可：Mochiyama avatar terms (private preview)
@@ -119,13 +153,13 @@ This package contains only source-avatar motion data. The previous third-party O
 
 Author: もち山金魚 / MOCHIYAMA.
 
-Unchanged source stand + breath; source additive breath also layers onto authored static poses. Never double breath in neutral Idle or sleep clips.
+App-adapted Chest/Head rotation amplitude 3x around original first keys. Hips and feet, original 2.5 s timing, Source_Idle and VRC clips unchanged. Static poses use App_VisibleBreath; neutral and sleep never double breath.
 
-Restored source Auto_Blink shape and Auto_Blink FX durations: close 0.08 s, open 0.06 s; interval lottery 0.3 / 10 / 6 / 6 / 6 s. Initial 2.2 s and smooth interpolation are App adaptations; not a full SDK graph emulation.
+Original Auto_Blink morph and unchanged source interval lottery; App timing: close 0.16 s, hold 0.035 s, open 0.26 s (0.455 s total). Timing adaptation, not original SDK behavior.
 
 Manual expressions and sleep transitions suppress automatic blinking. Mouth visemes remain separate.
 
-App-authored low-amplitude horizontal breeze, independent hair/cloth budgets, source chains and collision spheres; no upward gusts or direct bone sine animation.
+App-authored visible horizontal breeze: 7.5 degree hair and 3.2 degree cloth force budgets, 0.9/0.85 response; original chain-angle and collision constraints remain. No upward gusts or direct bone sine animation.
 
 Original facial, hand, ear, tail and appearance options are retained. No SDK code or default VRChat motions are included. Source archives and samples remain unchanged. The standalone spring approximation is not the VRChat PhysBone solver.
 
@@ -175,15 +209,49 @@ Original facial, hand, ear, tail and appearance options are retained. No SDK cod
         "samples": 151,
         "maxReconstructionError": 0.0
       }
-    ]
+    ],
+    "adaptation": {
+      "revision": 2,
+      "sourceIdleClip": "Source_Idle",
+      "idleClip": "Idle",
+      "breathClip": "App_VisibleBreath",
+      "upperBodyGain": 3.0,
+      "channels": [
+        {
+          "clip": "Idle",
+          "bone": "armature/Hips/Spine/Chest/Neck/Head",
+          "gain": 3.0,
+          "peakDegrees": 3.752857936025477
+        },
+        {
+          "clip": "Idle",
+          "bone": "armature/Hips/Spine/Chest",
+          "gain": 3.0,
+          "peakDegrees": 4.7860499066610345
+        },
+        {
+          "clip": "App_VisibleBreath",
+          "bone": "armature/Hips/Spine/Chest",
+          "gain": 3.0,
+          "peakDegrees": 4.786049006777625
+        },
+        {
+          "clip": "App_VisibleBreath",
+          "bone": "armature/Hips/Spine/Chest/Neck/Head",
+          "gain": 3.0,
+          "peakDegrees": 3.7528584534034097
+        }
+      ],
+      "policy": "App amplitude adaptation on original Chest/Head motion; source clips, timeline, hips and foot motion unchanged."
+    }
   },
   "autonomy": {
-    "revision": 1,
-    "authorization": "2026-09-30: automatic blinking, breathing/idle and ambient wind requested",
-    "breathing": "Unchanged source stand + breath; source additive breath also layers onto authored static poses. Never double breath in neutral Idle or sleep clips.",
-    "blink": "Restored source Auto_Blink shape and Auto_Blink FX durations: close 0.08 s, open 0.06 s; interval lottery 0.3 / 10 / 6 / 6 / 6 s. Initial 2.2 s and smooth interpolation are App adaptations; not a full SDK graph emulation.",
+    "revision": 2,
+    "authorization": "2026-09-30: clearly visible idle and hair/cloth motion, slower individual blinks requested",
+    "breathing": "App-adapted Chest/Head rotation amplitude 3x around original first keys. Hips and feet, original 2.5 s timing, Source_Idle and VRC clips unchanged. Static poses use App_VisibleBreath; neutral and sleep never double breath.",
+    "blink": "Original Auto_Blink morph and unchanged source interval lottery; App timing: close 0.16 s, hold 0.035 s, open 0.26 s (0.455 s total). Timing adaptation, not original SDK behavior.",
     "priority": "Manual expressions and sleep transitions suppress automatic blinking. Mouth visemes remain separate.",
-    "wind": "App-authored low-amplitude horizontal breeze, independent hair/cloth budgets, source chains and collision spheres; no upward gusts or direct bone sine animation."
+    "wind": "App-authored visible horizontal breeze: 7.5 degree hair and 3.2 degree cloth force budgets, 0.9/0.85 response; original chain-angle and collision constraints remain. No upward gusts or direct bone sine animation."
   }
 }
 

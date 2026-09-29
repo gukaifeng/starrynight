@@ -21,6 +21,7 @@ namespace ModelSpace
     [DefaultExecutionOrder(110)]
     public sealed class AvatarSecondaryMotion : MonoBehaviour
     {
+        public const float MaxHairAngle=8,MaxClothAngle=4;
         [Serializable] public sealed class Strand
         {
             public Transform bone,tip;
@@ -45,8 +46,8 @@ namespace ModelSpace
         // scale follows each segment's length, so short bangs do not flutter as
         // much as long strands. Explicit clothing response has a smaller budget;
         // unclassified accessories retain inertia only, without updraft.
-        [Range(0,4)] public float ambientHairAngle=2.2f;
-        [Range(0,2)] public float ambientClothAngle;
+        [Range(0,MaxHairAngle)] public float ambientHairAngle=2.2f;
+        [Range(0,MaxClothAngle)] public float ambientClothAngle;
         public float HairTravel {get;private set;}
         public float ClothTravel {get;private set;}
         public int WindStrands {get;private set;}
@@ -100,7 +101,7 @@ namespace ModelSpace
                 Vector3 force=Vector3.zero;
                 bool cloth=strand.wind=="cloth";
                 bool hair=strand.wind=="hair" || (string.IsNullOrEmpty(strand.wind) && strand.isHair);
-                float airAngle=(cloth?Mathf.Clamp(ambientClothAngle,0,2):hair?Mathf.Clamp(ambientHairAngle,0,4):0)*Mathf.Deg2Rad;
+                float airAngle=(cloth?Mathf.Clamp(ambientClothAngle,0,MaxClothAngle):hair?Mathf.Clamp(ambientHairAngle,0,MaxHairAngle):0)*Mathf.Deg2Rad;
                 if(airAngle>0)
                 {
                     WindStrands++;
