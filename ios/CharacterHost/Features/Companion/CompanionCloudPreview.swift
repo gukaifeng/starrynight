@@ -58,7 +58,7 @@ struct CompanionCloudPreview:View {
                     }
                     Button("服务尚未开通") {}.buttonStyle(NightPrimaryButton()).disabled(true)
                         .accessibilityIdentifier("cloudUnavailableButton")
-                    Text("当前仅展示玩法，尚未连接云端服务。不会开启麦克风、上传照片或同步你的记录。现有本机聊天和语音仍可正常使用。")
+                    Text("当前仅展示玩法，尚未连接云端服务。不会开启麦克风、上传照片或同步你的记录。真实 AI 文字对话和按键语音输入在会话页使用；这里的免手持通话等功能尚未开放。")
                         .font(.system(size:12)).lineSpacing(4).foregroundStyle(Theme.secondary)
                 }.padding(.horizontal,22).padding(.bottom,24)
             }.scrollIndicators(.hidden)

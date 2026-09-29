@@ -37,8 +37,8 @@
 当前 App 的两名默认角色需要用户自行提供合法取得的原始资源，因此 **仅克隆仓库不能直接构建出含这两位角色的完整 App**。已有开发机资源都保留，原有构建流程照常使用。
 
 1. 安装与项目锁一致的 Unity 6000.3.25f1、iOS Build Support、Unity CLI、Xcode 和 Python 3.11，按个人资格完成 Unity 许可；参照 `docs/environment.md` 与项目 Unity CLI 技能。
-2. `python3 scripts/prepare_packages.py` 恢复固定 UPM 归档。Python 虚拟环境依赖分别在 `character-sdk/requirements.txt`、`scripts/vrchat/requirements.txt` 和 `local-services/voice/requirements.lock`；虚拟环境建在 `.local/`。
-3. 按 `local-services/voice/README.md` 运行 `scripts/prepare_voice.py` 获取锁定语音模型，再运行 `python3 scripts/prepare_ios_speech.py` 准备 iOS 语音运行库和打包资源。它们不需要从 Git 取回。
+2. `python3 scripts/prepare_packages.py` 恢复固定 UPM 归档。Python 虚拟环境依赖分别在 `character-sdk/requirements.txt`、`scripts/vrchat/requirements.txt` 和 `services/character_ai/requirements.lock`；虚拟环境建在 `.local/`。
+3. v0.48起不再下载或打包离线语音模型。按[真实AI实施文档](design/2026-09-30-real-character-ai.md)准备私有Key、本机网关与客户端连接。音色绑定、SQLite和音频私有状态需要从原机器安全恢复；不能因为克隆仓库而重复付费设计音色。
 4. 提供与 VRChat 来源锁匹配的原 ZIP，严格按 [VRChat 导入技能](../.agents/skills/vrchat-character-import/SKILL.md)及其 `references/performances.md`、`references/natural-idle.md` 依次审计、隔离导入、采样原作表现、生成目录与物理数据、转换 XCP 并校验。审计报告和源采样也必须重建；不能只运行最后一步 converter。不要从公开仓库寻找付费源包。
 5. 恢复对应集合/背景/音乐数据后，由 `BuildIos.Setup` / 正常 Unity 导出流程生成当前角色 Prefab、场景、iOS 角色目录与头像/封面。当前名册以 `assets/characters/active-roster.json` 为准；首次恢复不能使用跳过 Setup 的故障恢复捷径。详细顺序及命令以导入技能和 `scripts/export_unity_ios.py` 为准。
 6. `python3 scripts/export_unity_ios.py --platform simulator` 后执行 `bash scripts/build_host.sh`。真机使用独立 device 导出与 `scripts/build_device.sh`，个人签名设置写入忽略的 `ios/Config/Local.xcconfig`。

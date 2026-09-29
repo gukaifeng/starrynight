@@ -107,7 +107,7 @@ struct CacheSettingsView: View {
                             .font(.system(size:12)).foregroundStyle(Theme.secondary).frame(maxWidth:.infinity,alignment:.leading)
                     }
                 }
-                Text("缓存按本机统计。内置 3D 模型、离线语音资源和已保存的资料不计入可清理缓存。")
+                Text("缓存按本机统计。内置 3D 模型和已保存的资料不计入可清理缓存。")
                     .font(.system(size:11)).lineSpacing(4).foregroundStyle(Theme.secondary.opacity(0.85))
             }.padding(24)
         }.scrollIndicators(.hidden).background(Theme.background)

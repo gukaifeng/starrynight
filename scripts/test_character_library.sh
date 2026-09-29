@@ -2,7 +2,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 mkdir -p .local/checks/starry-core
-cp ios/CharacterHost/Resources/{CharacterCatalog,EnvironmentCatalog,LocalDialogue,CharacterCollections}.json .local/checks/starry-core/
+cp ios/CharacterHost/Resources/{CharacterCatalog,EnvironmentCatalog,CharacterCollections}.json .local/checks/starry-core/
 cp ios/CharacterHost/Resources/Music_*.caf .local/checks/starry-core/
 SOURCES=(
  ios/CharacterHost/Features/Social/CharacterCollection.swift
@@ -14,6 +14,8 @@ SOURCES=(
  ios/CharacterHost/Features/Companion/CharacterFraming.swift
  ios/CharacterHost/Features/Companion/CharacterStudio.swift
  ios/CharacterHost/Features/Companion/EnvironmentCatalog.swift
+ ios/CharacterHost/Features/Viewer/CharacterViewPresets.swift
+ ios/CharacterHost/Features/Companion/CharacterAI.swift
  ios/CharacterHost/Features/Companion/CompanionData.swift
  ios/CharacterHost/Features/Companion/CompanionExperiences.swift
  ios/CharacterHost/Features/Companion/ExperienceStore.swift

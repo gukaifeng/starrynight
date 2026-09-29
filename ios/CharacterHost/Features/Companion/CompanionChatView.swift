@@ -51,9 +51,7 @@ struct CompanionChatView: View {
                 ConversationSoundButton(session:session,onSettings:{ editing = false; onSoundSettings?() })
             }.foregroundStyle(Theme.ink.opacity(0.56)).padding(.trailing,23).frame(height:34)
             composer(compact:geometry.size.height < 220)
-#if DEBUG
-            if ProcessInfo.processInfo.arguments.contains("--voice-fixture") { voiceFixture }
-#endif
+
           }
         }
         .coordinateSpace(name:"companionPanel")
@@ -154,7 +152,7 @@ struct CompanionChatView: View {
                 topic("今天有点累",symbol:"cloud.sun",id:"tired")
                 topic("分享一件开心的事",symbol:"sparkles",id:"joy")
                 if session.model.isCustomizable { topic("你好，挥挥手",symbol:"hand.wave",id:"wave") }
-                else { topic("跳舞吧",symbol:"music.note",id:"dance") }
+                else { topic("说说你的小世界",symbol:"sparkles",id:"world") }
             }.padding(.horizontal,20)
         }.scrollIndicators(.hidden).fixedSize(horizontal:false,vertical:true).padding(.vertical,5)
     }
@@ -209,24 +207,7 @@ struct CompanionChatView: View {
 
     }
     private var canSend: Bool { !session.input.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty }
-#if DEBUG
-    private var voiceFixture: some View {
-                Button("识别测试录音") {
-                    session.stop()
-                    if let url = Bundle.main.url(forResource:"SpeechTestFixture",withExtension:"wav"), var data = try? Data(contentsOf:url) {
-                        if ProcessInfo.processInfo.arguments.contains("--voice-invalid-fixture") { data = Data() }
-                        if ProcessInfo.processInfo.arguments.contains("--voice-silent-fixture") {
-                            // A standard one-second 16 kHz mono PCM16 silence fixture.
-                            data = Data([82,73,70,70,36,125,0,0,87,65,86,69,102,109,116,32,
-                                         16,0,0,0,1,0,1,0,128,62,0,0,0,125,0,0,2,0,16,0,
-                                         100,97,116,97,0,125,0,0])
-                            data.append(Data(repeating:0,count:32000))
-                        }
-                        session.speech.transcribe(data)
-                    }
-                }.font(.system(size:10)).frame(minHeight:28).accessibilityIdentifier("recognizeFixtureButton")
-    }
-#endif
+
     private func showFocusedMessage(using proxy:ScrollViewProxy) {
         guard let id = session.focusedMessageID else { proxy.scrollTo("latest",anchor:.bottom); return }
         scrollState.scrollTowardHistory()
@@ -241,9 +222,7 @@ struct CompanionChatView: View {
                         // Body begins 12pt below the 23pt shoulder, matching its
                         // bottom inset. The 44pt audio hit area extends upward.
                         .frame(height:35,alignment:.bottom)
-                    Text(message.text).font(.system(size:chatFontSize)).lineSpacing(5)
-                        .accessibilityIdentifier("assistantMessage")
-                        .accessibilityValue(message.proactiveScene.map { "主动问候：" + $0 } ?? "回复")
+                    AIReplyContent(message:message,fontSize:chatFontSize)
                 }.padding(.horizontal,15).padding(.bottom,12)
                     .frame(minWidth:136,alignment:.leading)
                     .background(Theme.surface.opacity(reduceTransparency ? 1 : 0.64),in:AssistantBubbleShape())

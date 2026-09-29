@@ -76,17 +76,16 @@ struct AboutView: View {
                     }
                     VStack(alignment:.leading,spacing:9) {
                         Text("关于星夜").font(.headline)
-                        Text("你可以设置昵称、背景、性格、语气、配色和声音，管理这个角色的记忆与聊天。当前文字回复来自本地情景库；语音由 App 内置的 SenseVoice 与 MeloTTS 开源模型提供，在手机或 iPad 上离线运行，不连接云端对话服务。语音输入先转为可编辑文字，由你确认发送。")
+                        Text("琪宝与豆日向拥有独立的人设、记忆和原创音色。真实对话由百炼角色模型生成，表情从角色已有资源中选择；台词、心声与旁白分别呈现，只有台词和自然声音事件会被朗读。内容由 AI 生成。")
                             .font(.subheadline).foregroundStyle(Theme.secondary)
                     }
                     VStack(alignment:.leading,spacing:8) {
-                        Text("本机资料与开源语音").font(.headline)
-                        Text("角色资料与最近 1,000 条消息保存在本机；在聊天的资料页可搜索、导出或清空，记忆页可编辑与删除。录音不长期保存。识别与朗读模型随 App 安装，无需连接电脑、下载语音包或联网；录音不上传。")
+                        Text("AI 连接与资料").font(.headline)
+                        Text("对话和已确认记忆会发送到星夜后端及阿里云百炼，用于生成回应。录音只在点击麦克风后实时发送识别，结果可编辑，确认发送后才进入聊天。角色语音由 AI 合成。开发版后端运行在 Mac，同一网络可用；后续部署独立服务后即可离开 Mac 使用。密钥仅存后端。")
                             .font(.subheadline).foregroundStyle(Theme.secondary)
-                        Link("sherpa-onnx · Apache-2.0",destination:URL(string:"https://github.com/k2-fsa/sherpa-onnx")!)
-                        Link("SenseVoice · MIT",destination:URL(string:"https://github.com/QwenAudio/SenseVoice")!)
-                        Link("MeloTTS · MIT",destination:URL(string:"https://github.com/myshell-ai/MeloTTS")!)
-                        NavigationLink("离线语音开源许可") { OfflineVoiceLicensesView() }
+                        Text("本机保留最近 1,000 条消息和可清理的语音缓存；后端按用户与角色独立保存上下文。旧测试记录已备份，不参与真实对话。")
+                            .font(.subheadline).foregroundStyle(Theme.secondary)
+                        Link("阿里云百炼",destination:URL(string:"https://help.aliyun.com/zh/model-studio/")!)
                     }
                     VStack(alignment:.leading,spacing:8) {
                         Text("此刻的音乐").font(.headline)
@@ -98,23 +97,5 @@ struct AboutView: View {
                 }.padding(28).frame(maxWidth:600).frame(maxWidth:.infinity)
             }.scrollIndicators(.hidden).background(Color.clear)
                 .softNavigationBackground()
-    }
-}
-
-private struct OfflineVoiceLicensesView: View {
-    private var files: [URL] {
-        guard let root = Bundle.main.resourceURL?.appendingPathComponent("VoiceModels") else { return [] }
-        let runtime = (try? FileManager.default.contentsOfDirectory(at:root.appendingPathComponent("licenses"),includingPropertiesForKeys:nil)) ?? []
-        return [root.appendingPathComponent("sensevoice/LICENSE"),root.appendingPathComponent("melo/LICENSE")] + runtime.sorted { $0.lastPathComponent < $1.lastPathComponent }
-    }
-    var body: some View {
-        List(files,id:\.path) { file in
-            NavigationLink(file.lastPathComponent == "LICENSE" ? file.deletingLastPathComponent().lastPathComponent : file.deletingPathExtension().lastPathComponent) {
-                ScrollView {
-                    Text((try? String(contentsOf:file,encoding:.utf8)) ?? "许可文件未能读取")
-                        .font(.caption).textSelection(.enabled).padding()
-                }.scrollIndicators(.hidden).softNavigationBackground().navigationTitle("开源许可")
-            }
-        }.scrollIndicators(.hidden).scrollContentBackground(.hidden).softNavigationBackground().navigationTitle("离线语音许可")
     }
 }

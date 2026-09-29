@@ -4,7 +4,11 @@
 
 正式英文名 **StarryNight**，仓库和根目录统一为 `starrynight`。当前根目录 `/Users/gukaifeng/Documents/starrynight`，Xcode 真机入口为 `ios/StarryNight.xcworkspace`，模拟器入口为 `ios/StarryNight-Simulator.xcworkspace`，scheme 均为 `CharacterHost`。命名约定与迁移记录见 [英文命名与目录](docs/project-naming.md)。
 
-以精致 3D 角色为核心的 AI 陪伴产品。当前源码 **v0.47.0 / build 68**，名称保持「星夜」，默认月白深色主题，保留彩色星夜等可选主题，Logo 更新为极简月白星月矢量标志。原生 SwiftUI / UIKit + Unity as a Library，当前优先 **iPhone 手机版**，暂停新增 iPad 测试。
+以精致 3D 角色为核心的 AI 陪伴产品。当前源码 **v0.48.0 / build 69**，名称保持「星夜」，默认月白深色主题，保留彩色星夜等可选主题，Logo 更新为极简月白星月矢量标志。原生 SwiftUI / UIKit + Unity as a Library，当前优先 **iPhone 手机版**，暂停新增 iPad 测试。
+
+v0.48.0 移除测试对话库、固定问候/分支故事回复和内置离线推理引擎，接入真实百炼角色对话、实时识别及每角色独立原创音色。采用 Plan → 资源匹配 → Narration 的两阶段编排；只有台词与声音事件进入 TTS。API Key 仅保留后端，付费测试显式开启，缓存播放不重复计费。开发后端目前运行在这台 Mac，手机需要同一网络；独立云部署尚未进行。详见[真实 AI 实施与运维](docs/design/2026-09-30-real-character-ai.md)和[验收记录](docs/verification/real-character-ai/README.md)。
+
+以下为此前版本的交付记录。
 
 v0.47.0 增强两位角色的自然待机：只放大上半身呼吸（琪宝4倍、豆日向3倍），更明显的头发与衣物风动，单次眨眼放慢至0.455秒且保留原间隔。表现面板每组增加明确的默认入口，恢复表情保留姿势/穿搭，顶部可全部默认；穿搭默认遵循作者defaultOn。原作动画与源资源保持，适配独立声明。见[方案](docs/design/2026-09-30-visible-idle-and-defaults.md)及[本轮验收](docs/verification/idle-refinement/README.md)。
 
@@ -14,7 +18,7 @@ v0.46.0 只打包琪宝、豆日向，新增自然眨眼、原作呼吸与头发
 
 **0.46.0 / 67 已通过Wi-Fi安装iPhone17，设备版本读回一致。** 自动打开被手机锁定状态拒绝，用户解锁点星夜即可，不需重新安装。iPhone17模拟器的双角色自然待机/表情优先级完整流程通过，普通模式已启动；本轮未把模拟器60/120 Hz数值审查当作真机FPS实测。
 
-以下保留历史版本的能力与交付记录；旧角色数量、入口位置、安装失败记录等仅描述对应版本，当前状态以上文 0.47.0 为准。
+以下保留历史版本的能力与交付记录；旧角色数量、入口位置、安装失败记录等仅描述对应版本，当前状态以上文 0.48.0 为准。
 
 0.42.0 / 63 已完成输入区域外点按收键盘保留草稿、集中声音控制、原作待机/口型及动作恢复；声音单击总静音、长按分项设置，音乐支持手机静音模式下播放。当时的松手自动复位查看规则已由 0.43 的草稿与显式保存取代。见[0.42验收](docs/verification/conversation-controls/README.md)。
 
@@ -157,33 +161,35 @@ XCTest 操作真实 App：加载取消及重试、30 个前台计时 tick 的等
 
 动作需要拉远镜头时，采用带轻微回弹的平滑过渡，结束后柔和恢复原取景；快速切换动作保留镜头当前速度。取景参数依旧按角色保存，用户拖动／捏合使用更快的响应。实现与验证见[动作取景过渡](docs/design/2026-09-28-action-framing-motion.md)。
 
-## 本地伙伴与语音
+## 真实角色对话与语音
 
-首页选择角色后点击“开始聊天”。聊天面板右上角“我们的空间”（省略号）中的设定、记忆和历史入口可塑造昵称、背景、性格、语气、配色与空间氛围，管理共同记忆，搜索／导出／清空聊天。资料按角色分别保存在 App 沙盒，重启保留。点“互动舞台”可进入独立的动作体验页，同样采用受限取景。
+当前两位角色为琪宝和豆日向，独立人设、关系状态、记忆与专属音色。文字使用 `qwen-flash-character-2026-02-26`，语音识别使用 `fun-asr-realtime`，朗读使用 `qwen-audio-3.1-tts-flash`。所有回复都来自真实 AI，没有离线/关键词模拟答案兜底。短篇故事入口是共同创作提示，不再有固定分支答案。
 
-聊天采用角色开场、情境话题与真实录音／生成／朗读状态。全部页面隐藏滚动条，但仍可手势浏览；浏览旧消息时可点“回到最近”。
+当前开发拓扑是 iPhone / iPhone 模拟器 → Mac 的星夜网关 → 百炼。App 内只有受限的开发网关连接凭证；付费 Key 不进入 App。Mac 后端已注册登录后自动运行，退出开发终端不影响它；Mac 睡眠、关机或手机离开同一网络时无法创建新回复。部署独立服务器后再替换 App 的服务 URL。
 
-点聊天页的音符打开“此刻的音乐”：内置 **岛上的午后／月光潮汐** 两段 48 秒器乐循环，完全离线，默认关闭，支持独立音量并保存偏好。角色朗读时音乐降至设定的 18%，录音、返回首页和进入后台时暂停；系统中断或耳机拔出后需明确继续。音乐与语音共用原生音频协调器，无需额外启动音乐服务。音乐编排及生成脚本在 `scripts/generate_soundscapes.py`，资源已打包；生成工具仅用于维护，不是 App 运行依赖。
-
-**识别、朗读、文字情景库和背景音乐均在 App 内运行，手机不依赖 Mac 或互联网。** 语音引擎为 sherpa-onnx 1.13.8 / ONNX Runtime 1.28.1，内置 SenseVoiceSmall int8 与 MeloTTS zh_en。语音资源约 411 MiB；首次安装即可使用，不在启动后下载模型。
-
-开发机器首次准备（当前工作区已完成）：
+首次配置（不会调用付费模型）：
 
 ```bash
-python3 scripts/prepare_voice.py       # 下载锁定版本的语音模型
-python3 scripts/prepare_ios_speech.py  # 下载校验官方 iOS 库，组装 App 内资源
-# 下载需要代理时，给后一个命令传 --proxy http://127.0.0.1:7897
-bash scripts/build_host.sh            # 模拟器；构建检查只读本地资源，无联网要求
-bash scripts/build_device.sh          # 已配置 Apple 签名的手机 Release
+python3 -m venv .local/character-ai-venv
+.local/character-ai-venv/bin/pip install -r services/character_ai/requirements.lock
+python3 scripts/setup_character_ai.py --key-csv /你的私有目录/百炼密钥.csv
+python3 scripts/install_character_ai_agent.py
+bash scripts/build_host.sh
+bash scripts/build_device.sh
 ```
 
-语音输入先成为可编辑草稿，再确认发送；朗读逐句合成，可以停止，返回和切后台也会停止。单一预训练音色，口型按实际播放音量驱动。CPU 推理串行执行，每次最多常驻一种语音模型，为 3D 渲染保留资源；切换识别／朗读和首次使用会等待模型加载。实际真机速度、温度及帧率须独立测量。文字回复仍来自 `LocalDialogue.json`，**尚未集成通用聊天大模型**。
+声音设计只做一次并保存绑定，不能在启动/构建时重复创建。语音输入实时显示草稿，确认发送后进入对话；心理和旁白不朗读。当前长期记忆由 AI 提议，用户确认后才进入后续上下文。角色有真实动作资源时同步表演并恢复原选择，无匹配资源则自然退回待机。
 
 ```bash
-zsh scripts/test_companion.sh SIMULATOR_UUID SpeechFixtureFlowTests,SpeechPlaybackTests,OfflineSpeechLifecycleTests OfflineSpeech-Review
+# 免费检查：不会调用百炼
+.local/character-ai-venv/bin/python -m pytest -q services/character_ai/tests
+zsh scripts/test_companion.sh SIMULATOR_UUID \
+  'CompanionExperienceUITests/testCoreContractInIOSRuntime,RealAIConversationTests/testMissingAIShowsErrorWithoutFabricatedReply' RealAI-Free
+# 付费联调必须显式选择；脚本不会自行创建音色
+.local/character-ai-venv/bin/python scripts/live_character_ai_smoke.py --allow-paid
 ```
 
-测试使用真实模型、真实录音样本、实际播放器音量检测，覆盖可编辑识别结果、多句播放、取消后识别、背景中断、重新加载、静音和异常输入。Mac 语音服务是历史开发对照工具，已从 App 调用链移除，不需要 `start_voice.sh`。实施方案、限制与证据见[手机离线语音](docs/design/2026-09-28-offline-speech.md)。
+后台运行位置、更新方法、费用限制、请求重试规则、接口和部署前还需补齐的正式认证见[实施文档](docs/design/2026-09-30-real-character-ai.md)。旧的离线语音设计文件只作为历史记录，相关生产源码、构建依赖和测试入口已移除，原已下载权重保留在本机忽略目录。
 
 ## 工程关系
 
@@ -191,8 +197,8 @@ zsh scripts/test_companion.sh SIMULATOR_UUID SpeechFixtureFlowTests,SpeechPlayba
 |---|---|
 | `unity/CharacterRuntime/` | Unity 源工程：URP、模型适配、动作、镜头和触摸交互 |
 | `ios/CharacterHost/` | 原生源码：首页、角色档案、对话／记忆、语音播放、生命周期和桥接 |
-| `local-services/voice/` | 历史 Mac 语音对照服务及共用的固定模型清单；App 无服务依赖 |
-| `.local/speech-ios/` | 经校验的 iOS 推理库与 App 内模型资源，由准备脚本生成 |
+| `services/character_ai/` | 真实 AI 网关、角色编排、上下文、付费配额与语音协议 |
+| `.local/character-ai-client/` | 忽略提交的开发网关 URL 与受限客户端凭证 |
 | `build/unity-simulator/` | Unity 生成的 ARM64 Simulator SDK Xcode 工程 |
 | `build/unity-device/` | 独立 Device SDK 导出，不与模拟器框架混用 |
 | `ios/CharacterHost.xcodeproj` | 脚本生成的真机宿主和 UI 测试工程 |

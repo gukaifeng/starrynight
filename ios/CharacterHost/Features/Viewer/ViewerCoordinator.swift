@@ -270,6 +270,8 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
         let session = CompanionSession(store:companionStore,model:model,soundscape:soundscape)
         session.onLoginRequested = { [weak self] in self?.requestLogin() }
         session.onIntent = { [weak self] intent in self?.signal(intent) }
+        session.onAIVisual = { [weak self] visuals in self?.applyAIVisuals(visuals) }
+        session.onEndAIVisual = { [weak self] in self?.endAIVisuals() }
         session.onAppearance = { [weak self] profile in self?.configureAppearance(profile) }
         session.onPosture = { [weak self] value in
             guard let self else { return "角色暂时无法调整姿势，请重新打开后再试。" }
@@ -293,12 +295,46 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
     private let characterPort = CharacterSignalPort()
     private func signal(_ intent: CharacterIntent) { send("character.signal",payload:["signal":characterPort.payload(intent,actorId:selectedModel.runtimeID)]) }
     private func selectPerformance(_ option: String, enabled: Bool) {
+        endAIVisuals()
         guard selectedModel.performance?.options.contains(where:{ $0.id == option }) == true else { return }
         sendPerformance(CharacterIntent(eventName:"performance.select",target:option,intensity:enabled ? 1 : 0))
     }
     private func resetPerformance(group: String) {
+        endAIVisuals()
         guard group.isEmpty || selectedModel.performance?.groups.contains(where:{ $0.id == group }) == true else { return }
         sendPerformance(CharacterIntent(eventName:"performance.reset",target:group))
+    }
+    private var aiVisualBaseline: [String:Set<String>] = [:]
+    private var aiVisualTasks: [String:Task<Void,Never>] = [:]
+    private func applyAIVisuals(_ visuals: [AIVisual]) {
+        guard page == .viewer, desiredVisible, characterPerformance.ready,
+              let profile = selectedModel.performance else { return }
+        for visual in visuals {
+            guard let option = profile.options.first(where:{ $0.id == visual.assetId && $0.group == visual.group }),
+                  ["expression","hands"].contains(option.group), !option.isToggle else { continue }
+            let group = option.group
+            if aiVisualBaseline[group] == nil {
+                aiVisualBaseline[group] = characterPerformance.selections.intersection(Set(profile.options.filter { $0.group == group }.map(\.id)))
+            }
+            aiVisualTasks[group]?.cancel()
+            signal(CharacterIntent(eventName:"performance.select",target:option.id))
+            let actor = selectedModel.id
+            aiVisualTasks[group] = Task { @MainActor [weak self] in
+                try? await Task.sleep(for:.milliseconds(min(8000,max(1200,visual.durationMs))))
+                guard !Task.isCancelled, let self, self.selectedModel.id == actor else { return }
+                self.restoreAIGroup(group)
+            }
+        }
+    }
+    private func restoreAIGroup(_ group: String) {
+        guard let original = aiVisualBaseline[group] else { return }
+        signal(CharacterIntent(eventName:"performance.reset",target:group))
+        for id in original { signal(CharacterIntent(eventName:"performance.select",target:id)) }
+    }
+    private func endAIVisuals() {
+        aiVisualTasks.values.forEach { $0.cancel() }; aiVisualTasks.removeAll()
+        for group in aiVisualBaseline.keys { restoreAIGroup(group) }
+        aiVisualBaseline.removeAll()
     }
     private func sendPerformance(_ intent: CharacterIntent) {
         guard page == .viewer, desiredVisible, selectedModel.performance != nil,

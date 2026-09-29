@@ -18,6 +18,17 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         window.overrideUserInterfaceStyle = .dark
         window.makeKeyAndVisible()
 #if DEBUG && targetEnvironment(simulator)
+        if ProcessInfo.processInfo.arguments.contains("--speech-playback-check") {
+            let label = UILabel(); label.numberOfLines = 0; label.textColor = .white
+            label.frame = CGRect(x:24,y:100,width:window.bounds.width-48,height:450)
+            label.accessibilityIdentifier = "speechPlaybackResult"; label.text = "正在检查声音播放…"
+            placeholder.view.addSubview(label)
+            Task {
+                do { label.text = try await CloudSpeechPlaybackTests.run() }
+                catch { label.text = "FAIL: \(error.localizedDescription)" }
+            }
+            return
+        }
         if ProcessInfo.processInfo.arguments.contains("--view-presets-check") {
             let label=UILabel();label.numberOfLines=0;label.textColor = .white
             label.frame=CGRect(x:24,y:100,width:window.bounds.width-48,height:450)
@@ -64,6 +75,15 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             }
             return
         }
+        if ProcessInfo.processInfo.arguments.contains("--greeting-core-check") {
+            let label = UILabel(); label.numberOfLines = 0; label.textColor = .white
+            label.frame = CGRect(x:24,y:100,width:window.bounds.width-48,height:350)
+            label.accessibilityIdentifier = "greetingCoreResult"
+            do { label.text = try ConversationGreetingTests.run() }
+            catch { label.text = "FAIL: \(error)" }
+            placeholder.view.addSubview(label)
+            return
+        }
         if ProcessInfo.processInfo.arguments.contains("--experience-core-check") {
             let label=UILabel();label.numberOfLines=0;label.textColor = .white
             label.frame=CGRect(x:24,y:100,width:window.bounds.width-48,height:350)
@@ -84,7 +104,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     }
     private func bootstrap(in windowScene:UIWindowScene) {
 #if DEBUG && targetEnvironment(simulator)
-        if ProcessInfo.processInfo.arguments.contains(where: { ["--view-presets-check", "--experience-core-check", "--export-core-check", "--export-ui-check", "--social-core-check", "--cache-core-check"].contains($0) }) { return }
+        if ProcessInfo.processInfo.arguments.contains(where: { ["--speech-playback-check", "--greeting-core-check", "--view-presets-check", "--experience-core-check", "--export-core-check", "--export-ui-check", "--social-core-check", "--cache-core-check"].contains($0) }) { return }
 #endif
         guard coordinator == nil, bootstrapTask == nil else { return }
         // Commit the native animation before reading account/catalog data or

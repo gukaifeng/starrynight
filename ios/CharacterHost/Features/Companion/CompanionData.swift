@@ -47,6 +47,8 @@ struct CompanionMessage: Codable, Identifiable, Sendable {
     // Open string metadata allows future entry scenes without breaking old archives.
     var proactiveScene: String? = nil
     var storyID: String? = nil
+    var aiScript: AIScript? = nil
+    var source: String? = nil
 }
 struct CompanionMemory: Codable, Identifiable, Sendable {
     var id = UUID()
@@ -92,63 +94,18 @@ struct ChatDisplaySettings: Codable, Equatable, Sendable {
     }
 }
 struct CompanionArchive: Codable, Sendable {
-    var schemaVersion = 1
+    var schemaVersion = 2
     var characters: [String:CharacterRecord] = [:]
     // Decode legacy archives, but never use their old account-level display preference.
     var chatDisplay: ChatDisplaySettings? = nil
     var guestTurns: Int? = nil
     var guestImportedBy: String? = nil
 }
-struct DialogueRule: Codable, Sendable {
-    var id: String
-    var keywords: [String]
-    var replies: [String]
-    var eventName: String?
-    var emotion: String?
-}
-struct DialogueReply: Sendable { var text: String; var eventName: String; var emotion: String }
-protocol DialogueProviding: Sendable {
-    func reply(to input: String, record: CharacterRecord, variant: Int) -> DialogueReply
-    func greeting(for context:ConversationGreetingContext,record:CharacterRecord) -> DialogueReply
-}
-struct LocalDialogue: DialogueProviding {
-    let rules: [DialogueRule]
-    init(data: Data) throws { rules = try JSONDecoder().decode([DialogueRule].self,from:data) }
-    func reply(to input: String, record: CharacterRecord, variant: Int = 0) -> DialogueReply {
-        if var special = LocalTogetherDialogue.override(input,record:record) {
-            let nickname = record.together.preferences.normalized.nickname
-            if !nickname.isEmpty { special.text = nickname + "，" + special.text }
-            return special
-        }
-        let query = input.lowercased()
-        let p = record.profile
-        let rule = rules.first { $0.keywords.contains { query.contains($0.lowercased()) } } ?? rules.last!
-        let memories = record.memories.suffix(6).map(\.text).joined(separator:"；")
-        var text = rule.replies[abs(variant) % rule.replies.count]
-            .replacingOccurrences(of:"{name}",with:p.name)
-            .replacingOccurrences(of:"{background}",with:p.background)
-            .replacingOccurrences(of:"{memory}",with:memories.isEmpty ? "你还没有保存记忆。可以把喜欢的事写进记忆里，我下次就能提起。" : "你保存的记忆是：" + memories + "。这些内容随时可以修改或删除。")
-        if rule.id == "continue", let previous = record.messages.last(where: { $0.role == "user" && $0.text != input }) {
-            text = "刚才你说“\(previous.text.prefix(70))”。我们可以从这件事里最在意的部分继续。"
-        }
-        if !["memory","identity"].contains(rule.id) {
-            if p.personality == "活泼" { text = "嘿，" + text }
-            if p.personality == "理性" { text = "我们慢慢理清楚。" + text }
-            if p.tone == "温暖" { text += " 我会认真听。" }
-            if p.tone == "轻松" { text += " 不着急，给今天留一点松弛感。" }
-        }
-        let nickname = record.together.preferences.normalized.nickname
-        if !nickname.isEmpty { text = nickname + "，" + text }
-        if p.concise && rule.id != "memory" { text = String(text.prefix(85)) }
-        return DialogueReply(text:text,eventName:rule.eventName ?? "dialogue.reply",emotion:rule.emotion ?? "neutral")
-    }
-}
-
 enum CompanionPersistence {
     static func read(_ url: URL) throws -> CompanionArchive {
         guard FileManager.default.fileExists(atPath:url.path) else { return CompanionArchive() }
         let archive = try JSONDecoder().decode(CompanionArchive.self,from:Data(contentsOf:url))
-        guard archive.schemaVersion == 1 else { throw CocoaError(.fileReadCorruptFile) }
+        guard (1...2).contains(archive.schemaVersion) else { throw CocoaError(.fileReadCorruptFile) }
         return archive
     }
     static func write(_ archive: CompanionArchive, to url: URL) throws {

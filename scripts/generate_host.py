@@ -7,6 +7,7 @@ build UnityFramework before linking/embedding it in the native application.
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
 import plistlib
 import subprocess
@@ -69,18 +70,16 @@ for path in sorted((ios/'CharacterHost').rglob('*')):
 # Run the same pure Swift checks in the iOS runtime when local macOS executables
 # cannot launch. The SceneDelegate entry is DEBUG + simulator + explicit flag only.
 if args.platform == 'simulator':
-    for test_name in ['CompanionExperienceTests', 'ConversationExportTests', 'CharacterLibraryTests', 'AuthorSubscriptionTests', 'CacheStorageTests', 'CharacterViewPresetTests']:
+    for test_name in ['CloudSpeechPlaybackTests', 'CompanionExperienceTests', 'ConversationGreetingTests', 'ConversationExportTests', 'CharacterLibraryTests', 'AuthorSubscriptionTests', 'CacheStorageTests', 'CharacterViewPresetTests']:
         relative=f'../scripts/tests/{test_name}.swift'
         ref=obj(relative,'PBXFileReference',lastKnownFileType='sourcecode.swift',path=relative,sourceTree='<group>')
         source_refs.append(ref); source_build.append(buildfile(relative,ref))
 
-# Folder reference preserves dictionaries, normalization FSTs, model names and licenses.
-voice_folder = obj('voice-models','PBXFileReference',lastKnownFileType='folder',path='../.local/speech-ios/VoiceModels',sourceTree='<group>')
-source_refs.append(voice_folder); resource_build.append(buildfile('voice-models',voice_folder))
-voice_frameworks = []
-for name in ['sherpa-onnx','onnxruntime']:
-    ref = obj('voice-framework:'+name,'PBXFileReference',lastKnownFileType='wrapper.xcframework',path=f'../.local/speech-ios/Frameworks/{name}.xcframework',sourceTree='<group>')
-    source_refs.append(ref); voice_frameworks.append(buildfile('voice-link:'+name,ref))
+# Restricted development gateway token only; the paid provider key is server-only.
+connection = ROOT/'.local/character-ai-client/Connection.json'
+if connection.exists():
+    ref=obj('ai-connection','PBXFileReference',lastKnownFileType='text.json',path='../.local/character-ai-client/Connection.json',sourceTree='<group>')
+    source_refs.append(ref); resource_build.append(buildfile('ai-connection',ref))
 
 app=obj('app-product','PBXFileReference',explicitFileType='wrapper.application',path='CharacterHost.app',sourceTree='BUILT_PRODUCTS_DIR',includeInIndex='0')
 unity_ref=obj('unity-project','PBXFileReference',lastKnownFileType='wrapper.pb-project',path=f'../build/unity-{args.platform}/Unity-iPhone.xcodeproj',sourceTree='<group>')
@@ -92,11 +91,11 @@ dependency=obj('unity-dependency','PBXTargetDependency',name='UnityFramework',ta
 products=obj('products','PBXGroup',name='Products',children=[app],sourceTree='<group>')
 sources=obj('sources','PBXSourcesBuildPhase',buildActionMask='2147483647',files=source_build,runOnlyForDeploymentPostprocessing='0')
 resources=obj('resources','PBXResourcesBuildPhase',buildActionMask='2147483647',files=resource_build,runOnlyForDeploymentPostprocessing='0')
-frameworks=obj('frameworks','PBXFrameworksBuildPhase',buildActionMask='2147483647',files=[buildfile('link-unity',framework)]+voice_frameworks,runOnlyForDeploymentPostprocessing='0')
+frameworks=obj('frameworks','PBXFrameworksBuildPhase',buildActionMask='2147483647',files=[buildfile('link-unity',framework)],runOnlyForDeploymentPostprocessing='0')
 embed=obj('embed','PBXCopyFilesBuildPhase',buildActionMask='2147483647',dstPath='',dstSubfolderSpec='10',name='Embed Frameworks',files=[buildfile('embed-unity',framework,settings={'ATTRIBUTES':['CodeSignOnCopy','RemoveHeadersOnCopy']})],runOnlyForDeploymentPostprocessing='0')
 content_check=obj('check-content','PBXShellScriptBuildPhase',buildActionMask='2147483647',files=[],inputPaths=[],outputPaths=[],
-    name='Check character and offline speech content',runOnlyForDeploymentPostprocessing='0',shellPath='/bin/sh',alwaysOutOfDate='1',
-    shellScript=f'python3 "${{SRCROOT}}/../scripts/check_export_content.py" --platform {args.platform}\npython3 "${{SRCROOT}}/../scripts/prepare_ios_speech.py" --check\n')
+    name='Check character content',runOnlyForDeploymentPostprocessing='0',shellPath='/bin/sh',alwaysOutOfDate='1',
+    shellScript=f'python3 "${{SRCROOT}}/../scripts/check_export_content.py" --platform {args.platform}\n')
 settings={'PRODUCT_NAME':'$(TARGET_NAME)','PRODUCT_BUNDLE_IDENTIFIER':'com.modelspace.viewer',
     'PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]':'$(MODELSPACE_DEVICE_BUNDLE_IDENTIFIER)',
     'INFOPLIST_FILE':'CharacterHost/Info.plist','SWIFT_VERSION':'6.0','SWIFT_OBJC_BRIDGING_HEADER':'CharacterHost/Bridge/CharacterHost-Bridging-Header.h',
@@ -109,7 +108,7 @@ settings={'PRODUCT_NAME':'$(TARGET_NAME)','PRODUCT_BUNDLE_IDENTIFIER':'com.model
     'FRAMEWORK_SEARCH_PATHS':['$(inherited)','$(BUILT_PRODUCTS_DIR)'],
     'OTHER_LDFLAGS':['$(inherited)','-lc++','-framework','CoreML','-framework','Accelerate'],
     'GCC_ENABLE_CPP_EXCEPTIONS':'YES',
-    'CODE_SIGN_STYLE':'Automatic','CURRENT_PROJECT_VERSION':'68','MARKETING_VERSION':'0.47.0',
+    'CODE_SIGN_STYLE':'Automatic','CURRENT_PROJECT_VERSION':'69','MARKETING_VERSION':'0.48.0',
     'ENABLE_USER_SCRIPT_SANDBOXING':'NO','SUPPORTS_MACCATALYST':'NO','SWIFT_EMIT_LOC_STRINGS':'YES',
     'ARCHS':'arm64','ENABLE_DEBUG_DYLIB':'NO','ASSETCATALOG_COMPILER_APPICON_NAME':'AppIcon'}
 target=obj('host-target','PBXNativeTarget',name='CharacterHost',productName='CharacterHost',productType='com.apple.product-type.application',productReference=app,
@@ -159,7 +158,7 @@ scheme=f'''<?xml version="1.0" encoding="UTF-8"?>
  <BuildAction parallelizeBuildables="YES" buildImplicitDependencies="YES"><BuildActionEntries>
   <BuildActionEntry buildForTesting="YES" buildForRunning="YES" buildForProfiling="YES" buildForArchiving="YES" buildForAnalyzing="YES">{host_ref}</BuildActionEntry>
  </BuildActionEntries></BuildAction>
- <TestAction buildConfiguration="Debug" selectedDebuggerIdentifier="Xcode.DebuggerFoundation.Debugger.LLDB" selectedLauncherIdentifier="Xcode.IDEFoundation.Launcher.LLDB" shouldUseLaunchSchemeArgsEnv="YES" disablePerformanceAntipatternChecker="YES"><Testables><TestableReference skipped="NO">{test_ref}</TestableReference></Testables></TestAction>
+ <TestAction buildConfiguration="Debug" selectedDebuggerIdentifier="Xcode.DebuggerFoundation.Debugger.LLDB" selectedLauncherIdentifier="Xcode.IDEFoundation.Launcher.LLDB" shouldUseLaunchSchemeArgsEnv="NO" disablePerformanceAntipatternChecker="YES"><EnvironmentVariables><EnvironmentVariable key="STARRY_LIVE_AI_TESTS" value="{1 if os.environ.get('STARRY_LIVE_AI_TESTS') == '1' else 0}" isEnabled="YES"/></EnvironmentVariables><Testables><TestableReference skipped="NO">{test_ref}</TestableReference></Testables></TestAction>
  <LaunchAction buildConfiguration="{run_configuration}" selectedDebuggerIdentifier="Xcode.DebuggerFoundation.Debugger.LLDB" selectedLauncherIdentifier="Xcode.IDEFoundation.Launcher.LLDB" launchStyle="0" useCustomWorkingDirectory="NO" ignoresPersistentStateOnLaunch="NO" debugDocumentVersioning="YES" allowLocationSimulation="YES" disablePerformanceAntipatternChecker="YES"><BuildableProductRunnable runnableDebuggingMode="0">{host_ref}</BuildableProductRunnable></LaunchAction>
  <ProfileAction buildConfiguration="Release" shouldUseLaunchSchemeArgsEnv="YES" savedToolIdentifier="" useCustomWorkingDirectory="NO" debugDocumentVersioning="YES"><BuildableProductRunnable runnableDebuggingMode="0">{host_ref}</BuildableProductRunnable></ProfileAction>
  <AnalyzeAction buildConfiguration="Debug"/><ArchiveAction buildConfiguration="Release" revealArchiveInOrganizer="YES"/>
@@ -169,7 +168,9 @@ schemes=workspace/'xcshareddata/xcschemes'; schemes.mkdir(parents=True,exist_ok=
 info={'CFBundleDevelopmentRegion':'zh_CN','CFBundleDisplayName':json.loads((ROOT/'assets/brand/brand.json').read_text())['displayName'],'CFBundleExecutable':'$(EXECUTABLE_NAME)',
     'CFBundleIdentifier':'$(PRODUCT_BUNDLE_IDENTIFIER)','CFBundleInfoDictionaryVersion':'6.0','CFBundleName':'$(PRODUCT_NAME)',
     'CFBundlePackageType':'APPL','CFBundleShortVersionString':'$(MARKETING_VERSION)','CFBundleVersion':'$(CURRENT_PROJECT_VERSION)',
-    'NSMicrophoneUsageDescription':'将你的语音转为可编辑文字。识别只在手机或 iPad 内完成，录音不上传，也不会自动发送聊天。',
+    'NSMicrophoneUsageDescription':'将语音发送至星夜 AI 服务及阿里云百炼，实时转成可编辑文字。确认发送后才进入对话。',
+    'NSLocalNetworkUsageDescription':'开发版连接同一网络中的星夜 AI 服务，完成真实对话和语音。',
+    'NSAppTransportSecurity':{'NSAllowsLocalNetworking':True},
     'LSRequiresIPhoneOS':True,'UILaunchScreen':{'UIColorName':'LaunchNight'},'UIUserInterfaceStyle':'Dark',
     'UIApplicationSceneManifest':{'UIApplicationSupportsMultipleScenes':False,'UISceneConfigurations':{'UIWindowSceneSessionRoleApplication':[{'UISceneConfigurationName':'Model Space','UISceneDelegateClassName':'$(PRODUCT_MODULE_NAME).SceneDelegate'}]}},
     'UISupportedInterfaceOrientations':['UIInterfaceOrientationPortrait','UIInterfaceOrientationLandscapeLeft','UIInterfaceOrientationLandscapeRight'],

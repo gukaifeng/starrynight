@@ -2,7 +2,6 @@ import Foundation
 @main struct CompanionCoreTests {
  static func main() throws {
   let root = URL(fileURLWithPath:FileManager.default.currentDirectoryPath)
-  let dialogue = try LocalDialogue(data:Data(contentsOf:root.appendingPathComponent("ios/CharacterHost/Resources/LocalDialogue.json")))
   let temp = FileManager.default.temporaryDirectory.appendingPathComponent("xuyu-core-\(UUID())/store.json")
   defer { try? FileManager.default.removeItem(at:temp.deletingLastPathComponent()) }
   var archive = CompanionArchive()
@@ -15,19 +14,9 @@ import Foundation
   let restored = try CompanionPersistence.read(temp)
   precondition(restored.characters["studio-robot"]!.profile.name == "小屿")
   precondition(restored.characters["hatsune-miku"]!.memories.isEmpty)
-  precondition(dialogue.reply(to:"你记得什么",record:luma).text.contains("海边"))
-  precondition(!dialogue.reply(to:"你记得什么",record:restored.characters["hatsune-miku"]!).text.contains("海边"))
-  precondition(dialogue.reply(to:"介绍自己",record:luma).text.contains("一起读书"))
-  let original = dialogue.reply(to:"今天有点累",record:luma).text
-  precondition(original != dialogue.reply(to:"今天有点累",record:luma,variant:1).text)
   luma.profile.personality = "活泼"; luma.profile.tone = "温暖"
-  precondition(dialogue.reply(to:"今天有点累",record:luma).text.hasPrefix("嘿，"))
   luma.profile.concise = true
-  precondition(dialogue.reply(to:"今天有点累",record:luma).text.count <= 85)
-  precondition(dialogue.reply(to:"跳舞吧",record:luma).eventName == "dialogue.dance")
-  precondition(dialogue.reply(to:"打开任意系统文件",record:luma).eventName == "dialogue.reply")
   luma.memories.removeAll()
-  precondition(!dialogue.reply(to:"你记得什么",record:luma).text.contains("海边"))
   luma.profile.name = "  "; luma.profile.voiceSpeed = 100; luma.profile.normalize()
   precondition(luma.profile.name == "伙伴" && luma.profile.voiceSpeed == 1.4)
   // The exact previous archive shape has no framing field. It must keep history and memory.

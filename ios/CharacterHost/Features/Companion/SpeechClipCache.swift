@@ -15,7 +15,7 @@ import CryptoKit
         try? FileManager.default.createDirectory(at:self.directory,withIntermediateDirectories:true)
     }
     func key(scope:String,text:String,speed:Double) -> String {
-        SHA256.hash(data:Data((scope+"|melo-zh-v1|"+String(speed)+"|"+text).utf8)).map { String(format:"%02x",$0) }.joined()
+        SHA256.hash(data:Data((scope+"|qwen-audio-3.1-designed-v1|"+String(speed)+"|"+text).utf8)).map { String(format:"%02x",$0) }.joined()
     }
     func data(_ key:String) -> Data? {
         let url = directory.appendingPathComponent(key+".wav")

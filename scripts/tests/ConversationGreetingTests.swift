@@ -1,7 +1,11 @@
 import Foundation
 
-@main struct ConversationGreetingTests {
-    @MainActor static func main() throws {
+#if !os(iOS)
+@main
+#endif
+struct ConversationGreetingTests {
+    @MainActor static func main() throws { print(try run()) }
+    @MainActor static func run() throws -> String {
         var checks = 0
         func check(_ value:Bool,_ message:String) { precondition(value,message); checks += 1 }
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent("starry-greeting-"+UUID().uuidString)
@@ -9,7 +13,8 @@ import Foundation
         let url = folder.appendingPathComponent("chat.json")
         let store = CompanionStore(storageURL:url)
         store.activateAccount("guest")
-        let model = ModelDescriptor.miku
+        let model = ModelDescriptor.defaultCharacter
+        let other = ModelDescriptor.all.first { $0.id != model.id }!
         let original = CharacterRecord(profile:model.collection.initialProfile())
         check(ConversationGreetingPolicy.shouldIntroduce(original),"An unmet role introduces itself")
         var profileOnly = original; profileOnly.profile.autoSpeak = false
@@ -22,13 +27,11 @@ import Foundation
         check(context(.appLaunch,original).scene == "firstLaunch","Fresh account launching has an introduction")
         check(context(.characterSelection,original).scene == "firstMeeting","Selecting a new role is a first meeting")
         check(context(.appLaunch,original,true).scene == "firstMeeting","An established account meeting a new role is not a new app user")
-        let hello = store.dialogue.greeting(for:context(.appLaunch,original),record:original)
-        check(hello.text.contains(model.name),"Greeting uses the actual character name")
-        check(hello.eventName == "expression.request","Proactive greeting cannot request the full-body greeting cue")
+        let hello = "测试专用的已收到 AI 问候"
         let entryID = UUID()
         store.update(model.id) {
-            $0.messages.append(CompanionMessage(role:"assistant",text:hello.text,date:morning,proactiveScene:"firstLaunch"))
-            $0.greeting = ConversationGreetingHistory(count:1,lastDate:morning,lastText:hello.text,lastEntryID:entryID)
+            $0.messages.append(CompanionMessage(role:"assistant",text:hello,date:morning,proactiveScene:"firstLaunch"))
+            $0.greeting = ConversationGreetingHistory(count:1,lastDate:morning,lastText:hello,lastEntryID:entryID)
         }
         check(store.guestTurns == 0,"Assistant messages do not consume the user's five turns")
         let restored = CompanionStore(storageURL:url); restored.activateAccount("guest")
@@ -39,8 +42,6 @@ import Foundation
         check(context(.conversationReturn,met,true).scene == "conversationReturn","Returning to a retained role has its own context")
         check(context(.characterSelection,met,true).scene == "characterSwitch","Selecting a known role is distinguished from first meeting")
         check(context(.foregroundReturn,met,true).scene == "foregroundReturn","Background return has its own context")
-        check(store.dialogue.greeting(for:context(.appLaunch,met,true),record:met).text.contains("早上好"),"Local time changes launch greeting")
-        check(store.dialogue.greeting(for:context(.appLaunch,met,true,Date(timeIntervalSince1970:20*3600)),record:met).text.contains("晚上好"),"Evening launch greeting")
         var old = CharacterRecord(profile:original.profile,messages:[CompanionMessage(role:"user",text:"今天有点累",date:morning)])
         let oldData = try JSONEncoder().encode(old)
         check(!String(decoding:oldData,as:UTF8.self).contains("greeting"),"Legacy shape has no required greeting metadata")
@@ -59,20 +60,16 @@ import Foundation
             let newEntry = ConversationEntry(reason:.conversationReturn,characterID:model.id,accountID:"guest")
             check(newEntry.id != met.greeting?.lastEntryID && !ConversationGreetingPolicy.shouldIntroduce(met),"A fresh presentation UUID never resets a known relationship")
         }
-        var customized = original; customized.profile.name = "小月"; customized.profile.personality = "活泼"
-        customized.profile.tone = "温暖"
-        let tailored = store.dialogue.greeting(for:context(.characterSelection,customized),record:customized).text
-        check(tailored.contains("小月") && tailored.hasPrefix("嘿，") && tailored.contains("认真听"),"Custom name/personality/tone apply")
         restored.activateAccount(DemoAccount.alternateID)
         check(restored.record(model.id).greeting == nil && restored.record(model.id).messages.isEmpty,"Another account has no access to guest greetings")
         check(ConversationGreetingPolicy.shouldIntroduce(restored.record(model.id)),"Another account still gets its own first introduction")
         restored.activateAccount("guest")
-        check(restored.record(ModelDescriptor.robot.id).greeting == nil,"Different roles do not inherit greetings")
-        check(ConversationGreetingPolicy.shouldIntroduce(restored.record(ModelDescriptor.robot.id)),"A different role introduces itself independently")
+        check(restored.record(other.id).greeting == nil,"Different roles do not inherit greetings")
+        check(ConversationGreetingPolicy.shouldIntroduce(restored.record(other.id)),"A different role introduces itself independently")
         check(restored.importGuest(into:DemoAccount.id),"Newly logged-in account can keep its guest relationship")
         restored.activateAccount(DemoAccount.id)
         check(context(.conversationReturn,restored.record(model.id),true).scene == "conversationReturn","Login does not reintroduce an already met character")
         check(!ConversationGreetingPolicy.shouldIntroduce(restored.record(model.id)),"Guest-to-account adoption keeps the introduction consumed")
-        print("PASS: \(checks) first-introduction policy, persistent deduplication, migration, account isolation and guest budget checks")
+        return "PASS: \(checks) greeting context, persistence, account/role isolation and guest budget checks"
     }
 }

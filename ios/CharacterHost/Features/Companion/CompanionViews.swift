@@ -44,10 +44,10 @@ struct CharacterProfileView: View {
                     Picker("说话节奏",selection:Binding(get:{model.collection.voice(profile.voiceID).id},set:{profile.voiceID = $0})) {
                         ForEach(model.collection.voices) { voice in Text(voice.title).tag(voice.id) }
                     }.accessibilityIdentifier("characterVoicePicker")
-                    Text("此角色的离线中文声音预设。预设调整说话节奏，语速可继续微调。")
+                    Text("角色使用专属 AI 音色，语气由当前对话情境决定。")
                         .font(.caption).foregroundStyle(.secondary)
                 }
-                Section { Text("当前为本地情景对话。设定影响称呼、介绍和回复风格，不代表已经训练了通用 AI 模型。").font(.footnote).foregroundStyle(.secondary) }
+                Section { Text("角色根据设定、共同记忆和当前对话作出 AI 回复。保留真实的共同经历，不会把尚未发生的事当作回忆。").font(.footnote).foregroundStyle(.secondary) }
                 if let error = store.error { Text(error).foregroundStyle(.red) }
                 }.listRowBackground(Theme.surface.opacity(0.72))
             }
@@ -218,7 +218,7 @@ struct CompanionHistoryView: View {
             .scrollIndicators(.hidden).scrollContentBackground(.hidden)
             .scrollDismissesKeyboard(.interactively).contentMargins(.top,0,for:.scrollContent)
             .confirmationDialog("清空后无法恢复，角色设定与记忆仍保留。",isPresented:$confirmClear,titleVisibility:.visible) {
-                Button("确认清空聊天",role:.destructive) { session.stop(); session.store.update(session.model.id) { $0.messages = [] } }
+                Button("确认清空聊天",role:.destructive) { session.clearMessages() }
             }
         }
     }

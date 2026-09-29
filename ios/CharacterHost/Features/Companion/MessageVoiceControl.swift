@@ -50,7 +50,7 @@ struct MessageVoiceControl: View {
             .accessibilityIdentifier("messageVoice-"+message.id.uuidString)
             .accessibilityLabel(active ? "停止这条语音" : "播放这条语音")
             .accessibilityValue((speaking ? "播放中，" : active ? "准备中，" : "未播放，")+durationLabel+audioEvidence)
-            .accessibilityHint("轻点播放；静音只关闭自动朗读")
+            .accessibilityHint("轻点播放或停止这一句台词")
     }
     private var label:some View {
         HStack(spacing:5) {

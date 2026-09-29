@@ -21,7 +21,14 @@
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>将你的语音转为可编辑文字。识别只在手机或 iPad 内完成，录音不上传，也不会自动发送聊天。</string>
+	<string>将语音发送至星夜 AI 服务及阿里云百炼，实时转成可编辑文字。确认发送后才进入对话。</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>开发版连接同一网络中的星夜 AI 服务，完成真实对话和语音。</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UILaunchScreen</key>

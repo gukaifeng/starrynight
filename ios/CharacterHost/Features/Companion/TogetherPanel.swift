@@ -71,16 +71,15 @@ struct TogetherPanel: View {
     }
     private var storyShelf:some View {
         VStack(alignment:.leading,spacing:14) {
-            Text("短篇故事 · 本机体验").font(.system(size:11,weight:.medium)).foregroundStyle(Theme.secondary)
+            Text("一起写故事 · AI 即兴").font(.system(size:11,weight:.medium)).foregroundStyle(Theme.secondary)
             ForEach(stories) { story in storyCard(story) }
-            Text("故事进度只属于你和这个角色。随时暂停，回来接着选；聊天和共同记忆不会被重置。")
+            Text("故事进度只属于你和这个角色。随时暂停，回来接着聊；聊天和共同记忆不会被重置。")
                 .font(.system(size:12)).lineSpacing(4).foregroundStyle(Theme.secondary)
         }
     }
     private func storyCard(_ story:CompanionStory) -> some View {
         let progress = experience.stories[story.id]
         let active = experience.activeStoryID == story.id
-        let node = story.node(progress)
         return VStack(alignment:.leading,spacing:14) {
             HStack(spacing:12) {
                 Image(systemName:story.symbol).font(.system(size:22,weight:.light)).foregroundStyle(Theme.peach)
@@ -92,30 +91,12 @@ struct TogetherPanel: View {
                 }
                 Spacer(minLength:0)
             }
-            if active, let progress {
-                HStack(spacing:6) {
-                    ForEach(0..<3) { index in Capsule().fill(index <= min(2,progress.choices.count) ? Theme.accent.opacity(0.75) : Theme.line).frame(height:2) }
-                    Text(progress.completed ? "结局" : "第\(progress.choices.count+1)幕").font(.system(size:10)).foregroundStyle(Theme.secondary)
-                }.accessibilityLabel(progress.completed ? "故事已完成" : "故事进行中")
-                Text(node.title).font(.system(size:13,weight:.medium)).foregroundStyle(Theme.peach)
-                Text(story.text(node,name:session.record.profile.name)).font(.system(size:14)).lineSpacing(5)
-                    .accessibilityIdentifier("activeStoryText")
-                ForEach(node.choices) { choice in
-                    Button { session.chooseStory(choice.id,nodeID:progress.nodeID,story:story) } label: {
-                        HStack { Text(choice.title); Spacer(); Image(systemName:"arrow.turn.down.right").font(.system(size:11)) }
-                        .font(.system(size:13,weight:.medium)).padding(.horizontal,13).frame(minHeight:44)
-                            .background(Theme.accent.opacity(0.08),in:RoundedRectangle(cornerRadius:13))
-                            .contentShape(Rectangle())
-                    }.buttonStyle(.plain).accessibilityIdentifier("story-choice-"+choice.id)
-                }
-                HStack {
-                    Button(progress.completed ? "收起故事" : "先暂停，进度保留") { store.pauseStory(id:model.id) }
-                        .accessibilityIdentifier("pauseStoryButton")
-                    Spacer()
-                    if progress.completed {
-                        Button("再走一条路") { replay = story; confirmReplay = true }.accessibilityIdentifier("replayStoryButton")
-                    }
-                }.font(.system(size:11)).foregroundStyle(Theme.secondary).frame(minHeight:40)
+            if active {
+                Text("故事由你和角色共同创作，回到会话就可以接着聊。").font(.system(size:13)).foregroundStyle(Theme.secondary)
+                Button("接着讲下去") { session.continueStory() }
+                    .font(.system(size:13,weight:.medium)).disabled(session.generating)
+                Button("先暂停") { store.pauseStory(id:model.id) }
+                    .font(.system(size:11)).foregroundStyle(Theme.secondary)
             } else {
                 Text(story.subtitle).font(.system(size:13)).lineSpacing(4).foregroundStyle(Theme.secondary)
                 Button {
@@ -145,7 +126,7 @@ struct TogetherPanel: View {
                 }.pickerStyle(.segmented).accessibilityIdentifier("togetherResponseStyle")
             }
             textEntry("暂时不想聊",placeholder:"关键词，用逗号分开",text:$preferences.avoidedTopics,id:"togetherAvoidedTopics")
-            Text("只对当前角色生效，返回时保存。当前会按关键词避开话题；更细致的理解会随后完善。")
+            Text("只对当前角色生效，返回时保存。AI 会结合这些偏好理解和回应你。")
                 .font(.caption).foregroundStyle(Theme.secondary).lineSpacing(3)
             Button {
                 store.saveTogether(preferences,id:model.id)

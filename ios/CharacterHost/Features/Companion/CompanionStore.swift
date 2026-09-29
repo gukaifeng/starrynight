@@ -37,7 +37,6 @@ final class CompanionStore {
     @ObservationIgnored private let chatDisplayDefaults: UserDefaults
     @ObservationIgnored private var recoveryBlocked = false
     let url: URL
-    let dialogue: any DialogueProviding
     init(storageURL:URL? = nil,displayDefaults:UserDefaults? = nil,arguments:[String] = ProcessInfo.processInfo.arguments) {
         let directory = FileManager.default.urls(for:.applicationSupportDirectory,in:.userDomainMask).first!
         let testing = arguments.contains("--companion-testing")
@@ -64,8 +63,26 @@ final class CompanionStore {
                 self.error = "本地资料无法读取或备份，已停止写入以保留原文件。请检查存储空间并重启后重试。"
             }
         }
-        let data = try! Data(contentsOf:Bundle.main.url(forResource:"LocalDialogue",withExtension:"json")!)
-        dialogue = try! LocalDialogue(data:data)
+        if archive.schemaVersion < 2 {
+            do {
+                // Preserve the previous test journal once before removing fabricated replies.
+                let backup = url.appendingPathExtension("before-real-ai")
+                if FileManager.default.fileExists(atPath:url.path) && !FileManager.default.fileExists(atPath:backup.path) {
+                    try FileManager.default.copyItem(at:url,to:backup)
+                }
+                var migrated = archive
+                for key in migrated.characters.keys {
+                    migrated.characters[key]?.messages.removeAll { $0.source != "cloud-v1" }
+                    migrated.characters[key]?.greeting = nil
+                    migrated.characters[key]?.experiences?.stories = [:]
+                    migrated.characters[key]?.experiences?.activeStoryID = nil
+                    migrated.characters[key]?.experiences?.moments.removeAll { $0.kind == "story" }
+                    migrated.characters[key]?.experiences?.suggestions = []
+                }
+                migrated.schemaVersion = 2; migrated.guestTurns = 0
+                try CompanionPersistence.write(migrated,to:url); archive = migrated
+            } catch { recoveryBlocked = true; self.error = "旧测试记录尚未备份，暂缓升级以保留原资料。" }
+        }
         chatDisplay = ChatDisplaySettings.load(from:chatDisplayDefaults)
     }
     func record(_ id: String) -> CharacterRecord { archive.characters[key(id)] ?? CharacterRecord(profile:.initial(id)) }
