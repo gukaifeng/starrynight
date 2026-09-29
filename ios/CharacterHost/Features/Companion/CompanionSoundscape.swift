@@ -6,10 +6,8 @@ import UIKit
 @MainActor @Observable
 final class CompanionSoundscape: NSObject {
     enum VoiceFocus { case none, speech, recording }
-    var masterMuted: Bool { speechVolume == 0 && effectsVolume == 0 && volume == 0 }
+    var masterMuted: Bool { speechVolume == 0 && volume == 0 }
     private(set) var speechVolume: Double = 1
-    var effectsEnabled: Bool { effectsVolume > 0 }
-    private(set) var effectsVolume: Double = 1
     var enabled: Bool { volume > 0 }
     private(set) var trackID = ""
     private(set) var availableTracks: [SoundscapeTrack] = []
@@ -39,11 +37,12 @@ final class CompanionSoundscape: NSObject {
         let clean = collection.normalize(profile).audio!
         availableTracks = collection.music; collectionScope = collection.optionScope; trackID = clean.trackID
         volume = clean.volume
-        speechVolume = clean.speechVolume ?? 1; effectsVolume = clean.effectsVolume ?? 1; interrupted = false; error = nil
+        speechVolume = clean.speechVolume ?? 1; interrupted = false; error = nil
         onPreferences = onChange
         reconcile()
     }
     var status: String {
+        if masterMuted { return "声音已关闭" }
         if error != nil { return "音乐暂时无法播放" }
         if interrupted { return "音乐已暂停，轻点继续" }
         if !enabled { return "给此刻一点音乐" }
@@ -65,7 +64,6 @@ final class CompanionSoundscape: NSObject {
     }
     func setEnabled(_ value:Bool) { setVolume(value ? max(volume,0.28) : 0) }
     func setSpeechVolume(_ value:Double) { speechVolume = value.isFinite ? min(1,max(0,value)) : 1; persist() }
-    func setEffectsVolume(_ value:Double) { effectsVolume = value.isFinite ? min(1,max(0,value)) : 1; persist() }
     func toggle() {
         if interrupted { interrupted = false; volume = max(volume,0.28) } else { volume = enabled ? 0 : 0.28 }
         error = nil; persist(); reconcile()
@@ -87,7 +85,7 @@ final class CompanionSoundscape: NSObject {
         reconcileMusic()
     }
     func endVoice() { focus = .none; reconcile() }
-    private func persist() { onPreferences?(CharacterAudioPreferences(enabled:true,trackID:trackID,volume:volume,masterMuted:false,speechVolume:speechVolume,effectsEnabled:true,effectsVolume:effectsVolume,volumeControlsVersion:1)) }
+    private func persist() { onPreferences?(CharacterAudioPreferences(enabled:true,trackID:trackID,volume:volume,masterMuted:false,speechVolume:speechVolume,volumeControlsVersion:1)) }
     private func configureSession() throws {
         guard active, !interrupted else { return }
         let audio = AVAudioSession.sharedInstance()
@@ -161,7 +159,7 @@ final class CompanionSoundscape: NSObject {
     var accessibilityEvidence: String {
 #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("--ui-testing") {
-            let data = try? JSONSerialization.data(withJSONObject:["masterMuted":masterMuted,"speechVolume":speechVolume,"effectsEnabled":effectsEnabled,"effectsVolume":effectsVolume,"sessionCategory":AVAudioSession.sharedInstance().category.rawValue,"enabled":enabled,"playing":player?.isPlaying == true,"active":active,"track":trackID,
+            let data = try? JSONSerialization.data(withJSONObject:["masterMuted":masterMuted,"speechVolume":speechVolume,"sessionCategory":AVAudioSession.sharedInstance().category.rawValue,"enabled":enabled,"playing":player?.isPlaying == true,"active":active,"track":trackID,
                 "collectionScope":collectionScope,"asset":track?.asset ?? "","sourceModelID":track?.sourceModelID ?? "","assetSHA256":track?.sha256 ?? "",
                 "availableTrackIDs":availableTracks.map(\.id),"duration":player?.duration ?? 0,
                 "volume":volume,"outputVolume":outputVolume,"samples":measuredSamples,"duckedSamples":duckedSamples,"minimumDuckedVolume":minimumDuckedVolume,"lifecyclePauses":lifecyclePauses,"time":playbackTime,"interrupted":interrupted])

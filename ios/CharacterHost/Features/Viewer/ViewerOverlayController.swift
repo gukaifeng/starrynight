@@ -349,7 +349,7 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
     }
     private func openConversationSound() {
         guard let session = chatSession else { return }
-        presentConversationPanel(height:304) { ConversationSoundPanel(session:session) }
+        presentConversationPanel(height:258) { ConversationSoundPanel(session:session) }
     }
     private func resizePerformancePanel(_ visible:Bool) {
         guard let host = presentedViewController, !host.isBeingDismissed else { return }

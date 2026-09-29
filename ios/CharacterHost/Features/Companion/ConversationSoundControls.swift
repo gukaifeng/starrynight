@@ -26,8 +26,6 @@ struct ConversationSoundPanel: View {
                     VStack(spacing:0) {
                         channel("朗读",symbol:"text.bubble",volume:Binding(get:{audio.speechVolume},set:{session.setSpeechVolume($0)}),id:"speech")
                         separator
-                        channel("角色音效",symbol:"sparkles",volume:Binding(get:{audio.effectsVolume},set:{audio.setEffectsVolume($0)}),id:"effects")
-                        separator
                         channel("背景音乐",symbol:"music.note",volume:Binding(get:{audio.volume},set:{audio.setVolume($0)}),id:"music")
                     }.padding(.horizontal,12)
                         .background(Theme.surface.opacity(0.30),in:RoundedRectangle(cornerRadius:16))

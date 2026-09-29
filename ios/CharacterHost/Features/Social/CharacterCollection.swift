@@ -30,6 +30,8 @@ struct CharacterAudioPreferences: Codable, Equatable, Sendable {
     var autoplayVersion: Int? = 1
     var masterMuted: Bool? = nil
     var speechVolume: Double? = nil
+    // Decode pre-0.51 preferences; there was never an authored effects player.
+    // normalize retires these fields without changing speech or music choices.
     var effectsEnabled: Bool? = nil
     var effectsVolume: Double? = nil
     var volumeControlsVersion: Int? = nil
@@ -103,16 +105,15 @@ struct CharacterCollection: Codable, Equatable, Sendable {
             let allMuted = audio.masterMuted == true
             if allMuted || !audio.enabled { audio.volume = 0 }
             if allMuted || !profile.autoSpeak { audio.speechVolume = 0 }
-            if allMuted || audio.effectsEnabled == false { audio.effectsVolume = 0 }
             audio.volumeControlsVersion = 1
         }
-        audio.masterMuted = false; audio.enabled = true; audio.effectsEnabled = true
+        audio.masterMuted = false; audio.enabled = true
+        audio.effectsEnabled = nil; audio.effectsVolume = nil
         profile.autoSpeak = true
         audio.trackID = migratedOptionID(audio.trackID) ?? defaultMusic
         if !music.contains(where:{ $0.id == audio.trackID }) { audio.trackID = defaultMusic }
         audio.volume = audio.volume.isFinite ? min(1,max(0,audio.volume)) : 0.28
         audio.speechVolume = audio.speechVolume.map { $0.isFinite ? min(1,max(0,$0)) : 1 }
-        audio.effectsVolume = audio.effectsVolume.map { $0.isFinite ? min(1,max(0,$0)) : 1 }
         profile.audio = audio
         return profile
     }

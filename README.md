@@ -4,7 +4,9 @@
 
 正式英文名 **StarryNight**，仓库和根目录统一为 `starrynight`。当前根目录 `/Users/gukaifeng/Documents/starrynight`，Xcode 真机入口为 `ios/StarryNight.xcworkspace`，模拟器入口为 `ios/StarryNight-Simulator.xcworkspace`，scheme 均为 `CharacterHost`。命名约定与迁移记录见 [英文命名与目录](docs/project-naming.md)。
 
-以精致 3D 角色为核心的 AI 陪伴产品。当前源码 **v0.50.0 / build 71**，名称保持「星夜」，默认月白深色主题，保留彩色星夜等可选主题，Logo 更新为极简月白星月矢量标志。原生 SwiftUI / UIKit + Unity as a Library，当前优先 **iPhone 手机版**，暂停新增 iPad 测试。
+以精致 3D 角色为核心的 AI 陪伴产品。当前源码 **v0.51.0 / build 72**，名称保持「星夜」，默认月白深色主题，保留彩色星夜等可选主题，Logo 更新为极简月白星月矢量标志。原生 SwiftUI / UIKit + Unity as a Library，当前优先 **iPhone 手机版**，暂停新增 iPad 测试。
+
+v0.51.0 压缩「我的」页：头像、身份与设置同排，简介和四项关系入口组成紧凑信息区；作者主页移至「我的 → 角色」内，在同一窗口渐变进入。核查当前两份 VRChat 模型源包后，确认没有自带音频或音源组件，移除未接实际播放器的「角色音效」通道。声音面板只保留朗读、背景音乐与配乐选择，两项音量为零时正确显示静音，旧偏好兼容读取。三个针对性测试最终通过，已通过 Wi-Fi 安装 iPhone 17 并读回 **0.51.0 / 72**。详见[布局、音源审计与验证](docs/verification/compact-profile-audio/README.md)。
 
 v0.50.0 将底部「首页」改名「对话」。角色左右旋转继续不限圈数，上下限制为 ±25°，旧存档中的倒置角度自动规范化。消息左滑可选「不显示」，保留记录与订阅，支持撤销和恢复。发现页改为角色商城结构：精选封面、紧凑双列目录、创作者作品、分类、搜索、筛选与排序；与消息页共用 44pt 搜索框，当前目录与发布可见性仍在本机实现。五项针对性模拟器测试最终通过，已通过 Wi-Fi 安装 iPhone 17 并读回 **0.50.0 / 71**。详见[角色商城、消息隐藏与旋转限制](docs/verification/market-and-messages/README.md)。
 

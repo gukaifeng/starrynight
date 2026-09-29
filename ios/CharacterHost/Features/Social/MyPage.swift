@@ -6,7 +6,6 @@ struct MyPage: View {
     @State private var showingAccount = false
     @State private var showingFollows = false
     @State private var showingSubscriptions = false
-    @State private var showingAuthor = false
     @State private var pendingEntry: (String,Bool)?
     @State private var showingCreations = false
     @State private var showingConversations = false
@@ -24,7 +23,7 @@ struct MyPage: View {
     private func openAuthoredCharacter(_ id:String,_ customize:Bool) {
         pendingEntry = (id,customize)
         showingFollows = false; showingCreations = false; showingConversations = false
-        showingSubscriptions = false; showingAuthor = false
+        showingSubscriptions = false
     }
     private func openPendingCharacter() {
         guard let entry = pendingEntry else { return }; pendingEntry = nil
@@ -33,33 +32,28 @@ struct MyPage: View {
     private var signed:Bool { coordinator.account.isSignedIn }
     var body:some View {
         ScrollView {
-            VStack(alignment:.leading,spacing:22) {
-                HStack {
-                    Spacer()
+            VStack(alignment:.leading,spacing:16) {
+                HStack(alignment:.center,spacing:12) {
+                    identity
                     Button { showingSettings = true } label: {
-                        Image(systemName:"line.3.horizontal").font(.system(size:20,weight:.regular))
-                            .frame(width:44,height:44).background(Theme.surface.opacity(Theme.controlOpacity),in:Circle())
+                        Image(systemName:"gearshape").font(.system(size:17,weight:.regular))
+                            .foregroundStyle(Theme.secondary)
+                            .frame(width:32,height:32).background(Theme.surface.opacity(Theme.controlOpacity),in:Circle())
+                            .frame(width:44,height:44).contentShape(Rectangle())
                     }.buttonStyle(.plain).accessibilityLabel("设置").accessibilityIdentifier("profileSettingsButton")
                 }
-                identity
-                HStack(spacing:12) {
+                Text(signed ? (coordinator.library.currentAuthor?.bio ?? "让日常的小事，也有人认真听。") : "先聊一会儿，喜欢的话就留下来。")
+                    .font(.system(size:12)).foregroundStyle(Theme.secondary).lineSpacing(3).lineLimit(2)
+                    .frame(maxWidth:.infinity,alignment:.leading).accessibilityIdentifier("profileBio")
+                HStack(spacing:0) {
                     statistic(coordinator.library.subscriptions.count,title:"订阅",identifier:"mySubscriptionsButton") { showingSubscriptions = true }
                     statistic(coordinator.library.followedAuthors.count,title:"关注",identifier:"myFollowsButton") { showingFollows = true }
                     statistic(coordinator.library.creations.count,title:"角色",identifier:"myCreationsButton") { showingCreations = true }
                     statistic(chattedModels.count,title:"聊过",identifier:"myConversationsButton") { showingConversations = true }
-                }.padding(.top,2)
-                HStack(alignment:.top,spacing:16) {
-                    Text(signed ? (coordinator.library.currentAuthor?.bio ?? "让日常的小事，也有人认真听。") : "先聊一会儿，喜欢的话就留下来。")
-                        .font(.system(size:13)).foregroundStyle(Theme.secondary).lineLimit(3).frame(maxWidth:.infinity,alignment:.leading)
-                    if signed {
-                        Button { showingAuthor = true } label: {
-                            Label("作者主页",systemImage:"arrow.up.right").font(.system(size:11)).padding(.horizontal,12).frame(height:36)
-                                .background(Theme.surface.opacity(Theme.controlOpacity),in:Capsule())
-                        }.buttonStyle(.plain).accessibilityIdentifier("myAuthorProfileButton")
-                    }
-                }
+                }.padding(.vertical,4)
+                    .background(Theme.surface.opacity(0.35),in:RoundedRectangle(cornerRadius:16))
                 if let error = coordinator.library.error { Text(error).font(.caption).foregroundStyle(Theme.peach) }
-            }.padding(.horizontal,24).padding(.top,14).padding(.bottom,24)
+            }.padding(.horizontal,24).padding(.top,20).padding(.bottom,20)
         }.scrollIndicators(.hidden)
             .softSheet(isPresented:$showingSettings,height:860) {
                 ProfileSettingsView(coordinator:coordinator,onClose:{ showingSettings = false })
@@ -82,18 +76,8 @@ struct MyPage: View {
                 AuthorDirectoryPanel(kind:.following,library:coordinator.library,store:coordinator.companionStore,
                     portraits:coordinator.portraits,onOpenCharacter:openAuthoredCharacter)
             }
-            .softSheet(isPresented:$showingAuthor,height:860,onDismiss:openPendingCharacter) {
-                if let author = coordinator.library.currentAuthor {
-                    AuthorProfilePanel(authorID:author.id,library:coordinator.library,store:coordinator.companionStore,
-                        portraits:coordinator.portraits,onOpenCharacter:openAuthoredCharacter)
-                }
-            }
             .softSheet(isPresented:$showingCreations,height:860,onDismiss:openPendingCharacter) {
-                NavigationStack {
-                    ScrollView { creations.padding(20) }.scrollIndicators(.hidden).background(Theme.background)
-                        .navigationTitle("我创建的角色").navigationBarTitleDisplayMode(.inline)
-                        .toolbar { ToolbarItem(placement:.topBarLeading) { PanelBackButton(identifier:"closeCreationsButton") } }
-                }.foregroundStyle(Theme.ink).tint(Theme.accent).softSheetSurface()
+                MyCreationsPanel(coordinator:coordinator,onOpenCharacter:openAuthoredCharacter) { creations }
             }
             .softSheet(isPresented:$showingConversations,height:860,onDismiss:openPendingCharacter) {
                 NavigationStack {
@@ -105,27 +89,28 @@ struct MyPage: View {
     }
     private var identity:some View {
         Button { if signed { showingAccount = true } else { coordinator.requestLogin() } } label: {
-        HStack(spacing:16) {
-            if let author = coordinator.library.currentAuthor, signed { AuthorAvatar(author:author,size:76) }
-            else { UserAccountAvatar(size:76,signed:signed) }
-            VStack(alignment:.leading,spacing:8) {
-                Text(signed ? coordinator.library.currentAuthor?.name ?? "星夜体验者" : "初来星夜")
-                    .font(.system(size:23,weight:.semibold,design:.rounded))
+        HStack(spacing:12) {
+            if let author = coordinator.library.currentAuthor, signed { AuthorAvatar(author:author,size:56) }
+            else { UserAccountAvatar(size:56,signed:signed) }
+            VStack(alignment:.leading,spacing:6) {
+                HStack(spacing:7) {
+                    Text(signed ? coordinator.library.currentAuthor?.name ?? "星夜体验者" : "初来星夜")
+                        .font(.system(size:20,weight:.semibold,design:.rounded)).lineLimit(1)
+                    Image(systemName:"chevron.right").font(.system(size:9,weight:.medium)).foregroundStyle(Theme.secondary.opacity(0.7))
+                }
                 Text(signed ? "星夜号：" + (coordinator.account.session?.accountID ?? "") : "游客 · 正在开始的故事")
-                    .font(.system(size:11)).foregroundStyle(Theme.secondary).accessibilityIdentifier("profileAccountID")
-            }
-            Spacer(minLength:0)
-            Image(systemName:"chevron.right").font(.system(size:12)).foregroundStyle(Theme.secondary)
-        }.padding(.vertical,12).contentShape(Rectangle())
+                    .font(.system(size:10)).foregroundStyle(Theme.secondary).lineLimit(1).accessibilityIdentifier("profileAccountID")
+            }.frame(maxWidth:.infinity,alignment:.leading)
+        }.padding(.vertical,4).contentShape(Rectangle())
         }.buttonStyle(.plain).accessibilityIdentifier("accountCenterButton")
             .accessibilityHint(signed ? "打开账户" : "登录星夜")
     }
     private func statistic(_ value:Int,title:String,identifier:String,action:@escaping ()->Void) -> some View {
         Button(action:action) {
-            VStack(spacing:6) {
-                Text("\(value)").font(.system(size:20,weight:.semibold,design:.rounded)).monospacedDigit()
-                Text(title).font(.system(size:12)).foregroundStyle(Theme.secondary)
-            }.frame(maxWidth:.infinity,minHeight:54).contentShape(Rectangle())
+            HStack(alignment:.firstTextBaseline,spacing:5) {
+                Text("\(value)").font(.system(size:18,weight:.semibold,design:.rounded)).monospacedDigit()
+                Text(title).font(.system(size:11)).foregroundStyle(Theme.secondary)
+            }.frame(maxWidth:.infinity,minHeight:44).contentShape(Rectangle())
         }.buttonStyle(.plain).accessibilityIdentifier(identifier).accessibilityLabel("\(value) \(title)")
             .accessibilityHint("查看列表")
     }
@@ -210,6 +195,59 @@ struct MyPage: View {
                 }
             }
         }
+    }
+}
+
+/// Creator tools live with owned characters, while My keeps account and relationships compact.
+/// The public author preview reuses the same panel instead of stacking a second sheet.
+private struct MyCreationsPanel<Content:View>:View {
+    let coordinator:ViewerCoordinator
+    var onOpenCharacter:(String,Bool)->Void
+    @ViewBuilder var content:()->Content
+    @State private var showingAuthor = false
+    @State private var authorClose = SoftPanelCloseRequest()
+    @Environment(\.softPanelCloseRequest) private var close
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    private var motion:Animation { .easeInOut(duration:reduceMotion ? 0.1 : 0.25) }
+    var body:some View {
+        ZStack {
+            if showingAuthor, let author = coordinator.library.currentAuthor {
+                AuthorProfilePanel(authorID:author.id,library:coordinator.library,store:coordinator.companionStore,
+                    portraits:coordinator.portraits,onOpenCharacter:onOpenCharacter)
+                    .environment(\.softPanelCloseRequest,authorClose)
+                    .environment(\.softPanelDismiss,{ authorClose.request() }).transition(.opacity)
+            } else {
+                VStack(spacing:0) {
+                    PanelPageHeader("我创建的角色",backID:"closeCreationsButton")
+                    ScrollView {
+                        VStack(spacing:18) {
+                            if coordinator.account.isSignedIn, let author = coordinator.library.currentAuthor {
+                                Button {
+                                    let nextClose = SoftPanelCloseRequest()
+                                    nextClose.begin { withAnimation(motion) { showingAuthor = false } }
+                                    authorClose = nextClose
+                                    withAnimation(motion) { showingAuthor = true }
+                                } label: {
+                                    HStack(spacing:10) {
+                                        AuthorAvatar(author:author,size:32)
+                                        VStack(alignment:.leading,spacing:4) {
+                                            Text("我的作者主页").font(.system(size:13,weight:.medium))
+                                            Text("个人介绍与公开作品").font(.system(size:11)).foregroundStyle(Theme.secondary)
+                                        }
+                                        Spacer(minLength:8)
+                                        Image(systemName:"chevron.right").font(.system(size:10)).foregroundStyle(Theme.secondary)
+                                    }.padding(12).contentShape(Rectangle())
+                                        .background(Theme.surface.opacity(0.6),in:RoundedRectangle(cornerRadius:16))
+                                }.buttonStyle(.plain).accessibilityIdentifier("myAuthorProfileButton")
+                            }
+                            content()
+                        }.padding(.horizontal,24).padding(.bottom,24)
+                    }.scrollIndicators(.hidden)
+                }.transition(.opacity)
+            }
+        }.softPanelPageSurface(opaque:true).foregroundStyle(Theme.ink).tint(Theme.accent).softSheetSurface()
+            .onAppear { close?.beforeClose = { authorClose.beforeClose?() ?? true } }
+            .onDisappear { close?.beforeClose = nil }
     }
 }
 

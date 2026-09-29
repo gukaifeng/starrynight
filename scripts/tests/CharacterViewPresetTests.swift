@@ -49,13 +49,13 @@ struct CharacterViewPresetTests {
         profile.audio=CharacterAudioPreferences(enabled:false,trackID:model.collection.defaultMusic,volume:0.4,
             masterMuted:true,speechVolume:0.6,effectsEnabled:true,effectsVolume:0.8)
         profile=model.collection.normalize(profile)
-        try check(profile.audio?.volume==0 && profile.audio?.speechVolume==0 && profile.audio?.effectsVolume==0,"Legacy global mute becomes three visible zeros")
+        try check(profile.audio?.volume==0 && profile.audio?.speechVolume==0 && profile.audio?.effectsVolume==nil,"Legacy global mute preserves both real channels and retires the unused effects field")
         profile.audio?.speechVolume=0.5;profile.audio?.volume=0.25
         profile=model.collection.normalize(profile)
         try check(profile.audio?.speechVolume==0.5 && profile.audio?.volume==0.25 && profile.autoSpeak,"Raising a migrated slider is never blocked by a hidden toggle")
         profile.audio=CharacterAudioPreferences(enabled:false,trackID:model.collection.defaultMusic,volume:0.4)
         profile.autoSpeak=false;profile=model.collection.normalize(profile)
-        try check(profile.audio?.volume==0 && profile.audio?.speechVolume==0 && profile.audio?.effectsVolume != 0,"Legacy individual silence remains independent")
+        try check(profile.audio?.volume==0 && profile.audio?.speechVolume==0 && profile.audio?.effectsVolume==nil,"Legacy individual silence remains independent of retired effects")
         let known=CharacterRecord(profile:profile,messages:[CompanionMessage(role:"user",text:"以前聊过")])
         for reason:ConversationEntryReason in [.appLaunch,.characterSelection] {
             let entry=ConversationEntry(reason:reason,characterID:model.id,accountID:"guest")
