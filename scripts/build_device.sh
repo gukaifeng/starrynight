@@ -37,11 +37,12 @@ PY
   SIGNING_ARGS=(-allowProvisioningUpdates -allowProvisioningDeviceRegistration "DEVELOPMENT_TEAM=$TEAM_ID")
   if [ -n "$DEVICE_ID" ]; then DESTINATION="platform=iOS,id=$DEVICE_ID"; fi
 fi
+python3 scripts/check_export_content.py --platform device
 python3 scripts/generate_host.py --platform device
 mkdir -p .local/logs
 BUILD_LOG=".local/logs/host-device-$(date +%Y%m%d-%H%M%S).log"
 echo "Building device Release; log: $BUILD_LOG"
-if ! xcodebuild -workspace ios/CharacterPrototype.xcworkspace -scheme CharacterHost \
+if ! xcodebuild -workspace ios/StarryNight.xcworkspace -scheme CharacterHost \
   -configuration Release -sdk iphoneos -destination "$DESTINATION" \
   -derivedDataPath .local/build/DeviceDerivedData "${SIGNING_ARGS[@]}" \
   build > "$BUILD_LOG" 2>&1; then

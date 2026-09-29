@@ -1,0 +1,213 @@
+琪宝 · 2.1.0
+琪宝 / Kipfel 1.0.3 · もち山金魚
+素材原作者：もち山金魚 / MOCHIYAMA
+许可：Mochiyama avatar terms (private preview)
+固定来源：https://mochiyama.booth.pm/
+本机个人预览素材：不得随公开版本或公开源码再分发；具体改作与分发权限见下方原模型许可。
+
+PRIVATE LOCAL PREVIEW ONLY — DO NOT REDISTRIBUTE
+
+Original avatar and animations: Kipfel 1.0.3 by もち山金魚 / MOCHIYAMA.
+https://mochiyama.booth.pm/
+Personal use, modifications and format conversion: see original author terms.
+Current 2026-09-07 terms v1.60 require contacting the licensor for software integration distribution.
+No VRChat SDK assets, components, default animations or DLLs are included.
+This is a standalone technical adaptation of user-provided assets for private local testing.
+Do not publish the source/converted packages or distribute the app with these avatars without appropriate authorization.
+Original purchase/acquisition terms must be checked separately before public distribution.
+
+This package contains only source-avatar motion data. The previous third-party Overte/Hanami conversation motions are no longer included; their source archives and historical attribution remain unchanged outside this package.
+
+
+上游附加署名（原文，包含上游完整素材库说明）：
+# Avatar conversion and natural idle
+
+Author: もち山金魚 / MOCHIYAMA.
+
+Unchanged source stand + breath; source additive breath also layers onto authored static poses. Never double breath in neutral Idle or sleep clips.
+
+Original eye_close morph with App-authored irregular blink timing; no verified source automatic schedule claimed.
+
+Manual expressions and sleep transitions suppress automatic blinking. Mouth visemes remain separate.
+
+App-authored low-amplitude horizontal breeze, independent hair/cloth budgets, source chains and collision spheres; no upward gusts or direct bone sine animation.
+
+Original facial, hand, ear, tail and appearance options are retained. No SDK code or default VRChat motions are included. Source archives and samples remain unchanged. The standalone spring approximation is not the VRChat PhysBone solver.
+
+
+原文件许可设置（保留原文）：
+{
+  "original": "Kipfel 1.0.3",
+  "author": "もち山金魚",
+  "use": "private-local-preview-only",
+  "publicDistribution": "Contact original licensor; current terms v1.60 software integration distribution needs separate permission",
+  "sdkIncluded": false,
+  "sourceReport": "docs/verification/vrchat-import/source-audit.json",
+  "fbxSHA256": "e0e733bb70006996097dd71a3b29490c6dba4824ac5ab8e22a659554768382fb",
+  "animationPolicy": "source-motions-with-declared-natural-idle-adaptation",
+  "sourceIdle": {
+    "clip": "Idle",
+    "duration": 2.5,
+    "sourceStand": "Assets/MOCHIYAMA/Kipfel/Animation/Locomotion/kipfel_stand_still.anim",
+    "sourceBreath": "Assets/MOCHIYAMA/Kipfel/Animation/Locomotion/kipfel_breath.anim",
+    "sourceStandClip": "VRC_kipfel_stand_still",
+    "sourceBreathClip": "VRC_kipfel_breath",
+    "method": "Source stand + source additive breath, first-key reference; rotation stand * inverse(breath[0]) * breath[t], translation stand + breath[t] - breath[0].",
+    "timing": "Original sampled source times, unchanged speed and amplitude; no smoothing, procedural breathing, blink schedule or extra gestures.",
+    "breathSelection": "Shares Idle as a non-additive full-body source composition; never stacks breath twice.",
+    "channels": [
+      {
+        "bone": "armature/Hips/Spine/Chest/Neck/Head",
+        "property": "rotation",
+        "samples": 151,
+        "maxReconstructionError": 3.3306690738754696e-16
+      },
+      {
+        "bone": "armature/Hips/Spine/Chest",
+        "property": "rotation",
+        "samples": 151,
+        "maxReconstructionError": 2.220446049250313e-16
+      },
+      {
+        "bone": "armature/Hips",
+        "property": "rotation",
+        "samples": 151,
+        "maxReconstructionError": 5.551115123125783e-16
+      },
+      {
+        "bone": "armature/Hips",
+        "property": "translation",
+        "samples": 151,
+        "maxReconstructionError": 0.0
+      }
+    ]
+  },
+  "autonomy": {
+    "revision": 1,
+    "authorization": "2026-09-30: automatic blinking, breathing/idle and ambient wind requested",
+    "breathing": "Unchanged source stand + breath; source additive breath also layers onto authored static poses. Never double breath in neutral Idle or sleep clips.",
+    "blink": "Original eye_close morph with App-authored irregular blink timing; no verified source automatic schedule claimed.",
+    "priority": "Manual expressions and sleep transitions suppress automatic blinking. Mouth visemes remain separate.",
+    "wind": "App-authored low-amplitude horizontal breeze, independent hair/cloth budgets, source chains and collision spheres; no upward gusts or direct bone sine animation."
+  }
+}
+
+
+豆日向 · 2.1.0
+豆日向 / まめひなた 1.53 · もち山金魚
+素材原作者：もち山金魚 / MOCHIYAMA
+许可：Mochiyama avatar terms (private preview)
+固定来源：https://mochiyama.booth.pm/
+本机个人预览素材：不得随公开版本或公开源码再分发；具体改作与分发权限见下方原模型许可。
+
+PRIVATE LOCAL PREVIEW ONLY — DO NOT REDISTRIBUTE
+
+Original avatar and animations: まめひなた 1.53 by もち山金魚 / MOCHIYAMA.
+https://mochiyama.booth.pm/
+Personal use, modifications and format conversion: see original author terms.
+Current 2026-09-07 terms v1.60 require contacting the licensor for software integration distribution.
+No VRChat SDK assets, components, default animations or DLLs are included.
+This is a standalone technical adaptation of user-provided assets for private local testing.
+Do not publish the source/converted packages or distribute the app with these avatars without appropriate authorization.
+Original purchase/acquisition terms must be checked separately before public distribution.
+
+This package contains only source-avatar motion data. The previous third-party Overte/Hanami conversation motions are no longer included; their source archives and historical attribution remain unchanged outside this package.
+
+
+上游附加署名（原文，包含上游完整素材库说明）：
+# Avatar conversion and natural idle
+
+Author: もち山金魚 / MOCHIYAMA.
+
+Unchanged source stand + breath; source additive breath also layers onto authored static poses. Never double breath in neutral Idle or sleep clips.
+
+Restored source Auto_Blink shape and Auto_Blink FX durations: close 0.08 s, open 0.06 s; interval lottery 0.3 / 10 / 6 / 6 / 6 s. Initial 2.2 s and smooth interpolation are App adaptations; not a full SDK graph emulation.
+
+Manual expressions and sleep transitions suppress automatic blinking. Mouth visemes remain separate.
+
+App-authored low-amplitude horizontal breeze, independent hair/cloth budgets, source chains and collision spheres; no upward gusts or direct bone sine animation.
+
+Original facial, hand, ear, tail and appearance options are retained. No SDK code or default VRChat motions are included. Source archives and samples remain unchanged. The standalone spring approximation is not the VRChat PhysBone solver.
+
+
+原文件许可设置（保留原文）：
+{
+  "original": "まめひなた 1.53",
+  "author": "もち山金魚",
+  "use": "private-local-preview-only",
+  "publicDistribution": "Contact original licensor; current terms v1.60 software integration distribution needs separate permission",
+  "sdkIncluded": false,
+  "sourceReport": "docs/verification/vrchat-import/source-audit.json",
+  "fbxSHA256": "515d1b3f9cbcf95c7078ee4f75f7727e335f3e70025b49db9c41522d69586a1b",
+  "animationPolicy": "source-motions-with-declared-natural-idle-adaptation",
+  "sourceIdle": {
+    "clip": "Idle",
+    "duration": 2.5,
+    "sourceStand": "Assets/MOCHIYAMA/Mamehinata/Anim_gesture/Mamehinata_stand.anim",
+    "sourceBreath": "Assets/MOCHIYAMA/Mamehinata/Anim_gesture/Mamehinata_breath.anim",
+    "sourceStandClip": "VRC_Mamehinata_stand",
+    "sourceBreathClip": "VRC_Mamehinata_breath",
+    "method": "Source stand + source additive breath, first-key reference; rotation stand * inverse(breath[0]) * breath[t], translation stand + breath[t] - breath[0].",
+    "timing": "Original sampled source times, unchanged speed and amplitude; no smoothing, procedural breathing, blink schedule or extra gestures.",
+    "breathSelection": "Shares Idle as a non-additive full-body source composition; never stacks breath twice.",
+    "channels": [
+      {
+        "bone": "armature/Hips/Spine/Chest/Neck/Head",
+        "property": "rotation",
+        "samples": 151,
+        "maxReconstructionError": 3.3306690738754696e-16
+      },
+      {
+        "bone": "armature/Hips/Spine/Chest",
+        "property": "rotation",
+        "samples": 151,
+        "maxReconstructionError": 2.220446049250313e-16
+      },
+      {
+        "bone": "armature/Hips",
+        "property": "rotation",
+        "samples": 151,
+        "maxReconstructionError": 3.3306690738754696e-16
+      },
+      {
+        "bone": "armature/Hips",
+        "property": "translation",
+        "samples": 151,
+        "maxReconstructionError": 0.0
+      }
+    ]
+  },
+  "autonomy": {
+    "revision": 1,
+    "authorization": "2026-09-30: automatic blinking, breathing/idle and ambient wind requested",
+    "breathing": "Unchanged source stand + breath; source additive breath also layers onto authored static poses. Never double breath in neutral Idle or sleep clips.",
+    "blink": "Restored source Auto_Blink shape and Auto_Blink FX durations: close 0.08 s, open 0.06 s; interval lottery 0.3 / 10 / 6 / 6 / 6 s. Initial 2.2 s and smooth interpolation are App adaptations; not a full SDK graph emulation.",
+    "priority": "Manual expressions and sleep transitions suppress automatic blinking. Mouth visemes remain separate.",
+    "wind": "App-authored low-amplitude horizontal breeze, independent hair/cloth budgets, source chains and collision spheres; no upward gusts or direct bone sine animation."
+  }
+}
+
+
+场景：清风小院 · 1.1.0
+Original geometry authored for the Xiaoban XEP integration example. Dedicated to the public domain under CC0 1.0: https://creativecommons.org/publicdomain/zero/1.0/
+
+
+Unity Toon Shader and Film Internal Utilities
+Source: https://github.com/Unity-Technologies/com.unity.toonshader
+No Unity-chan sample models or sample artwork are included.
+
+com.unity.toonshader 0.15.1-preview
+Unity Toon Shader copyright © 2021 Unity Technologies.
+
+Licensed under the Unity Companion License for Unity-dependent projects--see [Unity Companion License](http://www.unity3d.com/legal/licenses/Unity_Companion_License).
+
+Unless expressly provided otherwise, the Software under this license is made available strictly on an “AS IS” BASIS WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED. Please review the license for details on these and other terms and conditions.
+
+
+com.unity.film-internal-utilities 0.20.0-preview
+Film Internal Utilities copyright © 2021 Unity Technologies ApS
+
+Licensed under the Unity Companion License for Unity-dependent projects--see [Unity Companion License](http://www.unity3d.com/legal/licenses/Unity_Companion_License). 
+
+Unless expressly provided otherwise, the Software under this license is made available strictly on an “AS IS” BASIS WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED. Please review the license for details on these and other terms and conditions.
+

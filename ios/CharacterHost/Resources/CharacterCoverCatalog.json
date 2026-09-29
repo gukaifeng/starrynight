@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "covers": [
+    {
+      "runtimeID": "anime-kipfel",
+      "asset": "Cover_anime_kipfel",
+      "environmentID": "garden",
+      "focusX": 0.5,
+      "focusY": 0.31,
+      "frameBottom": 0.46,
+      "cameraYaw": 0
+    },
+    {
+      "runtimeID": "anime-mamehinata",
+      "asset": "Cover_anime_mamehinata",
+      "environmentID": "sunroom",
+      "focusX": 0.5,
+      "focusY": 0.31,
+      "frameBottom": 0.46,
+      "cameraYaw": 0
+    }
+  ]
+}

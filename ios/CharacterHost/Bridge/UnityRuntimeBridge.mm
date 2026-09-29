@@ -41,8 +41,11 @@ static void ReceiveUnityEvent(const char *json)
 }
 - (void)showInScene:(UIWindowScene *)scene
 {
-    _framework.appController.window.windowScene = scene;
-    [_framework showUnityWindow];
+    UIWindow *window = _framework.appController.window;
+    // Reattaching an already attached window is unnecessary and can invalidate
+    // its surface during a native/Metal handoff.
+    if (window.windowScene != scene) window.windowScene = scene;
+    if (window.hidden || !window.isKeyWindow) [_framework showUnityWindow];
 }
 - (void)setPaused:(BOOL)paused { if (_started) [_framework pause:paused]; }
 - (void)send:(NSString *)json

@@ -11,12 +11,18 @@ from pathlib import Path
 import plistlib
 import subprocess
 import xml.sax.saxutils as xml
+from generate_asset_credits import generate_asset_credits
 
 ROOT = Path(__file__).resolve().parents[1]
 parser = argparse.ArgumentParser()
 parser.add_argument('--platform', choices=['simulator', 'device'], default='simulator')
 args = parser.parse_args()
+sdk = 'iphonesimulator' if args.platform == 'simulator' else 'iphoneos'
 ios = ROOT / 'ios'
+# Keep the physical-device workspace stable while simulator builds/tests run.
+# Both projects stay beside CharacterHost/, preserving SRCROOT-relative paths.
+project_name = 'CharacterHost-Simulator.xcodeproj' if args.platform == 'simulator' else 'CharacterHost.xcodeproj'
+workspace_name = 'StarryNight-Simulator.xcworkspace' if args.platform == 'simulator' else 'StarryNight.xcworkspace'
 export = ROOT / 'build' / f'unity-{args.platform}'
 unity_path = export / 'Unity-iPhone.xcodeproj'
 if not unity_path.exists():
@@ -38,7 +44,11 @@ def configuration(key, settings):
         for config in configs: objects[config]['baseConfigurationReference'] = uid('base-config')
     return obj(key+':configs','XCConfigurationList',buildConfigurations=configs,defaultConfigurationIsVisible='0',defaultConfigurationName='Debug')
 
+# Keep model authors, original licensing and separate upstream NOTICE files
+# available offline in both About and each character's source-attribution page.
+generate_asset_credits(ROOT)
 source_refs=[]; source_build=[]; resource_build=[]
+active_music = {t['asset'] for c in json.loads((ios/'CharacterHost/Resources/CharacterCollections.json').read_text())['collections'] for t in c['music']}
 for path in sorted((ios/'CharacterHost').rglob('*')):
     if any(p.suffix == '.xcassets' for p in path.parents): continue
     if path.suffix == '.xcassets':
@@ -47,13 +57,30 @@ for path in sorted((ios/'CharacterHost').rglob('*')):
         source_refs.append(ref); resource_build.append(buildfile(relative,ref))
         continue
     if not path.is_file() or path.name == 'Info.plist': continue
-    types={'.swift':'sourcecode.swift','.mm':'sourcecode.cpp.objcpp','.h':'sourcecode.c.h','.png':'image.png','.txt':'text','.storyboard':'file.storyboard'}
+    if path.name.startswith('Music_') and path.stem not in active_music: continue
+    types={'.swift':'sourcecode.swift','.mm':'sourcecode.cpp.objcpp','.h':'sourcecode.c.h','.png':'image.png','.txt':'text','.json':'text.json','.wav':'audio.wav','.caf':'audio.caf','.storyboard':'file.storyboard'}
     if path.suffix not in types: continue
     relative=str(path.relative_to(ios))
     ref=obj(relative,'PBXFileReference',lastKnownFileType=types[path.suffix],path=relative,sourceTree='<group>')
     source_refs.append(ref)
     if path.suffix in ('.swift','.mm'): source_build.append(buildfile(relative,ref))
-    elif path.suffix in ('.png','.txt','.storyboard'): resource_build.append(buildfile(relative,ref))
+    elif path.suffix in ('.png','.txt','.json','.wav', '.caf','.storyboard'): resource_build.append(buildfile(relative,ref))
+
+# Run the same pure Swift checks in the iOS runtime when local macOS executables
+# cannot launch. The SceneDelegate entry is DEBUG + simulator + explicit flag only.
+if args.platform == 'simulator':
+    for test_name in ['CompanionExperienceTests', 'ConversationExportTests', 'CharacterLibraryTests', 'AuthorSubscriptionTests', 'CacheStorageTests', 'CharacterViewPresetTests']:
+        relative=f'../scripts/tests/{test_name}.swift'
+        ref=obj(relative,'PBXFileReference',lastKnownFileType='sourcecode.swift',path=relative,sourceTree='<group>')
+        source_refs.append(ref); source_build.append(buildfile(relative,ref))
+
+# Folder reference preserves dictionaries, normalization FSTs, model names and licenses.
+voice_folder = obj('voice-models','PBXFileReference',lastKnownFileType='folder',path='../.local/speech-ios/VoiceModels',sourceTree='<group>')
+source_refs.append(voice_folder); resource_build.append(buildfile('voice-models',voice_folder))
+voice_frameworks = []
+for name in ['sherpa-onnx','onnxruntime']:
+    ref = obj('voice-framework:'+name,'PBXFileReference',lastKnownFileType='wrapper.xcframework',path=f'../.local/speech-ios/Frameworks/{name}.xcframework',sourceTree='<group>')
+    source_refs.append(ref); voice_frameworks.append(buildfile('voice-link:'+name,ref))
 
 app=obj('app-product','PBXFileReference',explicitFileType='wrapper.application',path='CharacterHost.app',sourceTree='BUILT_PRODUCTS_DIR',includeInIndex='0')
 unity_ref=obj('unity-project','PBXFileReference',lastKnownFileType='wrapper.pb-project',path=f'../build/unity-{args.platform}/Unity-iPhone.xcodeproj',sourceTree='<group>')
@@ -65,26 +92,34 @@ dependency=obj('unity-dependency','PBXTargetDependency',name='UnityFramework',ta
 products=obj('products','PBXGroup',name='Products',children=[app],sourceTree='<group>')
 sources=obj('sources','PBXSourcesBuildPhase',buildActionMask='2147483647',files=source_build,runOnlyForDeploymentPostprocessing='0')
 resources=obj('resources','PBXResourcesBuildPhase',buildActionMask='2147483647',files=resource_build,runOnlyForDeploymentPostprocessing='0')
-frameworks=obj('frameworks','PBXFrameworksBuildPhase',buildActionMask='2147483647',files=[buildfile('link-unity',framework)],runOnlyForDeploymentPostprocessing='0')
+frameworks=obj('frameworks','PBXFrameworksBuildPhase',buildActionMask='2147483647',files=[buildfile('link-unity',framework)]+voice_frameworks,runOnlyForDeploymentPostprocessing='0')
 embed=obj('embed','PBXCopyFilesBuildPhase',buildActionMask='2147483647',dstPath='',dstSubfolderSpec='10',name='Embed Frameworks',files=[buildfile('embed-unity',framework,settings={'ATTRIBUTES':['CodeSignOnCopy','RemoveHeadersOnCopy']})],runOnlyForDeploymentPostprocessing='0')
+content_check=obj('check-content','PBXShellScriptBuildPhase',buildActionMask='2147483647',files=[],inputPaths=[],outputPaths=[],
+    name='Check character and offline speech content',runOnlyForDeploymentPostprocessing='0',shellPath='/bin/sh',alwaysOutOfDate='1',
+    shellScript=f'python3 "${{SRCROOT}}/../scripts/check_export_content.py" --platform {args.platform}\npython3 "${{SRCROOT}}/../scripts/prepare_ios_speech.py" --check\n')
 settings={'PRODUCT_NAME':'$(TARGET_NAME)','PRODUCT_BUNDLE_IDENTIFIER':'com.modelspace.viewer',
     'PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]':'$(MODELSPACE_DEVICE_BUNDLE_IDENTIFIER)',
     'INFOPLIST_FILE':'CharacterHost/Info.plist','SWIFT_VERSION':'6.0','SWIFT_OBJC_BRIDGING_HEADER':'CharacterHost/Bridge/CharacterHost-Bridging-Header.h',
-    'IPHONEOS_DEPLOYMENT_TARGET':'17.0','TARGETED_DEVICE_FAMILY':'1,2','SDKROOT':'iphoneos',
-    'SUPPORTED_PLATFORMS':'iphoneos iphonesimulator','CLANG_ENABLE_MODULES':'YES','CLANG_ENABLE_OBJC_ARC':'YES',
+    'IPHONEOS_DEPLOYMENT_TARGET':'17.0','TARGETED_DEVICE_FAMILY':'1,2','SDKROOT':sdk,
+    # Each Unity export contains one Apple platform, even when both use arm64.
+    # Offering both destinations lets the host build for Simulator while its
+    # Unity dependency builds for Device, so their framework directories differ.
+    'SUPPORTED_PLATFORMS':sdk,'CLANG_ENABLE_MODULES':'YES','CLANG_ENABLE_OBJC_ARC':'YES',
     'CLANG_CXX_LANGUAGE_STANDARD':'gnu++17','LD_RUNPATH_SEARCH_PATHS':['$(inherited)','@executable_path/Frameworks'],
     'FRAMEWORK_SEARCH_PATHS':['$(inherited)','$(BUILT_PRODUCTS_DIR)'],
-    'CODE_SIGN_STYLE':'Automatic','CURRENT_PROJECT_VERSION':'1','MARKETING_VERSION':'1.0',
+    'OTHER_LDFLAGS':['$(inherited)','-lc++','-framework','CoreML','-framework','Accelerate'],
+    'GCC_ENABLE_CPP_EXCEPTIONS':'YES',
+    'CODE_SIGN_STYLE':'Automatic','CURRENT_PROJECT_VERSION':'67','MARKETING_VERSION':'0.46.0',
     'ENABLE_USER_SCRIPT_SANDBOXING':'NO','SUPPORTS_MACCATALYST':'NO','SWIFT_EMIT_LOC_STRINGS':'YES',
     'ARCHS':'arm64','ENABLE_DEBUG_DYLIB':'NO','ASSETCATALOG_COMPILER_APPICON_NAME':'AppIcon'}
 target=obj('host-target','PBXNativeTarget',name='CharacterHost',productName='CharacterHost',productType='com.apple.product-type.application',productReference=app,
-    buildConfigurationList=configuration('host',settings),buildPhases=[sources,frameworks,resources,embed],buildRules=[],dependencies=[dependency])
+    buildConfigurationList=configuration('host',settings),buildPhases=[content_check,sources,frameworks,resources,embed],buildRules=[],dependencies=[dependency])
 
 # Native UI tests exercise the real installed app, including Unity's touch surface.
 test_refs=[]; test_build=[]
-for path in sorted((ios/'CharacterHostUITests').glob('*.swift')):
+for path in sorted(p for p in (ios/'CharacterHostUITests').iterdir() if p.suffix in ('.swift','.m')):
     relative=str(path.relative_to(ios))
-    ref=obj(relative,'PBXFileReference',lastKnownFileType='sourcecode.swift',path=relative,sourceTree='<group>')
+    ref=obj(relative,'PBXFileReference',lastKnownFileType='sourcecode.c.objc' if path.suffix == '.m' else 'sourcecode.swift',path=relative,sourceTree='<group>')
     test_refs.append(ref); test_build.append(buildfile(relative,ref))
 test_product=obj('test-product','PBXFileReference',explicitFileType='wrapper.cfbundle',path='CharacterHostUITests.xctest',sourceTree='BUILT_PRODUCTS_DIR')
 test_sources=obj('test-sources','PBXSourcesBuildPhase',buildActionMask='2147483647',files=test_build,runOnlyForDeploymentPostprocessing='0')
@@ -93,7 +128,9 @@ host_proxy=obj('host-proxy','PBXContainerItemProxy',containerPortal=uid('project
 host_dependency=obj('host-dependency','PBXTargetDependency',target=target,targetProxy=host_proxy)
 test_settings={'PRODUCT_NAME':'$(TARGET_NAME)','PRODUCT_BUNDLE_IDENTIFIER':'com.modelspace.viewer.uitests','GENERATE_INFOPLIST_FILE':'YES',
     'PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]':'$(MODELSPACE_DEVICE_BUNDLE_IDENTIFIER).uitests',
-    'SWIFT_VERSION':'6.0','IPHONEOS_DEPLOYMENT_TARGET':'17.0','TARGETED_DEVICE_FAMILY':'1,2','SDKROOT':'iphoneos',
+    'SWIFT_VERSION':'6.0','IPHONEOS_DEPLOYMENT_TARGET':'17.0','TARGETED_DEVICE_FAMILY':'1,2','SDKROOT':sdk,
+    'SUPPORTED_PLATFORMS':sdk,
+    'SWIFT_OBJC_BRIDGING_HEADER':'CharacterHostUITests/InspectionEventSynthesis.h',
     'TEST_TARGET_NAME':'CharacterHost','CODE_SIGN_STYLE':'Automatic','CLANG_ENABLE_MODULES':'YES','ARCHS':'arm64'}
 test_target=obj('test-target','PBXNativeTarget',name='CharacterHostUITests',productName='CharacterHostUITests',productType='com.apple.product-type.bundle.ui-testing',productReference=test_product,
     buildConfigurationList=configuration('tests',test_settings),buildPhases=[test_sources,test_frameworks],buildRules=[],dependencies=[host_dependency])
@@ -108,14 +145,14 @@ def pbx(value):
     if isinstance(value,list): return '('+','.join(pbx(v) for v in value)+')'
     return json.dumps(str(value),ensure_ascii=False)
 
-project_dir=ios/'CharacterHost.xcodeproj'; project_dir.mkdir(parents=True,exist_ok=True)
+project_dir=ios/project_name; project_dir.mkdir(parents=True,exist_ok=True)
 (project_dir/'project.pbxproj').write_text('// !$*UTF8*$!\n'+pbx({'archiveVersion':'1','classes':{},'objectVersion':'56','objects':objects,'rootObject':project})+'\n')
-workspace=ios/'CharacterPrototype.xcworkspace'; workspace.mkdir(exist_ok=True)
-(workspace/'contents.xcworkspacedata').write_text(f'<?xml version="1.0" encoding="UTF-8"?><Workspace version="1.0"><FileRef location="group:CharacterHost.xcodeproj"/><FileRef location="group:../build/unity-{args.platform}/Unity-iPhone.xcodeproj"/></Workspace>\n')
+workspace=ios/workspace_name; workspace.mkdir(exist_ok=True)
+(workspace/'contents.xcworkspacedata').write_text(f'<?xml version="1.0" encoding="UTF-8"?><Workspace version="1.0"><FileRef location="group:{project_name}"/><FileRef location="group:../build/unity-{args.platform}/Unity-iPhone.xcodeproj"/></Workspace>\n')
 def reference(identifier,name,product,container):
     return f'<BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="{identifier}" BuildableName="{product}" BlueprintName="{name}" ReferencedContainer="container:{container}"/>'
-host_ref=reference(target,'CharacterHost','CharacterHost.app','CharacterHost.xcodeproj')
-test_ref=reference(test_target,'CharacterHostUITests','CharacterHostUITests.xctest','CharacterHost.xcodeproj')
+host_ref=reference(target,'CharacterHost','CharacterHost.app',project_name)
+test_ref=reference(test_target,'CharacterHostUITests','CharacterHostUITests.xctest',project_name)
 run_configuration = 'Release' if args.platform == 'device' else 'Debug'
 scheme=f'''<?xml version="1.0" encoding="UTF-8"?>
 <Scheme LastUpgradeVersion="2640" version="1.3">
@@ -129,13 +166,14 @@ scheme=f'''<?xml version="1.0" encoding="UTF-8"?>
 </Scheme>'''
 schemes=workspace/'xcshareddata/xcschemes'; schemes.mkdir(parents=True,exist_ok=True)
 (schemes/'CharacterHost.xcscheme').write_text(scheme)
-info={'CFBundleDevelopmentRegion':'zh_CN','CFBundleDisplayName':'模型空间','CFBundleExecutable':'$(EXECUTABLE_NAME)',
+info={'CFBundleDevelopmentRegion':'zh_CN','CFBundleDisplayName':json.loads((ROOT/'assets/brand/brand.json').read_text())['displayName'],'CFBundleExecutable':'$(EXECUTABLE_NAME)',
     'CFBundleIdentifier':'$(PRODUCT_BUNDLE_IDENTIFIER)','CFBundleInfoDictionaryVersion':'6.0','CFBundleName':'$(PRODUCT_NAME)',
     'CFBundlePackageType':'APPL','CFBundleShortVersionString':'$(MARKETING_VERSION)','CFBundleVersion':'$(CURRENT_PROJECT_VERSION)',
-    'LSRequiresIPhoneOS':True,'UILaunchScreen':{},'UIUserInterfaceStyle':'Light',
+    'NSMicrophoneUsageDescription':'将你的语音转为可编辑文字。识别只在手机或 iPad 内完成，录音不上传，也不会自动发送聊天。',
+    'LSRequiresIPhoneOS':True,'UILaunchScreen':{'UIColorName':'LaunchNight'},'UIUserInterfaceStyle':'Dark',
     'UIApplicationSceneManifest':{'UIApplicationSupportsMultipleScenes':False,'UISceneConfigurations':{'UIWindowSceneSessionRoleApplication':[{'UISceneConfigurationName':'Model Space','UISceneDelegateClassName':'$(PRODUCT_MODULE_NAME).SceneDelegate'}]}},
-    'UISupportedInterfaceOrientations':['UIInterfaceOrientationPortrait'],
+    'UISupportedInterfaceOrientations':['UIInterfaceOrientationPortrait','UIInterfaceOrientationLandscapeLeft','UIInterfaceOrientationLandscapeRight'],
     'UISupportedInterfaceOrientations~ipad':['UIInterfaceOrientationPortrait','UIInterfaceOrientationPortraitUpsideDown','UIInterfaceOrientationLandscapeLeft','UIInterfaceOrientationLandscapeRight'],
     'CADisableMinimumFrameDurationOnPhone':True,'UIRequiresFullScreen':False}
 (ios/'CharacterHost/Info.plist').write_bytes(plistlib.dumps(info,sort_keys=False))
-print(f'Generated CharacterHost workspace for {args.platform}; {len(source_build)} native sources.')
+print(f'Generated {workspace.relative_to(ROOT)} for {args.platform}; {len(source_build)} native sources.')

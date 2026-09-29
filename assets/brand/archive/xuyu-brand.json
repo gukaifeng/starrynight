@@ -1,0 +1,10 @@
+{
+  "displayName": "栩屿",
+  "romanName": "XUYU",
+  "tagline": "让相遇，有了模样。",
+  "positioning": "以精致 3D 角色为核心、可塑造外观与个性的 AI 陪伴空间",
+  "currentStage": "本地 3D 角色交互预览；聊天、人格、语音与外观编辑尚未实现",
+  "palette": {"frost":"#F3F6F7","ink":"#183139","teal":"#183B44","jade":"#BCD8D4","secondary":"#61767D","line":"#DCE6E7"},
+  "icon": "xuyu-icon-master.png",
+  "iconGeneration": "built-in image_gen; prompt in docs/brand-image-prompt.txt"
+}

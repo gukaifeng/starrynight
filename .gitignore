@@ -15,7 +15,52 @@ ios/Config/Local.xcconfig
 *.pfx
 *.cer
 __pycache__/
+.venv/
+.pytest_cache/
 
 # Unity automatic scene recovery, retained locally
 **/_Recovery/
 **/_Recovery.meta
+
+# Local credentials and editor/runtime crash artifacts
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+**/mono_crash.*
+
+# Imported character data is restored locally from licensed sources.
+# The public source repository must not contain private-preview model data,
+# textures, sampled motion curves, or the generated copies used by Unity/iOS.
+/character-packages/imported/
+/unity/CharacterRuntime/Assets/CharacterPackages/
+/unity/CharacterRuntime/Assets/CharacterPackages.meta
+/unity/CharacterRuntime/Assets/MikuCharacter/
+/unity/CharacterRuntime/Assets/MikuCharacter.meta
+/unity/CharacterRuntime/Assets/RealCharacter/
+/unity/CharacterRuntime/Assets/RealCharacter.meta
+/unity/CharacterRuntime/Assets/ThirdParty/MakeHuman/
+/unity/CharacterRuntime/Assets/ThirdParty/MakeHuman.meta
+/unity/CharacterRuntime/Assets/Prefabs/Package_*.prefab*
+/unity/CharacterRuntime/Assets/Prefabs/HatsuneMiku.prefab*
+/unity/CharacterRuntime/Assets/Prefabs/RealWoman.prefab*
+/ios/CharacterHost/Resources/CharacterCatalog.json
+
+# Generated character portraits/covers are rebuilt with the local model assets.
+/ios/CharacterHost/Assets.xcassets/Cover_*.imageset/
+/ios/CharacterHost/Resources/Assets.xcassets/Anime_*.imageset/
+/ios/CharacterHost/Resources/Assets.xcassets/MikuThumbnail*.imageset/
+/ios/CharacterHost/Resources/Assets.xcassets/HumanThumbnail*.imageset/
+/ios/CharacterHost/Resources/Assets.xcassets/Package_*.imageset/
+/ios/CharacterHost/Resources/Assets.xcassets/FirstCompanionBackdrop.imageset/
+
+# Keep written verification findings in Git; raw captures and source audits
+# remain on the development machine. Existing tracked baseline evidence stays.
+/docs/verification/**
+!/docs/verification/**/
+!/docs/verification/**/*.md
+
+# SDK archives are reproducible from the tracked SDK source and examples.
+/docs/character-standard/deliverables/
+/docs/environment-standard/deliverables/

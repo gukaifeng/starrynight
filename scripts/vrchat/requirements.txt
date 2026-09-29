@@ -1,0 +1,4 @@
+# Build-time conversion; Python 3.11 (bpy wheel ABI). Not iOS runtime dependencies.
+bpy==4.5.3
+numpy==1.26.4
+Pillow==12.3.0

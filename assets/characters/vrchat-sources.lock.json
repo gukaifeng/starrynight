@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "usage": "private-local-preview-only",
+  "author": "もち山金魚 / MOCHIYAMA",
+  "redistributionAllowed": false,
+  "inputs": [
+    {
+      "name": "kipfel-1.0.3",
+      "sha256": "b1b800389aa6b174b1565527a351c7ba41653f4debeb627180c5b34e45aec053"
+    },
+    {
+      "name": "mamehinata1.53",
+      "sha256": "ba8e9fd15f99db4b01cb304723965995a6a69b787310fe04d4bde48903845eb3"
+    }
+  ],
+  "staging": "scripts/prepare_vrchat_stage.py",
+  "converter": "scripts/prepare_vrchat_characters.py",
+  "motionLock": "assets/characters/anime-sources.lock.json",
+  "dependencyVersions": {
+    "unity": "6000.3.25f1",
+    "blenderPython": "4.5.3",
+    "vrchatSDK": null
+  }
+}

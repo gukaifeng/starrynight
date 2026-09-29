@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "checkedAt": "2026-09-29",
+  "sources": [
+    {
+      "file": "Vita.vrm",
+      "url": "https://raw.githubusercontent.com/madjin/vrm-samples/e16eb187100149a315ad92c3c9968f1d5baa6c7d/vroid/beta/Vita.vrm",
+      "sha256": "f2bf78f28a24e2f75f5ca0b6c3b646654c394e4b03592dfaa0d0633ef0972b4d",
+      "bytes": 14359044
+    },
+    {
+      "file": "Sendagaya_Shino.vrm",
+      "url": "https://raw.githubusercontent.com/madjin/vrm-samples/e16eb187100149a315ad92c3c9968f1d5baa6c7d/vroid/beta/Sendagaya_Shino.vrm",
+      "sha256": "1e177c1a7b14f783a9c48395831db8616260d3bddd4154cb2784b779adca49b5",
+      "bytes": 15074328
+    },
+    {
+      "file": "Sakurada_Fumiriya.vrm",
+      "url": "https://raw.githubusercontent.com/madjin/vrm-samples/e16eb187100149a315ad92c3c9968f1d5baa6c7d/vroid/beta/Sakurada_Fumiriya.vrm",
+      "sha256": "d8fb05f33e377df028cb6b9d58c441ce68326c41fa23f6c735d40c65ae3dc710",
+      "bytes": 19342280
+    },
+    {
+      "file": "idle.vrma",
+      "url": "https://raw.githubusercontent.com/Undi95/Hanami/6787685c8d40e4e79bffbb0d389b478f32ef88d6/vrma/idle.vrma",
+      "sha256": "9563c582418bd5b51da473ea85b41722cb5304f84128935c3b570c72316c444a",
+      "bytes": 193244
+    },
+    {
+      "file": "idle-talking.vrma",
+      "url": "https://raw.githubusercontent.com/Undi95/Hanami/6787685c8d40e4e79bffbb0d389b478f32ef88d6/vrma/idle-talking.vrma",
+      "sha256": "74f50c1b63bb8c2b19276dd7db26c9e8096da72acb521d4e635b059730e78bd8",
+      "bytes": 268464
+    },
+    {
+      "file": "neutral.vrma",
+      "url": "https://raw.githubusercontent.com/Undi95/Hanami/6787685c8d40e4e79bffbb0d389b478f32ef88d6/vrma/neutral.vrma",
+      "sha256": "91642c3593383d6b8e3d7ae2e5e408abac89a2baa31d2c1a3b625a46b0ab92b6",
+      "bytes": 237868
+    },
+    {
+      "file": "nod.vrma",
+      "url": "https://raw.githubusercontent.com/Undi95/Hanami/6787685c8d40e4e79bffbb0d389b478f32ef88d6/vrma/nod.vrma",
+      "sha256": "c5f715092eacacc827b52c984ebd5c8b8d991b2e34102fbc03235b01c6bcbbe8",
+      "bytes": 137860
+    },
+    {
+      "file": "shake.vrma",
+      "url": "https://raw.githubusercontent.com/Undi95/Hanami/6787685c8d40e4e79bffbb0d389b478f32ef88d6/vrma/shake.vrma",
+      "sha256": "99b6349e0df9eec08c50eb2285935114692bb0d9b0e78dd9f754a6f7e5fdce23",
+      "bytes": 165460
+    },
+    {
+      "file": "think.vrma",
+      "url": "https://raw.githubusercontent.com/Undi95/Hanami/6787685c8d40e4e79bffbb0d389b478f32ef88d6/vrma/think.vrma",
+      "sha256": "e28485c2606b4b27869dee84d0a4be7cff9d6eb1a573cf1ea33b3d5a4b5aa3f9",
+      "bytes": 142404
+    },
+    {
+      "file": "raise-hand.vrma",
+      "url": "https://raw.githubusercontent.com/Undi95/Hanami/6787685c8d40e4e79bffbb0d389b478f32ef88d6/vrma/raise-hand.vrma",
+      "sha256": "5ff6ce4aaf5bbf0afa93efbb5bbf31cff39e9a844378ac723feaefcc05235a97",
+      "bytes": 198948
+    },
+    {
+      "file": "relaxed.vrma",
+      "url": "https://raw.githubusercontent.com/Undi95/Hanami/6787685c8d40e4e79bffbb0d389b478f32ef88d6/vrma/relaxed.vrma",
+      "sha256": "5e3849bc677f63fb5952583c39102ffdf1adb08b32baa3e4b9de54630a3bb3b9",
+      "bytes": 216212
+    },
+    {
+      "file": "nod-5.vrma",
+      "url": "https://raw.githubusercontent.com/Undi95/Hanami/6787685c8d40e4e79bffbb0d389b478f32ef88d6/vrma/nod-5.vrma",
+      "sha256": "8418b3b2147cfdb4a07a80c95977d467f74b108fe30788281b865141da5b3cad",
+      "bytes": 168972
+    },
+    {
+      "file": "Overte-LICENSE",
+      "url": "https://raw.githubusercontent.com/overte-org/overte/f0d074f5bf906624faed857aa91b67613676e588/LICENSE",
+      "bytes": 920,
+      "sha256": "ccf9216fabf837951c0dad70975955799bfb7d963e8878f214e3f454511ef640"
+    },
+    {
+      "file": "Hanami-NOTICE.md",
+      "url": "https://raw.githubusercontent.com/Undi95/Hanami/6787685c8d40e4e79bffbb0d389b478f32ef88d6/vrma/NOTICE.md",
+      "bytes": 72412,
+      "sha256": "ccc0be51ac51b0535823f7e33ee9e89830cf0533bdfbac44ec91ead340bcac2c"
+    },
+    {
+      "file": "APACHE-2.0.txt",
+      "url": "https://www.apache.org/licenses/LICENSE-2.0.txt",
+      "bytes": 11358,
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    }
+  ]
+}

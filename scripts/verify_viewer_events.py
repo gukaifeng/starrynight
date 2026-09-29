@@ -11,18 +11,17 @@ assert not [e for e in events if e['name'] == 'error'], 'Engine reported an erro
 ready = [e for e in events if e['name'] == 'sceneReady']
 assert len(ready) == 1, 'Repeated viewing must reuse a single initialized scene'
 states = [e for e in events if e['name'] == 'state' and e['presentationId'] == 1]
-assert len(states) >= 2, 'Both real gestures must report settled camera state'
+assert len(states) >= 2, 'The viewer must report settled camera state'
 normal = ready[0]['defaultDistance']
-rotated = next((e for e in states if abs(e['yaw'] - 155) > 20 and abs(e['distance'] - normal) < .02), None)
-assert rotated, 'Single-finger drag must rotate without changing distance'
-zoomed = next((e for e in states if e['distance'] < normal * .9), None)
-assert zoomed, 'Two-finger pinch must move the camera closer'
-resets = [e for e in events if e['name'] == 'viewReset']
-assert len([e for e in resets if e['presentationId'] == 1]) >= 2, 'Manual reset acknowledgement is missing'
-assert set(range(1,23)).issubset({e['presentationId'] for e in resets}), '20 re-entries must all reset'
-for event in resets:
-    assert abs(event['yaw'] - 155) < .02 and abs(event['pitch'] - 12) < .02
-    assert abs(event['distance'] - event['defaultDistance']) < .02
+assert all(160 <= e['yaw'] <= 200 and abs(e['pitch'] - 4) < .01 for e in states), 'Camera escaped conversation angle limits'
+resets = [e for e in events if e['name'] == 'framingConfigured']
+assert len([e for e in resets if e['presentationId'] == 1]) >= 2, 'Recommended framing was not applied'
+selected = [e for e in events if e['name'] == 'modelSelected']
+assert set(range(1,23)).issubset({e['presentationId'] for e in selected}), '20 re-entries must all select the character'
+assert all(.899 <= e['framingSize'] <= 1.101 and -20 <= e['framingAngle'] <= 20 for e in resets)
+gestures = [e for e in events if e['name'] == 'framingGestureEnded']
+assert gestures, 'Direct gestures did not report a completed framing update'
+assert all(.899 <= e['framingSize'] <= 1.101 and -20 <= e['framingAngle'] <= 20 for e in gestures), 'Gesture escaped framing limits'
 started = [e for e in events if e['name'] == 'actionStarted']
 completed = [e for e in events if e['name'] == 'actionCompleted']
 for action in ['Wave','Jump','Dance','No']:
@@ -37,8 +36,7 @@ assert {60,120}.issubset({e['targetFPS'] for e in performance}), 'Both render ta
 assert all(e['fps'] > 0 and e['frameCount'] > 0 and e['p99Ms'] >= e['p95Ms'] > 0 for e in performance)
 assert all(e['width'] == 1206 and e['height'] == 2622 for e in performance), 'iPhone 17 must retain native rendering resolution'
 summary = dict(status='PASS', sceneReadyCount=len(ready), verifiedPresentations=22,
-    initialDistance=normal, rotatedYaw=rotated['yaw'], rotatedPitch=rotated['pitch'],
-    zoomedDistance=zoomed['distance'], resetCount=len(resets), eventCount=len(events),
+    initialDistance=normal, framingCount=len(resets), boundedFraming=True, gestureCount=len(gestures), eventCount=len(events),
     actionsVerified=['Wave','Jump','Dance','No'], headHitCount=len(head_hits),
     performanceWindows=len(performance), renderTargetsVerified=[60,120])
 output = path.with_suffix('.verification.json')

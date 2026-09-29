@@ -1,0 +1,63 @@
+{
+    "schemaVersion": 1,
+    "id": "evening",
+    "packageId": "app.xiaoban.environments.evening",
+    "packageVersion": "1.1.0",
+    "display": {
+        "name": "静夜小屋",
+        "description": "月色花园映在窗外，暖灯和轻动的窗帘陪着你",
+        "category": "indoor",
+        "thumbnail": "Environment_evening",
+        "order": 2
+    },
+    "source": {
+        "kind": "builtin",
+        "model": "evening",
+        "scale": 1.0,
+        "yaw": 0.0
+    },
+    "stage": {
+        "referenceHeight": 1.7000000476837159,
+        "clearRadius": 1.2000000476837159
+    },
+    "lighting": {
+        "sky": "#142A44",
+        "ambient": "#485266",
+        "key": "#FFD6AD",
+        "fill": "#7DA8FF",
+        "keyIntensity": 1.149999976158142,
+        "fillIntensity": 0.23999999463558198,
+        "rimIntensity": 0.6499999761581421
+    },
+    "palettes": [
+        {
+            "id": "original",
+            "name": "原色",
+            "surface": "#35444C",
+            "accent": "#7B9DA6"
+        },
+        {
+            "id": "sage",
+            "name": "浅绿",
+            "surface": "#AEBDAF",
+            "accent": "#8DA291"
+        },
+        {
+            "id": "rose",
+            "name": "暖粉",
+            "surface": "#CBB6AB",
+            "accent": "#C99F96"
+        }
+    ],
+    "bindings": {
+        "surface": [
+            "Surface"
+        ],
+        "accent": [
+            "Decor/Accent"
+        ],
+        "decor": [
+            "Decor"
+        ]
+    }
+}

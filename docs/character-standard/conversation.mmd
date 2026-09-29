@@ -1,0 +1,21 @@
+sequenceDiagram
+    participant User as 用户
+    participant Host as 对话会话
+    participant Speech as 语音提供方
+    participant Director as 角色调度器
+    participant Model as 模型表现通道
+    User->>Host: 发送消息
+    Host->>Director: turn.begin / turnId=A
+    Host->>Director: state.thinking
+    Host->>Host: 本地规则生成文本与语义
+    Host->>Director: dialogue.reply / emotion=care
+    Director->>Model: 按角色声明选择表情、动作、特效
+    Host->>Speech: TTS 合成与播放
+    Speech->>Director: state.speaking + speech.frame
+    Director->>Model: 按音频时钟驱动口型
+    User->>Host: 打断 / 新消息
+    Host->>Speech: 取消合成与播放
+    Host->>Director: turn.cancel / turnId=A
+    Director->>Model: 淡回待机、释放表情、清除待执行项
+    Speech-->>Director: 迟到的 A 轮事件
+    Director-->>Host: 拒绝 STALE_TURN

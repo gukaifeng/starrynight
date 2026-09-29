@@ -1,0 +1,26 @@
+flowchart TB
+    U["SwiftUI / UIKit<br/>聊天、账号、角色设置"]:::host
+    D["DialogueProviding<br/>本地情景库 / 未来服务端 AI"]:::host
+    V["语音提供方<br/>离线识别、离线 TTS、音频时钟"]:::host
+    P["Character API v1<br/>身份、事件、轮次、序号、能力"]:::contract
+    R["CharacterDirector<br/>优先级、冷却、降级、取消"]:::engine
+    C["模型适配与表现通道<br/>动作 / 表情 / 口型 / 视线 / 特效 / 参数"]:::engine
+    A["独立 XCP 源包<br/>GLB + JSON + License + SHA-256"]:::asset
+    I["SDK 预检 + Unity 编译器<br/>绑定验证、取景烘焙、缩略图"]:::asset
+    K["生成的角色目录<br/>同源 Swift 菜单与 Unity 场景"]:::contract
+    U --> D
+    D --> P
+    V --> P
+    U --> P
+    P --> R
+    R --> C
+    A --> I
+    I --> C
+    I --> K
+    K --> U
+    K --> R
+    C -->|"回执与状态"| P
+    classDef host fill:#E7F2F0,stroke:#286758,color:#143F36,stroke-width:2px
+    classDef contract fill:#FFF0CA,stroke:#8C6716,color:#493500,stroke-width:2px
+    classDef engine fill:#E6ECFB,stroke:#456296,color:#20345A,stroke-width:2px
+    classDef asset fill:#F3E9F5,stroke:#7D5188,color:#4E2856,stroke-width:2px

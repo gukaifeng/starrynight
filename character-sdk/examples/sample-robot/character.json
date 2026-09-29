@@ -1,0 +1,561 @@
+{
+  "schemaVersion": 1,
+  "id": "sample-robot",
+  "packageId": "app.xiaoban.sample-robot",
+  "packageVersion": "1.1.0",
+  "display": {
+    "name": "小乐",
+    "originalName": "Robot Expressive · CC0",
+    "description": "笑意和惊喜，都藏在表情里。来自独立角色包的新伙伴。",
+    "invitation": "把今天的小事告诉我，\n一起收集一点好心情。",
+    "tagline": "开朗 · 表情丰富",
+    "symbol": "face.smiling",
+    "thumbnail": "Package_sample_robot",
+    "thumbnailScale": 1.45,
+    "order": 40,
+    "style": "stylized",
+    "cardIdentifier": "card-sample-robot",
+    "openIdentifier": "open-sample-robot"
+  },
+  "compatibility": {
+    "apiMajor": 1,
+    "minApiMinor": 1,
+    "required": [
+      "core.animation@1",
+      "core.gaze@1",
+      "core.behavior@1",
+      "core.posture@1"
+    ],
+    "optional": [
+      "core.interaction@1",
+      "core.effects@1",
+      "core.expression@1",
+      "core.parameters@1"
+    ]
+  },
+  "source": {
+    "format": "glb",
+    "model": "model.glb",
+    "scale": 0.3,
+    "yaw": 0
+  },
+  "rig": {
+    "head": "RootNode/RobotArmature/Bone/Body/Hips/Abdomen/Torso/Neck/Head",
+    "neck": "RootNode/RobotArmature/Bone/Body/Hips/Abdomen/Torso/Neck",
+    "leftEye": "",
+    "rightEye": "",
+    "headRenderer": "RootNode/RobotArmature/Bone/Body/Hips/Abdomen/Torso/Neck/Head/Head",
+    "conversationStart": 0.48
+  },
+  "gaze": {
+    "yaw": 50,
+    "up": 22,
+    "down": 28,
+    "eyeYaw": 12,
+    "eyeUp": 8,
+    "eyeDown": 10
+  },
+  "actions": [
+    {
+      "id": "Idle",
+      "clip": "Idle",
+      "semantic": "idle",
+      "label": "待机",
+      "symbol": "leaf",
+      "button": false,
+      "framing": "conversation",
+      "gaze": "follow"
+    },
+    {
+      "id": "Wave",
+      "clip": "Wave",
+      "semantic": "greeting",
+      "label": "挥手",
+      "symbol": "hand.wave",
+      "button": true,
+      "framing": "full",
+      "gaze": "follow"
+    },
+    {
+      "id": "Jump",
+      "clip": "Jump",
+      "semantic": "jump",
+      "label": "跳跃",
+      "symbol": "arrow.up",
+      "button": true,
+      "framing": "full",
+      "gaze": "follow"
+    },
+    {
+      "id": "Dance",
+      "clip": "Dance",
+      "semantic": "dance",
+      "label": "跳舞",
+      "symbol": "music.note",
+      "button": true,
+      "framing": "full",
+      "gaze": "follow"
+    },
+    {
+      "id": "No",
+      "clip": "No",
+      "semantic": "head-touch",
+      "label": "摇头",
+      "symbol": "face.smiling",
+      "button": false,
+      "framing": "conversation",
+      "gaze": "soft"
+    },
+    {
+      "id": "Yes",
+      "clip": "Yes",
+      "semantic": "agreement",
+      "label": "点头",
+      "symbol": "checkmark",
+      "button": true,
+      "framing": "conversation",
+      "gaze": "follow"
+    },
+    {
+      "id": "ThumbsUp",
+      "clip": "ThumbsUp",
+      "semantic": "encouragement",
+      "label": "加油",
+      "symbol": "hand.thumbsup",
+      "button": true,
+      "framing": "full",
+      "gaze": "follow"
+    }
+  ],
+  "expressions": [
+    {
+      "id": "joy",
+      "bindings": [
+        {
+          "renderer": "RootNode/RobotArmature/Bone/Body/Hips/Abdomen/Torso/Neck/Head/Head",
+          "shape": "Surprised",
+          "weight": 0.35
+        }
+      ]
+    },
+    {
+      "id": "care",
+      "bindings": [
+        {
+          "renderer": "RootNode/RobotArmature/Bone/Body/Hips/Abdomen/Torso/Neck/Head/Head",
+          "shape": "Sad",
+          "weight": 0.4
+        }
+      ]
+    },
+    {
+      "id": "surprise",
+      "bindings": [
+        {
+          "renderer": "RootNode/RobotArmature/Bone/Body/Hips/Abdomen/Torso/Neck/Head/Head",
+          "shape": "Surprised",
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "id": "anger",
+      "bindings": [
+        {
+          "renderer": "RootNode/RobotArmature/Bone/Body/Hips/Abdomen/Torso/Neck/Head/Head",
+          "shape": "Angry",
+          "weight": 0.7
+        }
+      ]
+    }
+  ],
+  "speech": {
+    "mode": "none",
+    "amplitude": [],
+    "visemes": []
+  },
+  "effects": [
+    {
+      "id": "joy",
+      "kind": "sparkles",
+      "anchor": "head",
+      "color": "#F5C46B",
+      "count": 12
+    },
+    {
+      "id": "care",
+      "kind": "hearts",
+      "anchor": "chest",
+      "color": "#EFA9AC",
+      "count": 7
+    }
+  ],
+  "interactions": [
+    {
+      "id": "head",
+      "bone": "RootNode/RobotArmature/Bone/Body/Hips/Abdomen/Torso/Neck/Head",
+      "renderer": "RootNode/RobotArmature/Bone/Body/Hips/Abdomen/Torso/Neck/Head/Head",
+      "radius": 0.1,
+      "eventName": "interaction.head.tap"
+    }
+  ],
+  "behaviors": [
+    {
+      "id": "welcome",
+      "eventName": "session.enter",
+      "emotion": "",
+      "priority": 20,
+      "cooldown": 30,
+      "probability": 1,
+      "minIntensity": 0,
+      "cues": [
+        {
+          "channel": "body",
+          "target": "Wave",
+          "fallback": "",
+          "duration": 2,
+          "delay": 0,
+          "intensity": 1,
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "hello",
+      "eventName": "dialogue.greeting",
+      "emotion": "",
+      "priority": 35,
+      "cooldown": 5,
+      "probability": 1,
+      "minIntensity": 0,
+      "cues": [
+        {
+          "channel": "body",
+          "target": "Wave",
+          "fallback": "",
+          "duration": 2,
+          "delay": 0,
+          "intensity": 1,
+          "required": false
+        },
+        {
+          "channel": "expression",
+          "target": "joy",
+          "fallback": "neutral",
+          "duration": 2,
+          "delay": 0,
+          "intensity": 1,
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "gratitude",
+      "eventName": "dialogue.gratitude",
+      "emotion": "",
+      "priority": 35,
+      "cooldown": 5,
+      "probability": 1,
+      "minIntensity": 0,
+      "cues": [
+        {
+          "channel": "body",
+          "target": "Bow",
+          "fallback": "Wave",
+          "duration": 2,
+          "delay": 0,
+          "intensity": 1,
+          "required": false
+        },
+        {
+          "channel": "effect",
+          "target": "care",
+          "fallback": "",
+          "duration": 2,
+          "delay": 0,
+          "intensity": 1,
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "comfort",
+      "eventName": "dialogue.reply",
+      "emotion": "care",
+      "priority": 40,
+      "cooldown": 6,
+      "probability": 1,
+      "minIntensity": 0,
+      "cues": [
+        {
+          "channel": "expression",
+          "target": "care",
+          "fallback": "neutral",
+          "duration": 2,
+          "delay": 0,
+          "intensity": 1,
+          "required": false
+        },
+        {
+          "channel": "effect",
+          "target": "care",
+          "fallback": "",
+          "duration": 2,
+          "delay": 0,
+          "intensity": 1,
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "celebrate",
+      "eventName": "dialogue.reply",
+      "emotion": "joy",
+      "priority": 40,
+      "cooldown": 6,
+      "probability": 1,
+      "minIntensity": 0,
+      "cues": [
+        {
+          "channel": "body",
+          "target": "Cheer",
+          "fallback": "Wave",
+          "duration": 2,
+          "delay": 0,
+          "intensity": 1,
+          "required": false
+        },
+        {
+          "channel": "expression",
+          "target": "joy",
+          "fallback": "neutral",
+          "duration": 2,
+          "delay": 0,
+          "intensity": 1,
+          "required": false
+        },
+        {
+          "channel": "effect",
+          "target": "joy",
+          "fallback": "",
+          "duration": 2,
+          "delay": 0.3,
+          "intensity": 1,
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "dance",
+      "eventName": "dialogue.dance",
+      "emotion": "",
+      "priority": 65,
+      "cooldown": 1,
+      "probability": 1,
+      "minIntensity": 0,
+      "cues": [
+        {
+          "channel": "body",
+          "target": "Dance",
+          "fallback": "Wave",
+          "duration": 2,
+          "delay": 0,
+          "intensity": 1,
+          "required": false
+        },
+        {
+          "channel": "effect",
+          "target": "joy",
+          "fallback": "",
+          "duration": 2,
+          "delay": 0.4,
+          "intensity": 1,
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "jump",
+      "eventName": "dialogue.jump",
+      "emotion": "",
+      "priority": 65,
+      "cooldown": 1,
+      "probability": 1,
+      "minIntensity": 0,
+      "cues": [
+        {
+          "channel": "body",
+          "target": "Jump",
+          "fallback": "Wave",
+          "duration": 2,
+          "delay": 0,
+          "intensity": 1,
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "head-touch",
+      "eventName": "interaction.head.tap",
+      "emotion": "",
+      "priority": 75,
+      "cooldown": 0.6,
+      "probability": 1,
+      "minIntensity": 0,
+      "cues": [
+        {
+          "channel": "body",
+          "target": "No",
+          "fallback": "",
+          "duration": 2,
+          "delay": 0,
+          "intensity": 1,
+          "required": false
+        },
+        {
+          "channel": "expression",
+          "target": "joy",
+          "fallback": "neutral",
+          "duration": 2,
+          "delay": 0,
+          "intensity": 1,
+          "required": false
+        }
+      ]
+    }
+  ],
+  "parameters": [
+    {
+      "id": "body-tone",
+      "label": "外壳色调",
+      "kind": "color",
+      "section": "外观",
+      "min": 0,
+      "max": 2,
+      "initial": 0,
+      "options": [
+        "#DCECF0",
+        "#EDC8A5",
+        "#B7D2BC"
+      ],
+      "bindings": [
+        {
+          "path": "RootNode/RobotArmature/Bone/Body/Torso",
+          "property": "baseColor",
+          "negativeShape": "",
+          "materialSlot": 1
+        }
+      ]
+    }
+  ],
+  "license": {
+    "name": "CC0-1.0",
+    "authors": [
+      "Tomás Laulhé / Quaternius",
+      "Don McCurdy"
+    ],
+    "notice": "LICENSE.txt",
+    "source": "https://github.com/mrdoob/three.js/tree/r180/examples/models/gltf/RobotExpressive"
+  },
+  "files": [
+    {
+      "path": "LICENSE.txt",
+      "bytes": 518,
+      "sha256": "ecf32da7cfd7cf7042f320a6e67c1c2b0c1c2fa1295fbe58f38b271e67781749"
+    },
+    {
+      "path": "model.glb",
+      "bytes": 525952,
+      "sha256": "829c679eef0059bbd4c9b17d9cd055565b80ba3bdae3b8bfedd337da882fac44"
+    }
+  ],
+  "extensions": {},
+  "posture": {
+    "bones": [
+      "RootNode/RobotArmature/Bone/Body",
+      "RootNode/RobotArmature/Bone/Body/Hips/Abdomen/Torso/Neck/Head",
+      "RootNode/RobotArmature/Bone/Body/Hips/Abdomen/Torso/Shoulder.L/UpperArm.L/LowerArm.L",
+      "RootNode/RobotArmature/Bone/Body/Hips/Abdomen/Torso/Shoulder.R/UpperArm.R/LowerArm.R",
+      "RootNode/RobotArmature/Bone/Body/UpperLeg.L",
+      "RootNode/RobotArmature/Bone/Body/UpperLeg.L/LowerLeg.L",
+      "RootNode/RobotArmature/Bone/Body/UpperLeg.R",
+      "RootNode/RobotArmature/Bone/Body/UpperLeg.R/LowerLeg.R"
+    ],
+    "poses": [
+      {
+        "id": "stand",
+        "label": "站立",
+        "symbol": "figure.stand",
+        "support": "floor",
+        "gaze": "follow",
+        "transition": 1.3,
+        "clip": "Idle",
+        "parameters": [
+          {
+            "id": "lean",
+            "label": "上身前倾",
+            "unit": "degrees",
+            "min": -4,
+            "max": 6,
+            "initial": 0,
+            "lowClip": "P_stand_lean_low",
+            "highClip": "P_stand_lean_high"
+          }
+        ],
+        "actions": [
+          {
+            "action": "Wave",
+            "clip": "Wave"
+          },
+          {
+            "action": "Jump",
+            "clip": "Jump"
+          },
+          {
+            "action": "Dance",
+            "clip": "Dance"
+          },
+          {
+            "action": "No",
+            "clip": "No"
+          },
+          {
+            "action": "Yes",
+            "clip": "Yes"
+          },
+          {
+            "action": "ThumbsUp",
+            "clip": "ThumbsUp"
+          }
+        ]
+      },
+      {
+        "id": "sit",
+        "label": "坐下",
+        "symbol": "figure.seated.side",
+        "support": "floor",
+        "gaze": "follow",
+        "transition": 1.3,
+        "clip": "P_sit",
+        "parameters": [
+          {
+            "id": "lean",
+            "label": "上身前倾",
+            "unit": "degrees",
+            "min": -4,
+            "max": 6,
+            "initial": 0,
+            "lowClip": "P_sit_lean_low",
+            "highClip": "P_sit_lean_high"
+          }
+        ],
+        "actions": [
+          {
+            "action": "No",
+            "clip": "P_sit_No"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,384 @@
+{
+    "schemaVersion": 1,
+    "apiMajor": 1,
+    "environments": [
+        {
+            "schemaVersion": 1,
+            "id": "sunroom",
+            "packageId": "app.xiaoban.environments.sunroom",
+            "packageVersion": "1.1.0",
+            "display": {
+                "name": "晴日客厅",
+                "description": "细褶亚麻、木作书架与晨光花园，留一点自然的风",
+                "category": "indoor",
+                "thumbnail": "Environment_sunroom",
+                "order": 0
+            },
+            "source": {
+                "kind": "builtin",
+                "model": "sunroom",
+                "scale": 1.0,
+                "yaw": 0.0
+            },
+            "stage": {
+                "referenceHeight": 1.7000000476837159,
+                "clearRadius": 1.2000000476837159
+            },
+            "lighting": {
+                "sky": "#B3D1D6",
+                "ambient": "#888F91",
+                "key": "#FFF3E3",
+                "fill": "#DDEBFF",
+                "keyIntensity": 1.350000023841858,
+                "fillIntensity": 0.3199999928474426,
+                "rimIntensity": 0.47999998927116396
+            },
+            "palettes": [
+                {
+                    "id": "original",
+                    "name": "原色",
+                    "surface": "#A69E8E",
+                    "accent": "#75917D"
+                },
+                {
+                    "id": "sage",
+                    "name": "浅绿",
+                    "surface": "#AEBDAF",
+                    "accent": "#8DA291"
+                },
+                {
+                    "id": "rose",
+                    "name": "暖粉",
+                    "surface": "#CBB6AB",
+                    "accent": "#C99F96"
+                }
+            ],
+            "bindings": {
+                "surface": [
+                    "Surface"
+                ],
+                "accent": [
+                    "Decor/Accent"
+                ],
+                "decor": [
+                    "Decor"
+                ]
+            }
+        },
+        {
+            "schemaVersion": 1,
+            "id": "studio",
+            "packageId": "app.xiaoban.environments.studio",
+            "packageVersion": "1.1.0",
+            "display": {
+                "name": "柔光影棚",
+                "description": "木格栅、织物座椅与侧窗天光，安静陪你说话",
+                "category": "indoor",
+                "thumbnail": "Environment_studio",
+                "order": 1
+            },
+            "source": {
+                "kind": "builtin",
+                "model": "studio",
+                "scale": 1.0,
+                "yaw": 0.0
+            },
+            "stage": {
+                "referenceHeight": 1.7000000476837159,
+                "clearRadius": 1.2000000476837159
+            },
+            "lighting": {
+                "sky": "#405054",
+                "ambient": "#7D898B",
+                "key": "#FFF3E3",
+                "fill": "#DDEBFF",
+                "keyIntensity": 1.350000023841858,
+                "fillIntensity": 0.3199999928474426,
+                "rimIntensity": 0.47999998927116396
+            },
+            "palettes": [
+                {
+                    "id": "original",
+                    "name": "原色",
+                    "surface": "#435459",
+                    "accent": "#9AB9A6"
+                },
+                {
+                    "id": "sage",
+                    "name": "浅绿",
+                    "surface": "#AEBDAF",
+                    "accent": "#8DA291"
+                },
+                {
+                    "id": "rose",
+                    "name": "暖粉",
+                    "surface": "#CBB6AB",
+                    "accent": "#C99F96"
+                }
+            ],
+            "bindings": {
+                "surface": [
+                    "Surface"
+                ],
+                "accent": [
+                    "Decor/Accent"
+                ],
+                "decor": [
+                    "Decor"
+                ]
+            }
+        },
+        {
+            "schemaVersion": 1,
+            "id": "evening",
+            "packageId": "app.xiaoban.environments.evening",
+            "packageVersion": "1.1.0",
+            "display": {
+                "name": "静夜小屋",
+                "description": "月色花园映在窗外，暖灯和轻动的窗帘陪着你",
+                "category": "indoor",
+                "thumbnail": "Environment_evening",
+                "order": 2
+            },
+            "source": {
+                "kind": "builtin",
+                "model": "evening",
+                "scale": 1.0,
+                "yaw": 0.0
+            },
+            "stage": {
+                "referenceHeight": 1.7000000476837159,
+                "clearRadius": 1.2000000476837159
+            },
+            "lighting": {
+                "sky": "#142A44",
+                "ambient": "#485266",
+                "key": "#FFD6AD",
+                "fill": "#7DA8FF",
+                "keyIntensity": 1.149999976158142,
+                "fillIntensity": 0.23999999463558198,
+                "rimIntensity": 0.6499999761581421
+            },
+            "palettes": [
+                {
+                    "id": "original",
+                    "name": "原色",
+                    "surface": "#35444C",
+                    "accent": "#7B9DA6"
+                },
+                {
+                    "id": "sage",
+                    "name": "浅绿",
+                    "surface": "#AEBDAF",
+                    "accent": "#8DA291"
+                },
+                {
+                    "id": "rose",
+                    "name": "暖粉",
+                    "surface": "#CBB6AB",
+                    "accent": "#C99F96"
+                }
+            ],
+            "bindings": {
+                "surface": [
+                    "Surface"
+                ],
+                "accent": [
+                    "Decor/Accent"
+                ],
+                "decor": [
+                    "Decor"
+                ]
+            }
+        },
+        {
+            "schemaVersion": 1,
+            "id": "garden",
+            "packageId": "app.xiaoban.environments.garden",
+            "packageVersion": "1.1.0",
+            "display": {
+                "name": "林间花园",
+                "description": "石阶、细叶花簇与木架，在花园里慢慢聊",
+                "category": "outdoor",
+                "thumbnail": "Environment_garden",
+                "order": 3
+            },
+            "source": {
+                "kind": "builtin",
+                "model": "garden",
+                "scale": 1.0,
+                "yaw": 0.0
+            },
+            "stage": {
+                "referenceHeight": 1.7000000476837159,
+                "clearRadius": 1.2000000476837159
+            },
+            "lighting": {
+                "sky": "#B8D9E2",
+                "ambient": "#888F91",
+                "key": "#FFF3E3",
+                "fill": "#DDEBFF",
+                "keyIntensity": 1.5,
+                "fillIntensity": 0.3199999928474426,
+                "rimIntensity": 0.47999998927116396
+            },
+            "palettes": [
+                {
+                    "id": "original",
+                    "name": "原色",
+                    "surface": "#919A8C",
+                    "accent": "#C5A19B"
+                },
+                {
+                    "id": "sage",
+                    "name": "浅绿",
+                    "surface": "#AEBDAF",
+                    "accent": "#8DA291"
+                },
+                {
+                    "id": "rose",
+                    "name": "暖粉",
+                    "surface": "#CBB6AB",
+                    "accent": "#C99F96"
+                }
+            ],
+            "bindings": {
+                "surface": [
+                    "Surface"
+                ],
+                "accent": [
+                    "Decor/Accent"
+                ],
+                "decor": [
+                    "Decor"
+                ]
+            }
+        },
+        {
+            "schemaVersion": 1,
+            "id": "seaside",
+            "packageId": "app.xiaoban.environments.seaside",
+            "packageVersion": "1.1.0",
+            "display": {
+                "name": "海边露台",
+                "description": "蓝色海岸、细微波光与木质露台，听见夜色",
+                "category": "outdoor",
+                "thumbnail": "Environment_seaside",
+                "order": 4
+            },
+            "source": {
+                "kind": "builtin",
+                "model": "seaside",
+                "scale": 1.0,
+                "yaw": 0.0
+            },
+            "stage": {
+                "referenceHeight": 1.7000000476837159,
+                "clearRadius": 1.2000000476837159
+            },
+            "lighting": {
+                "sky": "#405979",
+                "ambient": "#788B9B",
+                "key": "#E8DBCC",
+                "fill": "#91B7D3",
+                "keyIntensity": 1.25,
+                "fillIntensity": 0.25,
+                "rimIntensity": 0.46000000834465029
+            },
+            "palettes": [
+                {
+                    "id": "original",
+                    "name": "原色",
+                    "surface": "#667274",
+                    "accent": "#8CABA7"
+                },
+                {
+                    "id": "sage",
+                    "name": "浅绿",
+                    "surface": "#AEBDAF",
+                    "accent": "#8DA291"
+                },
+                {
+                    "id": "rose",
+                    "name": "暖粉",
+                    "surface": "#CBB6AB",
+                    "accent": "#C99F96"
+                }
+            ],
+            "bindings": {
+                "surface": [
+                    "Surface"
+                ],
+                "accent": [
+                    "Decor/Accent"
+                ],
+                "decor": [
+                    "Decor"
+                ]
+            }
+        },
+        {
+            "schemaVersion": 1,
+            "id": "courtyard",
+            "packageId": "app.xiaoban.examples.courtyard",
+            "packageVersion": "1.1.0",
+            "display": {
+                "name": "清风小院",
+                "description": "清风拂过帘角，木格栅与陶盆围成安静小院",
+                "category": "outdoor",
+                "thumbnail": "Environment_courtyard",
+                "order": 5
+            },
+            "source": {
+                "kind": "glb",
+                "model": "environment.glb",
+                "scale": 1.0,
+                "yaw": 0.0
+            },
+            "stage": {
+                "referenceHeight": 1.7000000476837159,
+                "clearRadius": 1.2000000476837159
+            },
+            "lighting": {
+                "sky": "#B8D9E2",
+                "ambient": "#888F91",
+                "key": "#FFF3E3",
+                "fill": "#DDEBFF",
+                "keyIntensity": 1.5,
+                "fillIntensity": 0.3199999928474426,
+                "rimIntensity": 0.47999998927116396
+            },
+            "palettes": [
+                {
+                    "id": "original",
+                    "name": "原色",
+                    "surface": "#A7B3A2",
+                    "accent": "#C5A797"
+                },
+                {
+                    "id": "sage",
+                    "name": "浅绿",
+                    "surface": "#AEBDAF",
+                    "accent": "#8DA291"
+                },
+                {
+                    "id": "rose",
+                    "name": "暖粉",
+                    "surface": "#CBB6AB",
+                    "accent": "#C99F96"
+                }
+            ],
+            "bindings": {
+                "surface": [
+                    "Surface"
+                ],
+                "accent": [
+                    "Decor/Accent"
+                ],
+                "decor": [
+                    "Decor"
+                ]
+            }
+        }
+    ]
+}

@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "id": "studio",
+  "packageId": "app.xiaoban.environments.studio",
+  "packageVersion": "1.1.0",
+  "display": {
+    "name": "柔光影棚",
+    "description": "木格栅、织物座椅与侧窗天光，安静陪你说话",
+    "category": "indoor",
+    "order": 1,
+    "thumbnail": "Environment_studio"
+  },
+  "compatibility": {
+    "apiMajor": 1,
+    "minApiMinor": 0,
+    "required": [
+      "environment.geometry@1",
+      "environment.lighting@1",
+      "environment.palette@1",
+      "environment.decor@1"
+    ],
+    "optional": []
+  },
+  "source": {
+    "kind": "builtin",
+    "model": "studio",
+    "scale": 1,
+    "yaw": 0
+  },
+  "stage": {
+    "referenceHeight": 1.7,
+    "clearRadius": 1.2
+  },
+  "lighting": {
+    "sky": "#405054",
+    "ambient": "#7D898B",
+    "key": "#FFF3E3",
+    "fill": "#DDEBFF",
+    "keyIntensity": 1.35,
+    "fillIntensity": 0.32,
+    "rimIntensity": 0.48
+  },
+  "palettes": [
+    {
+      "id": "original",
+      "name": "原色",
+      "surface": "#435459",
+      "accent": "#9AB9A6"
+    },
+    {
+      "id": "sage",
+      "name": "浅绿",
+      "surface": "#AEBDAF",
+      "accent": "#8DA291"
+    },
+    {
+      "id": "rose",
+      "name": "暖粉",
+      "surface": "#CBB6AB",
+      "accent": "#C99F96"
+    }
+  ],
+  "bindings": {
+    "surface": [],
+    "accent": [],
+    "decor": [
+      "Decor"
+    ]
+  },
+  "license": {
+    "spdx": "LicenseRef-ProjectOriginal",
+    "file": "LICENSE.txt",
+    "attribution": "小伴项目原创程序化场景"
+  },
+  "files": [
+    {
+      "path": "LICENSE.txt",
+      "bytes": 108,
+      "sha256": "fe354d8ef60dc22209df3637617fe97547ae8422b37918228161e7676d707ec6"
+    }
+  ],
+  "extensions": {
+    "app.starry.presentation": {
+      "revision": 2,
+      "owner": "host",
+      "distantArt": "MorningGarden",
+      "localAmbientMotion": true,
+      "maxMotionNodes": 24
+    }
+  }
+}

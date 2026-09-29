@@ -1,0 +1,63 @@
+{
+    "schemaVersion": 1,
+    "id": "courtyard",
+    "packageId": "app.xiaoban.examples.courtyard",
+    "packageVersion": "1.1.0",
+    "display": {
+        "name": "清风小院",
+        "description": "清风拂过帘角，木格栅与陶盆围成安静小院",
+        "category": "outdoor",
+        "thumbnail": "Environment_courtyard",
+        "order": 5
+    },
+    "source": {
+        "kind": "glb",
+        "model": "environment.glb",
+        "scale": 1.0,
+        "yaw": 0.0
+    },
+    "stage": {
+        "referenceHeight": 1.7000000476837159,
+        "clearRadius": 1.2000000476837159
+    },
+    "lighting": {
+        "sky": "#B8D9E2",
+        "ambient": "#888F91",
+        "key": "#FFF3E3",
+        "fill": "#DDEBFF",
+        "keyIntensity": 1.5,
+        "fillIntensity": 0.3199999928474426,
+        "rimIntensity": 0.47999998927116396
+    },
+    "palettes": [
+        {
+            "id": "original",
+            "name": "原色",
+            "surface": "#A7B3A2",
+            "accent": "#C5A797"
+        },
+        {
+            "id": "sage",
+            "name": "浅绿",
+            "surface": "#AEBDAF",
+            "accent": "#8DA291"
+        },
+        {
+            "id": "rose",
+            "name": "暖粉",
+            "surface": "#CBB6AB",
+            "accent": "#C99F96"
+        }
+    ],
+    "bindings": {
+        "surface": [
+            "Surface"
+        ],
+        "accent": [
+            "Decor/Accent"
+        ],
+        "decor": [
+            "Decor"
+        ]
+    }
+}

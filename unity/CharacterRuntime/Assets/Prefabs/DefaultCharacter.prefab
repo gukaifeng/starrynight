@@ -2475,6 +2475,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4104929956994032022}
   - component: {fileID: 8941129901482109489}
+  - component: {fileID: 798780992719353182}
   m_Layer: 0
   m_Name: DefaultCharacter
   m_TagString: Untagged
@@ -2519,6 +2520,53 @@ Animation:
   m_AnimatePhysics: 0
   m_UpdateMode: 0
   m_CullingType: 0
+--- !u!114 &798780992719353182
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6416347553871194715}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 107679fe762d04fad8f86df046f9e016, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ModelSpace.ViewerCharacter
+  contractAsset: {fileID: 4900000, guid: 60258c78a244f4022b38fc3fea85db9d, type: 3}
+  modelId: studio-robot
+  displayName: Luma
+  portraitFramingScale: 1
+  conversationStart: 0.42
+  actions:
+  - Wave
+  - Jump
+  - Dance
+  - No
+  framingEnvelopes:
+  - action: Idle
+    localBounds:
+      m_Center: {x: 0, y: 2.0197754, z: 0.055999994}
+      m_Extent: {x: 1.0925, y: 2.0147753, z: 0.616}
+  - action: Wave
+    localBounds:
+      m_Center: {x: 0.53986, y: 2.0100002, z: 0.055999994}
+      m_Extent: {x: 1.63236, y: 2.005, z: 0.616}
+  - action: Jump
+    localBounds:
+      m_Center: {x: 0, y: 2.4833941, z: 0.055999994}
+      m_Extent: {x: 2.035635, y: 2.478394, z: 0.616}
+  - action: Dance
+    localBounds:
+      m_Center: {x: 0.0016582012, y: 2.140686, z: 0.019030094}
+      m_Extent: {x: 2.033678, y: 2.135686, z: 0.8156785}
+  - action: No
+    localBounds:
+      m_Center: {x: 0, y: 2.0100002, z: 0.0018808246}
+      m_Extent: {x: 1.0925, y: 2.005, z: 0.9146558}
+  useAuthoredRestBounds: 0
+  authoredRestBounds:
+    m_Center: {x: 0, y: 0, z: 0}
+    m_Extent: {x: 0, y: 0, z: 0}
 --- !u!1 &6466305858447640815
 GameObject:
   m_ObjectHideFlags: 0

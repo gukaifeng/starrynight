@@ -1,0 +1,41 @@
+小夏 · 写实成年女性角色
+
+人物为虚构角色。基础人体、变形目标、骨骼、眼球、眉毛、睫毛、鞋子来自 MakeHuman Community（CC0）。
+https://static.makehumancommunity.org/about/license.html
+
+elvs_daisy_hair
+作者：Elvaerwyn
+许可：CC-BY
+来源：http://www.makehumancommunity.org/node/1859
+官方资产包：https://static.makehumancommunity.org/assets/assetpacks/hair02.html
+
+elvs_short_side_do
+作者：Elvaerwyn
+许可：CC-BY
+来源：http://www.makehumancommunity.org/node/1479
+官方资产包：https://static.makehumancommunity.org/assets/assetpacks/hair02.html
+
+mindfront_knitted_sweater_01
+作者：Mindfront
+许可：CC-BY
+来源：http://www.makehumancommunity.org/node/660
+官方资产包：https://static.makehumancommunity.org/assets/assetpacks/shirts02.html
+
+onlytheghosts_young_eurasian_female
+作者：OnlyTheGhosts
+许可：CC0
+来源：http://www.makehumancommunity.org/node/1578
+官方资产包：https://static.makehumancommunity.org/assets/assetpacks/skins01.html
+
+toigo_wool_pants
+作者：MargaretToigo
+许可：CC0
+来源：http://www.makehumancommunity.org/node/1194
+官方资产包：https://static.makehumancommunity.org/assets/assetpacks/pants01.html
+
+毛衣源文件注明 CC BY 4.0：https://creativecommons.org/licenses/by/4.0/
+头发按官方 hair02 资产包的 CC-BY 标注保留作者与来源；官方包未标明版本。
+
+近伴（原小伴）所做修改：成人女性形态、面部与身形变形、服装贴合、网格细分及遮挡裁剪、骨骼权重、Unity 材质、发色与衣服配色、互动动画。作者不为本应用背书。
+
+制作工具：MPFB 2.0.17 与 Blender Python 4.5.3 LTS。工具只用于本机资产制作，应用仅包含模型、纹理及运行数据。

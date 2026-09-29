@@ -1,0 +1,21 @@
+星夜 · 角色专属背景音乐
+
+来源：本项目 scripts/generate_soundscapes.py 原创编排与合成。
+24首独立循环，每角色2首；音符、和声、节奏、合成音色及空间回声均在本机生成。
+不使用第三方录音、采样库、下载音乐、既有歌曲曲谱；与角色相关的官方歌曲无关联。
+资源许可标识：LicenseRef-ProjectOriginal，遵循本项目整体授权，不继承第三方角色模型的许可证。
+编码：32 kHz、16-bit stereo 原始信号，CAF / Apple Lossless；可无损恢复完整循环样本。
+声音文件、独立PCM、乐谱事件的SHA-256，以及峰值/均方根/循环接缝检查，见 docs/verification/character-music/audio-audit.json。
+
+小夏（real-woman）：窗边暖茶 / 海风来信
+Luma（studio-robot）：慢慢绕着你 / 口袋里的光
+优可（anime-uka）：留一盏小灯 / 心事晒一晒
+初音未来（hatsune-miku）：薄荷色晚星 / 小小的开场
+小光（anime-vita）：银叶微光 / 轻轻醒来
+小乐（sample-robot）：陪你走一小段 / 小院灯还亮
+小诗（anime-shino）：花影慢慢 / 今天也有微风
+晴川（anime-fumiriya）：庭院里的信 / 叶间小路
+维拉（anime-velara）：绒雪与晚星 / 晨光在肩上
+安宁（anime-onyx）：夜色慢半拍 / 云边停一会儿
+琪宝（anime-kipfel，原名 Kipfel）：月亮藏在口袋里 / 花园里的小步子
+豆日向（anime-mamehinata，原名 まめひなた Mamehinata）：把晚风留给你 / 窗台上的晴天

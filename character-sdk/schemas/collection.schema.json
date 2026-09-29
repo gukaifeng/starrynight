@@ -1,0 +1,148 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "app.jinban.character-collection.schema.v1",
+  "title": "Character Collection 1.0",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "id",
+    "version",
+    "modelID",
+    "modelPackageID",
+    "modelPackageVersion",
+    "actions",
+    "environments",
+    "voices",
+    "music",
+    "defaultEnvironment",
+    "defaultVoice",
+    "defaultMusic"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "modelID": {
+      "type": "string",
+      "minLength": 1
+    },
+    "modelPackageID": {
+      "type": "string",
+      "minLength": 1
+    },
+    "defaultEnvironment": {
+      "type": "string",
+      "minLength": 1
+    },
+    "defaultVoice": {
+      "type": "string",
+      "minLength": 1
+    },
+    "defaultMusic": {
+      "type": "string",
+      "minLength": 1
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+(?:[-+].+)?$"
+    },
+    "modelPackageVersion": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+(?:[-+].+)?$"
+    },
+    "actions": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "environments": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 1
+    },
+    "voices": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "detail",
+          "engine",
+          "speed"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "detail": {
+            "type": "string"
+          },
+          "engine": {
+            "const": "melo-zh-v1"
+          },
+          "speed": {
+            "type": "number",
+            "minimum": 0.7,
+            "maximum": 1.4
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "music": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "asset",
+          "title",
+          "detail",
+          "symbol"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "asset": {
+            "type": "string",
+            "minLength": 1
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "detail": {
+            "type": "string"
+          },
+          "symbol": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

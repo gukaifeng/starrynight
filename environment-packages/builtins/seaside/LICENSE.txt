@@ -1,0 +1,2 @@
+Original scene geometry and palette authored for the Xiaoban project.
+No third-party scene assets included.

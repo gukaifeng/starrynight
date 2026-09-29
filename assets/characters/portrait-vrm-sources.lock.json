@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "revision": "f3191f2eb30dd9adf2305c4fdb16627363c5ec8a",
+  "usage": "private-local-preview-only",
+  "modelLicense": "https://vrm.dev/licenses/1.0/",
+  "redistributionAllowed": false,
+  "appearanceEditingAllowed": false,
+  "sources": [
+    {
+      "name": "Velara",
+      "url": "https://raw.githubusercontent.com/test157t/VRM-Assets-Pack-For-Silly-Tavern/f3191f2eb30dd9adf2305c4fdb16627363c5ec8a/model/Velara.vrm",
+      "sha256": "e0763c929d4af261ba6e04e7644768ba828ac72139ab912d1620727056238466",
+      "bytes": 22283812,
+      "meta": {
+        "name": "Velara",
+        "version": "0.12",
+        "authors": [
+          "Nitral"
+        ],
+        "copyrightInformation": "2024 Nitral Studios",
+        "contactInformation": "Test157t@gmail.com",
+        "thumbnailImage": 31,
+        "licenseUrl": "https://vrm.dev/licenses/1.0/",
+        "avatarPermission": "everyone",
+        "allowExcessivelyViolentUsage": true,
+        "allowExcessivelySexualUsage": true,
+        "commercialUsage": "corporation",
+        "allowPoliticalOrReligiousUsage": false,
+        "allowAntisocialOrHateUsage": false,
+        "creditNotation": "required",
+        "allowRedistribution": false,
+        "modification": "prohibited"
+      },
+      "triangles": 38884,
+      "textures": 36
+    },
+    {
+      "name": "Onyx",
+      "url": "https://raw.githubusercontent.com/test157t/VRM-Assets-Pack-For-Silly-Tavern/f3191f2eb30dd9adf2305c4fdb16627363c5ec8a/model/Onyx.vrm",
+      "sha256": "e10fc1bd08d410193526eb40130f25cd9f897af60a0b8f1bf9e11d378c495dad",
+      "bytes": 19926728,
+      "meta": {
+        "name": "Onyx",
+        "version": "0.1",
+        "authors": [
+          "Nitral"
+        ],
+        "copyrightInformation": "2024 Nitral Studios",
+        "contactInformation": "Test157t@gmail.com",
+        "thumbnailImage": 26,
+        "licenseUrl": "https://vrm.dev/licenses/1.0/",
+        "avatarPermission": "everyone",
+        "allowExcessivelyViolentUsage": true,
+        "allowExcessivelySexualUsage": true,
+        "commercialUsage": "corporation",
+        "allowPoliticalOrReligiousUsage": false,
+        "allowAntisocialOrHateUsage": false,
+        "creditNotation": "required",
+        "allowRedistribution": false,
+        "modification": "prohibited"
+      },
+      "triangles": 33818,
+      "textures": 31
+    }
+  ],
+  "animationsLock": "assets/characters/anime-sources.lock.json"
+}

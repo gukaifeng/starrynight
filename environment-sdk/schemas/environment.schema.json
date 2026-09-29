@@ -1,0 +1,303 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]{0,63}$"
+    },
+    "packageId": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9.-]+$"
+    },
+    "packageVersion": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "display": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 30
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "category": {
+          "enum": [
+            "indoor",
+            "outdoor"
+          ]
+        },
+        "order": {
+          "type": "integer"
+        },
+        "thumbnail": {
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9_]+$"
+        }
+      },
+      "required": [
+        "name",
+        "description",
+        "category",
+        "order",
+        "thumbnail"
+      ]
+    },
+    "compatibility": {
+      "type": "object",
+      "properties": {
+        "apiMajor": {
+          "const": 1
+        },
+        "minApiMinor": {
+          "const": 0
+        },
+        "required": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "optional": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "apiMajor",
+        "minApiMinor",
+        "required",
+        "optional"
+      ]
+    },
+    "source": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "enum": [
+            "builtin",
+            "glb"
+          ]
+        },
+        "model": {
+          "type": "string"
+        },
+        "scale": {
+          "type": "number",
+          "minimum": 0.001,
+          "maximum": 100
+        },
+        "yaw": {
+          "type": "number",
+          "minimum": -180,
+          "maximum": 180
+        }
+      },
+      "required": [
+        "kind",
+        "model",
+        "scale",
+        "yaw"
+      ]
+    },
+    "stage": {
+      "type": "object",
+      "properties": {
+        "referenceHeight": {
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 3
+        },
+        "clearRadius": {
+          "type": "number",
+          "minimum": 1.2,
+          "maximum": 5
+        }
+      },
+      "required": [
+        "referenceHeight",
+        "clearRadius"
+      ]
+    },
+    "lighting": {
+      "type": "object",
+      "properties": {
+        "sky": {
+          "type": "string",
+          "pattern": "^#[0-9A-Fa-f]{6}$"
+        },
+        "ambient": {
+          "type": "string",
+          "pattern": "^#[0-9A-Fa-f]{6}$"
+        },
+        "key": {
+          "type": "string",
+          "pattern": "^#[0-9A-Fa-f]{6}$"
+        },
+        "fill": {
+          "type": "string",
+          "pattern": "^#[0-9A-Fa-f]{6}$"
+        },
+        "keyIntensity": {
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 2
+        },
+        "fillIntensity": {
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 0.6
+        },
+        "rimIntensity": {
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 1
+        }
+      },
+      "required": [
+        "sky",
+        "ambient",
+        "key",
+        "fill",
+        "keyIntensity",
+        "fillIntensity",
+        "rimIntensity"
+      ]
+    },
+    "palettes": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 5,
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]{0,63}$"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 20
+          },
+          "surface": {
+            "type": "string",
+            "pattern": "^#[0-9A-Fa-f]{6}$"
+          },
+          "accent": {
+            "type": "string",
+            "pattern": "^#[0-9A-Fa-f]{6}$"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "surface",
+          "accent"
+        ]
+      }
+    },
+    "bindings": {
+      "type": "object",
+      "properties": {
+        "surface": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "accent": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "decor": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "surface",
+        "accent",
+        "decor"
+      ]
+    },
+    "license": {
+      "type": "object",
+      "properties": {
+        "spdx": {
+          "type": "string"
+        },
+        "file": {
+          "type": "string"
+        },
+        "attribution": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "spdx",
+        "file",
+        "attribution"
+      ]
+    },
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "bytes": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 134217728
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        },
+        "required": [
+          "path",
+          "bytes",
+          "sha256"
+        ]
+      }
+    },
+    "extensions": {
+      "type": "object"
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "id",
+    "packageId",
+    "packageVersion",
+    "display",
+    "compatibility",
+    "source",
+    "stage",
+    "lighting",
+    "palettes",
+    "bindings",
+    "license",
+    "files",
+    "extensions"
+  ]
+}

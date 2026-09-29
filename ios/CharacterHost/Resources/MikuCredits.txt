@@ -1,0 +1,297 @@
+初音未来 / Hatsune Miku Append
+
+角色版权：Crypton Future Media, Inc.
+模型：Tda 式初音未来 Append
+模型改编：monjo3456
+本项目适配：近伴（原小伴）（原模型空间）（Unity 材质、骨骼转换、原创按钮动作与触摸交互）
+
+仅用于当前个人非商业测试。原作者规约及 Piapro Character License 继续适用。不是官方 App。
+
+资源来源：hecomi/StereoAR-for-Unity 的公开改编资源；原始文件哈希与完整来源见项目 Source/asset-lock.json。
+
+本项目未采用其他人的歌曲、语音或舞蹈动作文件。
+
+
+
+Tda様のReadMe.txt
+==================================================
+
+◆◇---　Tda式初音ミク・アペンド　Ver1.00　---◇◆
+
+◆解説
+初音ミク・アペンドのMikuMikuDance（MMD）用モデルデータです。
+PMXですので対応したバージョンをお使いください。（ver7.39.で動作確認しています）
+
+・内容物
+◇Tda式初音ミク・アペンド_Ver1.00.pmx
+　AutoLuminous対応・準標準ボーン搭載
+◇Tda式初音ミク・アペンド_Ver1.00_ボーン未改造.pmx
+　AutoLuminous対応・準標準ボーンが邪魔だったりする場合等にどうぞ
+
+・下記のMMEの適用方法に書いてあるエフェクトの使用を推奨です。
+
+・AutoLuminousを使用しない場合はモーフ「AL未使用」「LightOff」を１にして使用してください。
+　（ALに対応するため材質の色がAL用になっているので）
+　詳しくは「AL注意点.jpg」を参照してください。
+
+・髪などに半透明を使っているのでMMDでの描画順にご注意ください。透過された先の背景やキャラ等が見えなくなる可能性があります。
+
+・顔にはシェーディングが入らない設定になっているのでシェーディング入れたい場合は肌と同じトゥーン設定をしたうえで
+　顔に嫌な影が入らないようにライティングに気を付けて使ってください。
+
+・元デザインの都合上フトモモを上げると腰のメカパーツにめり込むのですが、腰パーツ親ボーンを回転や移動させることで
+　ある程度回避できると思います。
+
+・モーフ「恐ろしい子！」を50％くらいにすると「ｺｯﾁﾐﾝﾅ」目を再現できます。
+
+・モーフ「瞳縦潰れ」は瞬き等のまぶたを閉じる際にあわせて使うと作画のような柔らかさを再現できます。
+
+・モーフ「みっぱい」を使用すると胸が小さくなりますが法線情報がそのままになるため大きい状態のシェーディングがされてしまいます。
+　物理演算であまりよろしくない感じにもなってしまうのでPMDEでモーフを使って胸が小さいまま固定して剛体とジョイントも削除する
+　ような改造をする為に使うのがいいかもしれません。
+
+・モーフ「あ２」は他の口を縦に大きく開けるのに使うと相性が良いと思われます。
+
+・ウェイトの一部にSDEFを使用しています。そのウェイト部分のボーンが多段ボーン化等で親子関係が崩れると
+　ウェイトがおかしく表示されてしまいます。
+　「アペミクさんのSDEF箇所.jpg」を用意したので多段ボーン化する時などに参考にして下さい。
+
+
+◆MMDで読み込む～MMEの適用方法
+1.MMDをインストールします。
+　入手先　VPVP（http://www.geocities.jp/higuchuu4/）
+　「1.3　MikuMikuDance（DirectX9 Ver）」をDL・インストールします。
+2.MMEをインストールします。
+　入手先　http://www.nicovideo.jp/watch/sm12149815
+　中に入っている「MMEffect.txt」の「●インストール方法」に従いインストールして下さい。
+3.MMDを起動しモデルを読み込みます。MMDのウィンドウにドラッグ＆ドロップで大丈夫です。
+4.エフェクトファイルを読み込みます。
+　例としてブログ等に上げていた画像で使ったエフェクトを適用します。
+　・AutoLuminous　そぼろ様
+　http://www.nicovideo.jp/watch/sm16087751
+　・Diffusion7　そぼろ様
+　http://www.nicovideo.jp/watch/sm12182051
+　・SSAO　mqdl様
+　http://www.nicovideo.jp/watch/sm13796840
+　以上のエフェクトをDLします。
+　この組み合わせで出る色を想定して調整してあるので使用を推奨します。Diffusion7は少し弱めで。
+　「AutoLuminous.x」「SSAO.x」「Diffusion.x」を読み込みます。MMDのウィンドウにドラッグ＆ドロップで大丈夫です。
+5.好きなように眺めたり動かしたりモーションを流し込んだりして下さい。
+
+MMDが動かないという場合や更に詳しく知りたい方はVPVPwikiをご覧下さい。
+http://www6.atwiki.jp/vpvpwiki/
+
+
+◆利用規約・免責
+・この作品はピアプロ・キャラクター・ライセンス（http://piapro.jp/license/pcl/summary）に基づいて
+　クリプトン・フューチャー・メディア株式会社のキャラクター「初音ミク・アペンド」を描いたものです。
+・このデータを使用する際は上記キャラクター利用のガイドラインとこの利用規約の両方に沿ってお使いください。
+・利用規約の内容に納得出来ない、守れない場合はこのデータを使用しないで下さい。
+・このデータを使用したことにより何らかのトラブルが発生した場合でも、当方は一切の責任を負いません。
+・利用規約に更新があった場合は常に最新の内容が優先して適用されます。
+・商用利用に関しては版権元であるクリプトン・フューチャー・メディア株式会社様から許可が出るものに関してのみお受けしております。
+・動画・静画等への利用を目的とした改造・改変は問題ありません。
+　改造する際は以下を守って下さい。以下を守っている限り私に報告や許可を取らずに改造・改変とそのモデルの配布が可能です。
+　1.「Tda式モデル」としての改造である事
+　2.足にある輪をそのまま使う場合はロゴを消す（もしくはテクスチャを「ロゴ違いテクスチャ」フォルダに入っているものと入れ替える等する）
+　3.配布する場合はreadmeを同梱し、改造元（Tda式初音ミク・アペンド）と作者（Tda）、改造した人を明記する
+　禁止事項
+　1.改造していないデータの再配布（トレード含む）
+　2.Tda式以外の別モデルを作るためにモデルの一部を移植したり素材として使用する
+　　（例・ツインテールを別のモデルに移植する・腰のメカパーツを別のモデルに移植する　等）
+　　動画や画像のネタやストーリー等を表現するために必要な場合のみ改造可能ですがそのデータを配布することは禁止
+　3.パーツ移植を禁止しているモデルからパーツを移植する等の他の人に迷惑をかけるような改造や使用
+
+
+◆謝辞
+MMD・PMDE・MME・プラグイン等各種ツールを公開してくださっている作者様
+助言や不具合の報告等をして頂いている皆様
+物理演算対応のCSVやパッチを配布して頂いた皆様
+静画や動画等を作ってくれている皆様
+このモデルを作るにあたってお世話になった皆様に感謝し御礼申し上げます。
+また、公認をくださったクリプトン・フューチャー・メディア株式会社様に感謝します。
+
+
+◆更新履歴
+2012.04.30　Ver1.00
+正式公開
+物理設定修正
+ウェイト調整
+テクスチャ修正
+その他いろいろ（細かいところは忘れました）
+
+2012.03.31　Ver.β
+物理演算対応
+髪IKに右、左髪１を含めないように変更
+頭ボーンとその子ボーン、右、左髪IKボーンを-0.05移動（PMDE単位）
+モーフ追加（あ２・みっぱい・メガネ・輪郭）
+舌用ボーン、メガネ用ボーン追加
+ネクタイ部分もAutoLuminousへ対応
+腰横の模様を左右非対称に
+ライトの影響を受けるように環境色を変更
+テクスチャ色味調整
+他にも変更点あるかもしれないですが忘れました・・・
+
+2012.02.13　Ver.α3
+ボーンのローカル軸・ひじ補助ボーン等の構造修正
+モーフ（瞳小・はちゅ目・はちゅ目縦潰れ・はちゅ目横潰れ・あ・え・ワ）調整・修正
+材質モーフを使ってAL対応モデルと非対応モデルを統合・AL用のモーフを搭載
+
+2012.02.05　Ver.α2
+ポリゴン、テクスチャ、ボーン、ウェイト等全体的に修正・調整
+
+2011.12.31　Ver.α
+α版公開
+
+
+◆制作者
+Tda【http://u16hp.blog134.fc2.com/】
+
+
+
+
+readme_English.txt
+==================================================
+Reminder: this English translation is for reference. Should any conflicts arise, the original Japanese Terms of Service shall take precedence over English Terms of Service.
+
+◆ Terms of Service and Disclaimer
+・This 3DCG model represents the character Hatsune Miku Append of Crypton Future Media Inc. under Piapro Character License.
+Here is the License. http://piapro.jp/license/pcl/summary
+・Use this model within the limit of Piapro Character License and this Terms of Service.
+・You may not use this model if you don’t agree to Piapro Character License and this Terms of Service.
+・Tda shall not be responsible for any damage and loss caused or alleged to be caused by or in connection with using this model. 
+・The latest notation shall take precedence if this Terms of Service is renewed.
+・When using this model for commercial purposes, you shall obtain prior permission from Crypton Future Media Inc., the copyright holder of Hatsune Miku, before contacting Tda.
+・Editing this model for your videos and pictures is allowed within the limit of the conditions below. You don’t have to obtain prior permission from Tda.
+1. Do not ruin the feature and image of Tda style. The edited model(s) shall be clearly recognized as Tda-styled model(s).
+2. Remove the logo CRYPTON on the anklet, or use the body00_MikuAp.tga file in the ロゴ違いテクスチャ folder.
+3. When distributing edited model(s), attach both original Japanese Terms of Service and English Terms of Service, credit the original name of this model Type Tda Hatsune Miku Append, the original creator Tda and editor(s).
+Prohibitions
+1. Redistributing the original data. Trading the original data is also forbidden.
+2. Attaching any part(s) of this model, regardless of in the original form or edited form, to other model(s) for the purpose to create and/or edit the model(s) that is/are not Tda-styled. (e.g. attaching Tda Miku’s pigtail(s) and/or waist gear to other model(s).)
+The only exception is the minimum edit for a video or picture with the story related to Tda Append Miku, but distributing the edited model(s) under this exception is forbidden.
+3. Attaching any part(s) from non-editable model(s) to this model.
+
+
+ReadMe.txt
+==================================================
+【Tda式初音ミク・アペンド_monjo3456ver_1.06】
+
+このモデルは、Tda式初音ミク・アペンドの改変モデルです。
+PMXファイルとPMDファイルがあります。
+　
+【変更点】
+・PMDファイル化
+・物理演算対応
+・発光部の色の変更
+・目テクスチャ変更
+・「化粧控えめ」テクスチャ同梱
+・輪郭・影の設定変更
+・「Tda式アペミクさん用ねこみみ」の組み込み
+・メガネレンズの透明度変更
+・「AL未使用」モーフの仕様変更
+
+【内容物】
+・Tda式初音ミク・アペンド改変_Ver1.00(物理対応).pmd
+・Tda式初音ミク・アペンド改変_Ver1.00.pmx
+
+【使用推奨エフェクト】
+・AutoLuminous(そぼろ様)
+・Diffusion(そぼろ様)
+・SSAO(mqdl様)
+
+【使い方】
+使い方は、改造元のモデルと変わりません。
+同梱の「Tda様のReadMe.txt」をお読みください。
+
+【物理演算について】
+変更部分
+髪：アホ毛・ツインテール・もみあげ・前髪
+アペンド服：しっぽ・ネクタイ・腰羽
+変更点
+・アホ毛・ツインテール・もみあげ・前髪を動きやすく
+・しっぽを軽く
+・ネクタイの左右方向の揺れを減少
+・腰羽の足へのめり込みを改善
+
+【おまけ】
+face_MikuAp.tgaを「化粧控えめ」フォルダの中にあるものと置き換えると、
+改造元モデルより少し化粧が控えめになります。
+
+【「Tda式アペミクさん用ねこみみ」について】
+Tda様の利用規約調整に伴い、Ver1.05より
+「Tda式アペミクさん用ねこみみ(http://bowlroll.net/up/dl5355)」を
+組み込んでいます。モーフ「ねこみみ」の設定で使用することができます。
+
+【改造・再配布について】
+改造・再配布については、「Tda様のReadMe.txt」の利用規約に従ってください。
+
+【改造元】
+Tda式初音ミク・アペンド
+
+【作者】
+Tda様
+
+【改造者】
+monjo3456
+
+http://monjo3456.blog.fc2.com/
+
+Twitter：@monjo3456
+
+【更新履歴】
+公開前　PMD化・標準テクスチャ割り当て・髪、腰パーツの色変更・影輪郭の設定変更
+Ver.1.00、１回目　ReadMe修正
+Ver.1.00、２回目　顔テクスチャの編集による「化粧控えめテクスチャ」作成・ReadMe修正
+Ver.1.00、３回目　剛体、ジョイント設定変更による物理演算対応版作成（腰羽、髪）・ReadMe修正
+Ver.1.00、４回目　テクスチャの編集による足輪のロゴ変更（「monjo3456Ver.」の文字追加）・ReadMe修正
+Ver.1.00、５回目　ネクタイ、髪などの物理演算の仕様変更
+Ver.1.04　軽量版の頂点数を25164個から23214個に変更
+Ver.1.05　PMX版の輪郭の改善・「Tda式アペミクさん用ねこみみ」の組み込み・物理対応版の英名修正・ReadMe修正
+Ver.1.06　ファイル、モデル名変更・物理演算仕様変更・軽量版廃止・発光部色変更・目テクスチャ変更・髪色変更
+　・メガネレンズの透明度変更・「AL未使用」モーフの仕様変更・足輪ロゴデザイン変更・ReadMe修正
+
+
+Tda様のReadMe(ねこみみ).txt
+==================================================
+--------
+If you don't have the full command of Japanese and don't read the attached Japanese readme properly, do not edit, redistribute and/or trade this model. There are additional conditions in it.
+--------
+
+◆◇---　Tda式アペミクさん用ねこみみ　---◇◆
+
+◆解説
+お遊戯Ｐさんから頂いたねこみみモデルをアペミクさん用に調整しました。
+PMDEditorでアペミクさんのモデルに合成して使用します。
+「Tda式初音ミク・アペンド」以外のTda式にも適用できると思いますが、「toon_hair.bmp」「toon_defo.bmp」「hair_s.bmp」
+の３点のテクスチャをアペミクさんから流用しているので気を付けて下さい。
+
+合成方法
+1.「nekomimi.tga」を「Tda式初音ミク・アペンド」が入っているフォルダにコピーします。
+2.PMDEditorでアペミクさんを開きます。
+3.ファイル＞インポートから「Tda式アペミクさん用ねこみみ.pmx」を開きます。
+　「追加選択／サイズ調整」ウィンドウで「インポート方式：追加」「モデル調整：同名ボーンのマージ」
+　にチェックが入ってることを確認してインポートして下さい。
+4.モーフ「ねこみみ」を１にするとねこみみが出てきます。ボーンで動かすことも可能です。
+
+
+◆利用規約・免責
+・このデータは私だけで作ったものではないので基本は再配布禁止とさせてください。
+・Tda式としての改変モデルに組み込む場合のみ配布可とします。
+　その場合はreadmeにこのデータを使用したことと作者を明記してください。
+・利用規約の内容に納得出来ない、守れない場合はこのデータを使用しないで下さい。
+・このデータを使用したことにより何らかのトラブルが発生した場合でも、当方は一切の責任を負いません。
+・利用規約に更新があった場合は常に最新の内容が優先して適用されます。
+
+
+◆更新履歴
+2013.4.14　Ver1.00
+利用規約調整
+
+2012.5.26　Ver1.00
+公開
+
+
+◆制作者
+モデリング：お遊戯Ｐ
+テクスチャ・セットアップ：Tda

@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "id": "app.jinban.collections.sample-robot",
+  "version": "1.0.0",
+  "modelID": "sample-robot",
+  "modelPackageID": "app.xiaoban.sample-robot",
+  "modelPackageVersion": "1.1.0",
+  "actions": [
+    "Wave",
+    "Jump",
+    "Dance",
+    "Yes",
+    "ThumbsUp"
+  ],
+  "environments": [
+    "courtyard",
+    "garden"
+  ],
+  "voices": [
+    {
+      "id": "sample-robot/lively",
+      "title": "开心聊",
+      "detail": "轻松、稍快",
+      "engine": "melo-zh-v1",
+      "speed": 1.08
+    },
+    {
+      "id": "sample-robot/calm",
+      "title": "安静聊",
+      "detail": "平和、自然",
+      "engine": "melo-zh-v1",
+      "speed": 0.96
+    }
+  ],
+  "music": [
+    {
+      "id": "sample-robot/walk",
+      "asset": "IslandAfternoon",
+      "title": "散步小调",
+      "detail": "角色配套轻音乐",
+      "symbol": "leaf"
+    },
+    {
+      "id": "sample-robot/rest",
+      "asset": "MoonlitTide",
+      "title": "小院夜色",
+      "detail": "角色配套轻音乐",
+      "symbol": "moon"
+    }
+  ],
+  "defaultEnvironment": "courtyard",
+  "defaultVoice": "sample-robot/lively",
+  "defaultMusic": "sample-robot/walk"
+}

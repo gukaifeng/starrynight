@@ -1,0 +1,374 @@
+{
+  "schemaVersion": 1,
+  "id": "studio-robot",
+  "packageId": "app.xiaoban.studio-robot",
+  "packageVersion": "1.0.0",
+  "display": {
+    "name": "Luma",
+    "originalName": "Studio Robot",
+    "description": "温润陶瓷，微光眼眸。触碰一下，和它打个招呼。",
+    "invitation": "不急着说点什么。\n坐一会儿，我在听。",
+    "tagline": "温柔 · 日常与陪伴",
+    "symbol": "sun.max",
+    "thumbnail": "RobotThumbnail",
+    "thumbnailScale": 1.8,
+    "order": 20,
+    "style": "stylized",
+    "cardIdentifier": "modelCard",
+    "openIdentifier": "openModelButton"
+  },
+  "compatibility": {
+    "apiMajor": 1,
+    "minApiMinor": 0,
+    "required": [
+      "core.animation@1",
+      "core.gaze@1",
+      "core.behavior@1"
+    ],
+    "optional": [
+      "core.interaction@1",
+      "core.effects@1"
+    ]
+  },
+  "source": {
+    "format": "builtin",
+    "model": "",
+    "scale": 1,
+    "yaw": 0
+  },
+  "rig": {
+    "head": "Rig/Body/HeadPivot",
+    "neck": "",
+    "leftEye": "",
+    "rightEye": "",
+    "headRenderer": "Rig/Body/HeadPivot/Head",
+    "conversationStart": 0.42
+  },
+  "gaze": {
+    "yaw": 50,
+    "up": 22,
+    "down": 28,
+    "eyeYaw": 12,
+    "eyeUp": 8,
+    "eyeDown": 10
+  },
+  "actions": [
+    {
+      "id": "Idle",
+      "clip": "Idle",
+      "semantic": "idle",
+      "label": "待机",
+      "symbol": "leaf",
+      "button": false,
+      "framing": "conversation",
+      "gaze": "follow"
+    },
+    {
+      "id": "Wave",
+      "clip": "Wave",
+      "semantic": "greeting",
+      "label": "挥手",
+      "symbol": "hand.wave",
+      "button": true,
+      "framing": "full",
+      "gaze": "follow"
+    },
+    {
+      "id": "Jump",
+      "clip": "Jump",
+      "semantic": "jump",
+      "label": "跳跃",
+      "symbol": "arrow.up",
+      "button": true,
+      "framing": "full",
+      "gaze": "follow"
+    },
+    {
+      "id": "Dance",
+      "clip": "Dance",
+      "semantic": "dance",
+      "label": "跳舞",
+      "symbol": "music.note",
+      "button": true,
+      "framing": "full",
+      "gaze": "follow"
+    },
+    {
+      "id": "No",
+      "clip": "No",
+      "semantic": "head-touch",
+      "label": "摇头",
+      "symbol": "face.smiling",
+      "button": false,
+      "framing": "conversation",
+      "gaze": "soft"
+    }
+  ],
+  "expressions": [],
+  "speech": {
+    "mode": "none",
+    "amplitude": [],
+    "visemes": []
+  },
+  "effects": [
+    {
+      "id": "joy",
+      "kind": "sparkles",
+      "anchor": "head",
+      "color": "#F5C46B",
+      "count": 12
+    },
+    {
+      "id": "care",
+      "kind": "hearts",
+      "anchor": "chest",
+      "color": "#EFA9AC",
+      "count": 7
+    }
+  ],
+  "interactions": [
+    {
+      "id": "head",
+      "bone": "Rig/Body/HeadPivot",
+      "renderer": "Rig/Body/HeadPivot/Head",
+      "radius": 0.1,
+      "eventName": "interaction.head.tap"
+    }
+  ],
+  "behaviors": [
+    {
+      "id": "welcome",
+      "eventName": "session.enter",
+      "emotion": "",
+      "priority": 20,
+      "cooldown": 30,
+      "probability": 1,
+      "minIntensity": 0,
+      "cues": [
+        {
+          "channel": "body",
+          "target": "Wave",
+          "fallback": "",
+          "duration": 2,
+          "delay": 0,
+          "intensity": 1,
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "hello",
+      "eventName": "dialogue.greeting",
+      "emotion": "",
+      "priority": 35,
+      "cooldown": 5,
+      "probability": 1,
+      "minIntensity": 0,
+      "cues": [
+        {
+          "channel": "body",
+          "target": "Wave",
+          "fallback": "",
+          "duration": 2,
+          "delay": 0,
+          "intensity": 1,
+          "required": false
+        },
+        {
+          "channel": "expression",
+          "target": "joy",
+          "fallback": "neutral",
+          "duration": 2,
+          "delay": 0,
+          "intensity": 1,
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "gratitude",
+      "eventName": "dialogue.gratitude",
+      "emotion": "",
+      "priority": 35,
+      "cooldown": 5,
+      "probability": 1,
+      "minIntensity": 0,
+      "cues": [
+        {
+          "channel": "body",
+          "target": "Bow",
+          "fallback": "Wave",
+          "duration": 2,
+          "delay": 0,
+          "intensity": 1,
+          "required": false
+        },
+        {
+          "channel": "effect",
+          "target": "care",
+          "fallback": "",
+          "duration": 2,
+          "delay": 0,
+          "intensity": 1,
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "comfort",
+      "eventName": "dialogue.reply",
+      "emotion": "care",
+      "priority": 40,
+      "cooldown": 6,
+      "probability": 1,
+      "minIntensity": 0,
+      "cues": [
+        {
+          "channel": "expression",
+          "target": "care",
+          "fallback": "neutral",
+          "duration": 2,
+          "delay": 0,
+          "intensity": 1,
+          "required": false
+        },
+        {
+          "channel": "effect",
+          "target": "care",
+          "fallback": "",
+          "duration": 2,
+          "delay": 0,
+          "intensity": 1,
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "celebrate",
+      "eventName": "dialogue.reply",
+      "emotion": "joy",
+      "priority": 40,
+      "cooldown": 6,
+      "probability": 1,
+      "minIntensity": 0,
+      "cues": [
+        {
+          "channel": "body",
+          "target": "Cheer",
+          "fallback": "Wave",
+          "duration": 2,
+          "delay": 0,
+          "intensity": 1,
+          "required": false
+        },
+        {
+          "channel": "expression",
+          "target": "joy",
+          "fallback": "neutral",
+          "duration": 2,
+          "delay": 0,
+          "intensity": 1,
+          "required": false
+        },
+        {
+          "channel": "effect",
+          "target": "joy",
+          "fallback": "",
+          "duration": 2,
+          "delay": 0.3,
+          "intensity": 1,
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "dance",
+      "eventName": "dialogue.dance",
+      "emotion": "",
+      "priority": 65,
+      "cooldown": 1,
+      "probability": 1,
+      "minIntensity": 0,
+      "cues": [
+        {
+          "channel": "body",
+          "target": "Dance",
+          "fallback": "Wave",
+          "duration": 2,
+          "delay": 0,
+          "intensity": 1,
+          "required": false
+        },
+        {
+          "channel": "effect",
+          "target": "joy",
+          "fallback": "",
+          "duration": 2,
+          "delay": 0.4,
+          "intensity": 1,
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "jump",
+      "eventName": "dialogue.jump",
+      "emotion": "",
+      "priority": 65,
+      "cooldown": 1,
+      "probability": 1,
+      "minIntensity": 0,
+      "cues": [
+        {
+          "channel": "body",
+          "target": "Jump",
+          "fallback": "Wave",
+          "duration": 2,
+          "delay": 0,
+          "intensity": 1,
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "head-touch",
+      "eventName": "interaction.head.tap",
+      "emotion": "",
+      "priority": 75,
+      "cooldown": 0.6,
+      "probability": 1,
+      "minIntensity": 0,
+      "cues": [
+        {
+          "channel": "body",
+          "target": "No",
+          "fallback": "",
+          "duration": 2,
+          "delay": 0,
+          "intensity": 1,
+          "required": false
+        },
+        {
+          "channel": "expression",
+          "target": "joy",
+          "fallback": "neutral",
+          "duration": 2,
+          "delay": 0,
+          "intensity": 1,
+          "required": false
+        }
+      ]
+    }
+  ],
+  "parameters": [],
+  "license": {
+    "name": "See third party notices",
+    "authors": [
+      "Xiaoban project"
+    ],
+    "notice": "",
+    "source": ""
+  },
+  "files": [],
+  "extensions": {}
+}

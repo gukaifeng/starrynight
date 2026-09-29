@@ -1,0 +1,8 @@
+Brand: 星夜 / STARRY NIGHT
+Mode: built-in image_gen, new opaque square icon. No external API key or third-party image generator.
+Generated original: /Users/gukaifeng/.codex/generated_images/01a0d661-8ec6-7022-87d1-5f7b3272f011/exec-1bc16667-ec83-489d-8e86-c2ba964bcfec.png
+Repository master: assets/brand/xingye-icon-master.png
+Delivery: AppIcon 1024 x 1024, BrandMark 256 x 256. Resized with sips. App icons are full bleed, no prerounded mask; iOS supplies its own shape.
+
+Final generation prompt:
+Create a premium iOS app icon for 星夜 (Starry Night), an immersive 3D anime AI companion app. Icon only, no typography, no letters, no watermark, no phone mockup. Square 1024x1024 full bleed image (do not pre-round the corners), nearly black midnight ink #080A12 background. A single memorable sculptural four-point star with soft lilac pearlescent glass material and a subtly warm rose center, encircled by one asymmetrical fine luminous orbital arc / crescent, evoking a gentle anime night-sky companion. Star sits centered large enough to read instantly at 40 pixels. Sophisticated restraint, pristine edges, dimensional lighting, a tiny glint, subdued violet halo only behind the mark. No noisy starfield, no eyes or literal human, no excessive neon, no text. High contrast luminous symbol on deep black, elegant, intimate and magical.

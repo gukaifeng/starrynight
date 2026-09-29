@@ -1,0 +1,664 @@
+{
+  "schemaVersion": 1,
+  "id": "real-woman",
+  "packageId": "app.xiaoban.real-woman",
+  "packageVersion": "1.1.0",
+  "display": {
+    "name": "小夏",
+    "originalName": "Your own companion",
+    "description": "自然的面容，细腻的发丝。在光影里，慢慢塑造你喜欢的模样。",
+    "invitation": "从面容到光影，\n慢慢成为你喜欢的模样。",
+    "tagline": "写实女性 · 自定义模型",
+    "symbol": "person.crop.square",
+    "thumbnail": "HumanThumbnail",
+    "thumbnailScale": 1,
+    "order": 10,
+    "style": "realistic",
+    "cardIdentifier": "humanModelCard",
+    "openIdentifier": "openHumanButton"
+  },
+  "compatibility": {
+    "apiMajor": 1,
+    "minApiMinor": 1,
+    "required": [
+      "core.animation@1",
+      "core.gaze@1",
+      "core.behavior@1",
+      "core.posture@1"
+    ],
+    "optional": [
+      "core.interaction@1",
+      "core.effects@1",
+      "core.speech.amplitude@1",
+      "legacy.human-studio@1"
+    ]
+  },
+  "source": {
+    "format": "builtin",
+    "model": "",
+    "scale": 1,
+    "yaw": 0
+  },
+  "rig": {
+    "head": "Character/HumanRig/Root/pelvis/spine_01/spine_02/spine_03/neck_01/HeadPivot",
+    "neck": "Character/HumanRig/Root/pelvis/spine_01/spine_02/spine_03/neck_01",
+    "leftEye": "Character/HumanRig/Root/pelvis/spine_01/spine_02/spine_03/neck_01/HeadPivot/GazeEyeLeft",
+    "rightEye": "Character/HumanRig/Root/pelvis/spine_01/spine_02/spine_03/neck_01/HeadPivot/GazeEyeRight",
+    "headRenderer": "Character/Head",
+    "conversationStart": 0.64
+  },
+  "gaze": {
+    "yaw": 50,
+    "up": 22,
+    "down": 28,
+    "eyeYaw": 12,
+    "eyeUp": 8,
+    "eyeDown": 10
+  },
+  "actions": [
+    {
+      "id": "Idle",
+      "clip": "Idle",
+      "semantic": "idle",
+      "label": "待机",
+      "symbol": "leaf",
+      "button": false,
+      "framing": "conversation",
+      "gaze": "follow"
+    },
+    {
+      "id": "Wave",
+      "clip": "Wave",
+      "semantic": "greeting",
+      "label": "挥手",
+      "symbol": "hand.wave",
+      "button": true,
+      "framing": "full",
+      "gaze": "follow"
+    },
+    {
+      "id": "Bow",
+      "clip": "Bow",
+      "semantic": "gratitude",
+      "label": "致意",
+      "symbol": "heart",
+      "button": true,
+      "framing": "full",
+      "gaze": "release"
+    },
+    {
+      "id": "Greet",
+      "clip": "Greet",
+      "semantic": "greeting",
+      "label": "打招呼",
+      "symbol": "hand.raised",
+      "button": true,
+      "framing": "full",
+      "gaze": "follow"
+    },
+    {
+      "id": "No",
+      "clip": "No",
+      "semantic": "head-touch",
+      "label": "摇头",
+      "symbol": "face.smiling",
+      "button": false,
+      "framing": "conversation",
+      "gaze": "soft"
+    }
+  ],
+  "expressions": [],
+  "speech": {
+    "mode": "amplitude",
+    "amplitude": [
+      {
+        "renderer": "Character/Head",
+        "shape": "OpenMouth",
+        "weight": 0.68
+      }
+    ],
+    "visemes": []
+  },
+  "effects": [
+    {
+      "id": "joy",
+      "kind": "sparkles",
+      "anchor": "head",
+      "color": "#F5C46B",
+      "count": 12
+    },
+    {
+      "id": "care",
+      "kind": "hearts",
+      "anchor": "chest",
+      "color": "#EFA9AC",
+      "count": 7
+    }
+  ],
+  "interactions": [
+    {
+      "id": "head",
+      "bone": "Character/HumanRig/Root/pelvis/spine_01/spine_02/spine_03/neck_01/HeadPivot",
+      "renderer": "Character/Head",
+      "radius": 0.1,
+      "eventName": "interaction.head.tap"
+    }
+  ],
+  "behaviors": [
+    {
+      "id": "welcome",
+      "eventName": "session.enter",
+      "emotion": "",
+      "priority": 20,
+      "cooldown": 30,
+      "probability": 1,
+      "minIntensity": 0,
+      "cues": [
+        {
+          "channel": "body",
+          "target": "Greet",
+          "fallback": "",
+          "duration": 2,
+          "delay": 0,
+          "intensity": 1,
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "hello",
+      "eventName": "dialogue.greeting",
+      "emotion": "",
+      "priority": 35,
+      "cooldown": 5,
+      "probability": 1,
+      "minIntensity": 0,
+      "cues": [
+        {
+          "channel": "body",
+          "target": "Greet",
+          "fallback": "",
+          "duration": 2,
+          "delay": 0,
+          "intensity": 1,
+          "required": false
+        },
+        {
+          "channel": "expression",
+          "target": "joy",
+          "fallback": "neutral",
+          "duration": 2,
+          "delay": 0,
+          "intensity": 1,
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "gratitude",
+      "eventName": "dialogue.gratitude",
+      "emotion": "",
+      "priority": 35,
+      "cooldown": 5,
+      "probability": 1,
+      "minIntensity": 0,
+      "cues": [
+        {
+          "channel": "body",
+          "target": "Bow",
+          "fallback": "Greet",
+          "duration": 2,
+          "delay": 0,
+          "intensity": 1,
+          "required": false
+        },
+        {
+          "channel": "effect",
+          "target": "care",
+          "fallback": "",
+          "duration": 2,
+          "delay": 0,
+          "intensity": 1,
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "comfort",
+      "eventName": "dialogue.reply",
+      "emotion": "care",
+      "priority": 40,
+      "cooldown": 6,
+      "probability": 1,
+      "minIntensity": 0,
+      "cues": [
+        {
+          "channel": "expression",
+          "target": "care",
+          "fallback": "neutral",
+          "duration": 2,
+          "delay": 0,
+          "intensity": 1,
+          "required": false
+        },
+        {
+          "channel": "effect",
+          "target": "care",
+          "fallback": "",
+          "duration": 2,
+          "delay": 0,
+          "intensity": 1,
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "celebrate",
+      "eventName": "dialogue.reply",
+      "emotion": "joy",
+      "priority": 40,
+      "cooldown": 6,
+      "probability": 1,
+      "minIntensity": 0,
+      "cues": [
+        {
+          "channel": "body",
+          "target": "Cheer",
+          "fallback": "Wave",
+          "duration": 2,
+          "delay": 0,
+          "intensity": 1,
+          "required": false
+        },
+        {
+          "channel": "expression",
+          "target": "joy",
+          "fallback": "neutral",
+          "duration": 2,
+          "delay": 0,
+          "intensity": 1,
+          "required": false
+        },
+        {
+          "channel": "effect",
+          "target": "joy",
+          "fallback": "",
+          "duration": 2,
+          "delay": 0.3,
+          "intensity": 1,
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "dance",
+      "eventName": "dialogue.dance",
+      "emotion": "",
+      "priority": 65,
+      "cooldown": 1,
+      "probability": 1,
+      "minIntensity": 0,
+      "cues": [
+        {
+          "channel": "body",
+          "target": "Dance",
+          "fallback": "Greet",
+          "duration": 2,
+          "delay": 0,
+          "intensity": 1,
+          "required": false
+        },
+        {
+          "channel": "effect",
+          "target": "joy",
+          "fallback": "",
+          "duration": 2,
+          "delay": 0.4,
+          "intensity": 1,
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "jump",
+      "eventName": "dialogue.jump",
+      "emotion": "",
+      "priority": 65,
+      "cooldown": 1,
+      "probability": 1,
+      "minIntensity": 0,
+      "cues": [
+        {
+          "channel": "body",
+          "target": "Jump",
+          "fallback": "Greet",
+          "duration": 2,
+          "delay": 0,
+          "intensity": 1,
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "head-touch",
+      "eventName": "interaction.head.tap",
+      "emotion": "",
+      "priority": 75,
+      "cooldown": 0.6,
+      "probability": 1,
+      "minIntensity": 0,
+      "cues": [
+        {
+          "channel": "body",
+          "target": "No",
+          "fallback": "",
+          "duration": 2,
+          "delay": 0,
+          "intensity": 1,
+          "required": false
+        },
+        {
+          "channel": "expression",
+          "target": "joy",
+          "fallback": "neutral",
+          "duration": 2,
+          "delay": 0,
+          "intensity": 1,
+          "required": false
+        }
+      ]
+    }
+  ],
+  "parameters": [],
+  "license": {
+    "name": "See third party notices",
+    "authors": [
+      "Xiaoban project"
+    ],
+    "notice": "",
+    "source": ""
+  },
+  "files": [],
+  "extensions": {},
+  "posture": {
+    "bones": [
+      "Character/HumanRig/Root",
+      "Character/HumanRig/Root/pelvis",
+      "Character/HumanRig/Root/pelvis/spine_01",
+      "Character/HumanRig/Root/pelvis/spine_01/spine_02",
+      "Character/HumanRig/Root/pelvis/spine_01/spine_02/spine_03",
+      "Character/HumanRig/Root/pelvis/spine_01/spine_02/spine_03/neck_01",
+      "Character/HumanRig/Root/pelvis/spine_01/spine_02/spine_03/neck_01/HeadPivot",
+      "Character/HumanRig/Root/pelvis/spine_01/spine_02/spine_03/clavicle_l/upperarm_l",
+      "Character/HumanRig/Root/pelvis/spine_01/spine_02/spine_03/clavicle_l/upperarm_l/lowerarm_l",
+      "Character/HumanRig/Root/pelvis/spine_01/spine_02/spine_03/clavicle_l/upperarm_l/lowerarm_l/hand_l",
+      "Character/HumanRig/Root/pelvis/thigh_l",
+      "Character/HumanRig/Root/pelvis/thigh_l/calf_l",
+      "Character/HumanRig/Root/pelvis/thigh_l/calf_l/foot_l",
+      "Character/HumanRig/Root/pelvis/spine_01/spine_02/spine_03/clavicle_r/upperarm_r",
+      "Character/HumanRig/Root/pelvis/spine_01/spine_02/spine_03/clavicle_r/upperarm_r/lowerarm_r",
+      "Character/HumanRig/Root/pelvis/spine_01/spine_02/spine_03/clavicle_r/upperarm_r/lowerarm_r/hand_r",
+      "Character/HumanRig/Root/pelvis/thigh_r",
+      "Character/HumanRig/Root/pelvis/thigh_r/calf_r",
+      "Character/HumanRig/Root/pelvis/thigh_r/calf_r/foot_r"
+    ],
+    "poses": [
+      {
+        "id": "stand",
+        "label": "站立",
+        "symbol": "figure.stand",
+        "clip": "Idle",
+        "support": "floor",
+        "gaze": "follow",
+        "transition": 1.2,
+        "parameters": [
+          {
+            "id": "lean",
+            "label": "上身前倾",
+            "unit": "degrees",
+            "min": -6,
+            "max": 10,
+            "initial": 0,
+            "lowClip": "P_stand_lean_low",
+            "highClip": "P_stand_lean_high"
+          },
+          {
+            "id": "turn",
+            "label": "身体朝向",
+            "unit": "degrees",
+            "min": -15,
+            "max": 15,
+            "initial": 0,
+            "lowClip": "P_stand_turn_low",
+            "highClip": "P_stand_turn_high"
+          },
+          {
+            "id": "legRoom",
+            "label": "双腿间距",
+            "unit": "normalized",
+            "min": 0,
+            "max": 1,
+            "initial": 0.5,
+            "lowClip": "P_stand_legRoom_low",
+            "highClip": "P_stand_legRoom_high"
+          },
+          {
+            "id": "armRoom",
+            "label": "手臂舒展",
+            "unit": "normalized",
+            "min": 0,
+            "max": 1,
+            "initial": 0.35,
+            "lowClip": "P_stand_armRoom_low",
+            "highClip": "P_stand_armRoom_high"
+          }
+        ],
+        "actions": [
+          {
+            "action": "Wave",
+            "clip": "P_stand_Wave"
+          },
+          {
+            "action": "Greet",
+            "clip": "P_stand_Greet"
+          },
+          {
+            "action": "No",
+            "clip": "P_stand_No"
+          },
+          {
+            "action": "Bow",
+            "clip": "P_stand_Bow"
+          }
+        ]
+      },
+      {
+        "id": "sit",
+        "label": "坐下",
+        "symbol": "figure.seated.side",
+        "clip": "P_sit",
+        "support": "floor",
+        "gaze": "follow",
+        "transition": 1.2,
+        "parameters": [
+          {
+            "id": "lean",
+            "label": "上身前倾",
+            "unit": "degrees",
+            "min": -6,
+            "max": 10,
+            "initial": 0,
+            "lowClip": "P_sit_lean_low",
+            "highClip": "P_sit_lean_high"
+          },
+          {
+            "id": "turn",
+            "label": "身体朝向",
+            "unit": "degrees",
+            "min": -15,
+            "max": 15,
+            "initial": 0,
+            "lowClip": "P_sit_turn_low",
+            "highClip": "P_sit_turn_high"
+          },
+          {
+            "id": "legRoom",
+            "label": "双腿间距",
+            "unit": "normalized",
+            "min": 0,
+            "max": 1,
+            "initial": 0.5,
+            "lowClip": "P_sit_legRoom_low",
+            "highClip": "P_sit_legRoom_high"
+          },
+          {
+            "id": "armRoom",
+            "label": "手臂舒展",
+            "unit": "normalized",
+            "min": 0,
+            "max": 1,
+            "initial": 0.35,
+            "lowClip": "P_sit_armRoom_low",
+            "highClip": "P_sit_armRoom_high"
+          }
+        ],
+        "actions": [
+          {
+            "action": "Wave",
+            "clip": "P_sit_Wave"
+          },
+          {
+            "action": "Greet",
+            "clip": "P_sit_Greet"
+          },
+          {
+            "action": "No",
+            "clip": "P_sit_No"
+          }
+        ]
+      },
+      {
+        "id": "crouch",
+        "label": "蹲下",
+        "symbol": "figure.flexibility",
+        "clip": "P_crouch",
+        "support": "floor",
+        "gaze": "follow",
+        "transition": 1.2,
+        "parameters": [
+          {
+            "id": "lean",
+            "label": "上身前倾",
+            "unit": "degrees",
+            "min": -6,
+            "max": 10,
+            "initial": 0,
+            "lowClip": "P_crouch_lean_low",
+            "highClip": "P_crouch_lean_high"
+          },
+          {
+            "id": "turn",
+            "label": "身体朝向",
+            "unit": "degrees",
+            "min": -15,
+            "max": 15,
+            "initial": 0,
+            "lowClip": "P_crouch_turn_low",
+            "highClip": "P_crouch_turn_high"
+          },
+          {
+            "id": "legRoom",
+            "label": "双腿间距",
+            "unit": "normalized",
+            "min": 0,
+            "max": 1,
+            "initial": 0.5,
+            "lowClip": "P_crouch_legRoom_low",
+            "highClip": "P_crouch_legRoom_high"
+          },
+          {
+            "id": "armRoom",
+            "label": "手臂舒展",
+            "unit": "normalized",
+            "min": 0,
+            "max": 1,
+            "initial": 0.35,
+            "lowClip": "P_crouch_armRoom_low",
+            "highClip": "P_crouch_armRoom_high"
+          }
+        ],
+        "actions": [
+          {
+            "action": "Wave",
+            "clip": "P_crouch_Wave"
+          },
+          {
+            "action": "Greet",
+            "clip": "P_crouch_Greet"
+          },
+          {
+            "action": "No",
+            "clip": "P_crouch_No"
+          }
+        ]
+      },
+      {
+        "id": "lie",
+        "label": "侧躺",
+        "symbol": "bed.double",
+        "clip": "P_lie",
+        "support": "floor",
+        "gaze": "soft",
+        "transition": 1.5,
+        "parameters": [
+          {
+            "id": "lean",
+            "label": "上身前倾",
+            "unit": "degrees",
+            "min": -6,
+            "max": 10,
+            "initial": 0,
+            "lowClip": "P_lie_lean_low",
+            "highClip": "P_lie_lean_high"
+          },
+          {
+            "id": "turn",
+            "label": "身体朝向",
+            "unit": "degrees",
+            "min": -15,
+            "max": 15,
+            "initial": 0,
+            "lowClip": "P_lie_turn_low",
+            "highClip": "P_lie_turn_high"
+          },
+          {
+            "id": "legRoom",
+            "label": "双腿间距",
+            "unit": "normalized",
+            "min": 0,
+            "max": 1,
+            "initial": 0.5,
+            "lowClip": "P_lie_legRoom_low",
+            "highClip": "P_lie_legRoom_high"
+          },
+          {
+            "id": "armRoom",
+            "label": "手臂舒展",
+            "unit": "normalized",
+            "min": 0,
+            "max": 1,
+            "initial": 0.35,
+            "lowClip": "P_lie_armRoom_low",
+            "highClip": "P_lie_armRoom_high"
+          }
+        ],
+        "actions": [
+          {
+            "action": "No",
+            "clip": "P_lie_No"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,342 @@
+{
+  "repo": "https://github.com/mmdagent-ex/uka",
+  "revision": "659f0d1a740fec68bb2817dc9c694a35e7a15f12",
+  "files": [
+    {
+      "path": "MS_Uka.pmd.shapemap",
+      "url": "https://raw.githubusercontent.com/mmdagent-ex/uka/659f0d1a740fec68bb2817dc9c694a35e7a15f12/MS_Uka.pmd.shapemap",
+      "bytes": 6392,
+      "sha256": "7f0482cf72a53ff42e461db71afb6cc68061ac57dbc4b79f9c1fb3e291172535"
+    },
+    {
+      "path": "MS_Uka.pmx",
+      "url": "https://raw.githubusercontent.com/mmdagent-ex/uka/659f0d1a740fec68bb2817dc9c694a35e7a15f12/MS_Uka.pmx",
+      "bytes": 4217254,
+      "sha256": "6fbfff5cfb921e89df93d68a55dfa1549875d743a9d5e155272cb9737520d297"
+    },
+    {
+      "path": "README.ja.md",
+      "url": "https://raw.githubusercontent.com/mmdagent-ex/uka/659f0d1a740fec68bb2817dc9c694a35e7a15f12/README.ja.md",
+      "bytes": 6071,
+      "sha256": "89b0f87f29d88026d940d1c85c99b31e700cdcdf12d95be07cb14cf9ac89dfbd"
+    },
+    {
+      "path": "README.md",
+      "url": "https://raw.githubusercontent.com/mmdagent-ex/uka/659f0d1a740fec68bb2817dc9c694a35e7a15f12/README.md",
+      "bytes": 5005,
+      "sha256": "a351933cf917c517c98881ca87145af5ed0f6e346aab48228ae7381327082b1a"
+    },
+    {
+      "path": "example.png",
+      "url": "https://raw.githubusercontent.com/mmdagent-ex/uka/659f0d1a740fec68bb2817dc9c694a35e7a15f12/example.png",
+      "bytes": 474547,
+      "sha256": "9e463f005d89993d425a1517014eacc6834b8853eb313ea1405349407ce115b3"
+    },
+    {
+      "path": "motion/00_normal.vmd",
+      "url": "https://raw.githubusercontent.com/mmdagent-ex/uka/659f0d1a740fec68bb2817dc9c694a35e7a15f12/motion/00_normal.vmd",
+      "bytes": 10401,
+      "sha256": "6861a348a944cc57ac08353d273b52b962483b5223f91256d03f8005e2545fc7"
+    },
+    {
+      "path": "motion/01_happy.vmd",
+      "url": "https://raw.githubusercontent.com/mmdagent-ex/uka/659f0d1a740fec68bb2817dc9c694a35e7a15f12/motion/01_happy.vmd",
+      "bytes": 40991,
+      "sha256": "48e54ca56103585ffd522ac7aa9ae3d3820c717c1ef1d94ebeca46f92027f0ef"
+    },
+    {
+      "path": "motion/02_laugh.vmd",
+      "url": "https://raw.githubusercontent.com/mmdagent-ex/uka/659f0d1a740fec68bb2817dc9c694a35e7a15f12/motion/02_laugh.vmd",
+      "bytes": 70076,
+      "sha256": "714c04a833285aacc7b75039d872fc852c6df75025296bae0a707e5bbb3e159e"
+    },
+    {
+      "path": "motion/03_smile.vmd",
+      "url": "https://raw.githubusercontent.com/mmdagent-ex/uka/659f0d1a740fec68bb2817dc9c694a35e7a15f12/motion/03_smile.vmd",
+      "bytes": 32985,
+      "sha256": "87cfd8818c6474a968ed83f8c6040d3a9657d8947a2eab7f47675a3fa50fb2b3"
+    },
+    {
+      "path": "motion/04_littlesmile.vmd",
+      "url": "https://raw.githubusercontent.com/mmdagent-ex/uka/659f0d1a740fec68bb2817dc9c694a35e7a15f12/motion/04_littlesmile.vmd",
+      "bytes": 40719,
+      "sha256": "42cf0e2e2a6ca5b050ddeb0782ffb490d82e304d2299e4278ff456a0f67e0607"
+    },
+    {
+      "path": "motion/05_gracefulsmile.vmd",
+      "url": "https://raw.githubusercontent.com/mmdagent-ex/uka/659f0d1a740fec68bb2817dc9c694a35e7a15f12/motion/05_gracefulsmile.vmd",
+      "bytes": 32985,
+      "sha256": "e3d73165522921ad710fa61f4178a87924391d37f62899090c8ff960ae4a97f2"
+    },
+    {
+      "path": "motion/06_embarassedsmile.vmd",
+      "url": "https://raw.githubusercontent.com/mmdagent-ex/uka/659f0d1a740fec68bb2817dc9c694a35e7a15f12/motion/06_embarassedsmile.vmd",
+      "bytes": 33172,
+      "sha256": "1fe9d30181511c135b8fd9c8afb9795a29b197aa7da05a4a104c2c1e113296d3"
+    },
+    {
+      "path": "motion/07_annoyedsmile.vmd",
+      "url": "https://raw.githubusercontent.com/mmdagent-ex/uka/659f0d1a740fec68bb2817dc9c694a35e7a15f12/motion/07_annoyedsmile.vmd",
+      "bytes": 41037,
+      "sha256": "399a6197d8e43c40d1985016cd0ca080e70499267cb86779fa420370e0370bbd"
+    },
+    {
+      "path": "motion/08_surprise.vmd",
+      "url": "https://raw.githubusercontent.com/mmdagent-ex/uka/659f0d1a740fec68bb2817dc9c694a35e7a15f12/motion/08_surprise.vmd",
+      "bytes": 42817,
+      "sha256": "98ccda93b575fd5419558a99bbad15085792032915407d2dfcbd98a37574ec04"
+    },
+    {
+      "path": "motion/09_unexpected.vmd",
+      "url": "https://raw.githubusercontent.com/mmdagent-ex/uka/659f0d1a740fec68bb2817dc9c694a35e7a15f12/motion/09_unexpected.vmd",
+      "bytes": 45213,
+      "sha256": "bb694a53c857f305156b3b7ec945609e749f59a4a039d393abccf611cbed0fcc"
+    },
+    {
+      "path": "motion/10_impressed.vmd",
+      "url": "https://raw.githubusercontent.com/mmdagent-ex/uka/659f0d1a740fec68bb2817dc9c694a35e7a15f12/motion/10_impressed.vmd",
+      "bytes": 46652,
+      "sha256": "31f4ef7c89fb7f2ea306221ec2fbb55c89f9e89bbc1e3177d04ee5c674e1eaeb"
+    },
+    {
+      "path": "motion/11_admiration.vmd",
+      "url": "https://raw.githubusercontent.com/mmdagent-ex/uka/659f0d1a740fec68bb2817dc9c694a35e7a15f12/motion/11_admiration.vmd",
+      "bytes": 46257,
+      "sha256": "4df6ea5fee5156cd405cddba41416f7dce522740187b2382d43a856dca4e36b2"
+    },
+    {
+      "path": "motion/12_expectant.vmd",
+      "url": "https://raw.githubusercontent.com/mmdagent-ex/uka/659f0d1a740fec68bb2817dc9c694a35e7a15f12/motion/12_expectant.vmd",
+      "bytes": 46177,
+      "sha256": "8c3ec6b3be82274fad0999abded6326aef14c9dd895733eb842491a8acaf2332"
+    },
+    {
+      "path": "motion/13_convinced.vmd",
+      "url": "https://raw.githubusercontent.com/mmdagent-ex/uka/659f0d1a740fec68bb2817dc9c694a35e7a15f12/motion/13_convinced.vmd",
+      "bytes": 43410,
+      "sha256": "5a6dedefcc85cbd0f6fec35c12de90aeb7b995ed3a9e2417f85b602b487eced6"
+    },
+    {
+      "path": "motion/14_crisp.vmd",
+      "url": "https://raw.githubusercontent.com/mmdagent-ex/uka/659f0d1a740fec68bb2817dc9c694a35e7a15f12/motion/14_crisp.vmd",
+      "bytes": 34043,
+      "sha256": "9ac1b7fb45ddc387fc7e66b6a3c6350994a11d5fb9a0edcab449a9b20d14a266"
+    },
+    {
+      "path": "motion/15_proud.vmd",
+      "url": "https://raw.githubusercontent.com/mmdagent-ex/uka/659f0d1a740fec68bb2817dc9c694a35e7a15f12/motion/15_proud.vmd",
+      "bytes": 40876,
+      "sha256": "ad6819e80e39ce57c419eb0f0725995098e3410efeb36d04009ad208e931de98"
+    },
+    {
+      "path": "motion/16_thinking.vmd",
+      "url": "https://raw.githubusercontent.com/mmdagent-ex/uka/659f0d1a740fec68bb2817dc9c694a35e7a15f12/motion/16_thinking.vmd",
+      "bytes": 55434,
+      "sha256": "fc26ba44f764bc1f48130871e4f9b1d41437ba659e9f36836aa22b8d44f4afec"
+    },
+    {
+      "path": "motion/17_nothankyou.vmd",
+      "url": "https://raw.githubusercontent.com/mmdagent-ex/uka/659f0d1a740fec68bb2817dc9c694a35e7a15f12/motion/17_nothankyou.vmd",
+      "bytes": 40991,
+      "sha256": "95dbe41058116c968b166c5b8148b1890681b83ed91297ec55579548683303f0"
+    },
+    {
+      "path": "motion/18_compassion.vmd",
+      "url": "https://raw.githubusercontent.com/mmdagent-ex/uka/659f0d1a740fec68bb2817dc9c694a35e7a15f12/motion/18_compassion.vmd",
+      "bytes": 40991,
+      "sha256": "b2619ad38a80ae80ef349c23d032c5ac763b59df05054cc032c73f3dddccc01d"
+    },
+    {
+      "path": "motion/19_triumphant.vmd",
+      "url": "https://raw.githubusercontent.com/mmdagent-ex/uka/659f0d1a740fec68bb2817dc9c694a35e7a15f12/motion/19_triumphant.vmd",
+      "bytes": 34043,
+      "sha256": "4124a238e6ba011007c57368c359f8c421be1d2fa0d8d2401ec829ae38326ec4"
+    },
+    {
+      "path": "motion/20_introuble.vmd",
+      "url": "https://raw.githubusercontent.com/mmdagent-ex/uka/659f0d1a740fec68bb2817dc9c694a35e7a15f12/motion/20_introuble.vmd",
+      "bytes": 43544,
+      "sha256": "53d4d419190dd38757c753119fc78adf54905692ce439a36d0f725283bb64ac9"
+    },
+    {
+      "path": "motion/21_disgust.vmd",
+      "url": "https://raw.githubusercontent.com/mmdagent-ex/uka/659f0d1a740fec68bb2817dc9c694a35e7a15f12/motion/21_disgust.vmd",
+      "bytes": 41106,
+      "sha256": "233be358c97f31672729ef5aed0884c2e913d23b7f6cb2bd0dd76afa0353316d"
+    },
+    {
+      "path": "motion/22_apology.vmd",
+      "url": "https://raw.githubusercontent.com/mmdagent-ex/uka/659f0d1a740fec68bb2817dc9c694a35e7a15f12/motion/22_apology.vmd",
+      "bytes": 68546,
+      "sha256": "c9d1673a727c8d78954a3e69abe5ef109bc560e4ba9452918b753d647f0164e1"
+    },
+    {
+      "path": "motion/23_stressed.vmd",
+      "url": "https://raw.githubusercontent.com/mmdagent-ex/uka/659f0d1a740fec68bb2817dc9c694a35e7a15f12/motion/23_stressed.vmd",
+      "bytes": 58840,
+      "sha256": "8bb6ff40082be60d94135058fcd4abd87bf6b134fdaa41b07396a4d86f836fb0"
+    },
+    {
+      "path": "motion/24_embarrasing.vmd",
+      "url": "https://raw.githubusercontent.com/mmdagent-ex/uka/659f0d1a740fec68bb2817dc9c694a35e7a15f12/motion/24_embarrasing.vmd",
+      "bytes": 49256,
+      "sha256": "c18115c6ca6d08fe035e8acae53cba0ee312aeb69aa1ebe2b69bd5cf7e50925a"
+    },
+    {
+      "path": "motion/25_sharpeyessuspicion.vmd",
+      "url": "https://raw.githubusercontent.com/mmdagent-ex/uka/659f0d1a740fec68bb2817dc9c694a35e7a15f12/motion/25_sharpeyessuspicion.vmd",
+      "bytes": 49695,
+      "sha256": "a9eb26a89aa5691b2ef82b6e09f06bad54ff89f460cbf803fb925ff662e96311"
+    },
+    {
+      "path": "motion/26_mortifying.vmd",
+      "url": "https://raw.githubusercontent.com/mmdagent-ex/uka/659f0d1a740fec68bb2817dc9c694a35e7a15f12/motion/26_mortifying.vmd",
+      "bytes": 73281,
+      "sha256": "dae1a43aeb67c49b787707788cf0c8f2447850542c3b8b01b2843fe76995f702"
+    },
+    {
+      "path": "motion/27_provoking.vmd",
+      "url": "https://raw.githubusercontent.com/mmdagent-ex/uka/659f0d1a740fec68bb2817dc9c694a35e7a15f12/motion/27_provoking.vmd",
+      "bytes": 48684,
+      "sha256": "24aec739cff6fb0a142aefe1430df69c90673ae8629719754b05568dacee0d67"
+    },
+    {
+      "path": "motion/28_sleepy.vmd",
+      "url": "https://raw.githubusercontent.com/mmdagent-ex/uka/659f0d1a740fec68bb2817dc9c694a35e7a15f12/motion/28_sleepy.vmd",
+      "bytes": 41056,
+      "sha256": "a221e723825210da250b56b4a05fa9d3b2409504e531c9f756feadbed4f6efd5"
+    },
+    {
+      "path": "motion/29_Terrified.vmd",
+      "url": "https://raw.githubusercontent.com/mmdagent-ex/uka/659f0d1a740fec68bb2817dc9c694a35e7a15f12/motion/29_Terrified.vmd",
+      "bytes": 34305,
+      "sha256": "b923509684c15171cdb3b87162b67a08ad3e7b1d7b5a7719c80722b6a05392d8"
+    },
+    {
+      "path": "motion/30_stunned.vmd",
+      "url": "https://raw.githubusercontent.com/mmdagent-ex/uka/659f0d1a740fec68bb2817dc9c694a35e7a15f12/motion/30_stunned.vmd",
+      "bytes": 34583,
+      "sha256": "971e944460cd721330429c583e3c89562dc8805ea8479193af24c5b18c0138f3"
+    },
+    {
+      "path": "motion/31_disappointed.vmd",
+      "url": "https://raw.githubusercontent.com/mmdagent-ex/uka/659f0d1a740fec68bb2817dc9c694a35e7a15f12/motion/31_disappointed.vmd",
+      "bytes": 35796,
+      "sha256": "ae12bcab9288fed1b951c565871f4414debd81a45b81ef1b29472f373f751790"
+    },
+    {
+      "path": "motion/32_frustrated.vmd",
+      "url": "https://raw.githubusercontent.com/mmdagent-ex/uka/659f0d1a740fec68bb2817dc9c694a35e7a15f12/motion/32_frustrated.vmd",
+      "bytes": 89688,
+      "sha256": "4acf972d11e602a50af0da248491223de7e51b7eed1b9486c3235740f5eb4d72"
+    },
+    {
+      "path": "motion/33_angry.vmd",
+      "url": "https://raw.githubusercontent.com/mmdagent-ex/uka/659f0d1a740fec68bb2817dc9c694a35e7a15f12/motion/33_angry.vmd",
+      "bytes": 99822,
+      "sha256": "5fd310827728cee6c4eed525c2c0cc3fa04a532285e4bbe76fb8f1361c4a2f57"
+    },
+    {
+      "path": "motion/34_sad.vmd",
+      "url": "https://raw.githubusercontent.com/mmdagent-ex/uka/659f0d1a740fec68bb2817dc9c694a35e7a15f12/motion/34_sad.vmd",
+      "bytes": 48807,
+      "sha256": "4ace9dd91636815a34b88b870a542c4923c55ce7670856db200de683bd8d70e1"
+    },
+    {
+      "path": "motion/35_Afraid.vmd",
+      "url": "https://raw.githubusercontent.com/mmdagent-ex/uka/659f0d1a740fec68bb2817dc9c694a35e7a15f12/motion/35_Afraid.vmd",
+      "bytes": 52430,
+      "sha256": "bd9ce7b3fe787aa391b4573428a27152c30411badd1b19550e0fd27770b0356a"
+    },
+    {
+      "path": "motion/36_Anxious.vmd",
+      "url": "https://raw.githubusercontent.com/mmdagent-ex/uka/659f0d1a740fec68bb2817dc9c694a35e7a15f12/motion/36_Anxious.vmd",
+      "bytes": 49074,
+      "sha256": "edb112ad26fc4b1590fe42fbab6e72383ea67f286a0701cd78adb20d30699220"
+    },
+    {
+      "path": "motion/37_Sentimental.vmd",
+      "url": "https://raw.githubusercontent.com/mmdagent-ex/uka/659f0d1a740fec68bb2817dc9c694a35e7a15f12/motion/37_Sentimental.vmd",
+      "bytes": 41990,
+      "sha256": "7c9208c337eff2355e4391a5507a1e720137c8fcdb3fa5d8feee6ef4ac369c2b"
+    },
+    {
+      "path": "motion/38_Ashamed.vmd",
+      "url": "https://raw.githubusercontent.com/mmdagent-ex/uka/659f0d1a740fec68bb2817dc9c694a35e7a15f12/motion/38_Ashamed.vmd",
+      "bytes": 57377,
+      "sha256": "e088cb1defb2d1821966b249823ee9815a21a453346cccbf595ab9eea26374e3"
+    },
+    {
+      "path": "motion/stand.vmd",
+      "url": "https://raw.githubusercontent.com/mmdagent-ex/uka/659f0d1a740fec68bb2817dc9c694a35e7a15f12/motion/stand.vmd",
+      "bytes": 56611,
+      "sha256": "42080246b98aaa8a5b98d1ecd73994cf42b2587f9c04c3ed7435cf859fef83aa"
+    },
+    {
+      "path": "tex/FP.png",
+      "url": "https://raw.githubusercontent.com/mmdagent-ex/uka/659f0d1a740fec68bb2817dc9c694a35e7a15f12/tex/FP.png",
+      "bytes": 1667566,
+      "sha256": "0e0d7de13145040b11fbd2e44afa9277253c2d3b401b0b4857b7116ccc677e85"
+    },
+    {
+      "path": "tex/acce.png",
+      "url": "https://raw.githubusercontent.com/mmdagent-ex/uka/659f0d1a740fec68bb2817dc9c694a35e7a15f12/tex/acce.png",
+      "bytes": 9310157,
+      "sha256": "82b1e497bb33a99007ff3f75481a67bd6dbed2fe1eea89e67b7fd156229d0020"
+    },
+    {
+      "path": "tex/body.png",
+      "url": "https://raw.githubusercontent.com/mmdagent-ex/uka/659f0d1a740fec68bb2817dc9c694a35e7a15f12/tex/body.png",
+      "bytes": 10103148,
+      "sha256": "2dff91308d417a05d7bc73fa2000e5554ca007acdc05de0c5fe36358cb5f84d5"
+    },
+    {
+      "path": "tex/btm.png",
+      "url": "https://raw.githubusercontent.com/mmdagent-ex/uka/659f0d1a740fec68bb2817dc9c694a35e7a15f12/tex/btm.png",
+      "bytes": 9855065,
+      "sha256": "db1f2e7ae4ff6142c8fdc8918b74e1524c9dcd98ff59b2d8318c7aca84be46ec"
+    },
+    {
+      "path": "tex/eye.png",
+      "url": "https://raw.githubusercontent.com/mmdagent-ex/uka/659f0d1a740fec68bb2817dc9c694a35e7a15f12/tex/eye.png",
+      "bytes": 10813548,
+      "sha256": "aa60d1d463bf685602b99a71d1bbf139e8afd3730ceccf3a38cfb44ab69854fd"
+    },
+    {
+      "path": "tex/face.png",
+      "url": "https://raw.githubusercontent.com/mmdagent-ex/uka/659f0d1a740fec68bb2817dc9c694a35e7a15f12/tex/face.png",
+      "bytes": 8195361,
+      "sha256": "82730e20b9fb6da87306e80651dc4c3530b92309d89341daf2375d43d44740c1"
+    },
+    {
+      "path": "tex/hair.png",
+      "url": "https://raw.githubusercontent.com/mmdagent-ex/uka/659f0d1a740fec68bb2817dc9c694a35e7a15f12/tex/hair.png",
+      "bytes": 12631822,
+      "sha256": "9081925a329ea2612250ed5757349e0482def746598dcafe8ae7fe8ef47d143a"
+    },
+    {
+      "path": "tex/hair_s01.png",
+      "url": "https://raw.githubusercontent.com/mmdagent-ex/uka/659f0d1a740fec68bb2817dc9c694a35e7a15f12/tex/hair_s01.png",
+      "bytes": 12276095,
+      "sha256": "bb9b7f41c96d1ea39da9f200961071d3169e08a833ad1d1344132aac1935fd72"
+    },
+    {
+      "path": "tex/iraira.png",
+      "url": "https://raw.githubusercontent.com/mmdagent-ex/uka/659f0d1a740fec68bb2817dc9c694a35e7a15f12/tex/iraira.png",
+      "bytes": 11819,
+      "sha256": "6a5c3153169d903eaae6a566ee0104ceb0ffcc414f69ce9135ce0312e6f69e8e"
+    },
+    {
+      "path": "tex/top.png",
+      "url": "https://raw.githubusercontent.com/mmdagent-ex/uka/659f0d1a740fec68bb2817dc9c694a35e7a15f12/tex/top.png",
+      "bytes": 10407131,
+      "sha256": "9a612204e3b7fed376e662b94945980c939a95819d932376bd53c486b4ffce98"
+    },
+    {
+      "path": "uka.png",
+      "url": "https://raw.githubusercontent.com/mmdagent-ex/uka/659f0d1a740fec68bb2817dc9c694a35e7a15f12/uka.png",
+      "bytes": 177825,
+      "sha256": "d80879207d5c1ba7b82df18c9957fe50758d79dedb837f019f874b00ae1b4277"
+    }
+  ]
+}

@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "id": "courtyard",
+  "packageId": "app.xiaoban.examples.courtyard",
+  "packageVersion": "1.1.0",
+  "display": {
+    "name": "清风小院",
+    "description": "清风拂过帘角，木格栅与陶盆围成安静小院",
+    "category": "outdoor",
+    "order": 5,
+    "thumbnail": "Environment_courtyard"
+  },
+  "compatibility": {
+    "apiMajor": 1,
+    "minApiMinor": 0,
+    "required": [
+      "environment.geometry@1",
+      "environment.lighting@1",
+      "environment.palette@1",
+      "environment.decor@1"
+    ],
+    "optional": []
+  },
+  "source": {
+    "kind": "glb",
+    "model": "environment.glb",
+    "scale": 1,
+    "yaw": 0
+  },
+  "stage": {
+    "referenceHeight": 1.7,
+    "clearRadius": 1.2
+  },
+  "lighting": {
+    "sky": "#B8D9E2",
+    "ambient": "#888F91",
+    "key": "#FFF3E3",
+    "fill": "#DDEBFF",
+    "keyIntensity": 1.5,
+    "fillIntensity": 0.32,
+    "rimIntensity": 0.48
+  },
+  "palettes": [
+    {
+      "id": "original",
+      "name": "原色",
+      "surface": "#A7B3A2",
+      "accent": "#C5A797"
+    },
+    {
+      "id": "sage",
+      "name": "浅绿",
+      "surface": "#AEBDAF",
+      "accent": "#8DA291"
+    },
+    {
+      "id": "rose",
+      "name": "暖粉",
+      "surface": "#CBB6AB",
+      "accent": "#C99F96"
+    }
+  ],
+  "bindings": {
+    "surface": [
+      "Floor",
+      "Surface"
+    ],
+    "accent": [
+      "Decor"
+    ],
+    "decor": [
+      "Decor"
+    ]
+  },
+  "license": {
+    "spdx": "CC0-1.0",
+    "file": "LICENSE.txt",
+    "attribution": "Original Xiaoban integration sample, CC0"
+  },
+  "files": [
+    {
+      "path": "LICENSE.txt",
+      "bytes": 165,
+      "sha256": "0e177ecb4f055b0fd6c8c3b4c386cfaa7c58713c37a4aca4f9b85f804b75f925"
+    },
+    {
+      "path": "environment.glb",
+      "bytes": 3368,
+      "sha256": "4dd1c6260d283978fb58b1b50ca6f04f9d72810e1a37e0153ac0c2f890855ec6"
+    }
+  ],
+  "extensions": {
+    "app.starry.presentation": {
+      "revision": 2,
+      "owner": "host",
+      "distantArt": "MorningGarden",
+      "localAmbientMotion": true,
+      "maxMotionNodes": 24
+    }
+  }
+}

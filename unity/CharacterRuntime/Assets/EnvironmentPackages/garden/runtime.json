@@ -1,0 +1,63 @@
+{
+    "schemaVersion": 1,
+    "id": "garden",
+    "packageId": "app.xiaoban.environments.garden",
+    "packageVersion": "1.1.0",
+    "display": {
+        "name": "林间花园",
+        "description": "石阶、细叶花簇与木架，在花园里慢慢聊",
+        "category": "outdoor",
+        "thumbnail": "Environment_garden",
+        "order": 3
+    },
+    "source": {
+        "kind": "builtin",
+        "model": "garden",
+        "scale": 1.0,
+        "yaw": 0.0
+    },
+    "stage": {
+        "referenceHeight": 1.7000000476837159,
+        "clearRadius": 1.2000000476837159
+    },
+    "lighting": {
+        "sky": "#B8D9E2",
+        "ambient": "#888F91",
+        "key": "#FFF3E3",
+        "fill": "#DDEBFF",
+        "keyIntensity": 1.5,
+        "fillIntensity": 0.3199999928474426,
+        "rimIntensity": 0.47999998927116396
+    },
+    "palettes": [
+        {
+            "id": "original",
+            "name": "原色",
+            "surface": "#919A8C",
+            "accent": "#C5A19B"
+        },
+        {
+            "id": "sage",
+            "name": "浅绿",
+            "surface": "#AEBDAF",
+            "accent": "#8DA291"
+        },
+        {
+            "id": "rose",
+            "name": "暖粉",
+            "surface": "#CBB6AB",
+            "accent": "#C99F96"
+        }
+    ],
+    "bindings": {
+        "surface": [
+            "Surface"
+        ],
+        "accent": [
+            "Decor/Accent"
+        ],
+        "decor": [
+            "Decor"
+        ]
+    }
+}

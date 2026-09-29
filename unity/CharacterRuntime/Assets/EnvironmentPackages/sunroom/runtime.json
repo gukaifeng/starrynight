@@ -1,0 +1,63 @@
+{
+    "schemaVersion": 1,
+    "id": "sunroom",
+    "packageId": "app.xiaoban.environments.sunroom",
+    "packageVersion": "1.1.0",
+    "display": {
+        "name": "晴日客厅",
+        "description": "细褶亚麻、木作书架与晨光花园，留一点自然的风",
+        "category": "indoor",
+        "thumbnail": "Environment_sunroom",
+        "order": 0
+    },
+    "source": {
+        "kind": "builtin",
+        "model": "sunroom",
+        "scale": 1.0,
+        "yaw": 0.0
+    },
+    "stage": {
+        "referenceHeight": 1.7000000476837159,
+        "clearRadius": 1.2000000476837159
+    },
+    "lighting": {
+        "sky": "#B3D1D6",
+        "ambient": "#888F91",
+        "key": "#FFF3E3",
+        "fill": "#DDEBFF",
+        "keyIntensity": 1.350000023841858,
+        "fillIntensity": 0.3199999928474426,
+        "rimIntensity": 0.47999998927116396
+    },
+    "palettes": [
+        {
+            "id": "original",
+            "name": "原色",
+            "surface": "#A69E8E",
+            "accent": "#75917D"
+        },
+        {
+            "id": "sage",
+            "name": "浅绿",
+            "surface": "#AEBDAF",
+            "accent": "#8DA291"
+        },
+        {
+            "id": "rose",
+            "name": "暖粉",
+            "surface": "#CBB6AB",
+            "accent": "#C99F96"
+        }
+    ],
+    "bindings": {
+        "surface": [
+            "Surface"
+        ],
+        "accent": [
+            "Decor/Accent"
+        ],
+        "decor": [
+            "Decor"
+        ]
+    }
+}

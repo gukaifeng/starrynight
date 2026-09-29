@@ -1,0 +1,4 @@
+interface:
+  display_name: "VRChat 角色导入"
+  short_description: "将经审计的 VRChat 模型转为星夜 XCP 角色包，保留可复现流程和转换限制"
+  default_prompt: "使用 $vrchat-character-import 检查并转换我提供的 VRChat 角色，接入星夜并验证 iPhone 会话。"

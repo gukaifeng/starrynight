@@ -1,0 +1,27 @@
+{
+  "displayName": "星夜",
+  "romanName": "StarryNight",
+  "tagline": "每一句，都有回声",
+  "positioning": "以精致 3D 角色为核心、可塑造外观与个性的 AI 陪伴空间",
+  "currentStage": "v0.46.0：自然眨眼、原作呼吸与衣发微风",
+  "namingPrinciple": "中文正式名称：星夜；英文正式名称：StarryNight；仓库及目录：starrynight。",
+  "palette": {
+    "background": "#101114",
+    "surface": "#1E2025",
+    "card": "#2B2E35",
+    "ink": "#EEF3F6",
+    "accent": "#D3DDE9",
+    "peach": "#D6C3AA",
+    "secondary": "#ABAEB9",
+    "line": "#3F444F"
+  },
+  "icon": "starry-minimal-preview.png",
+  "iconGeneration": "Repository-native vector paths; scripts/generate_starry_mark.swift",
+  "version": "0.46.0",
+  "vectorMark": "starry-mark.svg",
+  "vectorLightMark": "starry-mark-light.svg",
+  "vectorAppIcon": "starry-app-icon.svg",
+  "englishName": "StarryNight",
+  "projectSlug": "starrynight",
+  "domainStem": "starrynight"
+}

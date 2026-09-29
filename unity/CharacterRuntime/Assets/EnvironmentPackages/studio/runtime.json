@@ -1,0 +1,63 @@
+{
+    "schemaVersion": 1,
+    "id": "studio",
+    "packageId": "app.xiaoban.environments.studio",
+    "packageVersion": "1.1.0",
+    "display": {
+        "name": "柔光影棚",
+        "description": "木格栅、织物座椅与侧窗天光，安静陪你说话",
+        "category": "indoor",
+        "thumbnail": "Environment_studio",
+        "order": 1
+    },
+    "source": {
+        "kind": "builtin",
+        "model": "studio",
+        "scale": 1.0,
+        "yaw": 0.0
+    },
+    "stage": {
+        "referenceHeight": 1.7000000476837159,
+        "clearRadius": 1.2000000476837159
+    },
+    "lighting": {
+        "sky": "#405054",
+        "ambient": "#7D898B",
+        "key": "#FFF3E3",
+        "fill": "#DDEBFF",
+        "keyIntensity": 1.350000023841858,
+        "fillIntensity": 0.3199999928474426,
+        "rimIntensity": 0.47999998927116396
+    },
+    "palettes": [
+        {
+            "id": "original",
+            "name": "原色",
+            "surface": "#435459",
+            "accent": "#9AB9A6"
+        },
+        {
+            "id": "sage",
+            "name": "浅绿",
+            "surface": "#AEBDAF",
+            "accent": "#8DA291"
+        },
+        {
+            "id": "rose",
+            "name": "暖粉",
+            "surface": "#CBB6AB",
+            "accent": "#C99F96"
+        }
+    ],
+    "bindings": {
+        "surface": [
+            "Surface"
+        ],
+        "accent": [
+            "Decor/Accent"
+        ],
+        "decor": [
+            "Decor"
+        ]
+    }
+}

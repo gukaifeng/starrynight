@@ -69,6 +69,29 @@
         "com.unity.test-framework": "1.1.31",
         "com.unity.modules.jsonserialize": "1.0.0"
       }
+    },
+    {
+      "name": "com.unity.toonshader",
+      "version": "0.15.1-preview",
+      "url": "https://download.packages.unity.com/com.unity.toonshader/-/com.unity.toonshader-0.15.1-preview.tgz",
+      "sha1": "de04b96c09f94bc52be9fcef2658c92ff998260d",
+      "sha256": "4c663e6c2dfde72f1d7e9b8be859be375ba876653d9eccafe7d74da761c94241",
+      "dependencies": {
+        "com.unity.film-internal-utilities": "0.20.0-preview",
+        "com.unity.render-pipelines.core": "17.0.3"
+      }
+    },
+    {
+      "name": "com.unity.film-internal-utilities",
+      "version": "0.20.0-preview",
+      "url": "https://download.packages.unity.com/com.unity.film-internal-utilities/-/com.unity.film-internal-utilities-0.20.0-preview.tgz",
+      "sha1": "8cfa91f65639fb7ae5d49af800f211af67a27316",
+      "sha256": "bbf2f314a3c13c965e09bcce8c48fd0c8eb4b8dbb01d8737780d2f475d2c5f84",
+      "dependencies": {
+        "com.unity.modules.imageconversion": "1.0.0",
+        "com.unity.modules.uielements": "1.0.0",
+        "com.unity.timeline": "1.2.18"
+      }
     }
   ],
   "editorBundledOverrides": {
