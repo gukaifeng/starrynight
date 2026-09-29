@@ -4,7 +4,9 @@
 
 正式英文名 **StarryNight**，仓库和根目录统一为 `starrynight`。当前根目录 `/Users/gukaifeng/Documents/starrynight`，Xcode 真机入口为 `ios/StarryNight.xcworkspace`，模拟器入口为 `ios/StarryNight-Simulator.xcworkspace`，scheme 均为 `CharacterHost`。命名约定与迁移记录见 [英文命名与目录](docs/project-naming.md)。
 
-以精致 3D 角色为核心的 AI 陪伴产品。当前源码 **v0.49.0 / build 70**，名称保持「星夜」，默认月白深色主题，保留彩色星夜等可选主题，Logo 更新为极简月白星月矢量标志。原生 SwiftUI / UIKit + Unity as a Library，当前优先 **iPhone 手机版**，暂停新增 iPad 测试。
+以精致 3D 角色为核心的 AI 陪伴产品。当前源码 **v0.50.0 / build 71**，名称保持「星夜」，默认月白深色主题，保留彩色星夜等可选主题，Logo 更新为极简月白星月矢量标志。原生 SwiftUI / UIKit + Unity as a Library，当前优先 **iPhone 手机版**，暂停新增 iPad 测试。
+
+v0.50.0 将底部「首页」改名「对话」。角色左右旋转继续不限圈数，上下限制为 ±25°，旧存档中的倒置角度自动规范化。消息左滑可选「不显示」，保留记录与订阅，支持撤销和恢复。发现页改为角色商城结构：精选封面、紧凑双列目录、创作者作品、分类、搜索、筛选与排序；与消息页共用 44pt 搜索框，当前目录与发布可见性仍在本机实现。五项针对性模拟器测试最终通过，已通过 Wi-Fi 安装 iPhone 17 并读回 **0.50.0 / 71**。详见[角色商城、消息隐藏与旋转限制](docs/verification/market-and-messages/README.md)。
 
 v0.49.0 将启动页退出条件改为原生首页就绪，不再等待 Unity 和角色首帧。先显示角色封面、身份、已有对话预览与可用菜单，角色准备好后平滑显示。iPhone 17 模拟器单次测量原生首页于场景连接后约 0.68 秒出现；这不代表 3D 已加载完成，也不包含系统启动阶段。三项启动流程测试通过，已安装 iPhone 17 并读回 0.49.0 / 70。见[启动优化与验证记录](docs/verification/native-first-startup/README.md)。
 
@@ -20,7 +22,7 @@ v0.46.0 只打包琪宝、豆日向，新增自然眨眼、原作呼吸与头发
 
 **0.46.0 / 67 已通过Wi-Fi安装iPhone17，设备版本读回一致。** 自动打开被手机锁定状态拒绝，用户解锁点星夜即可，不需重新安装。iPhone17模拟器的双角色自然待机/表情优先级完整流程通过，普通模式已启动；本轮未把模拟器60/120 Hz数值审查当作真机FPS实测。
 
-以下保留历史版本的能力与交付记录；旧角色数量、入口位置、安装失败记录等仅描述对应版本，当前状态以上文 0.48.0 为准。
+以下保留历史版本的能力与交付记录；旧角色数量、入口位置、安装失败记录等仅描述对应版本，当前状态以上文最新版本记录为准。
 
 0.42.0 / 63 已完成输入区域外点按收键盘保留草稿、集中声音控制、原作待机/口型及动作恢复；声音单击总静音、长按分项设置，音乐支持手机静音模式下播放。当时的松手自动复位查看规则已由 0.43 的草稿与显式保存取代。见[0.42验收](docs/verification/conversation-controls/README.md)。
 
@@ -126,7 +128,7 @@ bash scripts/run_simulator.sh
 
 运行优化编译的模拟器版本，可用 `bash scripts/run_simulator.sh --release`。如果该配置尚未构建，脚本会自动构建。修改源码后先运行 `bash scripts/build_host.sh --release`；默认无参数仍使用 Debug，方便 UI 自动化和调试。这里的 Release 是 Xcode 编译配置，Unity Simulator 导出仍保留 Development Player 能力，不等于真机发行包。
 
-点击右上角定制图标进入「取景与大小」，预览显示范围、大小和朝向；返回上级或点击窗外时保存。关闭定制首页的「锁定角色位置」后，可直接左右拖动转向、双指缩放，松手后自动保存；精细面板显示同一组数值。点击头部摇头；大动作暂时切到全身，结束后恢复偏好。见[取景方案](docs/design/2026-09-27-conversation-framing.md)。
+在「对话」页点击右上角调整位置图标，打开可穿透手势的说明面板：单指旋转，双指缩放及平移；左右不限圈数，上下限制为 ±25°，缩放和平移继续遵守当前设备的显示范围。保留每个账号、角色最后一次位置，点击「恢复默认」复位。角色资料由左上头像与名字胶囊进入，声音与角色表现使用页面上的独立小按钮。当前两位 VRChat 来源角色没有后加的点击头部摇头动作。最新旋转与迁移规则见[本轮说明](docs/verification/market-and-messages/README.md)。
 
 只运行现有 App 不需要一直打开 Unity Hub、Unity Editor 或 Unity CLI。
 

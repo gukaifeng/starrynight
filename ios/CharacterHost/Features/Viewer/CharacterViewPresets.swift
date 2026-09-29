@@ -8,13 +8,16 @@ struct CharacterViewPose: Codable, Equatable, Sendable {
     var x = 0.0
     var y = 0.0
     static let original = Self()
+    static let maximumPitch = 25.0
     var normalized: Self {
         func bounded(_ value:Double,_ range:ClosedRange<Double>,_ fallback:Double = 0) -> Double {
             value.isFinite ? min(range.upperBound,max(range.lowerBound,value)) : fallback
         }
-        // Persist equivalent angles, never clamp the orientation or the number of turns.
+        // Retain equivalent multi-turn yaw; migrate old overhead/inverted pitch
+        // into the same eye-level envelope enforced by Unity revision 7.
         func angle(_ value:Double) -> Double { value.isFinite ? value.remainder(dividingBy:360) : 0 }
-        return Self(yaw:angle(yaw),pitch:angle(pitch),
+        let vertical = angle(pitch)
+        return Self(yaw:angle(yaw),pitch:bounded(vertical == -180 ? 180 : vertical,-Self.maximumPitch...Self.maximumPitch),
             scale:bounded(scale,0.4...1.28,1),x:bounded(x,-0.45...0.45),y:bounded(y,-0.45...0.45))
     }
     func matches(_ other:Self) -> Bool {

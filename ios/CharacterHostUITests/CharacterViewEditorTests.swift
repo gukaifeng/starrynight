@@ -118,7 +118,7 @@ final class CharacterViewEditorTests:XCTestCase {
         app.buttons["closeConversationSound"].tap()
         XCTAssertEqual(audio()["playing"] as? Bool,true,"Raising volume starts music without any hidden enable switch")
     }
-    @MainActor func testUnrestrictedAxesAndReload() {
+    @MainActor func testFreeYawBoundedPitchAndReload() {
         continueAfterFailure=false
         let app=XCUIApplication();app.launchArguments=["--ui-testing","--companion-testing","--auth-testing"]
         app.launch();ready(app);open(app)
@@ -126,14 +126,19 @@ final class CharacterViewEditorTests:XCTestCase {
         start.press(forDuration:0.08,thenDragTo:app.coordinate(withNormalizedOffset:CGVector(dx:0.14,dy:0.38)),withVelocity:.slow,thenHoldForDuration:0.2)
         let top=app.coordinate(withNormalizedOffset:CGVector(dx:0.48,dy:0.27))
         top.press(forDuration:0.08,thenDragTo:app.coordinate(withNormalizedOffset:CGVector(dx:0.48,dy:0.76)),withVelocity:.slow,thenHoldForDuration:0.2)
-        app.waitForCharacter {abs(self.pose($0)["yaw"] ?? 0)>200 && abs(self.pose($0)["pitch"] ?? 0)>150}
+        app.waitForCharacter {abs(self.pose($0)["yaw"] ?? 0)>200 && abs(self.pose($0)["pitch"] ?? 0)>24}
+        XCTAssertLessThanOrEqual(abs(pose(app.characterRuntime)["pitch"] ?? 100),25.01)
+        let bottom=app.coordinate(withNormalizedOffset:CGVector(dx:0.48,dy:0.78))
+        bottom.press(forDuration:0.08,thenDragTo:app.coordinate(withNormalizedOffset:CGVector(dx:0.48,dy:0.16)),withVelocity:.slow,thenHoldForDuration:0.2)
+        app.waitForCharacter {(self.pose($0)["pitch"] ?? 0)>24}
+        XCTAssertLessThanOrEqual(pose(app.characterRuntime)["pitch"] ?? 100,25.01)
         let saved=pose(app.characterRuntime)
         XCTAssertEqual(saved["scale"] ?? 0,1,accuracy:0.001);XCTAssertEqual(saved["x"] ?? 1,0,accuracy:0.001);XCTAssertEqual(saved["y"] ?? 1,0,accuracy:0.001)
-        capture("free-horizontal-vertical-rotation",app)
+        capture("free-yaw-bounded-pitch",app)
         app.buttons["closeCharacterViewEditor"].tap()
         app.terminate();app.launchArguments += ["--keep-companion-data","--keep-auth-data"];app.launch();ready(app)
         for key in ["yaw","pitch"] {
-            XCTAssertEqual(((pose(app.characterRuntime)[key] ?? 0)-(saved[key] ?? 1)).remainder(dividingBy:360),0,accuracy:0.2,"Free orientation survives angle normalization")
+            XCTAssertEqual(((pose(app.characterRuntime)[key] ?? 0)-(saved[key] ?? 1)).remainder(dividingBy:360),0,accuracy:0.2,"Free yaw and bounded pitch survive angle normalization")
         }
         open(app);app.buttons["resetCharacterView"].tap()
         app.waitForCharacter {self.number($0,"inspectionYaw")==0 && self.number($0,"inspectionPitch")==0}

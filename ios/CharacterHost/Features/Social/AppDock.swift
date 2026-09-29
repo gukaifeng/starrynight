@@ -3,7 +3,7 @@ import SwiftUI
 enum AppTab: String, CaseIterable, Identifiable {
     case home, messages, create, discover, mine
     var id:String { rawValue }
-    var title:String { switch self { case .home:"首页"; case .messages:"消息"; case .create:"创建"; case .discover:"发现"; case .mine:"我的" } }
+    var title:String { switch self { case .home:"对话"; case .messages:"消息"; case .create:"创建"; case .discover:"发现"; case .mine:"我的" } }
     var symbol:String { switch self { case .home:"bubble.left.and.text.bubble.right"; case .messages:"bubble.left.and.bubble.right"; case .create:"plus"; case .discover:"sparkle.magnifyingglass"; case .mine:"person.crop.circle" } }
 }
 struct AppDock: View {

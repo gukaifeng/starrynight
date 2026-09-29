@@ -3,13 +3,26 @@ import SwiftUI
 struct MessagesPage: View {
     @Bindable var coordinator:ViewerCoordinator
     @State private var search = ""
-    @FocusState private var searching:Bool
+    @State private var hiddenPresented = false
+    @State private var hiddenNotice: String?
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     private var query:String { search.trimmingCharacters(in:.whitespacesAndNewlines) }
     private var models:[ModelDescriptor] {
-        Set(coordinator.library.subscriptions).compactMap { coordinator.library.model($0) }.sorted {
+        coordinator.library.availableSubscriptions.filter { !isHidden($0) }.sorted {
             let a = coordinator.companionStore.record($0.id).messages.last?.date ?? .distantPast
             let b = coordinator.companionStore.record($1.id).messages.last?.date ?? .distantPast
             return a == b ? $0.id < $1.id : a > b
+        }
+    }
+    private var hiddenModels:[ModelDescriptor] { coordinator.library.availableSubscriptions.filter(isHidden) }
+    private func isHidden(_ model:ModelDescriptor) -> Bool {
+        coordinator.library.isConversationHidden(model.id,latestMessage:coordinator.companionStore.record(model.id).messages.last?.date)
+    }
+    private func hide(_ model:ModelDescriptor) {
+        withAnimation(reduceMotion ? nil : .easeInOut(duration:0.22)) {
+            if coordinator.library.hideConversation(model.id,latestMessage:coordinator.companionStore.record(model.id).messages.last?.date) {
+                hiddenNotice = model.id
+            }
         }
     }
     private var results:[ConversationSearchHit] {
@@ -20,33 +33,77 @@ struct MessagesPage: View {
     var body:some View {
         VStack(spacing:0) {
             NightHeader(title:"消息",subtitle:"每一次靠近，都留在这里")
-            HStack(spacing:10) {
-                Image(systemName:"magnifyingglass").foregroundStyle(Theme.secondary)
-                TextField("搜索本地聊天记录",text:$search).font(.subheadline).focused($searching)
-                    .submitLabel(.search).onSubmit { searching = false }
-                    .accessibilityIdentifier("conversationSearchField")
-                if !search.isEmpty {
-                    Button { search = "" } label: { Image(systemName:"xmark.circle.fill").foregroundStyle(Theme.secondary).frame(width:28,height:28) }
-                        .buttonStyle(.plain).accessibilityLabel("清除搜索").accessibilityIdentifier("clearConversationSearch")
-                }
-            }.padding(.horizontal,14).frame(minHeight:48).background(Theme.surface,in:RoundedRectangle(cornerRadius:15))
+            CatalogSearchField(placeholder:"搜索本地聊天记录",text:$search,
+                identifier:"conversationSearchField",clearIdentifier:"clearConversationSearch")
                 .padding(.horizontal,24).padding(.bottom,12)
+            if let id = hiddenNotice {
+                HStack(spacing:10) {
+                    Text("已不显示，聊天记录保留").font(.system(size:12)).foregroundStyle(Theme.secondary)
+                    Spacer(minLength:0)
+                    Button("撤销") {
+                        if coordinator.library.restoreConversation(id) { hiddenNotice = nil }
+                    }.font(.system(size:12,weight:.medium)).accessibilityIdentifier("undoHideConversation")
+                }.padding(.horizontal,24).padding(.bottom,12).transition(.opacity)
+            }
+            if !hiddenModels.isEmpty {
+                HStack {
+                    Spacer()
+                    Button { hiddenPresented = true } label: {
+                        Label("不显示的对话 · \(hiddenModels.count)",systemImage:"eye.slash")
+                            .font(.system(size:11)).foregroundStyle(Theme.secondary)
+                            .padding(.vertical,8)
+                    }.buttonStyle(.plain).accessibilityIdentifier("hiddenConversationsButton")
+                }.padding(.horizontal,24)
+            }
             if !query.isEmpty {
                 searchResults
             } else if models.isEmpty {
-                NightEmptyState(symbol:"bubble.left",title:"等一句，初次见面",detail:coordinator.library.subscriptions.isEmpty ? "订阅一个角色，开始你们的故事。" : "已订阅的角色暂时不可用，历史记录仍保留。",actionTitle:"去发现") { searching = false; coordinator.navigate(.discover) }
+                NightEmptyState(symbol:"bubble.left",title:hiddenModels.isEmpty ? "等一句，初次见面" : "消息列表，暂时留白",
+                    detail:hiddenModels.isEmpty ? "订阅一个角色，开始你们的故事。" : "对话只是暂不显示，聊天记录仍保留。\n可以恢复，或去发现遇见新的伙伴。",
+                    actionTitle:hiddenModels.isEmpty ? "去发现" : "恢复对话") {
+                        if hiddenModels.isEmpty { coordinator.navigate(.discover) } else { hiddenPresented = true }
+                    }
             } else {
-                ScrollView {
-                    LazyVStack(spacing:0) {
-                        ForEach(models) { model in
-                            Button { searching = false; coordinator.openCharacter(model.id) } label: { row(model) }
-                                .buttonStyle(.plain).accessibilityIdentifier("message-"+model.id)
+                List(models) { model in
+                    Button { coordinator.openCharacter(model.id) } label: { row(model) }
+                        .buttonStyle(.plain).accessibilityIdentifier("message-"+model.id)
+                        .listRowInsets(EdgeInsets(top:0,leading:24,bottom:0,trailing:24))
+                        .listRowBackground(Color.clear).listRowSeparator(.hidden)
+                        .swipeActions(edge:.trailing,allowsFullSwipe:false) {
+                            Button { hide(model) } label: { Label("不显示",systemImage:"eye.slash") }
+                                .tint(Theme.card).accessibilityIdentifier("hideConversation-"+model.id)
                         }
-                    }.padding(.horizontal,24).frame(maxWidth:800).frame(maxWidth:.infinity)
-                }.scrollIndicators(.hidden).scrollDismissesKeyboard(.interactively)
+                        .accessibilityAction(named:Text("不显示")) { hide(model) }
+                }.listStyle(.plain).scrollContentBackground(.hidden)
+                    .scrollIndicators(.hidden).scrollDismissesKeyboard(.interactively)
             }
-        }.onChange(of:coordinator.companionStore.accountID) { search = ""; searching = false }
+            if let error = coordinator.library.error { Text(error).font(.caption).foregroundStyle(Theme.peach).padding(12) }
+        }.onChange(of:coordinator.companionStore.accountID) { search = ""; hiddenNotice = nil; hiddenPresented = false }
             .accessibilityElement(children:.contain).accessibilityIdentifier("messagesPage")
+            .softSheet(isPresented:$hiddenPresented,height:440) { hiddenConversations }
+    }
+    private var hiddenConversations: some View {
+        VStack(spacing:0) {
+            PanelPageHeader("不显示的对话",backID:"closeHiddenConversations")
+            Text("仅从消息列表隐藏。恢复后，聊天记录还在。")
+                .font(.system(size:12)).foregroundStyle(Theme.secondary).padding(.horizontal,24).padding(.bottom,12)
+            ScrollView {
+                LazyVStack(spacing:8) {
+                    ForEach(hiddenModels) { model in
+                        HStack(spacing:12) {
+                            CharacterAvatar(model:model,profile:coordinator.profile(for:model),portraits:coordinator.portraits,size:36,floatingEnabled:false)
+                            Text(coordinator.profile(for:model).name).font(.system(size:14))
+                            Spacer()
+                            Button("恢复显示") {
+                                if coordinator.library.restoreConversation(model.id) { hiddenNotice = nil }
+                            }.font(.system(size:12,weight:.medium)).padding(.horizontal,12).frame(height:40)
+                                .background(Theme.card,in:Capsule()).accessibilityIdentifier("restoreConversation-"+model.id)
+                        }.padding(.vertical,8)
+                    }
+                    if hiddenModels.isEmpty { Text("所有对话都已恢复").font(.subheadline).foregroundStyle(Theme.secondary).padding(.top,40) }
+                }.padding(.horizontal,24)
+            }.scrollIndicators(.hidden)
+        }.foregroundStyle(Theme.ink).softSheetSurface()
     }
     private var searchResults:some View {
         let hits = results
@@ -58,7 +115,6 @@ struct MessagesPage: View {
                 ForEach(hits) { hit in
                     if let model = coordinator.library.model(hit.characterID) {
                         Button {
-                            searching = false
                             coordinator.openCharacter(hit.characterID,messageID:hit.message.id)
                         } label: {
                             HStack(alignment:.top,spacing:12) {

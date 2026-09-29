@@ -52,6 +52,13 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             do { try CacheStorageTests.prepareUIFixture() }
             catch { assertionFailure("Isolated cache fixture failed: \(error)") }
         }
+        if ProcessInfo.processInfo.arguments.contains("--market-core-check") {
+            let label = UILabel(); label.numberOfLines = 0; label.textColor = .white
+            label.frame = CGRect(x:24,y:100,width:window.bounds.width-48,height:450)
+            label.accessibilityIdentifier = "marketCoreResult"
+            do { label.text = try MarketplaceCoreTests.run() } catch { label.text = "FAIL: \(error)" }
+            placeholder.view.addSubview(label); return
+        }
         if ProcessInfo.processInfo.arguments.contains("--social-core-check") {
             let label = UILabel(); label.numberOfLines = 0; label.textColor = .white
             label.frame = CGRect(x:24,y:100,width:window.bounds.width-48,height:500)
@@ -105,7 +112,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     }
     private func bootstrap(in windowScene:UIWindowScene) {
 #if DEBUG && targetEnvironment(simulator)
-        if ProcessInfo.processInfo.arguments.contains(where: { ["--speech-playback-check", "--greeting-core-check", "--view-presets-check", "--experience-core-check", "--export-core-check", "--export-ui-check", "--social-core-check", "--cache-core-check"].contains($0) }) { return }
+        if ProcessInfo.processInfo.arguments.contains(where: { ["--speech-playback-check", "--greeting-core-check", "--view-presets-check", "--experience-core-check", "--export-core-check", "--export-ui-check", "--social-core-check", "--cache-core-check", "--market-core-check"].contains($0) }) { return }
 #endif
         guard coordinator == nil, bootstrapTask == nil else { return }
         // Paint the lightweight brand cover, then prepare only the native shell.

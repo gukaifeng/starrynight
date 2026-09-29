@@ -9,7 +9,7 @@ using ModelSpace;
 public static class CharacterViewEditorReview
 {
     [Serializable] sealed class Report {
-        public string status="PASS",scope="Original rigs; unrestricted multi-turn yaw/pitch about fixed body pivot; automatic latest view, reset; neutral portrait bounds for scale/translation on five phone viewports. Rotation never auto-reframes. Not an FPS test.";
+        public string status="PASS",scope="Original rigs; unrestricted multi-turn yaw and bounded +/-25 degree pitch about fixed body pivot; legacy pitch migration, automatic latest view, reset; neutral portrait bounds on five phone viewports. Rotation never auto-reframes. Not an FPS test.";
         public int revision=CharacterInspectionRotation.Revision,assertions;
         public List<string> viewports=new List<string>();
     }
@@ -58,12 +58,17 @@ public static class CharacterViewEditorReview
                     edit.BeginAdjustment();var before=edit.Current;
                     var pivotLocal=root.InverseTransformPoint(edit.DisplayPivot);var pivotWorld=edit.DisplayPivot;
                     edit.Move(-2.5f,-1.75f);
-                    Check(Mathf.Abs(edit.TargetYaw-(before.yaw+900))<.01f && Mathf.Abs(edit.TargetPitch-(before.pitch+630))<.01f,"multiple horizontal and vertical turns are unrestricted");
+                    Check(Mathf.Abs(edit.TargetYaw-(before.yaw+900))<.01f && Mathf.Abs(edit.TargetPitch-25)<.01f,"multiple horizontal turns remain unrestricted while upward pitch stops at 25 degrees");
                     for(int frame=0;frame<180;frame++) {
                         edit.RestoreFrame();edit.Step(1f/60);edit.ApplyFrame();
                         Check(Mathf.Abs(edit.Scale-before.scale)<.00001f && (edit.Translation-new Vector2(before.x,before.y)).sqrMagnitude<.000000001f,"single-finger rotation must never zoom or translate");
                         Check(Vector3.Distance(root.TransformPoint(pivotLocal),pivotWorld)<.00002f,"body rotation center stays exactly still");
+                        Check(Mathf.Abs(edit.Pitch)<=25.001f,"displayed pitch never overshoots its boundary");
                     }
+                    edit.End();edit.BeginAdjustment();edit.Move(0,2.5f);Tick(edit);
+                    Check(Mathf.Abs(edit.Pitch+25)<.01f,"downward pitch stops at -25 degrees");
+                    edit.End();edit.BeginAdjustment();edit.Move(0,-.05f);Tick(edit);
+                    Check(edit.Pitch>-24 && edit.Pitch<0,"reversing at a limit responds immediately");
                     edit.Close();var saved=edit.Target;Tick(edit);
                     edit.RestoreFrame();edit.Load(saved,true);edit.ApplyFrame();Check(Near(edit.Current,saved),"reloaded free rotation keeps scale and translation");Check(!edit.Active && Near(edit.Current,saved),"close retains the latest view without explicit save");
                     camera.transform.position=cameraPosition+camera.transform.right*.3f;
@@ -71,14 +76,14 @@ public static class CharacterViewEditorReview
                     camera.transform.position=cameraPosition;edit.SetProjection(camera,region,safe);Tick(edit);
                     Check(Near(edit.Current,saved),"temporary launch/layout constraints do not overwrite saved intent");
                     edit.Begin(camera.transform.right);edit.ResetDraft();Tick(edit);Check(edit.Current.IsDefault,"reset exact default");
-                    foreach(float yaw in new[]{-1080f,-450f,0f,450f,1080f})foreach(float pitch in new[]{-720f,0f,720f})
+                    foreach(float yaw in new[]{-1080f,-450f,0f,450f,1080f})foreach(float pitch in new[]{-720f,-90f,0f,90f,720f})
                     foreach(float zoom in new[]{.78f,1.28f})foreach(float move in new[]{-.45f,.45f}) {
                         edit.Load(new CharacterViewPose{yaw=yaw,pitch=pitch,scale=zoom,x=move,y=-move});
                         for(int frame=0;frame<45;frame++) {
                             edit.RestoreFrame();edit.Step(1f/60);edit.ApplyFrame();
                             var neutral=edit.Current;neutral.yaw=neutral.pitch=0;
                             var projected=edit.Project(neutral);
-                            Check(Mathf.Abs(edit.TargetYaw-yaw)<.01f && Mathf.Abs(edit.TargetPitch-pitch)<.01f,"screen bounds do not clamp rotation");
+                            Check(Mathf.Abs(edit.TargetYaw-yaw)<.01f && Mathf.Abs(edit.TargetPitch-Mathf.Clamp(Mathf.DeltaAngle(0,pitch),-25,25))<.01f,"saved yaw remains unrestricted and old pitch is normalized and clamped");
                             Check(projected.xMin>=safe.xMin-.0001f && projected.xMax<=safe.xMax+.0001f && projected.yMin>=safe.yMin-.0001f && projected.yMax<=safe.yMax+.0001f,
                                 source.modelId+" "+size+" safe displayed corners "+projected+" vs "+safe);
                             Check(edit.Scale>=.4f && edit.Scale<=1.28f,"bounded scale");

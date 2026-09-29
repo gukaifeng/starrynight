@@ -43,6 +43,21 @@ final class CharacterLibrary {
     }
     var subscriptions: [String] { (archive.accounts[accountID]?.subscriptions ?? []).filter { model($0) != nil } }
     var followedAuthors: [String] { archive.accounts[accountID]?.followedAuthors ?? [] }
+    /// List visibility is separate from subscriptions and the conversation archive.
+    /// A newer message restores visibility; old history remains locally searchable.
+    func isConversationHidden(_ id:String, latestMessage:Date? = nil) -> Bool {
+        guard let hiddenAt = archive.accounts[accountID]?.hiddenConversations[id] else { return false }
+        return (latestMessage ?? .distantPast) <= hiddenAt
+    }
+    @discardableResult func hideConversation(_ id:String, latestMessage:Date? = nil) -> Bool {
+        guard model(id) != nil, archive.accounts[accountID] != nil else { return false }
+        let hiddenAt = max(Date(),latestMessage ?? .distantPast)
+        return commit { $0.accounts[accountID]?.hiddenConversations[id] = hiddenAt }
+    }
+    @discardableResult func restoreConversation(_ id:String) -> Bool {
+        guard archive.accounts[accountID]?.hiddenConversations[id] != nil else { return true }
+        return commit { $0.accounts[accountID]?.hiddenConversations.removeValue(forKey:id) }
+    }
     var availableSubscriptions: [ModelDescriptor] { subscriptions.compactMap(model) }
     var currentAuthor: AuthorProfile? { archive.authorByAccount[accountID].flatMap { author($0) } }
     var lastCharacter: String? {
@@ -150,12 +165,14 @@ final class CharacterLibrary {
         clean.revision += 1
         return commit { $0.authors[clean.id] = clean }
     }
-    @discardableResult func select(_ id: String) -> Bool {
+    @discardableResult func select(_ id: String, showInMessages:Bool = true) -> Bool {
         guard !blocked, model(id) != nil else { return false }
-        if archive.accounts[accountID]?.lastCharacter == id, subscriptions.contains(id) { return true }
+        if archive.accounts[accountID]?.lastCharacter == id, subscriptions.contains(id),
+           !showInMessages || archive.accounts[accountID]?.hiddenConversations[id] == nil { return true }
         return commit { state in
             var account = state.accounts[accountID] ?? CharacterLibraryAccount(subscriptions: [])
             if !account.subscriptions.contains(id) { account.subscriptions.append(id) }
+            if showInMessages { account.hiddenConversations.removeValue(forKey:id) }
             account.lastCharacter = id; state.accounts[accountID] = account
         }
     }

@@ -39,7 +39,8 @@ struct CharacterLibraryAccount: Codable {
     var subscriptions: [String]
     var followedAuthors: [String] = []
     var lastCharacter: String?
-    private enum CodingKeys: String, CodingKey { case subscriptions, followedAuthors, lastCharacter, followed }
+    var hiddenConversations: [String:Date] = [:]
+    private enum CodingKeys: String, CodingKey { case subscriptions, followedAuthors, lastCharacter, followed, hiddenConversations }
     init(subscriptions: [String], followedAuthors: [String] = [], lastCharacter: String? = nil) {
         self.subscriptions = subscriptions; self.followedAuthors = followedAuthors; self.lastCharacter = lastCharacter
     }
@@ -51,11 +52,13 @@ struct CharacterLibraryAccount: Codable {
             ?? c.decodeIfPresent([String].self, forKey: .followed) ?? []
         followedAuthors = try c.decodeIfPresent([String].self, forKey: .followedAuthors) ?? []
         lastCharacter = try c.decodeIfPresent(String.self, forKey: .lastCharacter)
+        hiddenConversations = try c.decodeIfPresent([String:Date].self, forKey: .hiddenConversations) ?? [:]
     }
     func encode(to encoder: Encoder) throws {
         var c = encoder.container(keyedBy: CodingKeys.self)
         try c.encode(subscriptions, forKey: .subscriptions); try c.encode(followedAuthors, forKey: .followedAuthors)
         try c.encodeIfPresent(lastCharacter, forKey: .lastCharacter)
+        try c.encode(hiddenConversations, forKey: .hiddenConversations)
     }
 }
 struct CharacterLibraryArchive: Codable {

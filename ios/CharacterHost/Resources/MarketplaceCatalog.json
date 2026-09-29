@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "characters": {
+    "anime-kipfel": { "categories": ["日常", "治愈"], "featured": true, "rank": 10 },
+    "anime-mamehinata": { "categories": ["元气", "幻想"], "featured": true, "rank": 20 }
+  }
+}

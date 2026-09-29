@@ -251,7 +251,7 @@ struct CharacterDetailsPanel: View {
             ProfileRelationshipLabel(title:subscribed ? "已订阅" : "订阅",selected:subscribed)
         }.buttonStyle(.plain).accessibilityIdentifier("characterSubscribeButton")
             .accessibilityValue(subscribed ? "已订阅" : "未订阅")
-            .accessibilityHint(subscribed ? "取消订阅，聊天记录仍保留" : "订阅角色，在首页和消息中继续聊天")
+            .accessibilityHint(subscribed ? "取消订阅，聊天记录仍保留" : "订阅角色，在对话和消息中继续聊天")
     }
     private var customizeButton:some View {
         Button {

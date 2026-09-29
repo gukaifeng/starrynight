@@ -138,8 +138,8 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
         } else if page != .home { closeViewer() }
         else { schedulePrewarm() }
     }
-    func openCharacter(_ id:String, messageID:UUID? = nil, customize:Bool = false, greetingReason:ConversationEntryReason? = nil) {
-        guard let model = library.model(id), library.select(id) else { return }
+    func openCharacter(_ id:String, messageID:UUID? = nil, customize:Bool = false, greetingReason:ConversationEntryReason? = nil, showInMessages:Bool = true) {
+        guard let model = library.model(id), library.select(id,showInMessages:showInMessages) else { return }
         // A message-list selection is a switch too. Merely returning to the
         // retained role is not, regardless of the tab used to get there.
         let reason = greetingReason ?? (companion?.model.id != id ? .characterSelection : .conversationReturn)
@@ -163,7 +163,7 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
         guard page == .home else { return }
         guard let id = library.lastCharacter else { transitionSourceTab = nil; return }
         let source = transitionSourceTab
-        openCharacter(id,greetingReason:reason)
+        openCharacter(id,greetingReason:reason,showInMessages:false)
         if page == .viewer || page == .loading { transitionSourceTab = source }
     }
     func profile(for model:ModelDescriptor) -> CharacterProfile {

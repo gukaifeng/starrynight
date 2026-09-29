@@ -26,8 +26,8 @@ if content.get('environmentApi')!=1 or not environment_catalog.exists() or conte
 images = ROOT / 'ios/CharacterHost/Resources/Assets.xcassets'
 if content.get('autonomyRevision', 0) < 2:
     raise SystemExit('Unity export lacks visible natural idle v2; re-export this platform before building.')
-if content.get('inspectionGestureRevision', 0) < 6:
-    raise SystemExit('error: Unity export does not support unrestricted position editing v6. '
+if content.get('inspectionGestureRevision', 0) < 7:
+    raise SystemExit('error: Unity export does not support bounded-pitch position editing v7. '
                      f'Run: python3 scripts/export_unity_ios.py --platform {args.platform}; then rebuild CharacterHost. '
                      'An unchanged character catalog does not prove that the runtime supports new native gestures. '
                      'The previously installed app is unchanged.')
@@ -36,6 +36,6 @@ if content.get('nativeGestureRevision', 0) < 2 or content.get('immersionRevision
                      f'Run: python3 scripts/export_unity_ios.py --platform {args.platform}; then rebuild CharacterHost. '
                      'The previously installed app is unchanged.')
 print(f"Character API v1 / Environment API v1 catalog integrity PASS: {len(required)} characters, "
-      f"{len(json.loads(environment_catalog.read_text())['environments'])} environments; framing v8, gaze v1, portrait v1, immersion v2, native gestures v2, position editing v6.")
+      f"{len(json.loads(environment_catalog.read_text())['environments'])} environments; framing v8, gaze v1, portrait v1, immersion v2, native gestures v2, position editing v7.")
 
 validate_collections()

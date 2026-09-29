@@ -15,9 +15,9 @@ namespace ModelSpace
     // latest view per account/character; rotation never silently pans or zooms.
     public sealed class CharacterInspectionRotation
     {
-        public const int Revision=6;
+        public const int Revision=7;
         public const float TurnFramingReserve=1.10f;
-        public const float HoldSeconds=1, MaximumYaw=180, MaximumPitch=20;
+        public const float HoldSeconds=1, MaximumPitch=25;
         public const float MinimumScale=.78f,MaximumScale=1.28f,MaximumTranslation=.45f;
         Transform model;
         Camera camera;
@@ -175,7 +175,7 @@ namespace ModelSpace
             if(!Active || !Moving || !float.IsFinite(horizontal) || !float.IsFinite(vertical))return;
             var desired=gestureStart;
             desired.yaw=gestureStart.yaw-horizontal*360;
-            desired.pitch=gestureStart.pitch-vertical*360;
+            desired.pitch=Mathf.Clamp(gestureStart.pitch-vertical*90,-MaximumPitch,MaximumPitch);
             requested=desired;ConstrainTarget();
         }
         public void TransformView(float scale,float x,float y)
@@ -202,7 +202,7 @@ namespace ModelSpace
         public void Close() { Commit();Active=Moving=Preparing=false;returning=true; }
         void ClearVelocity() {yawVelocity=pitchVelocity=scaleVelocity=0;translationVelocity=Vector2.zero;}
         static CharacterViewPose Normalize(CharacterViewPose p) => new CharacterViewPose {
-            yaw=p.yaw,pitch=p.pitch,
+            yaw=p.yaw,pitch=Mathf.Clamp(Mathf.DeltaAngle(0,p.pitch),-MaximumPitch,MaximumPitch),
             scale=Mathf.Clamp(p.scale,.4f,MaximumScale),x=Mathf.Clamp(p.x,-MaximumTranslation,MaximumTranslation),y=Mathf.Clamp(p.y,-MaximumTranslation,MaximumTranslation)};
         void Assign(CharacterViewPose pose) {requested=Normalize(pose);ApplyTarget(requested);}
         void ApplyTarget(CharacterViewPose pose) {TargetYaw=pose.yaw;TargetPitch=pose.pitch;TargetScale=pose.scale;TargetTranslation=new Vector2(pose.x,pose.y);}
@@ -241,9 +241,12 @@ namespace ModelSpace
             }
             return false;
         }
-        public void ConstrainTarget() { ApplyTarget(hasProjection && !rotationOnly && !requested.IsDefault ? Constrain(requested) : requested); }
+        public void ConstrainTarget() {
+            var normalized=Normalize(requested);
+            ApplyTarget(hasProjection && !rotationOnly && !normalized.IsDefault ? Constrain(normalized) : normalized);
+        }
         // Translation/scale limits use the authored portrait as a stable reference.
-        // Free rotation may reveal the back or turn upside down; it must never
+        // Yaw remains unrestricted; pitch stays near eye level. Neither axis may
         // silently move/zoom the model to make a rotated silhouette fit.
         public CharacterViewPose Constrain(CharacterViewPose input,bool enforceMinimum=true)
         {
