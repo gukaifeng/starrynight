@@ -1,4 +1,5 @@
 import Foundation
+import CryptoKit
 
 /// Exercises the real AVAudioEngine output thread, sequential beats, cache
 /// replay and cancellation without contacting any AI or using private speech.
@@ -16,6 +17,10 @@ import Foundation
         let script = AIScript(messageId:message.uuidString,characterId:"anime-kipfel",text:"Audio regression",
             beats:[AIBeat(beatId:"speech",dialogue:AIDialogue(text:"Audio regression"),narrations:[],visuals:[]),
                    AIBeat(beatId:"vocal",narrations:[],visuals:[],vocalEvents:[AIVocalEvent(event:"sigh")])])
+        func oldVoiceKey(_ beat:String)->String {
+            SHA256.hash(data:Data((scope+"|qwen-audio-3.1-designed-v1|1.0|"+script.messageId+"|"+beat).utf8))
+                .map {String(format:"%02x",$0)}.joined()
+        }
         var peak: Float = 0
         var played: [String] = []
         var previousTime = 0.0
@@ -42,6 +47,7 @@ import Foundation
             for beat in script.beats {
                 let key = SpeechClipCache.shared.key(scope:scope,text:script.messageId+"|"+beat.beatId,speed:1)
                 try? FileManager.default.removeItem(at:CacheLocations.live.speech.appendingPathComponent(key+".wav"))
+                try? FileManager.default.removeItem(at:CacheLocations.live.speech.appendingPathComponent(oldVoiceKey(beat.beatId)+".wav"))
             }
         }
         // A low-volume 0.6-second sine per beat. This is an audio fixture only,
@@ -51,6 +57,11 @@ import Foundation
             var sample = Int16(sin(Double(frame)*2*Double.pi*440/24000)*2400).littleEndian
             withUnsafeBytes(of:&sample) { pcm.append(contentsOf:$0) }
         }
+        for beat in script.beats {
+            // Retired cache bytes must never reach the playback decoder.
+            SpeechClipCache.shared.insert(Data("retired voice clip".utf8),key:oldVoiceKey(beat.beatId))
+        }
+        try require(try await !speech.cachedReplay(script,messageID:message),"Old voice clips survived the voice revision change")
         speech.prepare(message,script:script)
         for beat in script.beats {
             try await speech.accept(AIEvent(type:"segment.audio.started",beatId:beat.beatId))
@@ -76,6 +87,6 @@ import Foundation
         speech.stop()
         try await Task.sleep(for:.milliseconds(80))
         try require(!speech.isSpeaking && !speech.isBusy && speech.playbackLevel == 0 && soundscape.focus == .none,"Cancellation leaked playback state")
-        return "PASS: real audio-thread metering, monotonic lip-sync timestamps, two-beat playback, vocal-only cache replay, duration and cancellation; zero network calls."
+        return "PASS: old voice cache invalidation, real audio-thread metering, monotonic lip-sync timestamps, two-beat playback, vocal-only cache replay, duration and cancellation; zero network calls."
     }
 }

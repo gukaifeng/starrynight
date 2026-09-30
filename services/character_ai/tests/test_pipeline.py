@@ -171,7 +171,7 @@ async def test_auth_api_isolation_and_paid_disabled(setup):
     settings,store=setup;provider=FakeProvider();app=create_app(settings,provider)
     headers={'Authorization':'Bearer test-client','X-Starry-Installation':str(uuid.uuid4()),'X-Starry-Account':'guest'}
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),base_url='http://test') as client:
-        assert (await client.get('/health')).json()['revision']==3
+        assert (await client.get('/health')).json()['revision']==4
         assert (await client.get('/v1/status')).status_code==401
         assert (await client.get('/v1/status',headers=headers)).status_code==200
         assert (await client.get('/v1/admin/usage',headers=headers)).status_code==401

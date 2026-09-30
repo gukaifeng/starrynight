@@ -29,6 +29,23 @@ class Store:
         return json.loads(row[0]) if row else default
     def put(self,kind,owner,character,value):
         with self.db:self.db.execute('INSERT OR REPLACE INTO records VALUES(?,?,?,?,?)',(kind,owner,character,dump(value),time.time()))
+    def approve_voice(self,character,job_id=None):
+        with self.db:
+            self.db.execute('BEGIN IMMEDIATE')
+            active=self.get('voice','system',character)
+            voice=self.get('voice_candidate','system',character) or active
+            if not voice or not voice.get('voice_id'):raise ValueError('VOICE_NOT_READY')
+            if active and active.get('approved') and active.get('job_id')!=voice.get('job_id') and not job_id:
+                raise ValueError('VOICE_CANDIDATE_REQUIRED')
+            if job_id and voice.get('job_id')!=job_id:raise ValueError('VOICE_CANDIDATE_CHANGED')
+            if active and active.get('approved') and active.get('job_id')!=voice.get('job_id'):
+                self.db.execute('INSERT OR REPLACE INTO records VALUES(?,?,?,?,?)',
+                    ('voice_history',active.get('job_id',active['voice_id']),character,dump(active),time.time()))
+            voice={**voice,'approved':True}
+            self.db.execute('INSERT OR REPLACE INTO records VALUES(?,?,?,?,?)',('voice','system',character,dump(voice),time.time()))
+            self.db.execute("DELETE FROM records WHERE kind='voice_candidate' AND owner='system' AND character=?",(character,))
+            self.db.execute("UPDATE voice_design_jobs SET status='approved',data=? WHERE id=?",(dump(voice),voice.get('job_id')))
+            return voice
     def history(self,owner,character,limit=12):
         rows=self.db.execute('SELECT role,data FROM messages WHERE owner=? AND character=? ORDER BY created DESC LIMIT ?',(owner,character,limit)).fetchall()
         return [dict(role=r['role'],text=json.loads(r['data']).get('text','')[:700]) for r in reversed(rows)]

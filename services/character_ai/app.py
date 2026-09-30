@@ -5,7 +5,7 @@ from uuid import UUID
 from fastapi import FastAPI, Request as HTTPRequest, HTTPException, WebSocket, WebSocketDisconnect
 from .config import Settings
 from .storage import Store
-from .provider import Provider
+from .provider import Provider, ProviderError
 from .orchestrator import Orchestrator
 from .schemas import Request
 from .profiles import PROFILES
@@ -37,7 +37,7 @@ def create_app(settings=None,provider=None):
         if len(busy)>=4:raise HTTPException(503,'SERVER_BUSY')
         busy.add(key)
     @app.get('/health')
-    async def health():return dict(status='ok',protocol=1,revision=3,paid_calls=False)
+    async def health():return dict(status='ok',protocol=1,revision=4,paid_calls=False)
     @app.get('/v1/status')
     async def status(request:HTTPRequest):
         owner(request.headers)
@@ -92,16 +92,17 @@ def create_app(settings=None,provider=None):
         admin(request.headers)
         return [dict(row) for row in store.db.execute('SELECT kind,count(*) calls,sum(units) units,sum(reserved) reserved FROM usage GROUP BY kind')]
     @app.post('/v1/characters/{character}/voice-designs')
-    async def design(character:str,request:HTTPRequest):
+    async def design(character:str,request:HTTPRequest,revision:str|None=None):
         admin(request.headers)
         if character not in PROFILES:raise HTTPException(404)
         acquire('voice:'+character)
-        try:return await provider.design_voice(character,PROFILES[character])
+        try:return await provider.design_voice(character,PROFILES[character],revision=revision)
+        except (ProviderError,ValueError) as error:raise HTTPException(409,str(error)) from None
         finally:busy.discard('voice:'+character)
     @app.post('/v1/characters/{character}/voice-designs/approve')
-    async def approve(character:str,request:HTTPRequest):
-        admin(request.headers);voice=store.get('voice','system',character)
-        if not voice:raise HTTPException(404)
-        voice['approved']=True;store.put('voice','system',character,voice)
-        return dict(approved=True,character_id=character)
+    async def approve(character:str,request:HTTPRequest,job_id:str|None=None):
+        admin(request.headers)
+        try:voice=store.approve_voice(character,job_id)
+        except ValueError as error:raise HTTPException(409,str(error)) from None
+        return dict(approved=True,character_id=character,revision=voice.get('revision','original-v1'))
     return app

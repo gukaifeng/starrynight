@@ -1,10 +1,11 @@
 """Alibaba protocols only. No canned response or system-voice fallback."""
-import asyncio, base64, json, time, uuid
+import asyncio, base64, hashlib, io, json, sqlite3, time, uuid, wave
 import httpx
 from pydantic import ValidationError
 from .storage import dump
 from .schemas import visible_text
 from .prompts import PLAN_SHAPE
+from .profiles import PROFILES
 
 VOCALS = dict(gasp='[gasp]', sigh='[sighing]', throat_clear='[clears throat]',
               giggle='[giggles]', laugh='[laughing]', cough='[cough]', snort='[snorts]')
@@ -79,6 +80,7 @@ class Provider:
     async def synthesize(self, owner, character, beat, voice):
         text, instruction = speech_input(beat)
         if not text: return
+        instruction=PROFILES.get(character,{}).get('voice_delivery','')+instruction
         usage = self.store.reserve('tts',owner,character,len(text),self.settings)
         total = 0; metrics = {}; finished = False
         try:
@@ -108,14 +110,29 @@ class Provider:
         except BaseException as error:
             metrics['error_code']=getattr(error,'code',type(error).__name__)
             self.store.usage(usage,'interrupted_or_failed',metrics); raise
-    async def design_voice(self, character, profile):
+    async def design_voice(self, character, profile, revision=None):
         existing=self.store.get('voice','system',character)
-        if existing: return existing
-        pending=self.store.db.execute('SELECT id FROM voice_design_jobs WHERE character=?',(character,)).fetchone()
+        if revision is None and existing:return existing
+        if revision is not None and revision!=profile.get('voice_revision'):raise ProviderError('VOICE_REVISION_UNKNOWN')
+        revision=revision or profile.get('voice_revision','original-v1')
+        if existing and existing.get('revision')==revision:return existing
+        # One provider request per character/revision, including across restarts.
+        # A timeout is ambiguous and must never turn into an automatic paid retry.
+        job=uuid.uuid5(uuid.NAMESPACE_URL,'starrynight:voice:'+character+':'+revision).hex
+        previous=self.store.db.execute('SELECT status,data FROM voice_design_jobs WHERE id=?',(job,)).fetchone()
+        if previous:
+            if previous['status'] in ('preview_ready','approved'):return json.loads(previous['data'])
+            raise ProviderError('VOICE_DESIGN_ALREADY_REQUESTED')
+        pending=self.store.db.execute("SELECT id FROM voice_design_jobs WHERE character=? AND status NOT IN ('preview_ready','approved')",(character,)).fetchone()
         if pending: raise ProviderError('VOICE_DESIGN_ALREADY_REQUESTED')
         usage=self.store.reserve('voice_design','admin',character,1,self.settings)
-        job=uuid.uuid4().hex
-        with self.store.db:self.store.db.execute('INSERT INTO voice_design_jobs VALUES(?,?,?,?,?)',(job,character,'requested','{}',time.time()))
+        fingerprint=hashlib.sha256(dump([self.settings.tts_model,profile['voice_prompt'],profile['preview_text']]).encode()).hexdigest()
+        voice=dict(model=self.settings.tts_model,job_id=job,revision=revision,prompt_hash=fingerprint,approved=False)
+        try:
+            with self.store.db:self.store.db.execute('INSERT INTO voice_design_jobs VALUES(?,?,?,?,?)',(job,character,'requested',dump(voice),time.time()))
+        except sqlite3.IntegrityError:
+            self.store.usage(usage,'not_sent',units=0)
+            raise ProviderError('VOICE_DESIGN_ALREADY_REQUESTED')
         try:
             response=await self.http.post(self.settings.host+'/api/v1/services/audio/tts/customization',headers=self.headers,json={
                 'model':'voice-enrollment','input':{'action':'create_voice','target_model':self.settings.tts_model,
@@ -123,13 +140,23 @@ class Provider:
                 'prefix':'starryki' if character=='anime-kipfel' else 'starryma','language_hints':['zh']},
                 'parameters':{'sample_rate':24000,'response_format':'wav'}})
             self.check(response); data=response.json(); output=data['output']
-            preview=base64.b64decode(output['preview_audio']['data'],validate=True)
-            folder=self.settings.data_dir/'voices'; folder.mkdir(exist_ok=True)
-            (folder/(character+'.wav')).write_bytes(preview)
-            voice=dict(voice_id=output['voice_id'],model=self.settings.tts_model,job_id=job,approved=False)
-            self.store.put('voice','system',character,voice)
-            with self.store.db:self.store.db.execute('UPDATE voice_design_jobs SET status=?,data=? WHERE id=?',('preview_ready',dump(voice),job))
+            voice['voice_id']=output['voice_id']
             self.store.usage(usage,'completed',data.get('usage'),1)
+            with self.store.db:self.store.db.execute('UPDATE voice_design_jobs SET data=? WHERE id=?',(dump(voice),job))
+            preview=base64.b64decode(output['preview_audio']['data'],validate=True)
+            with wave.open(io.BytesIO(preview),'rb') as audio:
+                if audio.getnchannels()!=1 or audio.getsampwidth()!=2 or audio.getframerate()!=24000 or not audio.getnframes():
+                    raise ProviderError('VOICE_PREVIEW_FORMAT')
+            folder=self.settings.data_dir/'voices'; folder.mkdir(exist_ok=True)
+            voice['preview_file']=character+'-'+job+'.wav'
+            path=folder/voice['preview_file'];temporary=path.with_suffix('.tmp')
+            temporary.write_bytes(preview);temporary.replace(path)
+            self.store.put('voice_candidate','system',character,voice)
+            if not existing:self.store.put('voice','system',character,voice)
+            with self.store.db:self.store.db.execute('UPDATE voice_design_jobs SET status=?,data=? WHERE id=?',('preview_ready',dump(voice),job))
             return voice
         except BaseException:
-            self.store.usage(usage,'interrupted_or_failed'); raise
+            row=self.store.db.execute('SELECT status FROM usage WHERE id=?',(usage,)).fetchone()
+            if row[0]=='reserved':self.store.usage(usage,'interrupted_or_failed')
+            with self.store.db:self.store.db.execute('UPDATE voice_design_jobs SET status=? WHERE id=?',('interrupted_or_failed',job))
+            raise

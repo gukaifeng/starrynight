@@ -37,15 +37,15 @@ sequenceDiagram
 | 对话计划及最终旁白 | `qwen-flash-character-2026-02-26` | JSON 对象输出，两阶段分别校验 |
 | 实时识别 | `fun-asr-realtime` | 等待 task-started 后上传，句子去重，最终稿确认 |
 | 流式合成 | `qwen-audio-3.1-tts-flash` | HTTP SSE，24 kHz PCM，按 beat 控制情感/语气 |
-| 声音设计 | `voice-enrollment` 的 create_voice | 目标为上述 TTS，每角色一次，保存 voice_id 和预览 |
+| 声音设计 | `voice-enrollment` 的 create_voice | 目标为上述 TTS，每角色每版本一次，保存 voice_id 和预览 |
 
 协议以官方参考为准：[角色模型](https://help.aliyun.com/zh/model-studio/qwen-flash-character)、[结构化输出](https://help.aliyun.com/zh/model-studio/qwen-structured-output)、[Qwen Audio HTTP TTS](https://help.aliyun.com/zh/model-studio/qwen-audio-tts-http-api)、[声音设计](https://help.aliyun.com/zh/model-studio/voice-design-api-references)、[Fun-ASR 客户端事件](https://help.aliyun.com/zh/model-studio/fun-asr-client-events)、[Fun-ASR 服务端事件](https://help.aliyun.com/zh/model-studio/fun-asr-server-events)。没有混用 Qwen3-TTS 的另一套接口或复用测试音色。
 
 ## 人设、声音与表演
 
-琪宝是安静慢热、观察细节的小书屋伙伴，声线轻柔、圆润、略慢。豆日向是面包房里好奇开朗的小帮手，声线清亮、轻快、有活力。家庭、成长、兴趣、价值观、说话习惯及渐进披露的小秘密写在 `services/character_ai/profiles.py`。这些是虚构角色设定，不能说成真人身份或捏造与用户发生过的经历。
+琪宝是安静慢热、观察细节的小书屋伙伴，豆日向是面包房里好奇开朗的小帮手。v0.54.2 按用户要求重做两款稚嫩女孩动漫音色：琪宝偏清澈软糯、安静略慢，豆日向偏清甜明亮、轻快活泼，详见[音色第二版](2026-09-30-character-voices-v2.md)。家庭、成长、兴趣、价值观、说话习惯及渐进披露的小秘密写在 `services/character_ai/profiles.py`。这些是虚构角色设定，不能说成真人身份或捏造与用户发生过的经历。
 
-声音描述不模仿具体声优；每人有独立的生成音色绑定，已保存两份约 6 秒的预览。启动、构建、普通对话和重播都不重新设计音色。管理端才能创建或确认绑定；前端不能传任意 voice_id 绕过角色绑定。
+声音描述不模仿具体声优；每人有独立的生成音色绑定，新版预览分别约 5 秒和 6 秒。启动、构建、普通对话和重播都不重新设计音色。管理端才能创建或确认绑定；前端不能传任意 voice_id 绕过角色绑定。显式新版本设计先生成候选，确认前保留旧音色服务；替换须提供候选 job_id，旧绑定归档。
 
 第一阶段只看到抽象意图，不看到骨骼、Morph 或资产编号。表演匹配器与客户端当前角色的实际清单取交集；目前审阅映射琪宝 15 项、豆日向 14 项，覆盖表情与原作手势。不是把所有换装、睡眠和循环姿势开放给 AI 任意触发。
 
@@ -77,8 +77,8 @@ sequenceDiagram
 | `POST /v1/conversations/{character}/messages/{id}/audio` | 优先重播缓存，缺失时明确点击才重新合成 |
 | `DELETE /v1/conversations/{character}/messages` | 删除本用户此角色历史与服务端语音 |
 | `WS /v1/asr/{character}` | PCM 输入、partial/final 输出、finish 控制 |
-| `POST /v1/characters/{character}/voice-designs` | 管理凭证，创建或返回已有设计 |
-| `POST /v1/characters/{character}/voice-designs/approve` | 管理凭证，确认使用当前预览 |
+| `POST /v1/characters/{character}/voice-designs` | 管理凭证；默认返回已有绑定，显式 `revision` 创建或返回该已定义版本的候选 |
+| `POST /v1/characters/{character}/voice-designs/approve` | 管理凭证；替换现有绑定时用 `job_id` 指定候选，事务内归档并切换 |
 | `GET /v1/admin/usage` | 管理凭证，调用与用量汇总 |
 
 SSE 有 `reply.plan.ready`、`segment.visual.resolved`、`reply.narration.ready`、`segment.audio.started/chunk/ready`、`reply.completed`、warning/error。原生消费保持 request token 与账号一致才落盘，消息的 AIScript 保留重播用分段和实际资源信息。普通 UI 不显示协议字段。
@@ -89,7 +89,7 @@ SSE 有 `reply.plan.ready`、`segment.visual.resolved`、`reply.narration.ready`
 
 付费 Key 仅保存在私有服务端配置，不写进 Swift、App 包、Xcode 设置或 Git。App 中的 `Connection.json` 只有开发网关 URL 和独立随机客户端凭证；管理凭证也不会进入 App。公开 Git 忽略 `.local/`，真实音色数据、个人聊天、验证截图和 CSV 不推送。
 
-日常对话的本机每日调用次数、合成字符和识别时长额度已在源码中默认关闭（`enforce_conversation_limits=false`），旧配置里的数值不再自动拦截聊天。只在显式启用该开关的专门测试或部署中执行可选上限。音色设计总计上限仍为2次，防止重复创建已有音色。调用前仍使用 SQLite 写事务原子记账；失败、中断、未发送分别记录，不把估算当作实际百炼账单。自动测试仍默认禁用真实付费调用。
+日常对话的本机每日调用次数、合成字符和识别时长额度已在源码中默认关闭（`enforce_conversation_limits=false`），旧配置里的数值不再自动拦截聊天。只在显式启用该开关的专门测试或部署中执行可选上限。新部署的音色设计默认总计上限为 2 次；用户要求重做两款音色后，本开发机私有配置显式调整为 4 次（原版 2 次＋新版 2 次），历史计费记录保留。同一角色/版本不会重复设计，超时也不自动重试。调用前仍使用 SQLite 写事务原子记账；失败、中断、未发送分别记录，不把估算当作实际百炼账单。自动测试仍默认禁用真实付费调用。
 
 同一 request_id 和相同内容返回已有结果；内容不同拒绝；中断但未确认成功的请求不会自动再次计费。结构校验最多一次纠正；网络错误不自动重试。内部中文 beat 编号与字符串心声等无语义差异的格式由本地规范化，不专门请求模型改格式。
 
