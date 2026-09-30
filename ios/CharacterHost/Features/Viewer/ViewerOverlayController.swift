@@ -511,6 +511,9 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
     var onFrameRate: ((Int) -> Void)?
     var onConversationViewport: ((CGRect,CGRect) -> Void)?
     private var chatHost: UIHostingController<CompanionChatView>?
+    private var atmosphereHost:UIHostingController<CharacterAtmosphereView>?
+    private let atmosphereActivity=AtmosphereActivity()
+    func setAtmosphereActive(_ active:Bool) {atmosphereActivity.active=active}
     private var chatSession: CompanionSession?
     private var explorerViews: [UIView] = []
     private var previousViewport = CGRect.zero
@@ -531,6 +534,7 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
         loadViewIfNeeded()
         if let session, chatSession === session { return }
         cancelInspection()
+        if let host=atmosphereHost {host.willMove(toParent:nil);host.view.removeFromSuperview();host.removeFromParent()};atmosphereHost=nil
         if let host = chatHost { host.willMove(toParent:nil); host.view.removeFromSuperview(); host.removeFromParent() }
         if let host = identityHost { host.willMove(toParent:nil); host.view.removeFromSuperview(); host.removeFromParent() }
         identityHost = nil
@@ -547,6 +551,10 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
         performance.isHidden = session != nil; actionsScroll.isHidden = session != nil
         previousViewport = .zero
         if let session {
+            let atmosphere=UIHostingController(rootView:CharacterAtmosphereView(session:session,activity:atmosphereActivity))
+            atmosphere.view.backgroundColor = .clear;atmosphere.view.isOpaque=false;atmosphere.view.isUserInteractionEnabled=false
+            atmosphere.safeAreaRegions=[];atmosphere.view.frame=view.bounds;atmosphere.view.autoresizingMask=[.flexibleWidth,.flexibleHeight]
+            addChild(atmosphere);view.insertSubview(atmosphere.view,at:0);atmosphere.didMove(toParent:self);atmosphereHost=atmosphere
             session.onPreparationChanged = { [weak self] in self?.updatePreparationDiagnostics() }
             let host = UIHostingController(rootView:CompanionChatView(session:session,onPerformance:{ [weak self] in self?.openConversationPerformance() },onSoundSettings:{ [weak self] in self?.openConversationSound() },onEditingChanged:{ [weak self] focused in
                 guard let self else { return }; self.chatEditing = focused
@@ -815,6 +823,11 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
     func gestureRecognizer(_ gestureRecognizer:UIGestureRecognizer,shouldReceive touch:UITouch) -> Bool {
         guard gestureRecognizer === dismissChatKeyboardTap else { return true }
         guard chatSession != nil, (chatEditing || keyboardFrame != nil), gestureInputAvailable, presentedViewController == nil else { return false }
+        var inputView=touch.view
+        while let current=inputView {
+            if current is UITextView || current is UITextField {return false}
+            inputView=current.superview
+        }
         outsideKeyboardTouches += 1
         if let host = chatHost {
             let point = touch.location(in:host.view)

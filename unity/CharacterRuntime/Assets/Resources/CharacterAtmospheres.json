@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "characters": [
+    {
+      "id": "anime-kipfel",
+      "title": "雨声书页",
+      "background": "Atmospheres/anime-kipfel/background",
+      "effect": "firefly",
+      "palette": [
+        "#B7C796",
+        "#FFE2AA",
+        "#446879"
+      ],
+      "density": 0.7,
+      "backgroundSHA256": "8abeed9a11564780659bc7a509b9b7e2716a2df26d1c8e8bb0f2673dc49e1164",
+      "imageModel": "qwen-image-3.0-pro"
+    },
+    {
+      "id": "anime-mamehinata",
+      "title": "面包房的晴天",
+      "background": "Atmospheres/anime-mamehinata/background",
+      "effect": "sunbeam",
+      "palette": [
+        "#FFDC98",
+        "#81C4B8",
+        "#D6B58E"
+      ],
+      "density": 0.8,
+      "backgroundSHA256": "50fe871fe11efa895c008f21bb23bb00963eb161c8192f0db45d905e58c0e145",
+      "imageModel": "qwen-image-3.0-pro"
+    },
+    {
+      "id": "anime-chiffon",
+      "title": "雨后花信",
+      "background": "Atmospheres/anime-chiffon/background",
+      "effect": "petal",
+      "palette": [
+        "#F5C5D7",
+        "#D6E5BC",
+        "#C4BADF"
+      ],
+      "density": 0.75,
+      "backgroundSHA256": "d6c3d19f4f52c9e80a2fae36e7e73fb3ab85cc25f89541bc766f64a11cdc556c",
+      "imageModel": "qwen-image-3.0-pro"
+    },
+    {
+      "id": "anime-karin",
+      "title": "窗边的明信片",
+      "background": "Atmospheres/anime-karin/background",
+      "effect": "stardust",
+      "palette": [
+        "#BFC4F5",
+        "#F2B9CD",
+        "#FFE1BC"
+      ],
+      "density": 0.7,
+      "backgroundSHA256": "8ca71d3cd58203d1a1cf500ba51158166b8a520511280581b25012600ea0dc4e",
+      "imageModel": "qwen-image-3.0-pro"
+    }
+  ]
+}

@@ -29,10 +29,15 @@ final class CompanionSoundscape: NSObject {
     @ObservationIgnored private var retired: AVAudioPlayer?
     @ObservationIgnored private var retirement: Task<Void,Never>?
     @ObservationIgnored private var timer: Timer?
+    @ObservationIgnored private var sessionTask:Task<Void,Never>?
+    @ObservationIgnored private var sessionRevision=0
+    @ObservationIgnored private var musicPreparation:Task<Void,Never>?
+    @ObservationIgnored private var musicRevision=UUID()
     var track: SoundscapeTrack? { availableTracks.first { $0.id == trackID } }
     func configure(collection:CharacterCollection,profile:CharacterProfile,onChange:@escaping (CharacterAudioPreferences)->Void) {
         // Stop, don't crossfade: a previous role must never remain audible in this one.
         retirement?.cancel(); retired?.stop(); retired = nil
+        musicPreparation?.cancel();musicPreparation=nil;musicRevision=UUID()
         player?.stop(); player = nil; stopMeter(); playing = false; focus = .none
         let clean = collection.normalize(profile).audio!
         availableTracks = collection.music; collectionScope = collection.optionScope; trackID = clean.trackID
@@ -77,43 +82,59 @@ final class CompanionSoundscape: NSObject {
         volume = value.isFinite ? min(1,max(0,value)) : 0.28
         interrupted = false; error = nil; persist(); reconcile()
     }
-    func beginVoice(_ value: VoiceFocus) throws {
+    func beginVoice(_ value: VoiceFocus) async throws {
         guard active, !interrupted else { throw NSError(domain:"XuyuAudio",code:1) }
         focus = value
         if value == .recording { player?.pause(); playing = false; stopMeter() }
-        try configureSession()
+        sessionTask?.cancel();sessionRevision += 1
+        let revision=sessionRevision
+        try await configureSession()
+        try Task.checkCancellation()
+        guard revision==sessionRevision,active,!interrupted else {throw CancellationError()}
         reconcileMusic()
     }
     func endVoice() { focus = .none; reconcile() }
     private func persist() { onPreferences?(CharacterAudioPreferences(enabled:true,trackID:trackID,volume:volume,masterMuted:false,speechVolume:speechVolume,volumeControlsVersion:1)) }
-    private func configureSession() throws {
-        guard active, !interrupted else { return }
-        let audio = AVAudioSession.sharedInstance()
-        let category: AVAudioSession.Category = focus == .recording ? .playAndRecord : .playback
-        let mode: AVAudioSession.Mode = focus == .speech ? .spokenAudio : .default
-        let options: AVAudioSession.CategoryOptions = focus == .recording ? [.defaultToSpeaker] : focus == .speech ? [.duckOthers] : []
-        if audio.category != category || audio.mode != mode || audio.categoryOptions != options {
-            try audio.setCategory(category,mode:mode,options:options)
-        }
-        if focus != .none || enabled { try audio.setActive(true) }
-        else { try? audio.setActive(false,options:.notifyOthersOnDeactivation) }
+    private func configureSession() async throws {
+        try await AudioSessionHardware.configure(recording:focus == .recording,speaking:focus == .speech,
+            active:active && !interrupted && (focus != .none || enabled))
     }
     private func reconcile() {
         if !active || interrupted {
             player?.pause(); playing = false; stopMeter()
-            if focus == .none { try? AVAudioSession.sharedInstance().setActive(false,options:.notifyOthersOnDeactivation) }
-            return
         }
-        do { try configureSession(); reconcileMusic() }
-        catch { self.error = "音乐没有成功播放，请稍后再试。"; player?.pause(); playing = false; stopMeter() }
+        sessionTask?.cancel();sessionRevision += 1
+        let revision=sessionRevision
+        sessionTask=Task { @MainActor [weak self] in
+            guard let self else {return}
+            do {
+                try await configureSession();try Task.checkCancellation()
+                guard revision==sessionRevision else {return};reconcileMusic()
+            } catch is CancellationError {} catch {
+                guard revision==sessionRevision else {return}
+                self.error = "音乐没有成功播放，请稍后再试。"; player?.pause(); playing = false; stopMeter()
+            }
+        }
     }
     private func reconcileMusic() {
         guard active, enabled, !interrupted, focus != .recording else { player?.pause(); playing = false; stopMeter(); return }
         do {
             if player == nil {
                 guard let track, track.id.hasPrefix(collectionScope+"/"), let url = track.resourceURL else { throw CocoaError(.fileNoSuchFile) }
-                let audio = try AVAudioPlayer(contentsOf:url)
-                audio.numberOfLoops = -1; audio.volume = 0; audio.isMeteringEnabled = true; audio.prepareToPlay(); player = audio
+                guard musicPreparation==nil else {return}
+                let revision=musicRevision
+                musicPreparation=Task { @MainActor [weak self] in
+                    do {
+                        let prepared=try await AudioSessionHardware.prepareMusic(url)
+                        try Task.checkCancellation()
+                        guard let self,revision==musicRevision else {return}
+                        player=prepared.player;musicPreparation=nil;reconcileMusic()
+                    } catch {
+                        guard let self,revision==musicRevision,!Task.isCancelled else {return}
+                        musicPreparation=nil;self.error="音乐资源暂时无法读取，请重新打开空间后重试。"
+                    }
+                }
+                return
             }
             guard let player else { return }
             if !player.isPlaying { guard player.play() else { throw CocoaError(.fileReadCorruptFile) } }
@@ -123,6 +144,7 @@ final class CompanionSoundscape: NSObject {
         } catch { self.error = "音乐资源暂时无法读取，请重新打开空间后重试。"; playing = false; stopMeter() }
     }
     private func retirePlayer() {
+        musicPreparation?.cancel();musicPreparation=nil;musicRevision=UUID()
         retirement?.cancel(); retired?.stop()
         retired = player; player = nil; retired?.setVolume(0,fadeDuration:0.3)
         retirement = Task { @MainActor [weak self] in

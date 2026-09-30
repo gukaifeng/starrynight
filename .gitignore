@@ -53,6 +53,10 @@ __pycache__/
 
 # Generated character portraits/covers are rebuilt with the local model assets.
 /ios/CharacterHost/Assets.xcassets/Cover_*.imageset/
+/ios/CharacterHost/Assets.xcassets/Avatar_*.imageset/
+/unity/CharacterRuntime/Assets/Resources/Atmospheres/
+/unity/CharacterRuntime/Assets/Resources/Atmospheres.meta
+/ios/CharacterHost/Resources/Music_*_theme.caf
 /ios/CharacterHost/Resources/Assets.xcassets/Anime_*.imageset/
 /ios/CharacterHost/Resources/Assets.xcassets/MikuThumbnail*.imageset/
 /ios/CharacterHost/Resources/Assets.xcassets/HumanThumbnail*.imageset/

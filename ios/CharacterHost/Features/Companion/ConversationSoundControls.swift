@@ -29,22 +29,11 @@ struct ConversationSoundPanel: View {
                         channel("背景音乐",symbol:"music.note",volume:Binding(get:{audio.volume},set:{audio.setVolume($0)}),id:"music")
                     }.padding(.horizontal,12)
                         .background(Theme.surface.opacity(0.30),in:RoundedRectangle(cornerRadius:16))
-                    Menu {
-                        ForEach(audio.availableTracks) { track in
-                            Button {audio.select(track.id)} label: {
-                                if audio.trackID==track.id {Label(track.title,systemImage:"checkmark")} else {Text(track.title)}
-                            }.accessibilityIdentifier("musicTrack-"+track.id)
-                        }
-                    } label: {
-                        HStack(spacing:8) {
-                            Image(systemName:"opticaldisc").font(.system(size:13,weight:.light))
-                            Text("配乐").font(.system(size:11)).foregroundStyle(Theme.secondary)
-                            Spacer(minLength:12)
-                            Text(audio.availableTracks.first(where:{$0.id==audio.trackID})?.title ?? "选择音乐")
-                                .font(.system(size:12,weight:.medium)).lineLimit(1)
-                            Image(systemName:"chevron.up.chevron.down").font(.system(size:8))
-                        }.padding(.horizontal,12).frame(height:38).contentShape(Rectangle())
-                    }.accessibilityIdentifier("conversationMusicPicker")
+                    HStack(spacing:8) {
+                        Image(systemName:"opticaldisc").font(.system(size:13,weight:.light))
+                        Text(audio.track?.title ?? "角色配乐").font(.system(size:12,weight:.medium)).lineLimit(1)
+                        Spacer()
+                    }.foregroundStyle(Theme.secondary).padding(.horizontal,12).frame(height:30)
                     Text("音量滑至最左即静音 · 朗读时配乐自动轻下来")
                         .font(.system(size:10)).foregroundStyle(Theme.secondary.opacity(0.72))
                         .frame(maxWidth:.infinity,alignment:.leading).padding(.horizontal,12)

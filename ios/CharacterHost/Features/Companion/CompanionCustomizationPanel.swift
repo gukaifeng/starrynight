@@ -51,6 +51,13 @@ struct CompanionCustomizationPanel: View {
                             Rectangle().fill(Theme.line.opacity(0.5)).frame(height:0.5).padding(.leading,58)
                             row(.history)
                         }.background(Theme.surface.opacity(0.65),in:RoundedRectangle(cornerRadius:22))
+                        if let session {
+                            Toggle(isOn:Binding(get:{session.record.profile.atmosphereEnabled ?? true},set:{value in session.store.update(model.id) {$0.profile.atmosphereEnabled=value}})) {
+                                Label("氛围特效",systemImage:"sparkles").font(.system(size:14,weight:.medium))
+                            }.tint(Theme.accent).padding(18)
+                                .background(Theme.surface.opacity(0.45),in:RoundedRectangle(cornerRadius:20))
+                                .accessibilityIdentifier("atmosphereEffectsToggle")
+                        }
                     }
                 }.padding(.horizontal,22).padding(.bottom,24)
             }.scrollIndicators(.hidden).accessibilityIdentifier("customizationSections")

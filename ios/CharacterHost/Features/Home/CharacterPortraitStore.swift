@@ -37,10 +37,12 @@ final class CharacterPortraitStore {
         return SHA256.hash(data:data).map { String(format:"%02x",$0) }.joined()
     }
     func hasCurrent(_ model:ModelDescriptor,profile:CharacterProfile) -> Bool {
-        keys[model.id] == Self.key(model:model,profile:profile) && images[model.id] != nil
+        if UIImage(named:"Avatar_"+model.runtimeID.replacingOccurrences(of:"-",with:"_")) != nil {return true}
+        return keys[model.id] == Self.key(model:model,profile:profile) && images[model.id] != nil
     }
     func image(_ model:ModelDescriptor,profile:CharacterProfile) -> UIImage? {
-        hasCurrent(model,profile:profile) ? images[model.id] : nil
+        if let avatar=UIImage(named:"Avatar_"+model.runtimeID.replacingOccurrences(of:"-",with:"_")) {return avatar}
+        return hasCurrent(model,profile:profile) ? images[model.id] : nil
     }
     /// Unity writes only a SHA-256-named staging image; correlated host requests own the model mapping.
     func accept(model:ModelDescriptor,key:String) -> Bool {

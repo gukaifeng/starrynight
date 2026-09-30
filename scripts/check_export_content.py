@@ -23,6 +23,11 @@ if content.get('characterApi')!=1 or content.get('catalogSha256')!=hashlib.sha25
 environment_catalog=ROOT/'ios/CharacterHost/Resources/EnvironmentCatalog.json'
 if content.get('environmentApi')!=1 or not environment_catalog.exists() or content.get('environmentCatalogSha256')!=hashlib.sha256(environment_catalog.read_bytes()).hexdigest():
     raise SystemExit('Environment catalog differs from Unity export. Re-export this platform before building.')
+if content.get('imageBackdropRevision',0)<1:
+    raise SystemExit('Unity export needs character image backgrounds v1; export this platform again.')
+atmospheres=ROOT/'ios/CharacterHost/Resources/CharacterAtmospheres.json'
+if content.get('imageBackdropCatalogSha256') != hashlib.sha256(atmospheres.read_bytes()).hexdigest():
+    raise SystemExit('Character image backgrounds differ from Unity export; re-export this platform.')
 images = ROOT / 'ios/CharacterHost/Resources/Assets.xcassets'
 if content.get('autonomyRevision', 0) < 2:
     raise SystemExit('Unity export lacks visible natural idle v2; re-export this platform before building.')

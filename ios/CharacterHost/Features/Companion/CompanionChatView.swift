@@ -34,12 +34,23 @@ struct CompanionChatView: View {
     @Namespace private var chatViewport
     @State private var editing = false
     @State private var smartRepliesPresented=false
+    @State private var voiceMode=false
+    @State private var voiceEditing=false
+    @State private var holdingVoice=false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     private var interfaceAnimation: Animation { reduceMotion ? .easeInOut(duration:0.18) : .spring(response:0.42,dampingFraction:0.9) }
     private var latestContent: [String] { [String(session.record.messages.count),String(session.replyReveal.revision),String(session.generating)] + (session.record.messages.last?.visibleContentKey ?? []) }
     var body: some View {
         GeometryReader { geometry in
+          if session.voiceInput.phase == .editing {
+            // In short landscape windows the keyboard leaves too little room
+            // for an overlay above the composer. Keep the editor inside the
+            // existing hit-test area, with send/cancel beside its text field.
+            VoiceCaptureOverlay(session:session,editing:$voiceEditing,compact:geometry.size.height < 250)
+                .frame(maxWidth:.infinity,maxHeight:.infinity,alignment:.bottom)
+                .padding(.horizontal,16)
+          } else {
           VStack(spacing:0) {
             messages.simultaneousGesture(TapGesture().onEnded { editing = false }).zIndex(2)
             if geometry.size.height >= 360 && session.record.messages.isEmpty && !editing && !session.generating && !session.speech.isRecording { topics.transition(.opacity.combined(with:.move(edge:.bottom))) }
@@ -63,8 +74,9 @@ struct CompanionChatView: View {
                 }.buttonStyle(.plain).accessibilityLabel("角色表现").accessibilityIdentifier("conversationPerformanceButton")
                 ConversationSoundButton(session:session,onSettings:{ editing = false; onSoundSettings?() })
             }.foregroundStyle(Theme.ink.opacity(0.56)).padding(.leading,22).padding(.trailing,23).frame(height:34)
-            composer(compact:geometry.size.height < 220).zIndex(smartRepliesPresented ? 4 : 0)
+            composer(compact:geometry.size.height < 300).zIndex(smartRepliesPresented || session.voiceInput.active ? 4 : 0)
 
+          }
           }
         }
         .coordinateSpace(name:"companionPanel")
@@ -78,7 +90,10 @@ struct CompanionChatView: View {
         .animation(interfaceAnimation,value:session.notice ?? session.store.error ?? session.speech.error)
         .task { await session.speech.check() }
         .onChange(of:session.store.chatDisplay) { onDisplayChanged?() }
-        .onChange(of:session.dismissKeyboardRequest) { editing = false }
+        .onChange(of:session.dismissKeyboardRequest) { editing = false;voiceEditing=false }
+        .onChange(of:session.speech.error) {if session.speech.error != nil {session.voiceInput.cancel();holdingVoice=false}}
+        .onChange(of:voiceEditing) {onEditingChanged?(voiceEditing)}
+        .onDisappear {if session.voiceInput.active {session.cancelVoiceInput()}}
         .onChange(of:editing) {
             if editing {smartRepliesPresented=false}
             if editing && session.characterEditorPresented { editing = false }
@@ -119,7 +134,7 @@ struct CompanionChatView: View {
                                         bottomDistance:content.frame(in:.named(chatViewport)).maxY - viewport.size.height))
                             }
                         }
-                }.scrollDisabled(session.inspectionActive).scrollIndicators(.hidden).scrollDismissesKeyboard(.interactively).accessibilityIdentifier("chatMessages")
+                }.scrollDisabled(session.inspectionActive || session.voiceInput.active).scrollIndicators(.hidden).scrollDismissesKeyboard(.interactively).accessibilityIdentifier("chatMessages")
                     .accessibilityValue(scrollState.isAtLatest ? "最新消息" : "历史消息")
                     .coordinateSpace(name:chatViewport)
                     .onPreferenceChange(ConversationBottomPreference.self) { geometry in
@@ -188,53 +203,61 @@ struct CompanionChatView: View {
         }.accessibilityIdentifier("starter-" + id)
     }
     private func composer(compact:Bool) -> some View {
-        HStack(alignment:.bottom,spacing:2) {
+        HStack(alignment:.bottom,spacing:3) {
+            Button {
+                editing=false;voiceEditing=false;smartRepliesPresented=false
+                if session.voiceInput.active {session.cancelVoiceInput()}
+                withAnimation(interfaceAnimation) {voiceMode.toggle()}
+            } label: {
+                Image(systemName:voiceMode ? "keyboard" : "waveform.circle")
+                    .font(.system(size:21,weight:.light)).foregroundStyle(Theme.ink.opacity(0.65))
+                    .frame(width:44,height:44).contentShape(Rectangle())
+            }.buttonStyle(.plain).padding(.leading,3)
+                .accessibilityLabel(voiceMode ? "切换键盘输入" : "切换语音输入").accessibilityIdentifier("inputModeButton")
+            if voiceMode {
+                Text(session.voiceInput.phase == .holding ? "松开发送 · 上滑编辑" : "按住说话")
+                    .font(.system(size:15,weight:.medium)).foregroundStyle(Theme.ink.opacity(0.76))
+                    .frame(maxWidth:.infinity,minHeight:44).contentShape(Rectangle())
+                    .gesture(DragGesture(minimumDistance:0,coordinateSpace:.local)
+                        .onChanged {value in
+                            if !holdingVoice && !session.voiceInput.active {
+                                holdingVoice=true;smartRepliesPresented=false;session.beginVoiceInput()
+                                UIImpactFeedbackGenerator(style:.soft).impactOccurred(intensity:0.5)
+                            }
+                            if holdingVoice && value.translation.height < -64 && session.voiceInput.phase == .holding {
+                                session.finishVoiceInput(edit:true)
+                                UISelectionFeedbackGenerator().selectionChanged()
+                            }
+                        }.onEnded {_ in
+                            if holdingVoice {session.finishVoiceInput(edit:false)}
+                            holdingVoice=false
+                        })
+                    .accessibilityLabel("按住说话，上滑编辑，松开发送")
+                    .accessibilityIdentifier("holdToTalkButton")
+                    .accessibilityAction(named:Text("开始录音")) {session.beginVoiceInput()}
+                    .accessibilityAction(named:Text("结束并编辑")) {session.finishVoiceInput(edit:true)}
+            } else {
+                ChatComposerInput(text:$session.input,isFocused:$editing,fontSize:chatFontSize,
+                                  foreground:UIColor(Theme.ink),accent:UIColor(Theme.accent),
+                                  maxLines:compact ? 1 : 3,isEnabled:!session.characterEditorPresented,onSend:send)
+                    .frame(maxWidth:.infinity)
+                    .overlay(alignment:.topLeading) {
+                        if session.input.isEmpty {
+                            Text("想和你说…").font(.system(size:chatFontSize)).foregroundStyle(Theme.ink.opacity(0.35))
+                                .allowsHitTesting(false).accessibilityHidden(true)
+                        }
+                    }.padding(.leading,2).padding(.trailing,4).padding(.vertical,12)
+            }
             Button {
                 editing=false
                 withAnimation(interfaceAnimation) {smartRepliesPresented.toggle()}
                 if smartRepliesPresented && session.quickReplies.isEmpty && !session.quickRepliesLoading {session.requestQuickReplies()}
             } label: {
-                Image(systemName:"sparkles").font(.system(size:16,weight:.light))
-                    .foregroundStyle(Theme.gradient.opacity(smartRepliesPresented ? 1 : 0.7))
-                    .frame(width:30,height:32)
-                    .background(Theme.ink.opacity(smartRepliesPresented ? 0.10 : 0.035),in:RoundedRectangle(cornerRadius:11))
-                    .frame(width:39,height:44).contentShape(Rectangle())
-            }.buttonStyle(.plain).padding(.leading,5)
+                Image(systemName:"sparkles").font(.system(size:17,weight:.light))
+                    .foregroundStyle(Theme.gradient.opacity(smartRepliesPresented ? 1 : 0.66))
+                    .frame(width:42,height:44).contentShape(Rectangle())
+            }.buttonStyle(.plain).disabled(session.voiceInput.active)
                 .accessibilityLabel("智能回复").accessibilityIdentifier("smartReplyButton")
-            ChatComposerInput(text:$session.input,isFocused:$editing,fontSize:chatFontSize,
-                              foreground:UIColor(Theme.ink),accent:UIColor(Theme.accent),
-                              maxLines:compact ? 1 : 3,isEnabled:!session.characterEditorPresented,onSend:send)
-                .frame(maxWidth:.infinity)
-                .overlay(alignment:.topLeading) {
-                    if session.input.isEmpty {
-                        Text("想和你说…").font(.system(size:chatFontSize)).foregroundStyle(Theme.ink.opacity(0.35))
-                            .allowsHitTesting(false).accessibilityHidden(true)
-                    }
-                }
-                .padding(.leading,3).padding(.trailing,4).padding(.vertical,12)
-            Button {
-                editing = false
-                if !session.speech.isRecording { session.stop() }
-                session.speech.toggleRecording()
-            } label: {
-                Image(systemName:session.speech.isRecording ? "stop.fill" : "mic")
-                    .font(.system(size:session.speech.isRecording ? 11 : 17,weight:.regular))
-                    .foregroundStyle(session.speech.isRecording ? Color(red:0.68,green:0.30,blue:0.24) : Theme.ink.opacity(0.72))
-                    .frame(width:session.speech.isRecording ? 26 : 32,height:session.speech.isRecording ? 26 : 32)
-                    .background(session.speech.isRecording ? Theme.peach.opacity(0.3) : .clear,in:Circle())
-                    .frame(width:44,height:44).contentShape(Circle())
-            }.buttonStyle(.plain).accessibilityLabel(session.speech.isRecording ? "结束录音" : "语音输入")
-                .accessibilityIdentifier("recordVoiceButton")
-            Button { if session.generating { session.stop() } else { send() } } label: {
-                Image(systemName:session.generating ? "stop.fill" : "arrow.up")
-                    .font(.system(size:session.generating ? 12 : 16,weight:.medium))
-                    .foregroundStyle(canSend || session.generating ? Theme.background : Theme.ink.opacity(0.4))
-                    .frame(width:32,height:32)
-                    .background(Theme.ink.opacity(canSend || session.generating ? 0.88 : 0.08),in:Circle())
-                    .frame(width:44,height:44).contentShape(Circle())
-            }.buttonStyle(.plain).disabled(!session.generating && !canSend)
-                .accessibilityLabel(session.generating ? "停止回复" : "发送")
-                .accessibilityIdentifier(session.generating ? "stopReplyButton" : "sendMessageButton")
         }.padding(.trailing,4).padding(.vertical,2)
             .background(Theme.surface.opacity(reduceTransparency ? 1 : Theme.controlOpacity),in:RoundedRectangle(cornerRadius:25,style:.continuous))
             .overlay(RoundedRectangle(cornerRadius:25,style:.continuous).stroke(Theme.line.opacity(0.8),lineWidth:0.75))
@@ -248,7 +271,14 @@ struct CompanionChatView: View {
             .padding(.horizontal,20)
             .overlay {
                 GeometryReader { composer in
-                    if smartRepliesPresented {
+                    if session.voiceInput.active {
+                        Color.clear.overlay(alignment:.bottom) {
+                            VoiceCaptureOverlay(session:session,editing:$voiceEditing,compact:compact)
+                                .padding(.horizontal,4).fixedSize(horizontal:false,vertical:true)
+                                .offset(y:-composer.size.height-12)
+                                .transition(.opacity.combined(with:.offset(y:12)))
+                        }
+                    } else if smartRepliesPresented {
                         Color.clear.overlay(alignment:.bottom) {
                             smartRepliesPanel.padding(.horizontal,22)
                                 .fixedSize(horizontal:false,vertical:true)
@@ -258,6 +288,7 @@ struct CompanionChatView: View {
                     }
                 }
             }
+            .animation(interfaceAnimation,value:session.voiceInput.phase)
             .onChange(of:session.quickReplySource) {if session.quickReplySource==nil {smartRepliesPresented=false}}
 
     }

@@ -6,44 +6,48 @@
       "asset": "Cover_anime_kipfel",
       "environmentID": "garden",
       "focusX": 0.5,
-      "focusY": 0.31,
+      "focusY": 0.52,
       "frameBottom": 0.46,
       "cameraYaw": 0,
-      "source": "author-supplied",
-      "sourceSHA256": "977dd67807ac2fbade6186df52459afdd553ce4308d4079ad123e25ff136c94f"
+      "source": "bailian-generated",
+      "sourceSHA256": "4f0fa809febb5b6282a4ed13f04ecb2fbaac7628093250e5ced6a1a751edd7f1",
+      "avatar": "Avatar_anime_kipfel"
     },
     {
       "runtimeID": "anime-mamehinata",
       "asset": "Cover_anime_mamehinata",
       "environmentID": "sunroom",
       "focusX": 0.5,
-      "focusY": 0.31,
+      "focusY": 0.48,
       "frameBottom": 0.46,
       "cameraYaw": 0,
-      "source": "author-supplied",
-      "sourceSHA256": "1c68a92b2ecea9676e013042806c41bb58802809be6bc8c49a9c9148de3520e5"
+      "source": "bailian-generated",
+      "sourceSHA256": "16376db95830441639a39584f4aeecad6cb4ad1d566995db2b20545fc6e02bd4",
+      "avatar": "Avatar_anime_mamehinata"
     },
     {
       "runtimeID": "anime-chiffon",
       "asset": "Cover_anime_chiffon",
       "environmentID": "garden",
       "focusX": 0.5,
-      "focusY": 0.3,
+      "focusY": 0.42,
       "frameBottom": 0.46,
       "cameraYaw": 0,
-      "source": "author-supplied",
-      "sourceSHA256": "ec41194f5418bfb609b502b5c46338a5f183fdecdd7567908187efea03421d80"
+      "source": "bailian-generated",
+      "sourceSHA256": "5dad1159c31e635f9f0fa03a0a919f3b0ebbd66ee5a5c09b7cacd17767e417e0",
+      "avatar": "Avatar_anime_chiffon"
     },
     {
       "runtimeID": "anime-karin",
       "asset": "Cover_anime_karin",
       "environmentID": "sunroom",
       "focusX": 0.5,
-      "focusY": 0.3,
+      "focusY": 0.39,
       "frameBottom": 0.46,
       "cameraYaw": 0,
-      "source": "author-supplied",
-      "sourceSHA256": "c74da965e2e1c168fa35431be6c1c4158c31b97af617f1b7dc9dcfaec4d40d27"
+      "source": "bailian-generated",
+      "sourceSHA256": "86ffae33e9f5c502396fa14aa4e0929608294dc1f7d9f963e47befb6227d8d6e",
+      "avatar": "Avatar_anime_karin"
     }
   ]
 }

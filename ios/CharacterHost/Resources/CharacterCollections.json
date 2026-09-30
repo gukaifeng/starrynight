@@ -4,7 +4,7 @@
     {
       "schemaVersion": 1,
       "id": "app.starry.collections.anime-kipfel",
-      "version": "1.1.0",
+      "version": "1.2.0",
       "modelID": "anime-kipfel",
       "modelPackageID": "app.starry.characters.anime-kipfel",
       "modelPackageVersion": "2.2.0",
@@ -30,36 +30,25 @@
       ],
       "music": [
         {
-          "id": "anime-kipfel/moon",
-          "asset": "Music_anime_kipfel_moon",
+          "id": "anime-kipfel/theme",
+          "asset": "Music_anime_kipfel_theme",
           "assetExtension": "caf",
           "sourceModelID": "anime-kipfel",
-          "sha256": "2eee57b1b0cc9f26fb5a24b466d427f5556c8eb6f09d7ce7d3e8bc87b684dde6",
-          "duration": 26.301375,
-          "title": "月亮藏在口袋里",
-          "detail": "玻璃琴音 · 轻软晚安",
-          "symbol": "moon.stars"
-        },
-        {
-          "id": "anime-kipfel/breeze",
-          "asset": "Music_anime_kipfel_breeze",
-          "assetExtension": "caf",
-          "sourceModelID": "anime-kipfel",
-          "sha256": "44cc28e88cd467c38f384ade6c82709e65970f67a7d5ff0e682cfbd384119d0b",
-          "duration": 22.06896875,
-          "title": "花园里的小步子",
-          "detail": "圆润木琴 · 轻盈散步",
-          "symbol": "leaf"
+          "sha256": "508ddc7b882a58da63888a09891350ccb9f14acf20d7924c13ea3100991d6dc3",
+          "duration": 118.0,
+          "title": "雨声与书页",
+          "detail": "温柔钢琴 · 书屋夜色",
+          "symbol": "music.note"
         }
       ],
       "defaultEnvironment": "garden",
       "defaultVoice": "anime-kipfel/natural",
-      "defaultMusic": "anime-kipfel/moon"
+      "defaultMusic": "anime-kipfel/theme"
     },
     {
       "schemaVersion": 1,
       "id": "app.starry.collections.anime-mamehinata",
-      "version": "1.1.0",
+      "version": "1.2.0",
       "modelID": "anime-mamehinata",
       "modelPackageID": "app.starry.characters.anime-mamehinata",
       "modelPackageVersion": "2.2.0",
@@ -85,36 +74,25 @@
       ],
       "music": [
         {
-          "id": "anime-mamehinata/moon",
-          "asset": "Music_anime_mamehinata_moon",
+          "id": "anime-mamehinata/theme",
+          "asset": "Music_anime_mamehinata_theme",
           "assetExtension": "caf",
           "sourceModelID": "anime-mamehinata",
-          "sha256": "c128d824c1f4f458c9d75a17dfd44f7e09fcaf393c87d8e3b4bf81eecd7af860",
-          "duration": 27.82609375,
-          "title": "把晚风留给你",
-          "detail": "毡音钢琴 · 温柔低语",
-          "symbol": "moon"
-        },
-        {
-          "id": "anime-mamehinata/breeze",
-          "asset": "Music_anime_mamehinata_breeze",
-          "assetExtension": "caf",
-          "sourceModelID": "anime-mamehinata",
-          "sha256": "e87d7a38aa4a053921f86d4fc406daa585d8b562a6fd7d01d01ab8d59b92f5fd",
-          "duration": 23.13253125,
-          "title": "窗台上的晴天",
-          "detail": "柔和拨弦 · 暖光日常",
-          "symbol": "sun.max"
+          "sha256": "dd16ea15176be59d7a454680c3c018c35da9e389b4c9e23d956945455f528777",
+          "duration": 118.0,
+          "title": "窗边的晴天",
+          "detail": "暖色吉他 · 山间微风",
+          "symbol": "music.note"
         }
       ],
       "defaultEnvironment": "sunroom",
       "defaultVoice": "anime-mamehinata/natural",
-      "defaultMusic": "anime-mamehinata/moon"
+      "defaultMusic": "anime-mamehinata/theme"
     },
     {
       "schemaVersion": 1,
       "id": "app.starry.collections.anime-chiffon",
-      "version": "1.1.0",
+      "version": "1.2.0",
       "modelID": "anime-chiffon",
       "modelPackageID": "app.starry.characters.anime-chiffon",
       "modelPackageVersion": "3.0.1",
@@ -133,36 +111,25 @@
       ],
       "music": [
         {
-          "id": "anime-chiffon/moon",
-          "asset": "Music_anime_chiffon_moon",
+          "id": "anime-chiffon/theme",
+          "asset": "Music_anime_chiffon_theme",
           "assetExtension": "caf",
           "sourceModelID": "anime-chiffon",
-          "sha256": "7314f77dfb99a9c461f2d06f030df09c0f6c7dfb3e4ad6c2c914c3b1592997e3",
-          "duration": 27.04225,
-          "title": "花束与晚霞",
-          "detail": "轻柔钟音 · 花间夜话",
-          "symbol": "moon.stars"
-        },
-        {
-          "id": "anime-chiffon/breeze",
-          "asset": "Music_anime_chiffon_breeze",
-          "assetExtension": "caf",
-          "sourceModelID": "anime-chiffon",
-          "sha256": "82eef180d74681b4278baab908f7d93f2858e2b0b8c44e1a5f056a7e6ae839e3",
-          "duration": 22.58825,
-          "title": "一页粉色手账",
-          "detail": "柔和拨弦 · 轻风小记",
-          "symbol": "leaf"
+          "sha256": "382625d38a373efc996df6c2cec7fec016d66f8451290b7758b96d8d306ff6e4",
+          "duration": 118.0,
+          "title": "花间初光",
+          "detail": "微光钢琴 · 雨后花店",
+          "symbol": "music.note"
         }
       ],
       "defaultEnvironment": "garden",
       "defaultVoice": "anime-chiffon/natural",
-      "defaultMusic": "anime-chiffon/moon"
+      "defaultMusic": "anime-chiffon/theme"
     },
     {
       "schemaVersion": 1,
       "id": "app.starry.collections.anime-karin",
-      "version": "1.1.0",
+      "version": "1.2.0",
       "modelID": "anime-karin",
       "modelPackageID": "app.starry.characters.anime-karin",
       "modelPackageVersion": "3.0.1",
@@ -181,31 +148,20 @@
       ],
       "music": [
         {
-          "id": "anime-karin/moon",
-          "asset": "Music_anime_karin_moon",
+          "id": "anime-karin/theme",
+          "asset": "Music_anime_karin_theme",
           "assetExtension": "caf",
           "sourceModelID": "anime-karin",
-          "sha256": "581e98fb571a39e002411397d60749ba147177b41a2ee2328f990c1fe126b083",
-          "duration": 28.65671875,
-          "title": "还没寄出的明信片",
-          "detail": "温暖钢琴 · 安静夜色",
-          "symbol": "moon"
-        },
-        {
-          "id": "anime-karin/breeze",
-          "asset": "Music_anime_karin_breeze",
-          "assetExtension": "caf",
-          "sourceModelID": "anime-karin",
-          "sha256": "fa7504f25b445c5b300320acd1e78c919317204356413b272968a2f2d0a7576d",
-          "duration": 21.57303125,
+          "sha256": "ea61472c5925e575c2b509dfbbe39041efeebea192b9379da284917181a333ef",
+          "duration": 32.905375,
           "title": "窗边的小发现",
-          "detail": "圆润木琴 · 轻快日常",
-          "symbol": "sun.max"
+          "detail": "轻巧节奏 · 插画时光",
+          "symbol": "music.note"
         }
       ],
       "defaultEnvironment": "sunroom",
       "defaultVoice": "anime-karin/natural",
-      "defaultMusic": "anime-karin/moon"
+      "defaultMusic": "anime-karin/theme"
     }
   ]
 }

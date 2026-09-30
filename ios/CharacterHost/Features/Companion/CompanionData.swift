@@ -15,6 +15,7 @@ struct CharacterProfile: Codable, Equatable, Sendable {
     // Optional for synthesized Codable compatibility with existing v0.3 archives.
     var voiceID: String? = nil
     var audio: CharacterAudioPreferences? = nil
+    var atmosphereEnabled:Bool? = nil // Older journals default to on.
     var framing: CharacterFraming? = nil
     var studio: CharacterStudio? = nil
     var resolvedStudio: CharacterStudio { (studio ?? .recommended).normalized }
@@ -115,13 +116,24 @@ struct CompanionArchive: Codable, Sendable {
     var guestImportedBy: String? = nil
 }
 enum CompanionPersistence {
+    private static let queue=DispatchQueue(label:"app.starry.journal",qos:.utility)
     static func read(_ url: URL) throws -> CompanionArchive {
+        try queue.sync {try readFile(url)}
+    }
+    private static func readFile(_ url:URL) throws -> CompanionArchive {
         guard FileManager.default.fileExists(atPath:url.path) else { return CompanionArchive() }
         let archive = try JSONDecoder().decode(CompanionArchive.self,from:Data(contentsOf:url))
         guard (1...2).contains(archive.schemaVersion) else { throw CocoaError(.fileReadCorruptFile) }
         return archive
     }
     static func write(_ archive: CompanionArchive, to url: URL) throws {
+        try queue.sync {try writeFile(archive,to:url)}
+    }
+    static func enqueue(_ archive:CompanionArchive,to url:URL,completion:@escaping @Sendable (Result<Void,Error>)->Void) {
+        queue.async {completion(Result {try writeFile(archive,to:url)})}
+    }
+    static func flush() async {await withCheckedContinuation {continuation in queue.async {continuation.resume()}}}
+    private static func writeFile(_ archive:CompanionArchive,to url:URL) throws {
         try FileManager.default.createDirectory(at:url.deletingLastPathComponent(),withIntermediateDirectories:true)
         let encoder = JSONEncoder(); encoder.outputFormatting = [.prettyPrinted,.sortedKeys]
         try encoder.encode(archive).write(to:url,options:.atomic)

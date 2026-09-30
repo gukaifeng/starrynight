@@ -270,7 +270,7 @@ struct CharacterDetailsPanel: View {
 #endif
                     HStack(spacing:8) {
                         Image(systemName:"sparkles").font(.system(size:12))
-                        Text("选一首专属音乐，把重要的话留在共同记忆里。")
+                        Text("听着专属音乐，把重要的话留在共同记忆里。")
                             .font(.system(size:11)).lineLimit(2)
                     }.foregroundStyle(Theme.secondary.opacity(0.8)).padding(.top,4)
                 }.padding(.horizontal,22).padding(.bottom,16)

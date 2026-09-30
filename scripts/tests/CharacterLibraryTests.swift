@@ -13,15 +13,15 @@ struct CharacterLibraryTests {
         func check(_ pass:Bool,_ message:String) { precondition(pass,message); checks += 1 }
         let library = CharacterLibrary(storageURL:url)
         library.activate(DemoAccount.id,existing:[:])
-        check(library.subscriptions == [ModelDescriptor.miku.id],"A new account follows exactly one default")
-        library.subscribe(ModelDescriptor.miku.id,false)
+        check(library.subscriptions == [ModelDescriptor.defaultCharacter.id],"A new account follows exactly one default")
+        library.subscribe(ModelDescriptor.defaultCharacter.id,false)
         let restored = CharacterLibrary(storageURL:url); restored.activate(DemoAccount.id,existing:[:])
         check(restored.subscriptions.isEmpty && restored.lastCharacter == nil,"Explicit empty follows survives restore")
         var profile = CharacterProfile(name:"自建角色一");profile.studio = CharacterStudio()
-        let first = restored.create(base:.human,profile:profile,published:false)!
+        let first = restored.create(base:ModelDescriptor.all[1],profile:profile,published:false)!
         profile.name = "自建角色二"
-        let second = restored.create(base:.human,profile:profile,published:true)!
-        check(first != second && restored.model(first)?.runtimeID == ModelDescriptor.human.id && restored.model(second)?.runtimeID == ModelDescriptor.human.id,"Unique instance IDs share one runtime base")
+        let second = restored.create(base:ModelDescriptor.all[1],profile:profile,published:true)!
+        check(first != second && restored.model(first)?.runtimeID == ModelDescriptor.all[1].id && restored.model(second)?.runtimeID == ModelDescriptor.all[1].id,"Unique instance IDs share one runtime base")
         let chat = CompanionStore(storageURL:chatURL)
         chat.saveProfile(restored.publishedProfile(first)!,id:first)
         chat.update(first) { $0.messages.append(CompanionMessage(role:"user",text:"私有的对话"));$0.memories.append(CompanionMemory(text:"私有的记忆")) }
@@ -40,22 +40,22 @@ struct CharacterLibraryTests {
         check(restored.lastCharacter == second,"Last character is scoped to creator")
         restored.publish(second,value:false,profile:profile)
         restored.activate(DemoAccount.alternateID,existing:[:])
-        check(restored.model(second) == nil && restored.lastCharacter == ModelDescriptor.miku.id,"Withdrawing publication prevents resolution and falls back safely")
+        check(restored.model(second) == nil && restored.lastCharacter == ModelDescriptor.defaultCharacter.id,"Withdrawing publication prevents resolution and falls back safely")
         let again = CharacterLibrary(storageURL:url);again.activate(DemoAccount.id,existing:[:])
         check(again.creations.count == 2 && again.subscriptions.contains(first),"Creations and follows survive disk restore")
         let data = try String(contentsOf:url,encoding:.utf8)
         check(!data.contains("私有的对话") && !data.contains("私有的记忆"),"Published directory never serializes chat or memory")
-        var old = CharacterRecord(profile:.initial("studio-robot")); old.messages.append(CompanionMessage(role:"user",text:"已有聊天"))
+        var old = CharacterRecord(profile:.initial(ModelDescriptor.all[1].id)); old.messages.append(CompanionMessage(role:"user",text:"已有聊天"))
         let migration = CharacterLibrary(storageURL:folder.appendingPathComponent("migrate.json"))
-        migration.activate(DemoAccount.id,existing:["studio-robot":old])
-        check(migration.lastCharacter == "studio-robot" && migration.subscriptions == ["studio-robot"],"Existing chats migrate into follows without rewriting chat storage")
+        migration.activate(DemoAccount.id,existing:[ModelDescriptor.all[1].id:old])
+        check(migration.lastCharacter == ModelDescriptor.all[1].id && migration.subscriptions == [ModelDescriptor.all[1].id],"Existing chats migrate into follows without rewriting chat storage")
         let futureURL = folder.appendingPathComponent("future.json"), future = Data("{\"schemaVersion\":99,\"accounts\":{},\"creations\":[]}".utf8)
         try future.write(to:futureURL)
         let futureStore = CharacterLibrary(storageURL:futureURL);futureStore.activate(DemoAccount.id,existing:[:])
-        check(futureStore.error != nil && !futureStore.subscribe("studio-robot",true),"Unsupported schema blocks writes")
+        check(futureStore.error != nil && !futureStore.subscribe(ModelDescriptor.all[1].id,true),"Unsupported schema blocks writes")
         check(try Data(contentsOf:futureURL) == future,"Unsupported future archive is preserved exactly")
         // Collection allowlists and private instance settings are exercised as real records.
-        let miku = ModelDescriptor.miku, human = ModelDescriptor.human
+        let miku = ModelDescriptor.defaultCharacter, human = ModelDescriptor.all[1]
         for model in ModelDescriptor.all {
             check(model.collection.isCompatible(with:model),"Every built-in collection is compatible")
             check(model.collection.availableEnvironments.map(\.id) == model.collection.environments,"Only declared scenes resolve")
@@ -76,8 +76,8 @@ struct CharacterLibraryTests {
         check(chat.record(first).profile.autoSpeak && !chat.record(second).profile.autoSpeak,"Voice mute is character-scoped")
         chat.activateAccount(DemoAccount.alternateID)
         check(chat.record(first).profile.audio == nil,"Other accounts cannot read music settings")
-        check(CharacterSearch.matches("  温柔   ",model:human,profile:foreign),"Search includes personality and trims spaces")
-        check(CharacterSearch.matches("HATSUNE",model:miku,profile:miku.collection.initialProfile()),"Search matches original names ignoring case")
+        check(CharacterSearch.matches("  "+foreign.name+"   ",model:human,profile:foreign),"Search includes personality and trims spaces")
+        check(CharacterSearch.matches(miku.originalName.uppercased(),model:miku,profile:miku.collection.initialProfile()),"Search matches original names ignoring case")
         check(!CharacterSearch.matches("不存在的角色",model:human,profile:foreign),"Search rejects unrelated text")
         let guestURL = folder.appendingPathComponent("guest.json")
         let guest = CompanionStore(storageURL:guestURL);guest.activateAccount("guest")
@@ -130,7 +130,7 @@ struct CharacterLibraryTests {
             check(initial.enabled && initial.trackID == model.collection.defaultMusic,"Every new character conversation defaults to its own music")
             check(initial.autoplayVersion == 1,"New preferences preserve an explicit playback policy")
         }
-        let model = ModelDescriptor.miku
+        let model = ModelDescriptor.defaultCharacter
         let legacyData = try JSONSerialization.data(withJSONObject:["enabled":false,"trackID":model.collection.music.last!.id,"volume":0.17])
         let legacy = try JSONDecoder().decode(CharacterAudioPreferences.self,from:legacyData)
         check(legacy.autoplayVersion == nil && !legacy.enabled,"Old archives remain readable without a required new field")
@@ -138,12 +138,12 @@ struct CharacterLibraryTests {
         let migrated = model.conversationProfile(preserving:profile).audio!
         check(migrated.enabled && migrated.autoplayVersion == 1,"Old default-off preferences upgrade to autoplay")
         check(migrated.trackID == legacy.trackID && migrated.volume == legacy.volume,"Autoplay migration retains the chosen track and volume")
-        var paused = migrated; paused.enabled = false
+        var paused = migrated; paused.volume = 0
         let restored = try JSONDecoder().decode(CharacterAudioPreferences.self,from:JSONEncoder().encode(paused))
         profile.audio = restored
-        check(!model.conversationProfile(preserving:profile).audio!.enabled,"A current explicit pause survives decoding and normalization")
+        check(model.conversationProfile(preserving:profile).audio!.volume == 0,"A current zero-volume choice survives normalization")
         check(restored.normalizedAutoplay == restored,"Autoplay normalization cannot repeatedly re-enable a paused role")
-        check(ModelDescriptor.robot.conversationProfile(preserving:nil).audio!.enabled,"A paused role does not disable a new role's default music")
+        check(ModelDescriptor.all[2].conversationProfile(preserving:nil).audio!.enabled,"A paused role does not disable a new role's default music")
         return checks
     }
     @MainActor private static func verifyAuthoredDefinitions() throws -> Int {
@@ -153,7 +153,7 @@ struct CharacterLibraryTests {
         func check(_ result:Bool,_ message:String) { precondition(result,message); checks += 1 }
         let library = CharacterLibrary(storageURL:folder.appendingPathComponent("library.json"))
         library.activate(DemoAccount.id,existing:[:])
-        let base = ModelDescriptor.human
+        let base = ModelDescriptor.all[1]
         var definition = base.collection.initialProfile()
         definition.name = "写好的角色"
         definition.background = "作者设定的故事"
@@ -188,7 +188,7 @@ struct CharacterLibraryTests {
         check(conversation.personality == authored.personality && conversation.tone == authored.tone && conversation.concise == authored.concise,"Conversation keeps the authored personality")
         check(conversation.voiceID == authored.voiceID && conversation.voiceSpeed == authored.voiceSpeed,"Listener preferences cannot replace the authored voice")
         check(conversation.resolvedStudio == authored.resolvedStudio && conversation.resolvedFraming == authored.resolvedFraming,"Appearance, stage and camera remain authored")
-        check(!conversation.autoSpeak && conversation.audio == attempted.audio,"Mute and permitted music preferences stay personal")
+        check(conversation.autoSpeak && conversation.audio?.speechVolume == 0 && conversation.audio?.volume == attempted.audio?.volume,"Legacy voice mute becomes personal zero speech volume")
         check(model.conversationProfile(preserving:nil).autoSpeak,"A new listener starts with speech playback enabled")
 
         check(library.publish(first,value:true,profile:attempted),"Repeated publication remains valid")
@@ -214,7 +214,7 @@ struct CharacterLibraryTests {
         var assets = Set<String>(), fingerprints = Set<String>()
         for builtin in ModelDescriptor.all {
             let collection = builtin.collection
-            check(collection.music.count >= 2,"Every built-in role has its own music choices")
+            check(collection.music.count == 1,"Every built-in role has exactly one authored theme")
             for track in collection.music {
                 check(track.sourceModelID == builtin.runtimeID,"A track declares the role whose music it belongs to")
                 check(track.id.hasPrefix(builtin.id+"/"),"Built-in track IDs stay role-scoped")

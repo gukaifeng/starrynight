@@ -85,7 +85,7 @@ def session_cache_key(owner,character,purpose,model,system):
 
 def structured_messages(purpose,system,context,schema):
     if purpose!='plan':
-        return [dict(role='system',content=system+'\nJSON Schema:\n'+dump(schema.model_json_schema())),dict(role='user',content=dump(context))]
+        return [dict(role='system',content=system+'\nJSON Schema:\n'+prompt_schema(schema)),dict(role='user',content=dump(context))]
     # Keep the large reusable prefix ahead of state/timestamps/history, so
     # automatic prefix caching can reuse it even on the first conversation.
     transport=wire_schema(purpose,schema)
@@ -119,9 +119,11 @@ def structured_messages(purpose,system,context,schema):
     return messages
 
 def structured_payload(settings,purpose,messages,attempt=0):
-    return dict(model=settings.character_model,messages=messages,temperature=.95 if purpose=='plan' and attempt==0 else .7 if purpose=='performance' else .2,
+    payload = dict(model=settings.suggestions_model if purpose=='suggestions' else settings.character_model,messages=messages,temperature=.95 if purpose=='plan' and attempt==0 else .7 if purpose=='performance' else .2,
                 presence_penalty=.8 if purpose=='plan' and attempt==0 else 0,
-                max_tokens=1900 if purpose=='plan' else 600,response_format={'type':'json_object'})
+                max_tokens=1900 if purpose=='plan' else 320 if purpose=='suggestions' else 600,response_format={'type':'json_object'})
+    if purpose == 'suggestions': payload['enable_thinking'] = False
+    return payload
 
 def speech_payload(settings,character,beat,voice):
     text,instruction=speech_input(beat)
@@ -155,7 +157,7 @@ class Provider:
             try:
                 payload=structured_payload(self.settings,purpose,messages,attempt)
                 record_request(self.settings,self.store,owner,character,purpose,payload)
-                headers={**self.headers,'x-dashscope-aca-session':session_cache_key(owner,character,purpose,self.settings.character_model,system)}
+                headers={**self.headers,'x-dashscope-aca-session':session_cache_key(owner,character,purpose,payload['model'],system)}
                 response = await self.http.post(self.settings.host+'/compatible-mode/v1/chat/completions', headers=headers,
                     json=payload)
                 self.check(response); data = response.json()

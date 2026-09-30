@@ -30,7 +30,7 @@ namespace ModelSpace
             appearance = value.GetComponent<RealCharacterAppearance>();
             if(environment) {
                 environment.ToonPortrait=value.GetComponentsInChildren<Renderer>(true).Any(r=>r.sharedMaterials.Any(m=>m && m.shader.name=="Toon/Toon"));
-                environment.Bind(value.RestBounds().size.y);
+                environment.Bind(value.RestBounds().size.y,value.modelId);
             }
         }
         public void Configure(StudioSettings value, bool immediate=false)

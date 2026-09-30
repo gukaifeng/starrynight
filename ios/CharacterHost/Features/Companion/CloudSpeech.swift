@@ -13,28 +13,42 @@ private final class ConversionInput: @unchecked Sendable {
     init(_ buffer: AVAudioPCMBuffer) { self.buffer = buffer }
 }
 private final class MicrophonePCM: @unchecked Sendable {
+    private let queue=DispatchQueue(label:"app.starry.microphone",qos:.userInitiated)
     private let engine = AVAudioEngine()
     private var converter: AVAudioConverter?
-    func start(_ receive: @escaping @Sendable (Data) -> Void) throws {
+    private var tapped=false
+    func start(_ receive: @escaping @Sendable (Data,Float) -> Void) async throws {
+        try await withCheckedThrowingContinuation { (continuation:CheckedContinuation<Void,Error>) in
+            queue.async { [self] in
+                do {try startEngine(receive);continuation.resume()}
+                catch {stopEngine();continuation.resume(throwing:error)}
+            }
+        }
+    }
+    private func startEngine(_ receive: @escaping @Sendable (Data,Float) -> Void) throws {
         let input = engine.inputNode
         let source = input.outputFormat(forBus:0)
         guard source.sampleRate > 0, let target = AVAudioFormat(commonFormat:.pcmFormatInt16,sampleRate:16000,channels:1,interleaved:true),
               let converter = AVAudioConverter(from:source,to:target) else { throw AIConnectionError.unavailable }
         self.converter = converter
-        input.installTap(onBus:0,bufferSize:2048,format:source) { [self] buffer,_ in
+        input.installTap(onBus:0,bufferSize:2048,format:source) { buffer,_ in
             let capacity = AVAudioFrameCount(Double(buffer.frameLength)*16000/source.sampleRate+32)
-            guard let output = AVAudioPCMBuffer(pcmFormat:target,frameCapacity:capacity), let converter = self.converter else { return }
+            guard let output = AVAudioPCMBuffer(pcmFormat:target,frameCapacity:capacity) else { return }
             let input = ConversionInput(buffer); var error: NSError?
             converter.convert(to:output,error:&error) { _,status in
                 if input.supplied { status.pointee = .noDataNow; return nil }
                 input.supplied = true; status.pointee = .haveData; return input.buffer
             }
             guard error == nil, output.frameLength > 0, let samples = output.int16ChannelData?[0] else { return }
-            receive(Data(bytes:samples,count:Int(output.frameLength)*2))
+            var square:Float=0
+            for index in 0..<Int(output.frameLength) {let sample=Float(samples[index])/32768;square += sample*sample}
+            receive(Data(bytes:samples,count:Int(output.frameLength)*2),min(1,sqrt(square/Float(output.frameLength))*5))
         }
+        tapped=true
         engine.prepare(); try engine.start()
     }
-    func stop() { engine.inputNode.removeTap(onBus:0); engine.stop(); converter = nil }
+    private func stopEngine() { if tapped {engine.inputNode.removeTap(onBus:0);tapped=false};engine.stop();converter=nil }
+    func stop() { queue.async { [self] in stopEngine() } }
 }
 
 @MainActor @Observable final class CloudSpeech: NSObject {
@@ -44,6 +58,9 @@ private final class MicrophonePCM: @unchecked Sendable {
     var isRecording = false
     var isSpeaking = false
     var isBusy = false
+    private(set) var recordingTranscript=""
+    private(set) var inputLevel:Float=0
+    @ObservationIgnored private var recordingEnded=false
     private(set) var activeMessageID: UUID?
     private(set) var playbackElapsed = 0.0
     private(set) var playbackLevel: Float = 0
@@ -68,6 +85,9 @@ private final class MicrophonePCM: @unchecked Sendable {
     @ObservationIgnored private var recording: Task<Void,Never>?
     @ObservationIgnored private var upload: Task<Void,Never>?
     @ObservationIgnored private var recordingLimit: Task<Void,Never>?
+    @ObservationIgnored private var recordingTimeout: Task<Void,Never>?
+    @ObservationIgnored var onCaptureCancelled: (() -> Void)?
+    @ObservationIgnored var onCaptureRecovery: ((String) -> Void)?
     @ObservationIgnored private var capture: AsyncThrowingStream<Data,Error>.Continuation?
     @ObservationIgnored private var generation = UUID()
     @ObservationIgnored private var buffers = 0
@@ -90,7 +110,9 @@ private final class MicrophonePCM: @unchecked Sendable {
             NotificationCenter.default.addObserver(self,selector:#selector(interrupted),name:name,object:nil)
         }
     }
-    @objc nonisolated private func interrupted(_ note: Notification) { Task { @MainActor [weak self] in self?.stop() } }
+    @objc nonisolated private func interrupted(_ note: Notification) {
+        Task { @MainActor [weak self] in self?.stop();self?.onCaptureCancelled?() }
+    }
     func check() async { ready = await api.check(); status = ready ? "声音已连接" : "请检查 AI 服务连接" }
     func refreshVolume() { player?.volume = Float(soundscape.speechVolume) }
     func prepare(_ message: UUID, script: AIScript) {
@@ -109,7 +131,7 @@ private final class MicrophonePCM: @unchecked Sendable {
             beat = event.beatId ?? ""; beatPCM = Data(); beatFrames = 0; measured = false; beatDuration=nil
             beatStartTime = totalDuration; playbackElapsed = beatStartTime; playbackLevel = 0
             onFrame?(playbackElapsed,0)
-            try soundscape.beginVoice(.speech)
+            try await soundscape.beginVoice(.speech)
             let engine = AVAudioEngine(), player = AVAudioPlayerNode()
             engine.attach(player); engine.connect(player,to:engine.mainMixerNode,format:AVAudioFormat(standardFormatWithSampleRate:24000,channels:1))
             self.engine = engine; self.player = player; refreshVolume()
@@ -229,13 +251,41 @@ private final class MicrophonePCM: @unchecked Sendable {
     }
     func toggleRecording() {
         if isRecording { finishRecording(); return }
+        startRecording()
+    }
+    func startRecording() {
+        guard !isRecording else {return}
         stop(); error = nil; let current = generation
+        recordingTranscript="";inputLevel=0;recordingEnded=false
+        isRecording=true;isBusy=true;status="正在打开麦克风";onState?("listening")
         recording = Task { @MainActor [weak self] in
             guard let self else { return }
-            guard await AVAudioApplication.requestRecordPermission(), current == generation else { error = "请在系统设置中允许麦克风权限。"; return }
+            let allowed=await AVAudioApplication.requestRecordPermission()
+            guard current==generation else {return}
+            guard allowed else {stop();error="请在系统设置中允许麦克风权限。";return}
+            guard !recordingEnded else {stop();onCaptureCancelled?();return}
             do {
                 let socket = try api.socket(nickname:nickname?() ?? ""); self.socket = socket; socket.resume()
-                isRecording = true; isBusy = true; status = "正在连接麦克风"; onState?("listening")
+                scheduleRecordingTimeout(seconds:12,current:current)
+                try await soundscape.beginVoice(.recording)
+                guard current==generation else {return}
+                // Start capture while ASR connects. Four seconds of bounded
+                // pre-roll retain the first syllable without unbounded memory.
+                let (stream,continuation)=AsyncThrowingStream<Data,Error>.makeStream(bufferingPolicy:.bufferingOldest(96))
+                capture=continuation
+                let microphone=MicrophonePCM();self.microphone=microphone
+                try await microphone.start { [weak self] data,level in
+                    if case .dropped = continuation.yield(data) {continuation.finish(throwing:URLError(.networkConnectionLost))}
+                    Task { @MainActor [weak self] in
+                        guard let self,self.generation==current else {return};self.inputLevel=level
+                    }
+                }
+                guard current==generation else {microphone.stop();return}
+                isBusy=false;status="松开发送，上滑编辑"
+                if recordingEnded {finishRecording()}
+                recordingLimit = Task { @MainActor [weak self] in
+                    try? await Task.sleep(for:.seconds(30));if !Task.isCancelled {self?.finishRecording()}
+                }
                 let decoder = JSONDecoder(); decoder.keyDecodingStrategy = .convertFromSnakeCase
                 while !Task.isCancelled {
                     let packet = try await socket.receive()
@@ -245,23 +295,15 @@ private final class MicrophonePCM: @unchecked Sendable {
                     guard current == generation else { return }
                     switch event.type {
                     case "asr.ready":
-                        try soundscape.beginVoice(.recording)
-                        let (stream,continuation) = AsyncThrowingStream<Data,Error>.makeStream(bufferingPolicy:.bufferingOldest(120))
-                        capture = continuation; let microphone = MicrophonePCM(); self.microphone = microphone
-                        try microphone.start { data in
-                            if case .dropped = continuation.yield(data) { continuation.finish(throwing:URLError(.networkConnectionLost)) }
-                        }
-                        isBusy = false; status = "正在聆听 · 再点结束"
+                        if !recordingEnded {recordingTimeout?.cancel();recordingTimeout=nil}
                         upload = Task { @MainActor [weak self] in
                             do {
                                 for try await chunk in stream { try Task.checkCancellation(); try await socket.send(.data(chunk)) }
                                 try await socket.send(.string("{\"type\":\"finish\"}"))
                             } catch { if !Task.isCancelled { self?.stop(); self?.error = "上传语音失败，请重试。" } }
                         }
-                        recordingLimit = Task { @MainActor [weak self] in
-                            try? await Task.sleep(for:.seconds(30)); if !Task.isCancelled { self?.finishRecording() }
-                        }
-                    case "asr.partial", "asr.final": onPartial?(String((event.text ?? "").prefix(500)))
+                    case "asr.partial", "asr.final":
+                        recordingTranscript=String((event.text ?? "").prefix(500));onPartial?(recordingTranscript)
                     case "asr.completed":
                         let text = event.text ?? ""; stop()
                         if text.isEmpty { error = "没有听清，请再说一次。" } else { onTranscript?(String(text.prefix(500))) }
@@ -276,16 +318,32 @@ private final class MicrophonePCM: @unchecked Sendable {
             }
         }
     }
-    private func finishRecording() {
-        guard isRecording else { return }
+    func finishRecording() {
+        guard isRecording || recordingEnded else { return }
+        recordingEnded=true
         microphone?.stop(); microphone = nil; capture?.finish(); capture = nil
-        isRecording = false; isBusy = true; status = "正在确认最后一句"; recordingLimit?.cancel(); recordingLimit = nil
+        isRecording = false; isBusy = true; inputLevel=0;status = "正在确认最后一句"; recordingLimit?.cancel(); recordingLimit = nil
+        scheduleRecordingTimeout(seconds:10,current:generation)
+    }
+    private func scheduleRecordingTimeout(seconds:Double,current:UUID) {
+        recordingTimeout?.cancel()
+        recordingTimeout=Task { @MainActor [weak self] in
+            do {try await Task.sleep(for:.seconds(seconds))} catch {return}
+            guard let self,current==generation else {return}
+            let partial=recordingTranscript
+            stop()
+            // Preserve a partial transcription for correction; never send an
+            // incomplete network result without the user's review.
+            if !partial.isEmpty {onCaptureRecovery?(partial)}
+            else {error="语音连接超时，请稍后重试。"}
+        }
     }
     func stop() {
         generation = UUID(); recording?.cancel(); recording = nil; upload?.cancel(); upload = nil
         recordingLimit?.cancel(); recordingLimit = nil; capture?.finish(); capture = nil
+        recordingTimeout?.cancel();recordingTimeout=nil
         microphone?.stop(); microphone = nil; socket?.cancel(with:.goingAway,reason:nil); socket = nil
-        buffers = 0; beatPCM = Data(); isRecording = false; finish()
+        buffers = 0; beatPCM = Data(); isRecording = false; recordingEnded=false;inputLevel=0;finish()
     }
     private static func wave(_ pcm: Data) -> Data {
         var output = Data("RIFF".utf8)

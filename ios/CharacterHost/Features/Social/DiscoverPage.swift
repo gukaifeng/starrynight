@@ -122,7 +122,7 @@ struct DiscoverPage: View {
                                 Label("星夜精选",systemImage:"sparkle").font(.system(size:10,weight:.medium))
                                     .tracking(1).foregroundStyle(Theme.peach)
                                 Text(item.profile.name).font(.system(size:23,weight:.medium,design:.serif)).lineLimit(1)
-                                Text(item.model.display.invitation).font(.system(size:11)).lineSpacing(3)
+                                Text(CharacterPublicProfile.find(item.model.runtimeID)?.invitation ?? item.model.display.invitation).font(.system(size:11)).lineSpacing(3)
                                     .foregroundStyle(Theme.secondary).lineLimit(2)
                                 Label("认识一下",systemImage:"arrow.up.right").font(.system(size:10,weight:.medium))
                                     .foregroundStyle(Theme.accent).padding(.top,3)
@@ -214,7 +214,7 @@ struct DiscoverPage: View {
                     }
                 VStack(alignment:.leading,spacing:5) {
                     Text(item.profile.name).font(.system(size:14,weight:.semibold,design:.rounded)).lineLimit(1)
-                    Text(item.model.display.invitation).font(.system(size:11)).foregroundStyle(Theme.secondary).lineLimit(1)
+                    Text(CharacterPublicProfile.find(item.model.runtimeID)?.invitation ?? item.model.display.invitation).font(.system(size:11)).foregroundStyle(Theme.secondary).lineLimit(1)
                     HStack(spacing:4) {
                         Image(systemName:item.isCreatorWork ? "person.crop.circle" : "sparkle").font(.system(size:9))
                         Text(item.authorName).lineLimit(1)

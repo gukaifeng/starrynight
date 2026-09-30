@@ -48,7 +48,10 @@ class QuickReplies:
             saved=self.saved(owner,request)
             if not saved:
                 context=self.pool.engine.context(owner,request,persist=False)
-                data=dict(recent_messages=context['recent_messages'],preferences=context['preferences'],character_name=context['character_profile'].get('name',''))
+                # Bounded recent conversational text, not the full performance/persona
+                # catalogue. The selected answer still uses the complete role context.
+                recent=[dict(role=m['role'],text=m['text'][-600:]) for m in context['recent_messages'][-8:] if m.get('text')]
+                data=dict(recent_messages=recent,preferences=context['preferences'],character_name=context['character_profile'].get('name',''))
                 async with asyncio.timeout(12):
                     plan=await self.pool.engine.provider.structured(owner,char,'suggestions',SUGGESTIONS,data,QuickReplyPlan)
                 choices=sorted(plan.options,key=lambda o:o.likelihood,reverse=True)

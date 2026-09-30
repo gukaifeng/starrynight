@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
 using ModelSpace;
 using UnityEditor;
 using UnityEditor.Build;
@@ -15,6 +16,9 @@ public static class BuildIos
 {
     const string ScenePath = "Assets/Scenes/ViewerScene.unity";
     static string Root => Path.GetFullPath(Path.Combine(Application.dataPath, "../../.."));
+    static string AtmosphereHash {
+        get {using(var sha=SHA256.Create()) return string.Concat(sha.ComputeHash(File.ReadAllBytes(Path.Combine(Application.dataPath,"Resources/CharacterAtmospheres.json"))).Select(b=>b.ToString("x2")));}
+    }
 
     [MenuItem("Model Space/Set up viewer")]
     public static void Setup()
@@ -236,7 +240,7 @@ public static class BuildIos
         project.SetBuildProperty(framework, "ENABLE_BITCODE", "NO");
         project.WriteToFile(path);
         File.WriteAllText(Path.Combine(output, "modelspace-export.json"),
-            "{\"frameworkTarget\":\"" + framework + "\",\"dataBundleId\":\"com.modelspace.viewer.unity\",\"contentVersion\":6,\"studioProtocol\":1,\"atmosphereRevision\":1,\"framingProtocol\":8,\"gazeRevision\":1,\"portraitRevision\":1,\"immersionRevision\":2,\"nativeGestureRevision\":2,\"autonomyRevision\":2,\"inspectionGestureRevision\":"+CharacterInspectionRotation.Revision+",\"companionProtocol\":1,\"environmentApi\":1,\"environmentCatalogSha256\":\""+EnvironmentPackageBuilder.CatalogHash+"\",\"characterApi\":1,\"catalogSha256\":\""+CharacterPackageBuilder.CatalogHash+"\",\"models\":["+string.Join(",",UnityEngine.Object.FindFirstObjectByType<ViewerController>().characters.Select(c=>"\""+c.modelId+"\""))+"]}");
+            "{\"frameworkTarget\":\"" + framework + "\",\"dataBundleId\":\"com.modelspace.viewer.unity\",\"imageBackdropRevision\":1,\"imageBackdropCatalogSha256\":\""+AtmosphereHash+"\",\"contentVersion\":6,\"studioProtocol\":1,\"atmosphereRevision\":1,\"framingProtocol\":8,\"gazeRevision\":1,\"portraitRevision\":1,\"immersionRevision\":2,\"nativeGestureRevision\":2,\"autonomyRevision\":2,\"inspectionGestureRevision\":"+CharacterInspectionRotation.Revision+",\"companionProtocol\":1,\"environmentApi\":1,\"environmentCatalogSha256\":\""+EnvironmentPackageBuilder.CatalogHash+"\",\"characterApi\":1,\"catalogSha256\":\""+CharacterPackageBuilder.CatalogHash+"\",\"models\":["+string.Join(",",UnityEngine.Object.FindFirstObjectByType<ViewerController>().characters.Select(c=>"\""+c.modelId+"\""))+"]}");
     }
 
     // Invoked with a graphics-capable Editor. Output is a real render of the shipped model.

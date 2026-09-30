@@ -10,6 +10,8 @@ namespace ModelSpace
         public EnvironmentStage[] stages=Array.Empty<EnvironmentStage>();
         public Light key,fill,rim; public Renderer oldGround; public Camera viewCamera;
         EnvironmentStage visible,target;
+        CharacterImageBackdrop backdrop;
+        bool HasBackdrop=>backdrop && backdrop.Visible;
         StudioSettings settings=new StudioSettings(); EnvironmentSettings tuning=new EnvironmentSettings();
         public Action OnSettled; float reportAt=-1;
         float actorHeight=1.7f,opacity,fadeVelocity; bool decorations=true; bool initialized;
@@ -22,9 +24,11 @@ namespace ModelSpace
                     ambientTime=motion ? motion.Elapsed : 0,clothOffset=motion ? motion.PeakClothOffset : 0,swayDegrees=motion ? motion.PeakSwayDegrees : 0};
             }
         }
-        public void Bind(float height)
+        public void Bind(float height,string role=null)
         {
             actorHeight=height;
+            if(!backdrop) backdrop=gameObject.AddComponent<CharacterImageBackdrop>();
+            backdrop.Bind(viewCamera,role);
             // New character is still under the existing loading surface; retain the camera's own framing.
             foreach(var stage in stages) stage.transform.localScale=Vector3.one*(actorHeight/stage.Manifest.stage.referenceHeight);
             initialized=false;opacity=fadeVelocity=0;
@@ -37,15 +41,15 @@ namespace ModelSpace
             settings.room=target.Manifest.id;
             if(immediate || !initialized || !Application.isPlaying)
             {
-                Commit();visible.Apply(tuning,0,true);ApplyLighting(1);initialized=true;opacity=fadeVelocity=0;
+                Commit();if(!HasBackdrop) visible.Apply(tuning,0,true);ApplyLighting(1);initialized=true;opacity=fadeVelocity=0;
             }
             if(oldGround) oldGround.enabled=false;
         }
         void Commit()
         {
             visible=target;decorations=tuning.decorations;
-            foreach(var stage in stages) stage.gameObject.SetActive(stage==visible);
-            visible.SetDecorations(decorations);visible.Apply(tuning,0,true);
+            foreach(var stage in stages) stage.gameObject.SetActive(stage==visible && !HasBackdrop);
+            if(!HasBackdrop) {visible.SetDecorations(decorations);visible.Apply(tuning,0,true);}
         }
         void Update()
         {
@@ -56,7 +60,7 @@ namespace ModelSpace
             opacity=Mathf.SmoothDamp(opacity,change ? 1 : 0,ref fadeVelocity,.22f,Mathf.Infinity,dt);
             if(change && opacity>.995f) { Commit();ApplyLighting(1); }
             if(!change && opacity<.001f) {opacity=0;fadeVelocity=0;}
-            if(visible==target) visible.Apply(tuning,dt);
+            if(visible==target && !HasBackdrop) visible.Apply(tuning,dt);
             ApplyLighting(1-Mathf.Exp(-dt*6));
             if(reportAt>0 && Time.unscaledTime>reportAt && !State.transitioning) { reportAt=-1;OnSettled?.Invoke(); }
         }

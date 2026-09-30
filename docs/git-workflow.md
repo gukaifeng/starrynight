@@ -43,6 +43,7 @@
 4. 提供与 VRChat 来源锁匹配的原 ZIP，严格按 [VRChat 导入技能](../.agents/skills/vrchat-character-import/SKILL.md)及其 `references/performances.md`、`references/natural-idle.md` 依次审计、隔离导入、采样原作表现、生成目录与物理数据、转换 XCP 并校验。审计报告和源采样也必须重建；不能只运行最后一步 converter。不要从公开仓库寻找付费源包。
 5. 恢复对应集合/背景/音乐数据后，由 `BuildIos.Setup` / 正常 Unity 导出流程生成当前角色 Prefab、场景、iOS 角色目录与头像/封面。当前名册以 `assets/characters/active-roster.json` 为准；首次恢复不能使用跳过 Setup 的故障恢复捷径。详细顺序及命令以导入技能和 `scripts/export_unity_ios.py` 为准。
 6. `python3 scripts/export_unity_ios.py --platform simulator` 后执行 `bash scripts/build_host.sh`。真机使用独立 device 导出与 `scripts/build_device.sh`，个人签名设置写入忽略的 `ios/Config/Local.xcconfig`。
+   0.67 起先按[角色媒体制作与恢复](character-media-authoring.md)恢复 AI 封面、头像、背景及每角色唯一音乐，并运行媒体/音乐一致性检查。生成结果与回执不随公开仓库上传；优先从原机器恢复，不重复收费制作。
 7. Xcode 模拟器入口为 `ios/StarryNight-Simulator.xcworkspace`，真机入口为 `ios/StarryNight.xcworkspace`；scheme 均为 `CharacterHost`。先做实际构建与运行，再记录该机器的验证结果。
 
 源码层面的 SDK 契约测试可独立运行（安装 `character-sdk/requirements.txt` 后）：

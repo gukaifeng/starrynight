@@ -12,6 +12,7 @@ final class CompanionSession {
     var dismissKeyboardRequest = 0
     var characterEditorPresented = false { didSet { if !characterEditorPresented { deliverPendingGreeting() } } }
     var input = ""
+    let voiceInput=VoiceInputDraft()
     var generating = false
     var notice: String?
     var currentAction = ""
@@ -70,7 +71,6 @@ final class CompanionSession {
     @ObservationIgnored private let ownerID: String
     @ObservationIgnored private var activeScript: AIScript?
     @ObservationIgnored private var performedBeats = Set<String>()
-    @ObservationIgnored private var microphoneDraft = ""
     var record: CharacterRecord {
         var value = store.record(model.id)
         value.profile = model.conversationProfile(preserving:value.profile)
@@ -111,15 +111,16 @@ final class CompanionSession {
             guard let store, store.accountID == account else { return }; store.update(model.id) { $0.profile.audio = preferences }
         }
         speech.nickname = { [weak self] in self?.record.together.preferences.normalized.nickname ?? "" }
-        speech.onTranscript = { [weak self] text in
-            guard let self else { return }; self.input = String((self.microphoneDraft+text).prefix(500)); self.microphoneDraft = ""
+        speech.onCaptureCancelled = { [weak self] in self?.voiceInput.cancel() }
+        speech.onCaptureRecovery = { [weak self] text in
+            self?.voiceInput.recover(text);self?.notice="连接暂时中断，已保留识别文字，可以修改后发送。"
         }
-        speech.onPartial = { [weak self] text in
-            guard let self else { return }; self.input = String((self.microphoneDraft+text).prefix(500))
+        speech.onTranscript = { [weak self] text in
+            guard let self else {return}
+            if let ready=self.voiceInput.accept(text) {self.sendVoiceText(ready)}
         }
         speech.onState = { [weak self] state in
             guard let self else { return }
-            if state == "listening" { self.microphoneDraft = self.input.isEmpty ? "" : self.input+" " }
             self.emit("state."+state)
         }
         speech.onFrame = { [weak self] time,level in
@@ -164,6 +165,19 @@ final class CompanionSession {
         guard quickReplies.contains(where:{$0.id==option.id}),
               record.messages.last?.aiScript?.messageId==quickReplySource else {return}
         let draft=input;input=option.text;send(quickReplyID:option.id)
+        if !draft.isEmpty {input=draft}
+    }
+    func beginVoiceInput() {
+        guard !characterEditorPresented,allowReply() else {return}
+        stop(preservePreparation:true);voiceInput.begin();speech.startRecording()
+    }
+    func finishVoiceInput(edit:Bool) {
+        guard voiceInput.phase == .holding else {return}
+        voiceInput.release(edit:edit);speech.finishRecording()
+    }
+    func cancelVoiceInput() {voiceInput.cancel();speech.stop()}
+    func sendVoiceText(_ text:String) {
+        let draft=input;voiceInput.cancel();input=text;send()
         if !draft.isEmpty {input=draft}
     }
     func beginStory(_ story: CompanionStory,replay: Bool = false) {
@@ -456,6 +470,6 @@ final class CompanionSession {
         if activeTurn { emit("turn.cancel") }
         activeTurn = false; token = UUID(); generating = false; activeScript = nil
         performedBeats.removeAll()
-        speech.stop(); onEndAIVisual?()
+        voiceInput.cancel();speech.stop(); onEndAIVisual?()
     }
 }

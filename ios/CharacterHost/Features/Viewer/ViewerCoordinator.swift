@@ -555,7 +555,7 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
             self.send("getState")
             self.greetVisibleConversation()
         }
-        soundscape.setActive(true)
+        setConversationAudioActive(true)
         recordTestEvent("{\"name\":\"conversationResumed\",\"presentationId\":\(presentation),\"modelId\":\"\(selectedModel.runtimeID)\"}")
     }
     func closeViewer() {
@@ -571,7 +571,7 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
         portraitTask?.cancel(); portraitTask = nil
         openStudioWhenReady = false
         companion?.dismissKeyboardRequest += 1
-        soundscape.setActive(false)
+        setConversationAudioActive(false)
         captureTask?.cancel(); captureTask = nil
         UIApplication.shared.isIdleTimerDisabled = false
         desiredVisible = false; pendingReset = ""; pendingReveal = ""; frameReady = false
@@ -688,7 +688,7 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
                 // camera and any unsaved sheet preview. Only a new presentation applies a profile.
                 if let scene { bridge.show(in:scene) }
                 overlay?.view.setNeedsLayout()
-                soundscape.setActive(companion != nil)
+                setConversationAudioActive(companion != nil)
                 send("configureViewport")
                 if returning, pendingGreeting == nil, let companion, conversationVisible {
                     pendingGreeting = ConversationEntry(reason:.foregroundReturn,characterID:companion.model.id,accountID:companionStore.accountID)
@@ -700,13 +700,25 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
             }
         }
     }
+    @ObservationIgnored private var deviceMotion=ConversationDeviceMotion()
+    private func setConversationAudioActive(_ enabled:Bool) {
+        soundscape.setActive(enabled)
+        overlay?.setAtmosphereActive(enabled)
+        deviceMotion.onShake = { [weak self] intensity in
+            guard let self,self.active,self.conversationVisible,self.page == .viewer,
+                  !self.startupInProgress,let session=self.companion,
+                  !session.characterEditorPresented,!session.inspectionActive,!session.voiceInput.active else {return}
+            session.reactToShake(intensity:intensity)
+        }
+        deviceMotion.setActive(enabled && companion != nil)
+    }
     func deactivate() {
         // Settle may invoke a transition completion synchronously. Mark inactive
         // first so that a backgrounding app cannot greet behind a hidden window.
         overlay?.cancelInspection()
         active = false
         windowHandoff.settle()
-        soundscape.setActive(false)
+        setConversationAudioActive(false)
         companion?.stop()
         cancelPrewarm()
         captureTask?.cancel(); captureTask = nil
@@ -718,6 +730,11 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
     func enteredBackground() {
         backgroundConversation = page == .viewer && conversationVisible && !startupInProgress
         deactivate()
+        let task=UIApplication.shared.beginBackgroundTask(withName:"Save conversation")
+        Task { @MainActor in
+            await CompanionPersistence.flush()
+            if task != .invalid {UIApplication.shared.endBackgroundTask(task)}
+        }
     }
     private func greetVisibleConversation() {
         guard active, !startupInProgress, conversationVisible, desiredVisible, page == .viewer,
@@ -854,7 +871,7 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
             openStudioWhenReady = false
             DispatchQueue.main.async { [weak self] in self?.overlay?.openStudio() }
         }
-        soundscape.setActive(companion != nil)
+        setConversationAudioActive(companion != nil)
         timer?.invalidate(); timer = nil
         send("configureViewport")
         send("configurePerformance",payload:["targetFPS":targetFPS])
@@ -996,7 +1013,7 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
         case "error":
             guard desiredVisible else { return }
             cancelOpeningTasks()
-            soundscape.setActive(false)
+            setConversationAudioActive(false)
             companion?.stop(); overlay?.view.accessibilityElementsHidden = true
             errorMessage = "请返回首页后重新尝试。如果仍无法打开，请关闭并重新打开 App。"
             page = .error; desiredVisible = false; retainedReady = false; transitionSourceTab = nil
@@ -1062,7 +1079,7 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
                 self.foregroundWait += 1
                 if self.foregroundWait >= 30 {
                     self.cancelOpeningTasks()
-                    self.soundscape.setActive(false)
+                    self.setConversationAudioActive(false)
                     self.errorMessage = "准备模型所需时间较长，请返回后重试。"
                     self.page = .error; self.desiredVisible = false; self.retainedReady = false; self.transitionSourceTab = nil
                     self.stageLoadingVisible = false

@@ -1,0 +1,43 @@
+anime-kipfel · 雨声与书页
+{
+  "originalTitle": "Vaporware",
+  "author": "The Cynic Project / cynicmusic.com / pixelsphere.org",
+  "license": "CC0-1.0",
+  "licenseURL": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "source": "https://opengameart.org/content/calm-piano-1-vaporware",
+  "kind": "licensed-interim"
+}
+处理：选段、循环交叉淡化、响度调整、转码。
+
+anime-mamehinata · 窗边的晴天
+{
+  "originalTitle": "Sunset Plains",
+  "author": "Yoiyami",
+  "license": "CC0-1.0",
+  "licenseURL": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "source": "https://opengameart.org/content/sunset-plains",
+  "kind": "licensed-interim"
+}
+处理：选段、循环交叉淡化、响度调整、转码。
+
+anime-chiffon · 花间初光
+{
+  "originalTitle": "First Light Particles",
+  "author": "Yoiyami",
+  "license": "CC0-1.0",
+  "licenseURL": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "source": "https://opengameart.org/node/182244",
+  "kind": "licensed-interim"
+}
+处理：选段、循环交叉淡化、响度调整、转码。
+
+anime-karin · 窗边的小发现
+{
+  "originalTitle": "Sherwood",
+  "author": "Chris Murphy (zesona)",
+  "license": "CC0-1.0",
+  "licenseURL": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "source": "https://opengameart.org/content/sherwood",
+  "kind": "licensed-interim"
+}
+处理：选段、循环交叉淡化、响度调整、转码。

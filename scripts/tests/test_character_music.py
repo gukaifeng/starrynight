@@ -42,11 +42,10 @@ class CharacterMusicTests(unittest.TestCase):
         with self.assertRaisesRegex(AssertionError, 'belongs to another role'):
             self.check()
 
-    def test_two_options_cannot_reuse_the_same_recording(self):
-        first, second = self.catalog['collections'][0]['music']
-        for field in ['asset', 'sha256', 'duration']:
-            second[field] = first[field]
-        with self.assertRaisesRegex(AssertionError, 'share a recording'):
+    def test_legacy_multiple_options_are_rejected(self):
+        first = self.catalog['collections'][0]['music'][0]
+        self.catalog['collections'][0]['music'].append({**first,'id':first['sourceModelID']+'/extra'})
+        with self.assertRaisesRegex(AssertionError, 'exactly one theme'):
             self.check()
 
     def test_changed_audio_bytes_are_rejected(self):

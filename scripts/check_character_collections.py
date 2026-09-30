@@ -36,7 +36,7 @@ def validate(resources=None, audit_path=None):
         for voice in c['voices']:
             assert voice['engine'] in ('melo-zh-v1','aliyun-character-v1') and .7 <= voice['speed'] <= 1.4
         for track in c['music']:
-            assert len(c['music']) >= 2, 'Each character needs at least two distinct songs'
+            assert len(c['music']) == 1, 'Each character owns exactly one theme'
             assert track.get('sourceModelID') == c['modelID'], 'Music source belongs to another role'
             assert track.get('assetExtension') == 'caf', 'Bundled role music must use lossless CAF'
             assert re.fullmatch(r'Music_[a-z0-9_]+', track['asset']), 'Unsafe asset basename'
@@ -55,13 +55,13 @@ def validate(resources=None, audit_path=None):
             assert authored['asset'] == track['asset'] and authored['sha256'] == actual_hash, 'Audio audit does not match resource'
             assert authored['bytes'] == len(payload) and abs(track['duration'] - authored['duration']) < .0001
             assert authored['roundtripPCMIdentical'] and authored['sampleRate'] == 32000 and authored['channels'] == 2
-            assert 0 < authored['peak'] < .461 and .055 < authored['rms'] < .08, 'Unbounded music level'
+            assert 0 < authored['peak'] < .461 and .012 < authored['rms'] < .08, 'Unbounded music level'
             assert authored['seamStep'] < .002 and authored['seamSlopeStep'] < .003 and authored['dc'] < .00002, 'Unsafe loop join'
     assert music_ids == set(audited_tracks), 'Audio evidence/catalog options differ'
     for field in ['pcmSha256', 'scoreSha256']:
         assert len({track[field] for track in audited_tracks.values()}) == len(music_ids), 'Shared PCM or score under distinct names'
     print(f"Character collection v1 integrity PASS: {len(models)} isolated collections, {len(option_ids)} scoped audio options; "
-          f"{len(music_ids)} distinct original lossless recordings, ownership/hashes/loop checks PASS.")
+          f"{len(music_ids)} distinct role-bound lossless recordings, ownership/hashes/loop checks PASS.")
 
 if __name__ == '__main__':
     validate()

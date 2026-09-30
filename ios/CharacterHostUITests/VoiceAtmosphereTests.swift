@@ -1,0 +1,121 @@
+import XCTest
+import UIKit
+
+final class VoiceAtmosphereTests:XCTestCase {
+    @MainActor func testCompactVoiceEditingWithLandscapeKeyboard() {
+        continueAfterFailure=false;XCUIDevice.shared.orientation = .landscapeLeft
+        let app=XCUIApplication();app.launchArguments=["--ui-testing","--voice-atmosphere-check"]
+        app.launch();defer {app.terminate();XCUIDevice.shared.orientation = .portrait}
+        wait {app.staticTexts["voiceCoreResult"].exists && app.staticTexts["voiceCoreResult"].label.hasPrefix("PASS:")}
+        app.buttons["fixtureVoiceEdit"].tap()
+        var edit=app.textViews["voiceEditText"]
+        XCTAssertTrue(edit.waitForExistence(timeout:5));edit.tap()
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout:5))
+        wait {app.keyboards.firstMatch.frame.height>80}
+        // Query again after compact layout replaces the original editor.
+        edit=app.textViews["voiceEditText"];edit.typeText("!")
+        XCTAssertTrue(app.frame.contains(edit.frame))
+        XCTAssertLessThanOrEqual(edit.frame.maxY,app.keyboards.firstMatch.frame.minY+2)
+        XCTAssertTrue(app.buttons["sendVoiceEditButton"].isHittable)
+        XCTAssertTrue(app.buttons["取消语音消息"].isHittable)
+        capture("landscape-voice-editor")
+        app.buttons["sendVoiceEditButton"].tap()
+        XCTAssertTrue(app.staticTexts.matching(identifier:"userMessage").firstMatch.waitForExistence(timeout:5))
+    }
+    @MainActor func testVoiceDraftEditingAndReleaseLifecycle() {
+        continueAfterFailure=false;XCUIDevice.shared.orientation = .portrait
+        let app=XCUIApplication();app.launchArguments=["--ui-testing","--voice-atmosphere-check"]
+        app.launch();defer {app.terminate()}
+        let result=app.staticTexts["voiceCoreResult"]
+        wait {result.exists && result.label.hasPrefix("PASS:")}
+        let evidence=XCTAttachment(string:result.label);evidence.lifetime = .keepAlways;add(evidence)
+        let input=app.textViews["chatInput"]
+        input.tap();input.typeText("Keep this typed draft")
+        app.buttons["inputModeButton"].tap()
+        XCTAssertTrue(app.staticTexts["holdToTalkButton"].waitForExistence(timeout:4))
+        XCTAssertFalse(app.buttons["sendMessageButton"].exists)
+        app.buttons["inputModeButton"].tap()
+        XCTAssertEqual(input.value as? String,"Keep this typed draft")
+        app.buttons["fixtureVoiceEdit"].tap()
+        let edit=app.textViews["voiceEditText"]
+        XCTAssertTrue(edit.waitForExistence(timeout:5));XCTAssertEqual(edit.value as? String,"今天窗外下雨了")
+        XCTAssertEqual(app.staticTexts.matching(identifier:"userMessage").count,0,"Editing must not send prematurely")
+        edit.tap();edit.typeText("!")
+        capture("voice-edit-draft")
+        app.buttons["sendVoiceEditButton"].tap()
+        XCTAssertTrue(app.staticTexts.matching(identifier:"userMessage").matching(NSPredicate(format:"label CONTAINS %@","今天窗外下雨了")).firstMatch.waitForExistence(timeout:6))
+        XCTAssertEqual(input.value as? String,"Keep this typed draft","Voice edits cannot overwrite the keyboard draft")
+        app.buttons["fixtureVoiceEdit"].tap();app.buttons["取消语音消息"].tap()
+        XCTAssertFalse(edit.exists)
+        let before=app.staticTexts.matching(identifier:"userMessage").count
+        app.buttons["fixtureVoiceSend"].tap()
+        wait {app.staticTexts.matching(identifier:"userMessage").count==before+1}
+        XCTAssertEqual(input.value as? String,"Keep this typed draft")
+    }
+    @MainActor func testPhoneAndTabletCompositionMediaAndControls() {
+        continueAfterFailure=false;XCUIDevice.shared.orientation = .portrait
+        let app=XCUIApplication();app.launchArguments=["--ui-testing","--companion-testing","--auth-testing"]
+        app.launch();defer {app.terminate();XCUIDevice.shared.orientation = .portrait}
+        XCTAssertTrue(app.buttons["customizationButton"].waitForExistence(timeout:75))
+        app.waitForCharacter {$0["modelId"] as? String == "anime-kipfel"}
+        for orientation:UIDeviceOrientation in [.portrait,.landscapeLeft,.landscapeRight] {
+            XCUIDevice.shared.orientation=orientation
+            wait {(app.frame.width>app.frame.height)==orientation.isLandscape}
+            let input=app.textViews["chatInput"],toggle=app.buttons["inputModeButton"],smart=app.buttons["smartReplyButton"]
+            XCTAssertTrue(toggle.isHittable && smart.isHittable)
+            XCTAssertLessThan(toggle.frame.maxX,input.frame.minX+8)
+            XCTAssertGreaterThan(smart.frame.minX,input.frame.maxX-8)
+            XCTAssertTrue(app.frame.contains(input.frame))
+            let audio=audioState(app)
+            XCTAssertEqual((audio["availableTrackIDs"] as? [String])?.count,1)
+            XCTAssertEqual(audio["track"] as? String,"anime-kipfel/theme")
+            capture(orientation.isLandscape ? "conversation-landscape-\(orientation.rawValue)" : "conversation-portrait")
+            input.tap();input.typeText("draft")
+            XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout:5))
+            XCTAssertLessThanOrEqual(input.frame.maxY,app.keyboards.firstMatch.frame.minY+2)
+            capture("keyboard-\(orientation.rawValue)")
+            app.buttons["inputModeButton"].tap()
+            wait {!app.keyboards.firstMatch.exists}
+            XCTAssertTrue(app.staticTexts["holdToTalkButton"].isHittable)
+            app.buttons["inputModeButton"].tap()
+            XCTAssertTrue((input.value as? String ?? "").contains("draft"))
+            app.buttons["conversationSoundButton"].tap()
+            XCTAssertTrue(app.sliders["musicSoundVolume"].waitForExistence(timeout:5))
+            XCTAssertFalse(app.buttons["chooseSoundTrack"].exists)
+            XCTAssertTrue(app.sliders["speechSoundVolume"].isHittable)
+            capture("sound-\(orientation.rawValue)")
+            app.buttons["closeConversationSound"].tap()
+        }
+        XCUIDevice.shared.orientation = .portrait
+        wait {app.frame.height>app.frame.width}
+        app.openCustomization()
+        let effects=app.switches["atmosphereEffectsToggle"]
+        XCTAssertTrue(effects.waitForExistence(timeout:5));XCTAssertEqual(effects.value as? String,"1")
+        effects.tap();XCTAssertEqual(effects.value as? String,"0")
+        app.buttons["closeCustomizationButton"].tap();app.buttons["closeCharacterDetails"].tap()
+        for role in ["anime-mamehinata","anime-chiffon","anime-karin","anime-kipfel"] {
+            app.buttons["tab-discover"].tap()
+            let card=app.buttons["discover-open-"+role]
+            XCTAssertTrue(card.waitForExistence(timeout:7));capture("discover-"+role);card.tap()
+            XCTAssertTrue(app.buttons["profileChatButton"].waitForExistence(timeout:5));capture("profile-"+role)
+            app.buttons["profileChatButton"].tap()
+            app.waitForCharacter({$0["modelId"] as? String == role},timeout:50)
+            wait {(self.audioState(app)["track"] as? String)==role+"/theme"}
+            capture("scene-"+role)
+        }
+        app.openCustomization();XCTAssertEqual(effects.value as? String,"0","Effects preference survives a role switch")
+        app.buttons["closeCustomizationButton"].tap();app.buttons["closeCharacterDetails"].tap()
+        app.buttons["tab-messages"].tap();capture("tablet-phone-messages")
+        app.buttons["tab-mine"].tap();capture("tablet-phone-account")
+    }
+    @MainActor private func audioState(_ app:XCUIApplication)->[String:Any] {
+        let text=app.buttons["conversationSoundButton"].value as? String ?? "{}"
+        return (try? JSONSerialization.jsonObject(with:Data(text.utf8))) as? [String:Any] ?? [:]
+    }
+    @MainActor private func wait(_ condition:@escaping ()->Bool) {
+        XCTAssertEqual(XCTWaiter.wait(for:[XCTNSPredicateExpectation(predicate:NSPredicate {_,_ in MainActor.assumeIsolated {condition()}},object:nil)],timeout:20),.completed)
+    }
+    @MainActor private func capture(_ name:String) {
+        let shot=XCTAttachment(screenshot:XCUIScreen.main.screenshot());shot.name=name;shot.lifetime = .keepAlways;add(shot)
+    }
+}

@@ -30,13 +30,14 @@ final class CompanionStore {
             next.characters[destination] = record
         }
         next.guestImportedBy = id
-        do { try CompanionPersistence.write(next,to:url); archive = next; error = nil; return true }
+        do { try CompanionPersistence.write(next,to:url); writeRevision += 1;archive = next; error = nil; return true }
         catch { self.error = "游客记录暂时未能保存到账号，请检查存储空间。"; return false }
     }
     var chatDisplay = ChatDisplaySettings()
     @ObservationIgnored private let chatDisplayDefaults: UserDefaults
     @ObservationIgnored private var recoveryBlocked = false
     @ObservationIgnored private var batching = false
+    @ObservationIgnored private var writeRevision=0
     let url: URL
     init(storageURL:URL? = nil,displayDefaults:UserDefaults? = nil,arguments:[String] = ProcessInfo.processInfo.arguments) {
         let directory = FileManager.default.urls(for:.applicationSupportDirectory,in:.userDomainMask).first!
@@ -100,14 +101,26 @@ final class CompanionStore {
         record.messages = Array(record.messages.suffix(1000))
         next.characters[key(id)] = record
         if batching { archive = next; error = nil; return }
-        do { try CompanionPersistence.write(next,to:url); archive = next; error = nil
-            NotificationCenter.default.post(name:.accountDataChanged,object:nil)
+        // Publish in-memory state immediately; encoding a multi-role archive and
+        // atomic disk I/O must not stall a message insertion or keyboard animation.
+        // The serial writer preserves every snapshot's order. Reads/sync imports
+        // use the same queue, so reopening can never overtake a pending write.
+        archive=next;error=nil;writeRevision += 1
+        let revision=writeRevision
+        CompanionPersistence.enqueue(next,to:url) { [weak self] result in
+            Task { @MainActor [weak self] in
+                guard let self,revision==self.writeRevision else {return}
+                switch result {
+                case .success: self.error=nil;NotificationCenter.default.post(name:.accountDataChanged,object:nil)
+                case .failure: self.error="记录仍保留在本次会话，暂未存入设备。请检查存储空间。"
+                }
+            }
         }
-        catch { self.error = "保存失败，改动尚未写入。请检查设备存储空间后重试。" }
     }
     /// One disk write per incoming sync page, with rollback on a storage error.
     func applyCloudBatch(_ updates:() throws -> Void) throws {
         guard !batching,!recoveryBlocked else { throw CocoaError(.fileWriteUnknown) }
+        writeRevision += 1
         let previous=archive;batching=true;error=nil
         defer { batching=false }
         do {

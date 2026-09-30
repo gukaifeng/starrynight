@@ -12,6 +12,7 @@ struct ChatComposerInput: UIViewRepresentable {
     var maxLines: Int
     var isEnabled: Bool
     var onSend: () -> Void
+    var identifier:String="chatInput"
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
     func makeUIView(context: Context) -> ChatComposerTextView { context.coordinator.makeTextView() }
@@ -46,7 +47,7 @@ struct ChatComposerInput: UIViewRepresentable {
             view.contentInsetAdjustmentBehavior = .never
             view.returnKeyType = .send; view.enablesReturnKeyAutomatically = true
             view.allowsEditingTextAttributes = false
-            view.accessibilityIdentifier = "chatInput"
+            view.accessibilityIdentifier = input.identifier
             view.accessibilityLabel = "想和你说…"
             view.setContentHuggingPriority(.defaultLow, for:.horizontal)
             view.setContentCompressionResistancePriority(.defaultLow, for:.horizontal)

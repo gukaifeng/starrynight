@@ -19,6 +19,9 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         window.overrideUserInterfaceStyle = .dark
         window.makeKeyAndVisible()
 #if DEBUG && targetEnvironment(simulator)
+        if ProcessInfo.processInfo.arguments.contains("--voice-atmosphere-check") {
+            window.rootViewController=UIHostingController(rootView:VoiceAtmosphereFixture());return
+        }
         if ProcessInfo.processInfo.arguments.contains("--reply-flow-check") {
             window.rootViewController=UIHostingController(rootView:ReplyFlowFixture());return
         }
@@ -127,7 +130,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     }
     private func bootstrap(in windowScene:UIWindowScene) {
 #if DEBUG && targetEnvironment(simulator)
-        if ProcessInfo.processInfo.arguments.contains(where: { ["--reply-flow-check", "--conversation-presentation-check", "--chat-input-check", "--speech-playback-check", "--greeting-core-check", "--view-presets-check", "--experience-core-check", "--export-core-check", "--export-ui-check", "--social-core-check", "--cache-core-check", "--market-core-check"].contains($0) }) { return }
+        if ProcessInfo.processInfo.arguments.contains(where: { ["--voice-atmosphere-check", "--reply-flow-check", "--conversation-presentation-check", "--chat-input-check", "--speech-playback-check", "--greeting-core-check", "--view-presets-check", "--experience-core-check", "--export-core-check", "--export-ui-check", "--social-core-check", "--cache-core-check", "--market-core-check"].contains($0) }) { return }
 #endif
         guard coordinator == nil, bootstrapTask == nil else { return }
         // Paint the lightweight brand cover, then prepare only the native shell.

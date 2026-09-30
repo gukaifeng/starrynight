@@ -1,10 +1,12 @@
 # 星夜 · StarryNight
 
-源码仓库：[gukaifeng/starrynight](https://github.com/gukaifeng/starrynight)。本库跟踪源码、标准、工具与开发记录；受限角色资源、语音模型、构建缓存和个人签名配置留在本机。新机器的资源恢复顺序与持续推送约定见 [Git 与资源恢复](docs/git-workflow.md)。仅克隆仓库尚不能直接构建包含当前两位受限角色的完整 App。
+源码仓库：[gukaifeng/starrynight](https://github.com/gukaifeng/starrynight)。本库跟踪源码、标准、工具与开发记录；受限角色资源、生成媒体、构建缓存和个人签名配置留在本机。新机器的资源恢复顺序与持续推送约定见 [Git 与资源恢复](docs/git-workflow.md)。仅克隆仓库尚不能直接构建包含当前四位受限角色的完整 App。
 
 正式英文名 **StarryNight**，仓库和根目录统一为 `starrynight`。当前根目录 `/Users/gukaifeng/Documents/starrynight`，Xcode 真机入口为 `ios/StarryNight.xcworkspace`，模拟器入口为 `ios/StarryNight-Simulator.xcworkspace`，scheme 均为 `CharacterHost`。命名约定与迁移记录见 [英文命名与目录](docs/project-naming.md)。
 
-以精致 3D 角色为核心的 AI 陪伴产品。当前源码 **v0.59.0 / build 85**，名称保持「星夜」，默认月白深色主题，保留彩色星夜等可选主题，Logo 更新为极简月白星月矢量标志。原生 SwiftUI / UIKit + Unity as a Library，当前优先 **iPhone 手机版**，暂停新增 iPad 测试。
+以精致 3D 角色为核心的 AI 陪伴产品。当前源码 **v0.67.0 / build 93**，名称保持「星夜」，默认月白深色主题，保留彩色星夜等可选主题，Logo 为极简月白星月矢量标志。原生 SwiftUI / UIKit + Unity as a Library，当前适配 **iPhone 17 与 iPad Pro 11 英寸 M4（2024）**。
+
+v0.67 为四位角色接入百炼生成的封面、头像与 2.5D 场景，并加入各自的前景粒子和唯一背景音乐。Fun-Music 邀测待开通，按用户选择先用匹配曲风的 CC0 音乐。输入支持键盘／按住说话、实时转写、上滑编辑与松手发送；智能回复预测独立使用 Qwen-Turbo，正式角色回答保持原模型。录音准备和消息写盘移出主线程，设备摇晃复用已有 AI 反应缓存。实施、测试与边界见[角色氛围与语音输入](docs/design/2026-09-30-character-atmosphere-and-voice.md)，私有资源恢复见[媒体制作](docs/character-media-authoring.md)。
 
 v0.59.0 将加载中的消息也纳入自动跟随，并在实际内容布局完成后校准底部；保留手动翻阅历史。对话改用 Qwen-Plus-Character，真实 user／assistant 多轮历史与 AI 生成的本轮内容摘要共同推进聊天，所有场景仍调用真实 AI。重复候选在内部修订，低分语义相关不再反复作为拦截理由，不向用户抛出重复拦截提示。116 项服务测试、3 条模拟器实际流程通过，最终模型 8 轮真实会话验证全部返回有效新回复。详见[生成源头与滚动修复](docs/design/2026-09-30-source-dialogue-and-scroll.md)。
 
