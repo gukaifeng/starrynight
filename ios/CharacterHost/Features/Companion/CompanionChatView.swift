@@ -87,10 +87,10 @@ struct CompanionChatView: View {
                         }
                         ForEach(session.visibleMessages) { message in messageView(message).id(message.id) }
                         if session.generating {
-                            HStack(alignment:.top,spacing:9) {
-                                Image(systemName:"ellipsis").symbolEffect(.variableColor,isActive:!reduceMotion)
-                                Text(session.draftReply.isEmpty ? "让我想想…" : session.draftReply).font(.system(size:chatFontSize)).lineSpacing(5)
-                            }.padding(14).background(Theme.surface.opacity(reduceTransparency ? 1 : Theme.panelOpacity),in:RoundedRectangle(cornerRadius:22)).accessibilityIdentifier("streamingReply")
+                            Image(systemName:"ellipsis").font(.system(size:chatFontSize))
+                                .symbolEffect(.variableColor,isActive:!reduceMotion)
+                                .padding(14).background(Theme.surface.opacity(reduceTransparency ? 1 : Theme.panelOpacity),in:RoundedRectangle(cornerRadius:22))
+                                .accessibilityLabel("正在回复").accessibilityIdentifier("streamingReply")
                                 .conversationHitRegion(.message,id:"streaming")
                         }
                         Color.clear.frame(height:3).id("latest")
@@ -123,7 +123,6 @@ struct CompanionChatView: View {
                     .onChange(of:session.messageFocusRequest) { showFocusedMessage(using:proxy) }
                     .onChange(of:session.store.chatDisplay.fontSize) { if scrollState.followingLatest { proxy.scrollTo("latest",anchor:.bottom) } }
                     .onChange(of:viewport.size.height) { if scrollState.followingLatest { proxy.scrollTo("latest",anchor:.bottom) } }
-                    .onChange(of:session.draftReply) { if !session.draftReply.isEmpty { receiveContent(using:proxy) } }
                     .onChange(of:latestContent) { receiveContent(using:proxy) }
                 if (scrollState.showsReturnButton || session.focusedMessageID != nil) && !session.record.messages.isEmpty {
                     ReturnLatestControl {

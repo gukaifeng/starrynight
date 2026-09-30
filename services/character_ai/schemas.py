@@ -23,7 +23,7 @@ class Speech(Strict):
         # Character models may use a familiar synonym despite the advertised
         # vocabulary. Translate known meanings to our supported speech controls;
         # unknown values still fail validation and never become arbitrary tags.
-        return {'playful':'happy','cheerful':'happy','excited':'happy','joyful':'happy',
+        return {'playful':'happy','teasing':'happy','cheerful':'happy','excited':'happy','joyful':'happy',
                 'calm':'neutral','relaxed':'neutral','curious':'neutral',
                 'concerned':'worried','anxious':'worried','amazed':'surprised',
                 'melancholy':'sad'}.get(value,value) if isinstance(value,str) else value

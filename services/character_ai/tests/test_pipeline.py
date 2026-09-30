@@ -141,6 +141,11 @@ def test_model_localized_identifiers_are_canonical_without_paid_retry():
     assert plan.beats[0].thought.visibility=='visible'
     plan=Plan.model_validate(dict(beats=[dict(beat_id='b',dialogue=dict(text='你好',speech=dict(emotion='playful')))]))
     assert plan.beats[0].dialogue.speech.emotion=='happy'
+    # Real provider output used the delivery name in both fields. Preserve the
+    # intended playful delivery without spending another schema-repair request.
+    plan=Plan.model_validate(dict(beats=[dict(beat_id='b',dialogue=dict(text='好呀',speech=dict(emotion='teasing',delivery='teasing')))]))
+    assert plan.beats[0].dialogue.speech.emotion=='happy'
+    assert plan.beats[0].dialogue.speech.delivery=='teasing'
     with pytest.raises(ValueError):
         Plan.model_validate(dict(beats=[dict(beat_id='b',dialogue=dict(text='你好',speech=dict(emotion='arbitrary_command')))]))
 

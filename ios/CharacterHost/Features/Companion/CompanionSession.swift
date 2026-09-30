@@ -12,7 +12,6 @@ final class CompanionSession {
     var dismissKeyboardRequest = 0
     var characterEditorPresented = false { didSet { if !characterEditorPresented { deliverPendingGreeting() } } }
     var input = ""
-    var draftReply = ""
     var generating = false
     var notice: String?
     var currentAction = ""
@@ -281,7 +280,7 @@ final class CompanionSession {
         pendingGreeting = nil; task?.cancel(); task = nil; idleTask?.cancel(); idleTask = nil
         silentVisualTask?.cancel(); silentVisualTask = nil
         if activeTurn { emit("turn.cancel") }
-        activeTurn = false; token = UUID(); generating = false; draftReply = ""; activeScript = nil
+        activeTurn = false; token = UUID(); generating = false; activeScript = nil
         performedBeats.removeAll()
         speech.stop(); onEndAIVisual?()
     }

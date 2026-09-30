@@ -4,7 +4,7 @@ import httpx
 from pydantic import ValidationError
 from .storage import dump
 from .speech_text import spoken_text
-from .prompts import PLAN_SHAPE
+from .prompts import PLAN_SHAPE, REPLY_LENGTH
 from .profiles import PROFILES
 
 VOCALS = dict(gasp='[gasp]', sigh='[sighing]', throat_clear='[clears throat]',
@@ -60,6 +60,7 @@ class Provider:
             # history/capability object. Explicitly anchor the current turn last;
             # older dialogue is background, not another request to answer.
             current=dict(trigger=context.get('trigger'),user_message=context.get('user_message',''))
+            current['reply_length']=REPLY_LENGTH
             if context.get('greeting_context'):
                 current['task']=context['greeting_context']['task']
             else:
