@@ -15,7 +15,7 @@ namespace ModelSpace
     // latest view per account/character; rotation never silently pans or zooms.
     public sealed class CharacterInspectionRotation
     {
-        public const int Revision=10;
+        public const int Revision=11;
         public const float TurnFramingReserve=1.10f;
         public const float HoldSeconds=1, MaximumPitch=80;
         public const float MinimumScale=.78f,MaximumScale=1.28f,MaximumTranslation=.45f;

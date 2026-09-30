@@ -1,29 +1,46 @@
 import UIKit
 import UIKit.UIGestureRecognizerSubclass
 
-/// A drag on the uncovered character, never a pinch or a one-finger tail of one.
-/// Keeping the initial point lets Unity test the mesh that was actually touched.
+enum CharacterPreviewOrigin { case character, conversationBlank, conversationMessage }
+
+/// Direction is decided once after a small movement threshold. On a message,
+/// diagonal/vertical movement fails early so native scrolling keeps its momentum.
 private final class CharacterPreviewGesture: UIGestureRecognizer {
     private var finger:UITouch?
+    var source = CharacterPreviewOrigin.character
+    var hasFinger:Bool { finger != nil }
     private(set) var origin = CGPoint.zero
     private(set) var rotation = CGPoint.zero
+    private func activeFingers(in event:UIEvent)->Int {
+        event.allTouches?.filter { $0.window === view?.window && $0.phase != .ended && $0.phase != .cancelled }.count ?? 0
+    }
     override func touchesBegan(_ touches:Set<UITouch>,with event:UIEvent) {
-        guard finger == nil,touches.count == 1,let touch=touches.first else {
+        guard state == .possible || state == .began || state == .changed else {return}
+        // UIKit can reset a failed ancestor recognizer and offer the next finger
+        // while the previous finger is still down. Inspect the whole event,
+        // not only this recognizer's newly delivered touches.
+        guard activeFingers(in:event)==1,finger == nil,touches.count == 1,let touch=touches.first else {
             state = state == .possible ? .failed : .cancelled;return
         }
         finger=touch;origin=touch.location(in:view)
     }
     override func touchesMoved(_ touches:Set<UITouch>,with event:UIEvent) {
-        guard let finger,let view else {return}
+        guard state == .possible || state == .began || state == .changed,let finger,let view else {return}
+        guard activeFingers(in:event)==1 else {state = state == .possible ? .failed : .cancelled;return}
         let point=finger.location(in:view),dx=point.x-origin.x,dy=point.y-origin.y
         guard state != .possible || hypot(dx,dy)>=7 else {return}
+        if state == .possible,source == .conversationMessage,abs(dx)<=abs(dy)*1.2 {
+            state = .failed;return
+        }
         rotation=CGPoint(x:dx/max(1,view.bounds.width),y:dy/max(1,view.bounds.height))
         state = state == .possible ? .began : .changed
     }
     override func touchesEnded(_ touches:Set<UITouch>,with event:UIEvent) {
+        guard state == .possible || state == .began || state == .changed else {return}
         state = state == .possible ? .failed : .ended
     }
     override func touchesCancelled(_ touches:Set<UITouch>,with event:UIEvent) {
+        guard state == .possible || state == .began || state == .changed else {return}
         state = state == .possible ? .failed : .cancelled
     }
     override func reset() {finger=nil;origin = .zero;rotation = .zero;super.reset()}
@@ -77,6 +94,8 @@ private final class CharacterEditGesture: UIGestureRecognizer {
 final class CharacterTouchSurface:UIView,UIGestureRecognizerDelegate {
     var onGesture:(([String:Any])->Void)?
     private var acceptsEdit:((CGPoint,UIView?)->Bool)?
+    private var previewOrigin:((CGPoint,UIView?)->CharacterPreviewOrigin?)?
+    private var isConversationScroll:((UIView)->Bool)?
     var inputAvailable:Bool {isUserInteractionEnabled && window != nil}
     private(set) var touchSequences=0
     private(set) var recognizedGestures=0
@@ -99,8 +118,30 @@ final class CharacterTouchSurface:UIView,UIGestureRecognizerDelegate {
     func observeEditing(in overlay:UIView,accepts:@escaping(CGPoint,UIView?)->Bool) {
         inspect.view?.removeGestureRecognizer(inspect);acceptsEdit=accepts;inspect.delegate=self;overlay.addGestureRecognizer(inspect)
     }
+    func observePreview(in overlay:UIView,origin:@escaping(CGPoint,UIView?)->CharacterPreviewOrigin?,
+                        conversationScroll:@escaping(UIView)->Bool) {
+        preview.view?.removeGestureRecognizer(preview)
+        previewOrigin=origin;isConversationScroll=conversationScroll;preview.delegate=self
+        overlay.addGestureRecognizer(preview)
+    }
     func gestureRecognizer(_ gestureRecognizer:UIGestureRecognizer,shouldReceive touch:UITouch)->Bool {
-        editing && (acceptsEdit?(touch.location(in:gestureRecognizer.view),touch.view) ?? true)
+        if gestureRecognizer === preview {
+            guard !editing,isUserInteractionEnabled else {return false}
+            // Observe a second finger even if it lands on a control; it cancels
+            // the whole preview instead of becoming a pinch or a new single pan.
+            if preview.hasFinger {return true}
+            guard let source=previewOrigin?(touch.location(in:gestureRecognizer.view),touch.view) else {return false}
+            preview.source=source;return true
+        }
+        return editing && (acceptsEdit?(touch.location(in:gestureRecognizer.view),touch.view) ?? true)
+    }
+    func gestureRecognizer(_ gestureRecognizer:UIGestureRecognizer,shouldBeRequiredToFailBy other:UIGestureRecognizer)->Bool {
+        // Dynamic UIKit failure dependency: the chat scroll waits only for our
+        // 7pt direction decision. We never replace UIScrollView's delegate,
+        // disable scrolling mid-pan, or forward synthetic scroll offsets.
+        guard gestureRecognizer === preview,let scroll=other.view as? UIScrollView,
+              other === scroll.panGestureRecognizer else {return false}
+        return isConversationScroll?(scroll) ?? false
     }
     func configure(available:Bool,framingEnabled:Bool) {
         if !available {cancelInspection()}
@@ -140,7 +181,8 @@ final class CharacterTouchSurface:UIView,UIGestureRecognizerDelegate {
         }
         onGesture?(["action":"previewRotate","state":state,"previewToken":previewToken,
             "viewportX":recognizer.origin.x/bounds.width,"viewportY":recognizer.origin.y/bounds.height,
-            "deltaX":recognizer.rotation.x,"deltaY":recognizer.rotation.y])
+            "deltaX":recognizer.rotation.x,"deltaY":recognizer.rotation.y,
+            "previewFromConversation":recognizer.source != .character])
     }
     @objc private func inspected(_ recognizer:CharacterEditGesture) {
         guard editing else {return}

@@ -30,14 +30,7 @@ final class CharacterViewEditorTests:XCTestCase {
         app.buttons["closeCharacterViewEditor"].tap()
         app.waitForCharacter {$0["viewEditorOpen"] as? Bool == false && self.number($0,"inspectionMoving")==0}
         previewAndReturn()
-        let count=number(app.characterRuntime,"previewRotationCount")
-        // The fully transparent upper fade deliberately passes touches to the
-        // visible model. Exercise the readable chat area, not XCTest's default
-        // swipe origin near that transparent edge.
-        let chat=app.scrollViews["chatMessages"]
-        chat.coordinate(withNormalizedOffset:CGVector(dx:0.5,dy:0.72)).press(forDuration:0.06,
-            thenDragTo:chat.coordinate(withNormalizedOffset:CGVector(dx:0.5,dy:0.95)),withVelocity:.slow,thenHoldForDuration:0.1)
-        XCTAssertEqual(number(app.characterRuntime,"previewRotationCount"),count,"Chat scrolling belongs to the chat")
+        // Message-vs-whitespace routing is covered by ConversationGestureTests.
         capture("temporary-single-finger-rotation",app)
     }
     @MainActor func testNormalTwoFingerGestureIsRejectedAndCancelsAnActiveDrag() {

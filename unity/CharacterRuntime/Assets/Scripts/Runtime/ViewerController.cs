@@ -14,6 +14,7 @@ namespace ModelSpace
         public bool nativeGestures;
         public float deltaX, deltaY, translationX, translationY, scale = 1;
         public int inspectionToken,previewToken;
+        public bool previewFromConversation;
         public CharacterViewPose inspectionPose;
         public float topInset, bottomInset;
         public int targetFPS = 120;
@@ -389,14 +390,15 @@ namespace ModelSpace
             if(value.action=="previewRotate")
             {
                 if(value.state=="began") {
-                    // Starts on the displayed mesh, not empty scenery or chat.
-                    // A separate token/command prevents draft commits on release.
+                    // Native chat routing already chose blank space or a
+                    // horizontal message drag. It acts as a character trackpad;
+                    // direct scene touches still must hit the displayed mesh.
                     if(value.previewToken<=previewToken)return;
                     inspection.Preview.End();previewToken=value.previewToken;
                     if(!inspection.Active && !inspection.Preparing && actions &&
                        float.IsFinite(value.viewportX) && float.IsFinite(value.viewportY) &&
                        value.viewportX>=0 && value.viewportX<=1 && value.viewportY>=0 && value.viewportY<=1 &&
-                       HitDisplayedModel(new Vector2(value.viewportX*Screen.width,(1-value.viewportY)*Screen.height))) {
+                       (value.previewFromConversation || HitDisplayedModel(new Vector2(value.viewportX*Screen.width,(1-value.viewportY)*Screen.height)))) {
                         inspection.Preview.Begin();inspection.Preview.Move(value.deltaX,value.deltaY);Emit("previewRotationBegan");
                     }
                     else Emit("previewRotationRejected");

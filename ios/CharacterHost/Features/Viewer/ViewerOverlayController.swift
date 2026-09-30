@@ -5,6 +5,7 @@ private final class TouchThroughView: UIView {
     weak var chatView:UIView?
     weak var characterTouchView:UIView?
     var messageFrame = CGRect.zero
+    var messageRegions: [String:ConversationHitRegion] = [:]
     var capturesInspection = false
     weak var inspectionReset:UIView?
     weak var inspectionEntry:UIView?
@@ -14,9 +15,30 @@ private final class TouchThroughView: UIView {
     private let fadeStops = (0...16).map { CGFloat($0) / 16 }
     override init(frame: CGRect) {
         super.init(frame:frame)
+        isMultipleTouchEnabled = true
         for scrim in [bottomScrim,sideScrim] { layer.addSublayer(scrim) }
     }
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+    private func conversationHit(at point:CGPoint)->ConversationHitKind? {
+        // Controls remain usable even where their 44pt target extends beyond a
+        // bubble's raised corner. Completely faded messages count as whitespace.
+        if messageRegions.values.contains(where:{$0.kind == .control && $0.frame.contains(point)}) {return .control}
+        if !UIAccessibility.isReduceTransparencyEnabled,
+           point.y-messageFrame.minY < ConversationContentMask.touchThroughHeight(in:messageFrame.height) {return nil}
+        return messageRegions.values.contains(where:{$0.kind == .message && $0.frame.contains(point)}) ? .message : nil
+    }
+    func previewOrigin(at point:CGPoint,target:UIView?)->CharacterPreviewOrigin? {
+        if let chatView,messageFrame.contains(chatView.convert(point,from:self)) {
+            switch conversationHit(at:chatView.convert(point,from:self)) {
+            case .control:return nil
+            case .message:return .conversationMessage
+            case nil:return .conversationBlank
+            }
+        }
+        if let characterTouchView,let target,
+           target === characterTouchView || target.isDescendant(of:characterTouchView) {return .character}
+        return nil
+    }
     func updateScrims(chat: CGRect?, stage: CGRect, editing: Bool, duration: TimeInterval) {
         let color = UIColor(Theme.background)
         let solid = UIAccessibility.isReduceTransparencyEnabled || ThemeSettings.shared.solid
@@ -61,10 +83,10 @@ private final class TouchThroughView: UIView {
             return characterTouchView.hitTest(characterTouchView.convert(point,from:self),with:event)
         }
         guard let hit = super.hitTest(point,with:event), hit !== self else { return nil }
-        if !UIAccessibility.isReduceTransparencyEnabled, let chatView,
+        if let chatView,
            hit.isDescendant(of:chatView), let characterTouchView, characterTouchView.isUserInteractionEnabled {
             let local = chatView.convert(point,from:self)
-            if messageFrame.contains(local), local.y-messageFrame.minY < ConversationContentMask.touchThroughHeight(in:messageFrame.height) {
+            if messageFrame.contains(local),conversationHit(at:local) == nil {
                 return characterTouchView.hitTest(characterTouchView.convert(point,from:self),with:event)
             }
         }
@@ -485,6 +507,7 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
         identityHost = nil
         backButton.isHidden = session != nil
         chatHost = nil; chatSession = session; chatEditing = false; chatComposerFrame = .zero
+        (view as? TouchThroughView)?.messageRegions = [:]
         // Only the visible identity occupies the upper-left touch area. Keeping
         // the old wide centered hit target here would swallow model gestures.
         NSLayoutConstraint.deactivate([identityCentered,identityExplorerWidth,identityLeading,identityContentWidth].compactMap { $0 })
@@ -502,6 +525,9 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
                 (self?.view as? TouchThroughView)?.messageFrame = frame
             },onComposerFrameChanged:{ [weak self] frame in
                 self?.chatComposerFrame = frame
+            },onHitRegionsChanged:{ [weak self,weak session] regions in
+                guard let self,let session,self.chatSession === session else {return}
+                (self.view as? TouchThroughView)?.messageRegions = regions
             }))
             host.view.backgroundColor = .clear; host.view.isOpaque = false
             host.view.accessibilityIdentifier = "companionPanel"
@@ -605,6 +631,12 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
         touchSurface.onGesture = { [weak self] value in self?.onNativeGesture?(value) }
         touchSurface.frame=view.bounds;touchSurface.autoresizingMask=[.flexibleWidth,.flexibleHeight]
         view.insertSubview(touchSurface,at:0)
+        touchSurface.observePreview(in:view,origin:{ [weak self] point,target in
+            (self?.view as? TouchThroughView)?.previewOrigin(at:point,target:target)
+        },conversationScroll:{ [weak self] scroll in
+            guard let chat=self?.chatHost?.view,!(scroll is UITextView) else {return false}
+            return scroll.isDescendant(of:chat)
+        })
         touchSurface.observeEditing(in:view) { [weak self] point,target in
             guard let self,self.viewEditor.isOpen,self.gestureInputAvailable,self.view.isUserInteractionEnabled else {return false}
             for excluded in [self.resetPositionButton,self.positionButton,self.dockHost?.view].compactMap({$0}) where !excluded.isHidden && excluded.alpha>0.01 {

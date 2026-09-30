@@ -48,6 +48,9 @@ void SNSynthesizeViewEdit(CGPoint start, CGSize viewport, void (^completion)(NSE
     id one=[[paths alloc] initForTouchAtPoint:start offset:0];
     CGPoint second=CGPointMake(start.x+65,start.y);
     id two=[[paths alloc] initForTouchAtPoint:second offset:.18];
+    // Event paths interpolate between samples. Hold both fingers still before
+    // moving; otherwise finger one can cross the pan threshold before .18s.
+    [one moveToPoint:start atOffset:.30];[two moveToPoint:second atOffset:.30];
     CGPoint end=CGPointMake(start.x-8,start.y+viewport.height*.05);
     CGPoint endTwo=CGPointMake(second.x+22,second.y+viewport.height*.05);
     [one moveToPoint:end atOffset:.95];[two moveToPoint:endTwo atOffset:.95];
@@ -56,6 +59,22 @@ void SNSynthesizeViewEdit(CGPoint start, CGSize viewport, void (^completion)(NSE
     [record addPointerEventPath:one];[record addPointerEventPath:two];
     [[device valueForKey:@"eventSynthesizer"] synthesizeEvent:record completion:^(BOOL success,NSError *error) {
         dispatch_async(dispatch_get_main_queue(),^{completion(error);});
+    }];
+}
+
+void SNSynthesizeConversationTurn(CGPoint start, CGPoint bend, CGPoint end, void (^completion)(NSError *)) {
+    Class paths=NSClassFromString(@"XCPointerEventPath"),records=NSClassFromString(@"XCSynthesizedEventRecord");
+    id device=[XCUIDevice sharedDevice];
+    if(!paths || !records || ![device respondsToSelector:NSSelectorFromString(@"eventSynthesizer")]) {
+        completion([NSError errorWithDomain:@"ConversationGestureTest" code:1 userInfo:nil]);return;
+    }
+    id record=[[records alloc] initWithName:@"conversation-direction-lock" interfaceOrientation:1];
+    id one=[[paths alloc] initForTouchAtPoint:start offset:0];
+    [one moveToPoint:start atOffset:.06];[one moveToPoint:bend atOffset:.38];
+    [one moveToPoint:end atOffset:.9];[one liftUpAtOffset:1.05];
+    [record addPointerEventPath:one];
+    [[device valueForKey:@"eventSynthesizer"] synthesizeEvent:record completion:^(BOOL success,NSError *error) {
+        dispatch_async(dispatch_get_main_queue(),^{completion(error ?: (success ? nil : [NSError errorWithDomain:@"ConversationGestureTest" code:2 userInfo:nil]));});
     }];
 }
 

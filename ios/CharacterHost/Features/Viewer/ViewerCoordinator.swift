@@ -90,6 +90,11 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
     func startShell() {
         guard !shellStarted else { return }; shellStarted = true
         activateLibrary()
+#if DEBUG && targetEnvironment(simulator)
+        if ProcessInfo.processInfo.arguments.contains("--conversation-gesture-fixture") {
+            ConversationGestureFixture.seed(companionStore)
+        }
+#endif
         if ProcessInfo.processInfo.arguments.contains("--shell-discover") { selectedTab = .discover }
         else if page == .home { resumeLastCharacter(reason:.appLaunch) }
         // The native page is sufficient to dismiss startup, even when its 3D

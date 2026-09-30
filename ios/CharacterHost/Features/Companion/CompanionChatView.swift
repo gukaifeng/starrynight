@@ -21,6 +21,7 @@ struct CompanionChatView: View {
     var onDisplayChanged: (() -> Void)?
     var onMessageFrameChanged: ((CGRect) -> Void)?
     var onComposerFrameChanged: ((CGRect) -> Void)?
+    var onHitRegionsChanged: (([String:ConversationHitRegion]) -> Void)?
     @ScaledMetric(relativeTo:.body) private var textScale: CGFloat = 1
     private var chatFontSize: CGFloat { CGFloat(session.store.chatDisplay.normalized.fontSize)*textScale }
     @State private var scrollState = ConversationScrollState()
@@ -58,6 +59,7 @@ struct CompanionChatView: View {
         .coordinateSpace(name:"companionPanel")
         .onPreferenceChange(ConversationMessageFramePreference.self) { onMessageFrameChanged?($0) }
         .onPreferenceChange(ConversationComposerFramePreference.self) { onComposerFrameChanged?($0) }
+        .onPreferenceChange(ConversationHitPreference.self) { onHitRegionsChanged?($0) }
         .foregroundStyle(Theme.ink).tint(Theme.accent).scrollIndicators(.hidden)
         .animation(interfaceAnimation,value:editing)
         .animation(interfaceAnimation,value:session.generating)
@@ -89,6 +91,7 @@ struct CompanionChatView: View {
                                 Image(systemName:"ellipsis").symbolEffect(.variableColor,isActive:!reduceMotion)
                                 Text(session.draftReply.isEmpty ? "让我想想…" : session.draftReply).font(.system(size:chatFontSize)).lineSpacing(5)
                             }.padding(14).background(Theme.surface.opacity(reduceTransparency ? 1 : Theme.panelOpacity),in:RoundedRectangle(cornerRadius:22)).accessibilityIdentifier("streamingReply")
+                                .conversationHitRegion(.message,id:"streaming")
                         }
                         Color.clear.frame(height:3).id("latest")
                     }.padding(.horizontal,22)
@@ -127,7 +130,7 @@ struct CompanionChatView: View {
                         session.clearMessageFocus(); scrollState.returnToLatest()
                         // The latest window must exist before scrolling to it.
                         DispatchQueue.main.async { withAnimation(interfaceAnimation) { proxy.scrollTo("latest",anchor:.bottom) } }
-                    }.transition(.opacity)
+                    }.conversationHitRegion(.control,id:"returnLatest").transition(.opacity)
                 }
             }
             .animation(interfaceAnimation,value:scrollState.showsReturnButton)
@@ -237,6 +240,7 @@ struct CompanionChatView: View {
             if message.role == "assistant" {
                 VStack(alignment:.leading,spacing:0) {
                     MessageVoiceControl(session:session,message:message)
+                        .conversationHitRegion(.control,id:"voice-"+message.id.uuidString)
                         // Body begins 12pt below the 23pt shoulder, matching its
                         // bottom inset. The 44pt audio hit area extends upward.
                         .frame(height:35,alignment:.bottom)
@@ -253,6 +257,7 @@ struct CompanionChatView: View {
                     .overlay { RoundedRectangle(cornerRadius:22).stroke(Theme.gradient.opacity(session.focusedMessageID == message.id ? 0.65 : 0.08),lineWidth:0.6) }
             }
             if message.interrupted { Text("已停止生成").font(.caption2).foregroundStyle(Theme.secondary) }
-        }.frame(maxWidth:.infinity,alignment:message.role == "user" ? .trailing : .leading)
+        }.conversationHitRegion(.message,id:message.id.uuidString)
+            .frame(maxWidth:.infinity,alignment:message.role == "user" ? .trailing : .leading)
     }
 }
