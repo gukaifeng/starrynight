@@ -255,13 +255,19 @@ struct ProfileSettingsView: View {
     @Bindable var coordinator:ViewerCoordinator
     var onClose:()->Void
     @State private var showingChatDisplay = false
+    @State private var showingNickname = false
     @State private var chatDisplayClose = SoftPanelCloseRequest()
     @Environment(\.softPanelCloseRequest) private var close
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     private var motion:Animation { .easeInOut(duration:reduceMotion ? 0.1 : 0.25) }
     var body:some View {
         ZStack {
-            if showingChatDisplay {
+            if showingNickname {
+                DefaultNicknamePanel(store:coordinator.companionStore)
+                    .environment(\.softPanelCloseRequest,chatDisplayClose)
+                    .environment(\.softPanelDismiss,{ chatDisplayClose.request() })
+                    .transition(.opacity)
+            } else if showingChatDisplay {
                 ChatDisplayPanel(store:coordinator.companionStore)
                     .environment(\.softPanelCloseRequest,chatDisplayClose)
                     .environment(\.softPanelDismiss,{ chatDisplayClose.request() })
@@ -276,6 +282,20 @@ struct ProfileSettingsView: View {
         NavigationStack {
             List {
                 Section("我的星夜") {
+                    Button {
+                        let nextClose = SoftPanelCloseRequest()
+                        nextClose.begin { withAnimation(motion) { showingNickname = false } }
+                        chatDisplayClose = nextClose
+                        withAnimation(motion) { showingNickname = true }
+                    } label: {
+                        HStack {
+                            Label("AI 对我的称呼",systemImage:"text.bubble")
+                            Spacer()
+                            Text(coordinator.companionStore.defaultNickname.isEmpty ? "未设置" : coordinator.companionStore.defaultNickname)
+                                .lineLimit(1).foregroundStyle(Theme.secondary)
+                            Image(systemName:"chevron.right").font(.caption).foregroundStyle(Theme.secondary)
+                        }
+                    }.accessibilityIdentifier("defaultNicknameSettingsButton")
                     Button {
                         let nextClose = SoftPanelCloseRequest()
                         nextClose.begin { withAnimation(motion) { showingChatDisplay = false } }

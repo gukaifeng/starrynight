@@ -36,6 +36,47 @@ struct CompanionExperienceTests {
         precondition(CharacterPublicProfile.find("anime-kipfel")?.scenarios?.isEmpty == true)
         precondition(AIBeat.visibleThought("I feel a little more confident now.") != nil)
         precondition(AIBeat.visibleThought("I should respond to the user warmly.") == nil)
-        return "PASS: real-AI migration, backup, retained memories, account/role isolation and restart persistence"
+        precondition(store.defaultNickname.isEmpty && store.effectiveNickname(for:"anime-kipfel") == "小北")
+        store.saveDefaultNickname("  小星\n 同学  ")
+        precondition(store.defaultNickname == "小星 同学")
+        precondition(store.effectiveNickname(for:"anime-kipfel") == "小北")
+        precondition(store.effectiveNickname(for:"anime-lime") == "小星 同学")
+#if os(iOS)
+        let model = ModelDescriptor.defaultCharacter
+        for trigger in ["user_message","idle","appLaunch","model_shaken","model_pinched","story"] {
+            let body = CompanionSession.requestBody(store:store,model:model,text:"",trigger:trigger)
+            let preferences = body["preferences"] as! [String:String]
+            precondition(preferences["nickname"] == "小北" && preferences["nicknameSource"] == "character")
+        }
+#endif
+        var specific = store.record("anime-kipfel").together.preferences; specific.nickname = "  "
+        store.saveTogether(specific,id:"anime-kipfel")
+        precondition(store.effectiveNickname(for:"anime-kipfel") == "小星 同学")
+#if os(iOS)
+        let inherited = CompanionSession.requestBody(store:store,model:model,text:"",trigger:"idle")["preferences"] as! [String:String]
+        precondition(inherited["nickname"] == "小星 同学" && inherited["nicknameSource"] == "account")
+#endif
+        store.activateAccount("account-B")
+        precondition(store.defaultNickname.isEmpty && store.effectiveNickname(for:"anime-kipfel").isEmpty)
+        store.saveDefaultNickname("River")
+        let reload = CompanionStore(storageURL:url)
+        precondition(reload.defaultNickname == "小星 同学")
+        reload.activateAccount("account-B"); precondition(reload.defaultNickname == "River")
+        enum SimulatedFailure:Error { case write }
+        do { try reload.applyCloudBatch { reload.saveDefaultNickname("Changed"); throw SimulatedFailure.write } }
+        catch SimulatedFailure.write {}
+        precondition(reload.defaultNickname == "River")
+        try reload.applyCloudBatch { reload.saveDefaultNickname("") }
+        precondition(CompanionStore(storageURL:url).archive.defaultNicknames?["account-B"] == "")
+        reload.activateAccount("guest"); reload.saveDefaultNickname("游客小星")
+        precondition(reload.importGuest(into:"new-account"))
+        reload.activateAccount("new-account"); precondition(reload.defaultNickname == "游客小星")
+        precondition(TogetherPreferences.cleanNickname(String(repeating:"🌙",count:25)).count == 20)
+        // Old schema-2 JSON without the optional map still decodes losslessly.
+        var legacy = try JSONSerialization.jsonObject(with:JSONEncoder().encode(old)) as! [String:Any]
+        legacy.removeValue(forKey:"defaultNicknames")
+        let decodedLegacy = try JSONDecoder().decode(CompanionArchive.self,from:JSONSerialization.data(withJSONObject:legacy))
+        precondition(decodedLegacy.defaultNicknames == nil)
+        return "PASS: migration, retained memories, nickname precedence/clear, account isolation, guest adoption, cloud rollback and restart persistence"
     }
 }

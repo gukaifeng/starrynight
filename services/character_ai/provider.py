@@ -117,6 +117,13 @@ def structured_messages(purpose,system,context,schema):
     else:
         task=(context.get('interaction_context') or context.get('prepared_event_context') or context.get('greeting_context') or {}).get('task',
             '用户暂时没有说话。接续相处状态，决定是否安静陪伴；若开口，带来一个尚未说过的新想法，不催用户回答旧问题。')
+        if idle:=context.get('idle_context'):
+            # Put the selected intention in the final event, not only deep in
+            # state JSON. Otherwise a character model may continue its own last
+            # topic and ignore the user's silence, especially for cached drafts.
+            task=idle['task']+' 本次唯一切入角度：'+idle['angle']['intention']
+            task+=' 这次搭话的重心是关心沉默中的用户，不继续讲自己的背景故事；最多一个轻轻的询问或陪伴表达。'
+            if context.get('prepared_event_context'):task+=' 这是尚未说出的候选，idle选择proactive_speech。'
         messages.append(dict(role='user',content='<app_event>'+dump(dict(event=context.get('trigger'),task=task))+'</app_event>'))
     return messages
 

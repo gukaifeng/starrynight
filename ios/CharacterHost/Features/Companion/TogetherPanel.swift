@@ -118,7 +118,19 @@ struct TogetherPanel: View {
     }
     private var relationship:some View {
         VStack(alignment:.leading,spacing:18) {
-            textEntry("希望怎么称呼你",placeholder:"你的专属称呼",text:$preferences.nickname,id:"togetherNickname")
+            VStack(alignment:.leading,spacing:10) {
+                textEntry("专属称呼 · 只让\(session.record.profile.name)这样叫你",placeholder:"留空使用全局默认称呼",text:$preferences.nickname,id:"togetherNickname")
+                let specific = preferences.normalized.nickname
+                let effective = specific.isEmpty ? store.defaultNickname : specific
+                Text(effective.isEmpty ? "尚未设置称呼，会自然地与你交谈。" : "\(specific.isEmpty ? "使用全局默认" : "当前专属称呼")：\(effective)")
+                    .font(.system(size:12)).foregroundStyle(Theme.secondary).accessibilityIdentifier("roleNicknamePreview")
+                if !specific.isEmpty {
+                    Button("使用全局默认") { preferences.nickname = "" }
+                        .font(.system(size:12)).frame(minHeight:36).accessibilityIdentifier("inheritDefaultNickname")
+                }
+                Text("全局默认称呼可在「我的 → 设置 → AI 对我的称呼」中修改。")
+                    .font(.system(size:11)).foregroundStyle(Theme.secondary)
+            }
             textEntry("让对方了解你",placeholder:"兴趣、近况，或想一起做的事",text:$preferences.aboutMe,id:"togetherAboutMe")
             VStack(alignment:.leading,spacing:9) {
                 caption("我们的关系")

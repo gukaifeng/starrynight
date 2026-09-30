@@ -211,7 +211,8 @@ import UIKit
     private func snapshot()throws->[String:JSONValue]{
         var result:[String:JSONValue]=[:]
         result[key("settings","settings")] = .object(["theme":.string(ThemeSettings.shared.paletteID),"style":.string(ThemeSettings.shared.style),
-            "chat_font_size":.number(store.chatDisplay.fontSize),"last_character":.string(library.lastCharacter ?? "")])
+            "chat_font_size":.number(store.chatDisplay.fontSize),"last_character":.string(library.lastCharacter ?? ""),
+            "default_nickname":.string(store.defaultNickname)])
         if let author=library.currentAuthor{result[key("author",author.id)] = .object(["name":.string(author.name),"bio":.string(author.bio),"avatar":.string(author.avatar)])}
         for id in library.archive.accounts[owner]?.subscriptions ?? []{result[key("subscription",id)] = .object(["id":.string(id)])}
         for id in library.followedAuthors{result[key("follow",id)] = .object(["id":.string(id)])}
@@ -298,6 +299,7 @@ import UIKit
         case "settings":
             if let v=b["theme"]?.string{ThemeSettings.shared.paletteID=v};if let v=b["style"]?.string{ThemeSettings.shared.style=v}
             if let v=b["chat_font_size"]?.number{store.chatDisplay.fontSize=v;_ = store.saveChatDisplay()}
+            if let v=b["default_nickname"]?.string {store.saveDefaultNickname(v)}
             library.applyCloudLastCharacter(b["last_character"]?.string)
         case "subscription":
             let ids=library.archive.accounts[owner]?.subscriptions ?? []

@@ -13,6 +13,7 @@ from .semantic_novelty import SemanticNovelty
 from . import parallel_performance
 from .ordered_audio import ordered_audio
 from .roleplay import language, language_instruction, scenario_context, wrong_language
+from . import idle_presence
 
 def event(kind, **data): return dict(type=kind,**data)
 
@@ -82,6 +83,7 @@ class Orchestrator:
         context['novelty_context']=novelty.context(self.store,owner,char)
         context['recent_response_focus']=self.store.get('response_focus',owner,char,[])
         context['reply_format']='timeline-v2' if request.timeline_reply else 'legacy'
+        if request.trigger=='idle':context['idle_context']=idle_presence.context(self.store,owner,char,context)
         if request.trigger in ENTRY_TRIGGERS:
             last = self.store.db.execute('SELECT max(created) FROM messages WHERE owner=? AND character=?',(owner,char)).fetchone()[0]
             context['greeting_context'] = greeting_context(context['recent_messages'],
@@ -212,6 +214,10 @@ class Orchestrator:
                 self.store.complete(owner,char,rid,empty)
                 yield event('reply.completed',message_id=empty['message_id']);return
             self.store.put('shake_reaction',owner,char,dict(last=time.time()))
+        if request.trigger=='idle' and context['idle_context']['availability']=='quiet_requested':
+            empty=dict(message_id=str(uuid.uuid4()),character_id=char,beats=[],text='',idle_decision='do_nothing')
+            self.store.complete(owner,char,rid,empty)
+            yield event('reply.completed',message_id=empty['message_id']);return
         if request.trigger=='idle' and not resume:
             timing=self.store.get('proactive',owner,char,{})
             unanswered=timing.get('unanswered',0)
@@ -301,6 +307,7 @@ class Orchestrator:
                 for b,wire in zip(plan.beats,beats)]))
         script=dict(message_id=str(uuid.uuid4()),character_id=char,beats=beats,text=text,trigger=request.trigger,idle_decision=plan.idle_decision,
             memory_suggestions=[m.content for m in plan.memory_updates] if request.trigger=='user_message' else [])
+        if request.trigger=='idle':script['idle_angle']=context['idle_context']['angle']['id']
         if draft:
             yield event('reaction.draft',plan=plan.model_dump())
         else:
@@ -323,6 +330,7 @@ class Orchestrator:
 
     def commit_context(self,owner,request,context,script,plan):
         char=request.character_id;rid=str(request.request_id);text=script['text']
+        if request.trigger=='idle':idle_presence.commit(self.store,owner,char,script)
         if plan.response_focus and text:
             self.store.put('response_focus',owner,char,(context['recent_response_focus']+[plan.response_focus])[-12:])
         if request.trigger in ENTRY_TRIGGERS:

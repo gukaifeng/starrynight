@@ -114,6 +114,8 @@ struct CompanionArchive: Codable, Sendable {
     var chatDisplay: ChatDisplaySettings? = nil
     var guestTurns: Int? = nil
     var guestImportedBy: String? = nil
+    // Optional for schema-2 archives created before account-wide addressing.
+    var defaultNicknames: [String:String]? = nil
 }
 enum CompanionPersistence {
     private static let queue=DispatchQueue(label:"app.starry.journal",qos:.utility)

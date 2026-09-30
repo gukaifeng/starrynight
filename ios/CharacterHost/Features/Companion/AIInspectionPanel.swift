@@ -76,7 +76,7 @@ struct AIInspectionPanel:View {
             let record=session.record
             func json<T:Encodable>(_ value:T)->String {(try? String(decoding:encoder.encode(value),as:UTF8.self)) ?? "无法编码"}
             value.sections.append(.init(id:"local",title:"本机全部相处资料",detail:"完整偏好、全部本机记忆、用户侧展示设定与问候记录；真正送入本轮的部分见请求预览。",content:
-                "相处偏好\n"+json(record.together.preferences)+"\n全部记忆\n"+json(record.memories)+"\n本机展示与声音设置\n"+json(record.profile)+"\n问候记录\n"+json(record.greeting)))
+                "称呼解析\n"+json(["全局默认":session.store.defaultNickname,"角色专属":record.together.preferences.nickname,"实际称呼":session.store.effectiveNickname(for:session.model.id),"来源":session.store.nicknameSource(for:session.model.id)])+"\n相处偏好\n"+json(record.together.preferences)+"\n全部记忆\n"+json(record.memories)+"\n本机展示与声音设置\n"+json(record.profile)+"\n问候记录\n"+json(record.greeting)))
             if let url=Bundle.main.url(forResource:"ClientAIRules",withExtension:"txt"),let text=try? String(contentsOf:url,encoding:.utf8) {
                 value.sections.append(.init(id:"native-rules",title:"App 端执行规则",detail:"此测试安装包的会话、问候、语音和缓存完整源码。",content:text))
             }

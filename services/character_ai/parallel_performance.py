@@ -16,7 +16,7 @@ def performance_context(context):
                 intent_guide=context.get('avatar_capability',{}).get('intent_guide',{}),
                 user_message=context.get('user_message',''),recent_messages=context.get('recent_messages',[])[-4:],
                 interaction_context=context.get('interaction_context'),greeting_context=data.get('greeting_context'),
-                roleplay_context=context.get('roleplay_context'),
+                roleplay_context=context.get('roleplay_context'),idle_context=context.get('idle_context'),
                 personality=context.get('character_profile',{}).get('personality',{}))
 
 async def plan_performance(engine,owner,request,context):

@@ -7,6 +7,7 @@ from .speech_text import audio_key
 from .storage import dump
 from .greetings import ENTRY_TRIGGERS
 from .prepared_draft import PreparedDraft
+from . import idle_presence
 
 REACTIONS={'shake':'model_shaken','pinch_in':'model_pinched','pinch_out':'model_pinched'}
 SCENARIOS={**REACTIONS,'idle':'idle','first_meeting':'firstMeeting','app_launch':'appLaunch','return':'characterSwitch'}
@@ -17,7 +18,7 @@ def event_task(kind):
         'first_meeting':'这是你与这个用户第一次见面。简短主动打招呼，不认识对方、不曾共同经历，不说欢迎回来。',
         'app_launch':'用户重新打开应用来看你，你们以前见过。这是一次新的开场，轻轻接续此前的相处，不能重新作答历史问题或重复问候。',
         'return':'用户从别的角色或页面切回与你的会话，你们已经见过。像熟悉的伙伴重新接上话，短暂离开也适用，不说好久不见。',
-        'idle':'你们安静相处了一会儿，应用将在适合打破安静时触发这句话。准备一句新的、轻松的主动分享，不催用户回复，不重答旧问题；idle_decision选择proactive_speech。',
+        'idle':idle_presence.TASK+'按idle_context丰富表达；idle_decision选择proactive_speech，实际是否打破安静由触发时判断。',
     }.get(kind,'依照interaction_context回应这个真实触发的手势。')
 
 class ReactionPool:
@@ -48,7 +49,9 @@ class ReactionPool:
         if getattr(request,'preparation_scope','active')=='entry':
             kind=self.kind(owner,request)
             return [kind] if kind in ('first_meeting','app_launch','return') else []
-        return [*REACTIONS,'idle','app_launch','return'] if self.has_met(owner,request) else ['first_meeting']
+        if not self.has_met(owner,request):return ['first_meeting']
+        history=self.store.history(owner,request.character_id) or [m.model_dump() for m in request.recent_messages]
+        return [*REACTIONS,*(['idle'] if idle_presence.availability(history)!='quiet_requested' else []),'app_launch','return']
 
     def context_key(self,owner,request):
         rows=self.store.db.execute('SELECT id,role,data FROM messages WHERE owner=? AND character=? ORDER BY created DESC LIMIT 80',(owner,request.character_id)).fetchall()
@@ -61,7 +64,7 @@ class ReactionPool:
         if not rows:history=[m.model_dump() for m in request.recent_messages]
         voice=self.store.get('voice','system',request.character_id,{})
         from .profiles import PROFILES
-        value=[2,request.character_id,self.has_met(owner,request),PROFILES[request.character_id],voice.get('voice_id'),request.preferences,
+        value=[3,idle_presence.REVISION,request.character_id,self.has_met(owner,request),PROFILES[request.character_id],voice.get('voice_id'),request.preferences,
                [m.model_dump() for m in request.memories],sorted(request.available_assets),{k:v for k,v in request.scene.items() if k!='time'},history]
         return hashlib.sha256(json.dumps(value,ensure_ascii=False,sort_keys=True).encode()).hexdigest()
 

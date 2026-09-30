@@ -21,13 +21,17 @@ final class CompanionStore {
     @discardableResult func importGuest(into id:String) -> Bool {
         guard !recoveryBlocked, archive.guestImportedBy == nil else { return false }
         let records = archive.characters.filter { $0.key.hasPrefix("guest:") }
-        guard !records.isEmpty else { return false }
+        let guestNickname = archive.defaultNicknames?["guest"] ?? ""
+        guard !records.isEmpty || !guestNickname.isEmpty else { return false }
         var next = archive
         for (key,record) in records {
             let role = String(key.dropFirst("guest:".count))
             let destination = id == DemoAccount.id ? role : id + ":" + role
             guard next.characters[destination] == nil else { continue }
             next.characters[destination] = record
+        }
+        if next.defaultNicknames?[id] == nil && !guestNickname.isEmpty {
+            var names = next.defaultNicknames ?? [:]; names[id] = guestNickname; next.defaultNicknames = names
         }
         next.guestImportedBy = id
         do { try CompanionPersistence.write(next,to:url); writeRevision += 1;archive = next; error = nil; return true }
@@ -88,6 +92,24 @@ final class CompanionStore {
         chatDisplay = ChatDisplaySettings.load(from:chatDisplayDefaults)
     }
     func record(_ id: String) -> CharacterRecord { archive.characters[key(id)] ?? CharacterRecord(profile:.initial(id)) }
+    var defaultNickname:String { TogetherPreferences.cleanNickname(archive.defaultNicknames?[accountID] ?? "") }
+    func effectiveNickname(for id:String) -> String {
+        let specific = record(id).together.preferences.normalized.nickname
+        return specific.isEmpty ? defaultNickname : specific
+    }
+    func nicknameSource(for id:String) -> String {
+        if !record(id).together.preferences.normalized.nickname.isEmpty { return "character" }
+        return defaultNickname.isEmpty ? "natural" : "account"
+    }
+    func saveDefaultNickname(_ value:String) {
+        guard !recoveryBlocked else { error = "原资料尚未成功备份，暂时不能保存称呼。"; return }
+        let clean = TogetherPreferences.cleanNickname(value)
+        guard clean != defaultNickname else { return }
+        var next = archive, names = archive.defaultNicknames ?? [:]
+        // An explicit empty value must also sync, to clear a previous setting.
+        names[accountID] = clean; next.defaultNicknames = names
+        persist(next)
+    }
     func update(_ id: String, countGuestTurn:Bool = false, _ change: (inout CharacterRecord) -> Void) {
         guard !recoveryBlocked else {
             error = "原资料尚未成功备份，不能覆盖。请检查存储空间并重启后重试。"; return
@@ -100,6 +122,9 @@ final class CompanionStore {
         var record = record(id); change(&record)
         record.messages = Array(record.messages.suffix(1000))
         next.characters[key(id)] = record
+        persist(next)
+    }
+    private func persist(_ next:CompanionArchive) {
         if batching { archive = next; error = nil; return }
         // Publish in-memory state immediately; encoding a multi-role archive and
         // atomic disk I/O must not stall a message insertion or keyboard animation.

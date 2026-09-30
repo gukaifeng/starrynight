@@ -166,15 +166,20 @@ func TestAccountAndJournalIsolation(t *testing.T) {
 	s.call("POST", "/v1/auth/register", "", map[string]any{"username": strings.ToUpper(a.User.Username), "password": password, "display_name": "重复"}, 409)
 	s.call("POST", "/v1/auth/login", "", map[string]any{"username": a.User.Username, "password": "incorrect-password"}, 401)
 	settings := decode[store.Document](t, s.call("GET", "/v1/me/settings", a.Token, nil, 200))
-	settings = decode[store.Document](t, s.call("PATCH", "/v1/me/settings", a.Token, map[string]any{"expected_version": settings.Version, "patch": map[string]any{"theme": "ocean", "extensions": map[string]any{"future.audio": map[string]any{"spatial": true}}}}, 200))
+	settings = decode[store.Document](t, s.call("PATCH", "/v1/me/settings", a.Token, map[string]any{"expected_version": settings.Version, "patch": map[string]any{"theme": "ocean", "default_nickname": "小星", "extensions": map[string]any{"future.audio": map[string]any{"spatial": true}}}}, 200))
 	s.call("PATCH", "/v1/me/settings", a.Token, map[string]any{"expected_version": 1, "patch": map[string]any{"theme": "ember"}}, 409)
 	settings = decode[store.Document](t, s.call("PATCH", "/v1/me/settings", a.Token, map[string]any{"expected_version": settings.Version, "patch": map[string]any{"chat_font_size": 19}}, 200))
-	if settings.Data["extensions"] == nil || settings.Data["theme"] != "ocean" {
+	if settings.Data["extensions"] == nil || settings.Data["theme"] != "ocean" || settings.Data["default_nickname"] != "小星" {
 		t.Fatal("merge patch lost future fields")
 	}
 	other := decode[store.Document](t, s.call("GET", "/v1/me/settings", b.Token, nil, 200))
-	if other.Data["theme"] != "silver" {
+	if other.Data["theme"] != "silver" || other.Data["default_nickname"] != nil {
 		t.Fatal("settings leaked between accounts")
+	}
+	settings = decode[store.Document](t, s.call("PATCH", "/v1/me/settings", a.Token, map[string]any{"expected_version": settings.Version, "patch": map[string]any{"default_nickname": ""}}, 200))
+	status, data = s.request(1, "GET", "/v1/me/settings", a.Token, nil)
+	if status != 200 || decode[store.Document](t, data).Data["default_nickname"] != "" {
+		t.Fatal("cleared nickname did not persist across API replicas")
 	}
 	author := decode[store.Author](t, s.call("GET", "/v1/me/author", a.Token, nil, 200))
 	s.call("PUT", "/v1/me/follows/"+author.ID, a.Token, nil, 403)

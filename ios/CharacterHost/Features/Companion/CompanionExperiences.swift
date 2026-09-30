@@ -8,7 +8,7 @@ struct TogetherPreferences: Codable, Equatable, Sendable {
     var avoidedTopics = ""
     var normalized: Self {
         var value = self
-        value.nickname = String(nickname.trimmingCharacters(in:.whitespacesAndNewlines).prefix(20))
+        value.nickname = Self.cleanNickname(nickname)
         value.aboutMe = String(aboutMe.trimmingCharacters(in:.whitespacesAndNewlines).prefix(300))
         value.avoidedTopics = String(avoidedTopics.trimmingCharacters(in:.whitespacesAndNewlines).prefix(200))
         if !["朋友","搭档","知己"].contains(relationship) { value.relationship = "朋友" }
@@ -19,6 +19,9 @@ struct TogetherPreferences: Codable, Equatable, Sendable {
         avoidedTopics.components(separatedBy:CharacterSet(charactersIn:",，、;；\n"))
             .map { $0.trimmingCharacters(in:.whitespacesAndNewlines) }
             .contains { $0.count >= 2 && input.localizedCaseInsensitiveContains($0) }
+    }
+    static func cleanNickname(_ value:String) -> String {
+        String(value.split(whereSeparator: { $0.isWhitespace }).joined(separator:" ").prefix(20))
     }
 }
 

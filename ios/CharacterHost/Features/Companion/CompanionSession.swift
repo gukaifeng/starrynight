@@ -10,7 +10,7 @@ final class CompanionSession {
     let api: CharacterAI
     var inspectionActive = false
     var dismissKeyboardRequest = 0
-    var characterEditorPresented = false { didSet { if !characterEditorPresented { deliverPendingGreeting() } } }
+    var characterEditorPresented = false { didSet { if !characterEditorPresented { refreshAddressPreferences(); deliverPendingGreeting() } } }
     var input = ""
     let voiceInput=VoiceInputDraft()
     var generating = false
@@ -69,6 +69,7 @@ final class CompanionSession {
     @ObservationIgnored private var activeTurn = false
     @ObservationIgnored private var pendingGreeting: ConversationEntry?
     @ObservationIgnored private let ownerID: String
+    @ObservationIgnored private var preparedNickname:String
     @ObservationIgnored private var activeScript: AIScript?
     @ObservationIgnored private var performedBeats = Set<String>()
     var record: CharacterRecord {
@@ -96,6 +97,7 @@ final class CompanionSession {
     }
     init(store: CompanionStore, model: ModelDescriptor, soundscape: CompanionSoundscape) {
         self.store = store; self.model = model; self.soundscape = soundscape; ownerID = store.accountID
+        preparedNickname = store.effectiveNickname(for:model.id)
         api = CharacterAI(accountID:store.accountID,characterID:model.id)
         speech = CloudSpeech(soundscape:soundscape,api:api,cacheScope:store.accountID+"|"+model.id)
         let account = store.accountID
@@ -110,7 +112,10 @@ final class CompanionSession {
         soundscape.configure(collection:model.collection,profile:model.conversationProfile(preserving:store.record(model.id).profile)) { [weak store] preferences in
             guard let store, store.accountID == account else { return }; store.update(model.id) { $0.profile.audio = preferences }
         }
-        speech.nickname = { [weak self] in self?.record.together.preferences.normalized.nickname ?? "" }
+        speech.nickname = { [weak self] in
+            guard let self else { return "" }
+            return self.store.effectiveNickname(for:self.model.id)
+        }
         speech.onCaptureCancelled = { [weak self] in self?.voiceInput.cancel() }
         speech.onCaptureRecovery = { [weak self] text in
             self?.voiceInput.recover(text);self?.notice="连接暂时中断，已保留识别文字，可以修改后发送。"
@@ -137,12 +142,25 @@ final class CompanionSession {
     }
     func enterConversation(_ entry: ConversationEntry) {
         guard entry.characterID == model.id, entry.accountID == ownerID, store.accountID == ownerID else { return }
+        refreshAddressPreferences()
         guard ConversationGreetingPolicy.shouldGreet(record,entry:entry) else {
             scheduleReactionPreparation();scheduleIdle();return
         }
         pendingGreeting = entry; deliverPendingGreeting()
     }
     func adoptPreparationLease(_ value:String?) {reactionPreparationLease=value}
+    private func refreshAddressPreferences() {
+        guard store.accountID == ownerID else { return }
+        let current = store.effectiveNickname(for:model.id)
+        guard current != preparedNickname else { return }
+        preparedNickname = current
+        quickReplyTask?.cancel(); quickReplyTask = nil
+        quickReplies = []; quickReplySource = nil; quickRepliesLoading = false
+        preparedReactionReady = [:]
+        // The server fingerprint rejects old-name text/audio. Warm the new
+        // context on returning to this conversation, without a new greeting.
+        scheduleReactionPreparation()
+    }
     private func deliverPendingGreeting() {
         guard let entry = pendingGreeting, !characterEditorPresented, store.accountID == ownerID else { return }
         pendingGreeting = nil
@@ -225,7 +243,8 @@ final class CompanionSession {
         var recent = record.messages.filter { $0.source == "cloud-v1" }
         if recent.last?.role == "user", recent.last?.text == text { recent.removeLast() }
         return ["request_id":UUID().uuidString,"character_id":model.id,"text":text,"trigger":trigger,
-            "preferences":["nickname":p.nickname,"aboutMe":p.aboutMe,"relationship":p.relationship,"responseStyle":p.responseStyle,"avoidedTopics":p.avoidedTopics],
+            "preferences":["nickname":store.effectiveNickname(for:model.id),"nicknameSource":store.nicknameSource(for:model.id),
+                           "aboutMe":p.aboutMe,"relationship":p.relationship,"responseStyle":p.responseStyle,"avoidedTopics":p.avoidedTopics],
             "memories":record.memories.suffix(100).map { ["id":$0.id.uuidString,"text":$0.text] },
             "recent_messages":recent.suffix(12).map { ["role":$0.role,"text":String($0.text.prefix(700))] },
             "scene":["time":Date().formatted(date:.omitted,time:.shortened),"environment":model.display.description,
