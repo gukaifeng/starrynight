@@ -15,6 +15,7 @@ final class CompanionSession {
     var generating = false
     var notice: String?
     var currentAction = ""
+    var replyReveal = ReplyReveal()
     private(set) var focusedMessageID: UUID?
     private(set) var messageFocusRequest = 0
     var visibleMessages: [CompanionMessage] { ConversationSearch.window(record.messages,around:focusedMessageID) }
@@ -46,6 +47,7 @@ final class CompanionSession {
     @ObservationIgnored private var idleTask: Task<Void,Never>?
     @ObservationIgnored private var silentVisualTask: Task<Void,Never>?
     @ObservationIgnored private var shakeTask: Task<Void,Never>?
+    @ObservationIgnored private var revealTask: Task<Void,Never>?
     private(set) var shakeReactions=0
     @ObservationIgnored private var token = UUID()
     @ObservationIgnored private var activeTurn = false
@@ -69,7 +71,7 @@ final class CompanionSession {
         soundscape.setSpeechVolume(value)
         if muted {
             speech.stop()
-            if let activeScript { playSilentVisuals(activeScript) }
+            if let activeScript { playSilentVisuals(activeScript);revealSilently(activeScript) }
         } else { speech.refreshVolume() }
     }
     var availableActions: [CharacterAction] { model.availableActions(for:record.profile.resolvedStudio.posture ?? PosturePreferences()) }
@@ -113,7 +115,9 @@ final class CompanionSession {
             guard let self, let beat = self.activeScript?.beats.first(where:{ $0.beatId == id }) else { return }
             self.performedBeats.insert(id)
             self.onAIVisual?(beat.visuals)
+            self.replyReveal.advance(id,fraction:0)
         }
+        speech.onBeatProgress = { [weak self] id,fraction in self?.replyReveal.advance(id,fraction:fraction) }
     }
     func enterConversation(_ entry: ConversationEntry) {
         guard entry.characterID == model.id, entry.accountID == ownerID, store.accountID == ownerID,
@@ -195,6 +199,7 @@ final class CompanionSession {
                         received = true; self.activeScript = script; self.generating = false
                         let message = CompanionMessage(id:UUID(uuidString:script.messageId) ?? UUID(),role:"assistant",text:script.text,
                             proactiveScene:trigger == "user_message" ? nil : trigger,aiScript:script,source:"cloud-v1")
+                        if !self.record.messages.contains(where:{$0.id==message.id}) {self.replyReveal.begin(message.id,script:script)}
                         self.store.update(self.model.id) { record in
                             if !record.messages.contains(where:{ $0.id == message.id }) { record.messages.append(message) }
                             if let source = record.messages.last(where:{ $0.role == "user" }) {
@@ -217,7 +222,7 @@ final class CompanionSession {
                                 self.onAIVisual?(first.visuals)
                             }
                         }
-                        else { self.playSilentVisuals(script) }
+                        else { self.playSilentVisuals(script);self.revealSilently(script) }
                     case "reply.script.updated":
                         guard let script=event.script,let id=UUID(uuidString:script.messageId) else {return}
                         if self.activeScript?.messageId==script.messageId {self.activeScript=script}
@@ -229,12 +234,13 @@ final class CompanionSession {
                     case "reply.warning": self.notice = event.message
                     case "segment.audio.started", "segment.audio.chunk", "segment.audio.ready", "audio.error":
                         if !self.muted { try await self.speech.accept(event) }
-                        if event.type == "audio.error", let script=self.activeScript { self.playSilentVisuals(script) }
+                        if event.type == "audio.error", let script=self.activeScript { self.playSilentVisuals(script);self.revealSilently(script) }
                     default: break
                     }
                 }
                 guard current == token else { return }
                 generating = false; speech.finish()
+                if !muted && speech.error == nil {replyReveal.finish()}
                 if !muted, let script=activeScript { playSilentVisuals(script) }
                 // Each group has its own bounded restore timer. Finishing a
                 // short utterance must not immediately erase its expression.
@@ -243,6 +249,7 @@ final class CompanionSession {
             } catch {
                 guard current == token, !Task.isCancelled else { return }
                 generating = false; speech.stop()
+                replyReveal.finish()
                 if received, let script=activeScript { playSilentVisuals(script) }
                 else { onEndAIVisual?() }
                 emit("state.idle")
@@ -260,6 +267,22 @@ final class CompanionSession {
             guard !Task.isCancelled, let self, !self.generating, !self.speech.isRecording, !self.speech.isBusy,
                   !self.speech.isSpeaking, self.input.isEmpty, !self.characterEditorPresented else { return }
             self.generate("",trigger:"idle")
+        }
+    }
+    private func revealSilently(_ script:AIScript) {
+        revealTask?.cancel()
+        revealTask=Task { @MainActor [weak self] in
+            guard let self else {return}
+            for beat in script.beats {
+                let duration=beat.readingDuration ?? 3
+                let steps=Int((duration.isFinite ? min(45,max(0.5,duration)) : 3)*10)
+                for step in 0...steps {
+                    guard !Task.isCancelled else {return}
+                    replyReveal.advance(beat.beatId,fraction:Double(step)/Double(steps))
+                    try? await Task.sleep(for:.milliseconds(100))
+                }
+            }
+            if !Task.isCancelled {replyReveal.finish()}
         }
     }
     private func playSilentVisuals(_ script: AIScript) {
@@ -302,6 +325,7 @@ final class CompanionSession {
     func stop() {
         pendingGreeting = nil; task?.cancel(); task = nil; idleTask?.cancel(); idleTask = nil
         silentVisualTask?.cancel(); silentVisualTask = nil
+        revealTask?.cancel();revealTask=nil;replyReveal.finish()
         shakeTask?.cancel();shakeTask=nil
         if activeTurn { emit("turn.cancel") }
         activeTurn = false; token = UUID(); generating = false; activeScript = nil

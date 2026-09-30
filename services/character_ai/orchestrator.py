@@ -1,20 +1,24 @@
 import asyncio, base64, random, re, time, uuid
 from contextlib import aclosing
-from .schemas import Plan, NarrationResult, Speech, Vocal, PerformanceCue, visible_text, visible_thought, CONTROL_TEXT
+from .schemas import Plan, TimelinePlan, ShakeTimelinePlan, NarrationResult, Speech, Vocal, PerformanceCue, visible_text, visible_thought, CONTROL_TEXT
 from .profiles import PROFILES
 from .prompts import PLANNER, NARRATOR
 from .director import Director, grounded_excerpt, visible_narration
 from .storage import clamp, dump
 from .speech_text import audio_key
-from .greetings import ENTRY_TRIGGERS, greeting_context, repeated_greeting, plan_text
+from .greetings import ENTRY_TRIGGERS, greeting_context, plan_text
+from . import novelty
+from .reply_flow import compile_parts, duration_hint
+from .semantic_novelty import SemanticNovelty
 
 def event(kind, **data): return dict(type=kind,**data)
 
 def brief_shake_plan(plan,mood):
     """Keep one AI-authored reaction; never manufacture a local complaint.
 
-    Character models sometimes append unrelated invitation beats. Preserve the
-    first utterance at natural sentence boundaries, without another paid call.
+    Character models sometimes append unrelated invitation beats. Keep the
+    reaction beat, but retain its second clause: cutting at the first generic
+    complaint discarded both its fresh content and later thought anchors.
     """
     first=next((b for b in plan.beats if b.dialogue),None)
     if first is None:return
@@ -23,9 +27,8 @@ def brief_shake_plan(plan,mood):
     kept=''
     for line in lines:
         if not line:continue
-        if kept and len(kept+line)>40:break
+        if kept and len(kept+line)>70:break
         kept+=line
-        if len(kept)>=15:break
     first.dialogue.text=kept or first.dialogue.text
     plan.state_interpretation.dominant_emotion=mood
     first.dialogue.speech.emotion='happy' if mood=='playful' else 'serious'
@@ -41,6 +44,7 @@ class Orchestrator:
     def __init__(self,settings,store,provider):
         self.settings,self.store,self.provider=settings,store,provider
         self.director=Director(store)
+        self.semantic=SemanticNovelty(settings,store)
     def context(self,owner,request,*,persist=True):
         char=request.character_id
         if persist:self.store.sync_memories(owner,char,request.memories)
@@ -55,6 +59,8 @@ class Orchestrator:
         # Retain original archives, but don't feed historical broken control JSON
         # back to the model as a demonstration of how to speak.
         context['recent_messages']=[m for m in context['recent_messages'] if m['role']!='assistant' or not CONTROL_TEXT.search(m['text'])]
+        context['novelty_context']=novelty.context(self.store,owner,char)
+        context['reply_format']='timeline-v2' if request.timeline_reply else 'legacy'
         if request.trigger in ENTRY_TRIGGERS:
             last = self.store.db.execute('SELECT max(created) FROM messages WHERE owner=? AND character=?',(owner,char)).fetchone()[0]
             context['greeting_context'] = greeting_context(context['recent_messages'],
@@ -97,7 +103,7 @@ class Orchestrator:
         char=request.character_id; rid=str(request.request_id)
         # Delivery negotiation isn't conversation content. Preserve hashes for
         # pre-upgrade requests and never re-bill a retry with a different mode.
-        cached=self.store.request(owner,char,rid,request.model_dump(mode='json',exclude={'progressive_reply'}|({'interaction'} if request.interaction is None else set())))
+        cached=self.store.request(owner,char,rid,request.model_dump(mode='json',exclude={'progressive_reply','timeline_reply'}|({'interaction'} if request.interaction is None else set())))
         if cached:
             # Revalidate pre-upgrade cached thoughts without rewriting archives
             # or generating/charging for the same message again.
@@ -112,7 +118,7 @@ class Orchestrator:
         context=self.context(owner,request)
         if request.trigger=='model_shaken':
             previous=self.store.get('shake_reaction',owner,char,{})
-            if request.interaction is None or request.interaction.kind!='shake' or request.interaction.intensity<.4 or time.time()-previous.get('last',0)<35:
+            if request.interaction is None or request.interaction.kind!='shake' or request.interaction.intensity<.4 or time.time()-previous.get('last',0)<20:
                 empty=dict(message_id=str(uuid.uuid4()),character_id=char,beats=[],text='')
                 self.store.complete(owner,char,rid,empty)
                 yield event('reply.completed',message_id=empty['message_id']);return
@@ -126,19 +132,26 @@ class Orchestrator:
                 empty=dict(message_id=str(uuid.uuid4()),character_id=char,beats=[],text='',idle_decision='do_nothing')
                 self.store.complete(owner,char,rid,empty)
                 yield event('reply.completed',message_id=empty['message_id']); return
-        plan=await self.provider.structured(owner,char,'plan',PLANNER,context,Plan)
+        schema=(ShakeTimelinePlan if request.trigger=='model_shaken' else TimelinePlan) if request.timeline_reply else Plan
+        plan=await self.provider.structured(owner,char,'plan',PLANNER,context,schema)
         if request.trigger=='model_shaken':
             brief_shake_plan(plan,context['interaction_context']['mood'])
-        if request.trigger in ENTRY_TRIGGERS:
-            previous=context['greeting_context']['previous_lines_to_avoid']
-            if repeated_greeting(plan_text(plan),previous):
-                # One bounded semantic correction, only for a confirmed duplicate.
-                # This is a new completed model request, not a network retry.
-                correction={**context,'greeting_correction':dict(rejected_text=plan_text(plan),
-                    instruction='刚生成的内容重复了历史回复。重新写一句新的见面问候，换一个切入点，不要再次解答历史问题，也不要只改几个词。')}
-                plan=await self.provider.structured(owner,char,'plan',PLANNER,correction,Plan)
-                if repeated_greeting(plan_text(plan),previous):
-                    raise ValueError('GREETING_REPEATED')
+        extra=[m for m in context['recent_messages'] if m['role']=='assistant']
+        duplicate=novelty.match(self.store,owner,plan_text(plan),extra) or await self.semantic.match(owner,plan_text(plan),request.trigger)
+        if duplicate:
+            # At most one quality rewrite, before any TTS or visible reply. It
+            # is not an ambiguous network retry and is separately metered.
+            correction=dict(rejected_text=plan_text(plan),reason=duplicate['reason'],
+                instruction='刚生成的整句或其中一句与旧回复重复。保持角色、事实和本轮任务，从新的切入点重新回应，必须换实质内容，不仅替换近义词。不要重答历史问题。')
+            if duplicate.get('character')==char:correction['similar_previous_reply']=duplicate['text']
+            if request.trigger=='model_shaken':
+                correction['new_direction']='换一个全新的俏皮回应方式，例如提出一个具体小要求或给这次玩闹一个新评价。不要再提晃晕、稳住、轻一点、此前的小花或光线，不编造物体互动。只写一句15至35字的新台词。'
+            plan=await self.provider.structured(owner,char,'plan',PLANNER,{**context,'novelty_correction':correction},schema)
+            if request.trigger=='model_shaken':brief_shake_plan(plan,context['interaction_context']['mood'])
+            repeated=novelty.match(self.store,owner,plan_text(plan),extra) or await self.semantic.match(owner,plan_text(plan),request.trigger)
+            if self.settings.enable_test_inspector:
+                self.store.put('novelty_review',owner,char,dict(first=duplicate,rewrite=plan_text(plan),rejected=bool(repeated),final_match=repeated))
+            if repeated:raise ValueError('REPLY_REPEATED')
         # Silence is a first-class outcome; no TTS or narration expense.
         if request.trigger=='idle' and plan.idle_decision=='do_nothing': plan.beats=[]
         if request.trigger!='idle' and not any(b.dialogue for b in plan.beats): raise ValueError('EMPTY_REPLY')
@@ -163,7 +176,7 @@ class Orchestrator:
                   plan.state_interpretation.dominant_emotion,request.trigger) for b in plan.beats]
         yield event('segment.visual.resolved',count=len(resolved))
         narrations=[]; warning=None
-        if plan.beats and not request.progressive_reply:
+        if plan.beats and not request.progressive_reply and not request.timeline_reply:
             narrations,warning=await self.narration(owner,char,plan,resolved,request.scene)
         beats=[]
         for b,r in zip(plan.beats,resolved):
@@ -174,11 +187,17 @@ class Orchestrator:
                 vocal_events=[v.model_dump() for v in b.vocal_events],
                 visuals=[dict(asset_id=c['asset']['asset_id'],group=c['asset']['group'],duration_ms=c['duration_ms'],
                     offset_ms=c['offset_ms'],active=c['active'],grounding=r['grounding']) for c in r['performances']]))
+            if request.timeline_reply:
+                beats[-1]['parts']=compile_parts(b,r)
+                beats[-1]['reading_duration']=duration_hint(beats[-1]['dialogue']['text'] if beats[-1]['dialogue'] else '')
         text='\n'.join(b['dialogue']['text'] for b in beats if b['dialogue'])
+        if request.timeline_reply and self.settings.enable_test_inspector:
+            self.store.put('reply_flow_review',owner,char,dict(beats=[dict(beat_id=b.beat_id,
+                thought=b.thought.model_dump() if b.thought else None,asides=[a.model_dump() for a in b.asides],parts=wire.get('parts',[]))
+                for b,wire in zip(plan.beats,beats)]))
         script=dict(message_id=str(uuid.uuid4()),character_id=char,beats=beats,text=text,trigger=request.trigger,idle_decision=plan.idle_decision,
             memory_suggestions=[m.content for m in plan.memory_updates] if request.trigger=='user_message' else [])
-        if request.text:self.store.message(str(uuid.uuid4()),owner,char,rid,'user',dict(text=request.text))
-        self.store.message(script['message_id'],owner,char,rid,'assistant',script)
+        self.store.publish_reply(owner,char,rid,request.text,script)
         if request.trigger in ENTRY_TRIGGERS:
             self.store.put('greetings',owner,char,(self.store.get('greetings',owner,char,[])+[text])[-5:])
         # Only allowed, bounded state fields. Relationship never leaks between roles/accounts.
@@ -195,6 +214,13 @@ class Orchestrator:
         self.store.complete(owner,char,rid,script)
         yield event('reply.narration.ready',script=script,cached=False)
         if warning:yield event('reply.warning',message=warning)
+        if request.timeline_reply:
+            # Complete ordered content was published once. Never append a late
+            # Narrator result above words the user has already heard/read.
+            if request.wants_audio:
+                async with aclosing(self.audio(owner,char,script,create=True)) as audio:
+                    async for e in audio:yield e
+            yield event('reply.completed',message_id=script['message_id']);return
         narration_task=None;audio_task=None
         audio=self.audio(owner,char,script,create=True) if request.wants_audio else None
         try:

@@ -58,6 +58,7 @@ struct CompanionMessage: Codable, Identifiable, Sendable {
         for beat in aiScript?.beats ?? [] {
             parts.append(contentsOf:[beat.beatId,beat.dialogue?.text ?? "",beat.visibleThought ?? ""])
             parts.append(contentsOf:beat.narrations.map(\.text))
+            parts.append(contentsOf:beat.parts?.map { $0.kind+"|"+$0.text } ?? [])
         }
         return parts
     }

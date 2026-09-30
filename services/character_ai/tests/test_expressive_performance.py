@@ -83,7 +83,7 @@ class ShakeProvider:
         assert context['trigger']=='model_shaken' and context['user_message']==''
         assert '连续晃动' in context['interaction_context']['task']
         assert 'appearance_facts' not in context['character_profile']
-        return Plan(beats=[Beat(beat_id='b',dialogue=dict(text='呜，快把我晃迷糊啦！轻一点嘛，陪我好好说话好不好？'))])
+        return Plan(beats=[Beat(beat_id='b',dialogue=dict(text='呜，快把我晃迷糊啦！轻一点嘛，陪我好好说话好不好？' if char==ROLES[0] else '哼，现在轮到我提要求了，夸我一句好不好嘛？'))])
 
 @pytest.mark.asyncio
 async def test_shake_reaction_is_real_ai_owned_cooled_down_and_replay_is_free(tmp_path):
@@ -108,10 +108,10 @@ async def test_shake_reaction_is_real_ai_owned_cooled_down_and_replay_is_free(tm
     store.db.close()
 
 def test_reported_smile_as_speech_emotion_and_long_shake_output_are_normalized():
-    plan=Plan(beats=[Beat(beat_id='b',dialogue=dict(text='哎呀，刚才被晃得有点晕乎乎呢～不过我们来玩游戏，猜猜做了什么面包？',speech=dict(emotion='playful'))),
+    plan=Plan(beats=[Beat(beat_id='b',dialogue=dict(text='哎呀，刚才被晃得有点晕乎乎呢～现在轮到我出题了，你能说出我的一个优点吗？',speech=dict(emotion='playful'))),
         Beat(beat_id='b2',dialogue=dict(text='再聊一个新话题。',speech=dict(emotion='bright_smile')))])
     brief_shake_plan(plan,'serious')
-    assert len(plan.beats)==1 and plan.beats[0].dialogue.text=='哎呀，刚才被晃得有点晕乎乎呢～'
+    assert len(plan.beats)==1 and plan.beats[0].dialogue.text.endswith('你能说出我的一个优点吗？')
     assert plan.beats[0].dialogue.speech.emotion=='serious'
     assert plan.beats[0].performance.expression_intent=='serious'
     assert not plan.memory_updates
@@ -120,7 +120,7 @@ def test_reported_smile_as_speech_emotion_and_long_shake_output_are_normalized()
 async def test_old_static_appearance_hidden_without_changing_archive(tmp_path):
     store=Store(tmp_path/'state.db');provider=ShakeProvider();engine=Orchestrator(Settings(data_dir=tmp_path),store,provider)
     req=Request(request_id=uuid.uuid4(),character_id=ROLES[0],text='你好',wants_audio=False)
-    body=req.model_dump(mode='json',exclude={'progressive_reply','interaction'})
+    body=req.model_dump(mode='json',exclude={'progressive_reply','timeline_reply','interaction'})
     store.request('u',req.character_id,str(req.request_id),body)
     script=dict(message_id='old',text='你好呀',beats=[dict(beat_id='b',thought=None,narrations=[
         dict(mode='literary',text='她有一双圆圆的眼睛。'),dict(mode='performed',text='单眼轻轻眨眼。')])])

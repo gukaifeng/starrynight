@@ -14,7 +14,8 @@ public static class ExpressiveConversationReview
     static void Wait(CharacterPreviewRotation p,float seconds) {for(int i=0;i<Mathf.CeilToInt(seconds*60);i++)p.Step(1f/60);}
     static bool Shake(CharacterPreviewRotation p,bool accept=true) {
         p.Begin();
-        for(int i=0;i<144;i++) {p.Move(.24f*Mathf.Sin(i/143f*Mathf.PI*8),0);p.Step(1f/60);}
+        // About +/- 30 points on a 393-point phone, two gentle direction changes.
+        for(int i=0;i<60;i++) {p.Move(.08f*Mathf.Sin(i/59f*Mathf.PI*3),0);p.Step(1f/60);}
         return p.End(accept);
     }
     public static void Run()
@@ -25,11 +26,11 @@ public static class ExpressiveConversationReview
         Check(!preview.End(true),"ordinary one-way rotation must not complain");Wait(preview,1);
         preview.Begin();for(int i=0;i<120;i++) {preview.Move(i%2==0?.002f:-.002f,0);preview.Step(1f/60);}
         Check(!preview.End(true),"tiny jitter must not accumulate into a shake");
-        Check(Shake(preview),"four visible reversals cause a reaction");
+        Check(Shake(preview),"small 30-point back-and-forth gesture causes a reaction");
         Check(preview.ShakeCount==1 && preview.ShakeIntensity>=.5f,"bounded intensity and single emission");
         Wait(preview,2);Check(preview.Offset==Vector2.zero,"temporary gesture still restores exactly");
         Check(!Shake(preview),"repeated shaking is cooled down");
-        Wait(preview,36);Check(!Shake(preview,false),"cancelled/multitouch gesture cannot react");
+        Wait(preview,21);Check(!Shake(preview,false),"cancelled/multitouch gesture cannot react");
         Check(Shake(preview) && preview.ShakeCount==2,"valid interaction works after cooldown");
         preview.Reset();preview.Begin();preview.Move(4,4);Wait(preview,2);
         for(int i=0;i<5;i++) {preview.Move(4+i,4+i);Wait(preview,.2f);}

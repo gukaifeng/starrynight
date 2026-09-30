@@ -27,6 +27,8 @@ class Settings:
     # Testing deployments explicitly opt in; public deployments expose no
     # authored prompts, private persona, memory or provider request inspector.
     enable_test_inspector: bool = False
+    # Provision with scripts/prepare_reply_novelty.py; no runtime downloads.
+    semantic_novelty: bool = False
 
     @classmethod
     def load(cls):

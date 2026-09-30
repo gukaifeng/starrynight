@@ -136,7 +136,7 @@ async def test_greeting_uses_history_corrects_once_and_replay_never_pays_twice(t
     assert script['text']==new and script['trigger']=='appLaunch'
     assert len(provider.contexts)==2 and provider.contexts[0]['user_message']==''
     assert provider.contexts[0]['greeting_context']['has_met']
-    assert provider.contexts[1]['greeting_correction']['rejected_text']==old
+    assert provider.contexts[1]['novelty_correction']['rejected_text']==old
     assert store.get('greetings','u',char)==[new]
     assert not store.get('greetings','other',char)
     assert not store.get('greetings','u','anime-mamehinata')
@@ -145,19 +145,19 @@ async def test_greeting_uses_history_corrects_once_and_replay_never_pays_twice(t
 
 
 @pytest.mark.asyncio
-async def test_second_duplicate_is_not_spoken_or_saved_and_normal_reply_is_not_retried(tmp_path):
+async def test_second_duplicate_is_not_spoken_or_saved_and_normal_reply_is_also_checked(tmp_path):
     store=Store(tmp_path/'state.db');settings=Settings(data_dir=tmp_path);char='anime-kipfel'
     old='我给你留了一个位置，我们慢慢聊。'
     store.message('old','u',char,'r','assistant',dict(text=old))
     provider=GreetingProvider([old,old]);engine=Orchestrator(settings,store,provider)
     req=Request(request_id=uuid.uuid4(),character_id=char,trigger='characterSwitch',wants_audio=False)
-    with pytest.raises(ValueError,match='GREETING_REPEATED'):
+    with pytest.raises(ValueError,match='REPLY_REPEATED'):
         _=[e async for e in engine.reply('u',req)]
     assert len(provider.contexts)==2 and len(store.history('u',char))==1
-    provider=GreetingProvider([old]);engine=Orchestrator(settings,store,provider)
+    provider=GreetingProvider([old,'当然，我们接着刚才没讲完的故事吧。']);engine=Orchestrator(settings,store,provider)
     req=Request(request_id=uuid.uuid4(),character_id=char,text='再说一遍',wants_audio=False)
     _=[e async for e in engine.reply('u',req)]
-    assert len(provider.contexts)==1 and 'greeting_context' not in provider.contexts[0]
+    assert len(provider.contexts)==2 and 'greeting_context' not in provider.contexts[0]
 
 
 @pytest.mark.parametrize('char',['anime-kipfel','anime-mamehinata'])

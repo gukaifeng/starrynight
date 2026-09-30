@@ -87,8 +87,8 @@ void SNSynthesizeConversationShake(CGPoint start, void (^completion)(NSError *))
     id record=[[records alloc] initWithName:@"conversation-repeated-small-rotation" interfaceOrientation:1];
     id one=[[paths alloc] initForTouchAtPoint:start offset:0];
     [one moveToPoint:start atOffset:.06];
-    for(int i=0;i<8;i++)[one moveToPoint:CGPointMake(start.x+(i%2==0?100:-100),start.y) atOffset:.32+i*.32];
-    [one liftUpAtOffset:2.75];[record addPointerEventPath:one];
+    for(int i=0;i<3;i++)[one moveToPoint:CGPointMake(start.x+(i%2==0?35:-35),start.y) atOffset:.26+i*.30];
+    [one liftUpAtOffset:1.08];[record addPointerEventPath:one];
     [[device valueForKey:@"eventSynthesizer"] synthesizeEvent:record completion:^(BOOL success,NSError *error) {
         dispatch_async(dispatch_get_main_queue(),^{completion(error ?: (success ? nil : [NSError errorWithDomain:@"ConversationShakeTest" code:2 userInfo:nil]));});
     }];

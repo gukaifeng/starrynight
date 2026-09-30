@@ -30,7 +30,7 @@ struct CompanionChatView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     private var interfaceAnimation: Animation { reduceMotion ? .easeInOut(duration:0.18) : .spring(response:0.42,dampingFraction:0.9) }
-    private var latestContent: [String] { [String(session.record.messages.count)] + (session.record.messages.last?.visibleContentKey ?? []) }
+    private var latestContent: [String] { [String(session.record.messages.count),String(session.replyReveal.revision)] + (session.record.messages.last?.visibleContentKey ?? []) }
     var body: some View {
         GeometryReader { geometry in
           VStack(spacing:0) {
@@ -243,7 +243,7 @@ struct CompanionChatView: View {
                         // Body begins 12pt below the 23pt shoulder, matching its
                         // bottom inset. The 44pt audio hit area extends upward.
                         .frame(height:35,alignment:.bottom)
-                    AIReplyContent(message:message,fontSize:chatFontSize)
+                    AIReplyContent(message:message,fontSize:chatFontSize,reveal:session.replyReveal)
                 }.padding(.horizontal,15).padding(.bottom,12)
                     .frame(minWidth:136,alignment:.leading)
                     .background(Theme.surface.opacity(reduceTransparency ? 1 : 0.64),in:AssistantBubbleShape())

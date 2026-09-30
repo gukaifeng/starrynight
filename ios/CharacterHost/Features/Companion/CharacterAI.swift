@@ -16,10 +16,15 @@ struct AIBeat: Codable, Sendable, Identifiable {
     var visuals: [AIVisual]
     var duration: Double?
     var vocalEvents: [AIVocalEvent]?
+    var parts: [AIReplyPart]? = nil
+    var readingDuration: Double? = nil
     var id: String { beatId }
     var hasAudio: Bool { dialogue != nil || !(vocalEvents ?? []).isEmpty }
     var visibleNarrations:[AINarration] {narrations.filter(\.isVisible)}
     var visibleThought: String? {
+        Self.visibleThought(thought)
+    }
+    static func visibleThought(_ thought:String?)->String? {
         guard let thought else { return nil }
         let text=thought.trimmingCharacters(in:.whitespacesAndNewlines)
         // Same contract as schemas.visible_thought, including old local records.
@@ -34,6 +39,15 @@ struct AIBeat: Codable, Sendable, Identifiable {
                         "(?:结合|根据|符合|体现).{0,14}(?:人设|设定|偏好|上下文)",
                         "(?:选择|使用|采用).{0,18}(?:语气|措辞|表情|动作)"]
         return metadata.contains(where:text.contains) || planning.contains(where:{text.range(of:$0,options:.regularExpression) != nil}) ? nil : text
+    }
+}
+struct AIReplyPart: Codable, Sendable {
+    var kind: String
+    var text: String
+    var at: Double
+    var isVisible: Bool {
+        if kind == "thought" {return AIBeat.visibleThought(text) != nil}
+        return (kind == "dialogue" || kind == "narration") && !text.isEmpty && at.isFinite && (0...1).contains(at)
     }
 }
 struct AIDialogue: Codable, Sendable { var text: String }
@@ -78,6 +92,7 @@ enum AIConnectionError: LocalizedError {
         case "REQUEST_INCOMPLETE": return "这次回复已中断，可以重新发送。"
         case "REPLY_TIMEOUT": return "这次回复等待过久，可以重新发送。"
         case "GREETING_REPEATED": return "这次问候与之前重复了，已跳过。你可以直接继续聊。"
+        case "REPLY_REPEATED": return "这次回复还是重复了，已拦下。可以换个说法继续聊。"
         default:
             if code.hasPrefix("PROVIDER_429_") {return "AI 服务暂时繁忙，请稍后重试。"}
             return "AI 暂时没有完成回复，请稍后重试。"
@@ -159,6 +174,7 @@ private final class AINoRedirect: NSObject, URLSessionTaskDelegate, Sendable {
     }
     func configuration<T:Decodable & Sendable>(_ path:String,body:[String:Any]? = nil) async throws -> T {
         var request=try request(path,paid:false);request.timeoutInterval=15
+        request.setValue("timeline-v2",forHTTPHeaderField:"X-Starry-Reply-Mode")
         request.setValue("application/json",forHTTPHeaderField:"Accept")
         if let body {
             request.httpMethod="POST";request.setValue("application/json",forHTTPHeaderField:"Content-Type")
@@ -185,7 +201,7 @@ private final class AINoRedirect: NSObject, URLSessionTaskDelegate, Sendable {
         request.setValue("application/json",forHTTPHeaderField:"Content-Type")
         request.setValue("text/event-stream",forHTTPHeaderField:"Accept")
         // Older gateways ignore this header and keep their original event order.
-        request.setValue("progressive-v1",forHTTPHeaderField:"X-Starry-Reply-Mode")
+        request.setValue("timeline-v2",forHTTPHeaderField:"X-Starry-Reply-Mode")
         if let body { request.httpBody = try JSONSerialization.data(withJSONObject:body) }
         let cancellation=AIStreamCancellation()
         do {

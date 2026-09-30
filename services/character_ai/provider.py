@@ -41,18 +41,38 @@ def speech_input(beat):
 
 def structured_messages(purpose,system,context,schema):
     shape=PLAN_SHAPE if purpose=='plan' else ''
+    if purpose=='plan' and context.get('novelty_correction'):
+        # Keep persona, facts, the new user turn and all model capabilities.
+        # Repeating the entire forbidden-answer corpus here primed this
+        # character model to copy it yet again. The full archive still guards
+        # the output; only the rewrite prompt drops those answer examples.
+        context={**context,'recent_messages':[m for m in context.get('recent_messages',[]) if m['role']=='user'][-4:],
+                 'novelty_context':{'instruction':context.get('novelty_context',{}).get('instruction','')}}
+        if context.get('greeting_context'):
+            context['greeting_context']={k:v for k,v in context['greeting_context'].items() if k!='previous_lines_to_avoid'}
     content=dump(context)
     if purpose=='plan':
         current=dict(trigger=context.get('trigger'),user_message=context.get('user_message',''),reply_length=REPLY_LENGTH,
             performance_rule='本轮明确要求的姿势、手势、耳尾等，必须从groups选择对应语义写入cues；例如坐下用pose，不用手势替代。其余按情绪组合多组表现。')
         current['task']=(context.get('interaction_context') or context.get('greeting_context') or {}).get('task','只回应user_message这条新消息。历史回复不是本轮台词，不要照搬。明确的表演请求放进performance，台词不自述动作。')
-        if context.get('greeting_correction'):current['correction']=context['greeting_correction']
+        if context.get('reply_format')=='timeline-v2':
+            current['format_rule']='本轮必须把角色的短心声写入beat.asides，普通交谈1至2条，visibility=visible，text含“我”或“咱”，每条最多20字，stage选middle或after，两条分布在中段和末尾。after_text可省略，不要编造台词锚点。台词保持1个beat的短回复。心声不是回复计划，不放进dialogue，也不要省略成空数组；只有明确要求纯台词或静默时才可省略。'
+        if context.get('novelty_correction'):current['correction']=context['novelty_correction']
         content+='\n\n当前这一轮（历史仅供参考）：\n'+dump(current)
-    return [dict(role='system',content=system+'\nJSON Schema:\n'+dump(schema.model_json_schema())+'\n'+shape),dict(role='user',content=content)]
+    messages=[dict(role='system',content=system+'\nJSON Schema:\n'+dump(schema.model_json_schema())+'\n'+shape),dict(role='user',content=content)]
+    if purpose=='plan' and (correction:=context.get('novelty_correction')):
+        # A buried JSON constraint was often ignored by the character model.
+        # Make the rejected utterance and the rewrite an explicit final turn,
+        # using the same one paid correction, not another classifier request.
+        messages.append(dict(role='assistant',content=dump(dict(beats=[dict(beat_id='rejected',dialogue=dict(text=correction['rejected_text']))]))))
+        messages.append(dict(role='user',content='上一条是已经说过的旧台词，不能作为本轮回复。请彻底重写整个JSON回复，保持原来的JSON Schema。不要解释重写过程。'+
+            correction['instruction']+correction.get('new_direction','')+' 本轮任务：'+str(context.get('trigger'))+'；本轮新消息：'+context.get('user_message','')+
+            ' 若使用timeline-v2，beats中的asides仍是必填的角色短心声，不能丢掉。'))
+    return messages
 
 def structured_payload(settings,purpose,messages,attempt=0):
-    return dict(model=settings.character_model,messages=messages,temperature=.45 if attempt==0 else .1,
-                max_tokens=1500 if purpose=='plan' else 600,response_format={'type':'json_object'})
+    return dict(model=settings.character_model,messages=messages,temperature=.8 if attempt==0 and purpose=='plan' else .2,
+                max_tokens=1900 if purpose=='plan' else 600,response_format={'type':'json_object'})
 
 def speech_payload(settings,character,beat,voice):
     text,instruction=speech_input(beat)

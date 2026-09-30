@@ -2,6 +2,9 @@
 from pathlib import Path
 from datetime import datetime, timezone
 import sqlite3, json, time, math, hashlib
+from .greetings import normalized
+from .novelty import tokens
+from . import novelty
 
 def dump(value): return json.dumps(value,ensure_ascii=False,separators=(',',':'))
 def clamp(value): return min(1.,max(0.,value))
@@ -21,8 +24,19 @@ class Store:
         CREATE TABLE IF NOT EXISTS usage(id INTEGER PRIMARY KEY,kind TEXT,owner TEXT,character TEXT,reserved REAL,units REAL,status TEXT,metrics TEXT,created REAL);
         CREATE TABLE IF NOT EXISTS asset_usage(id INTEGER PRIMARY KEY,owner TEXT,character TEXT,asset TEXT,kind TEXT,created REAL);
         CREATE TABLE IF NOT EXISTS voice_design_jobs(id TEXT PRIMARY KEY,character TEXT,status TEXT,data TEXT,created REAL);
+        CREATE TABLE IF NOT EXISTS reply_novelty(message TEXT UNIQUE,owner TEXT,character TEXT,text TEXT,canonical TEXT,created REAL);
+        CREATE INDEX IF NOT EXISTS reply_novelty_exact ON reply_novelty(owner,canonical);
+        CREATE INDEX IF NOT EXISTS reply_novelty_recent ON reply_novelty(owner,created DESC);
+        CREATE INDEX IF NOT EXISTS reply_novelty_role ON reply_novelty(owner,character,created DESC);
+        CREATE VIRTUAL TABLE IF NOT EXISTS reply_novelty_search USING fts5(grams);
+        CREATE TABLE IF NOT EXISTS reply_embeddings(message TEXT,model TEXT,vector BLOB,PRIMARY KEY(message,model));
         ''')
         self.db.commit()
+        if not self.get('migration','system','reply-novelty-v1'):
+            with self.db:
+                for row in self.db.execute("SELECT * FROM messages WHERE role='assistant'"):
+                    self.index_reply(row['id'],row['owner'],row['character'],json.loads(row['data']).get('text',''),row['created'])
+                self.db.execute('INSERT OR REPLACE INTO records VALUES(?,?,?,?,?)',('migration','system','reply-novelty-v1','true',time.time()))
 
     def get(self,kind,owner,character,default=None):
         row=self.db.execute('SELECT data FROM records WHERE kind=? AND owner=? AND character=?',(kind,owner,character)).fetchone()
@@ -50,7 +64,30 @@ class Store:
         rows=self.db.execute('SELECT role,data FROM messages WHERE owner=? AND character=? ORDER BY created DESC LIMIT ?',(owner,character,limit)).fetchall()
         return [dict(role=r['role'],text=json.loads(r['data']).get('text','')[:700]) for r in reversed(rows)]
     def message(self,id,owner,character,request,role,data):
-        with self.db:self.db.execute('INSERT OR IGNORE INTO messages VALUES(?,?,?,?,?,?,?)',(id,owner,character,request,role,dump(data),time.time()))
+        with self.db:
+            now=time.time()
+            inserted=self.db.execute('INSERT OR IGNORE INTO messages VALUES(?,?,?,?,?,?,?)',(id,owner,character,request,role,dump(data),now)).rowcount
+            if inserted and role=='assistant':self.index_reply(id,owner,character,data.get('text',''),now)
+    def index_reply(self,id,owner,character,text,created):
+        if not normalized(text):return
+        cursor=self.db.execute('INSERT OR IGNORE INTO reply_novelty VALUES(?,?,?,?,?,?)',(id,owner,character,text,normalized(text),created))
+        if cursor.rowcount:self.db.execute('INSERT INTO reply_novelty_search(rowid,grams) VALUES(?,?)',(cursor.lastrowid,tokens(text)))
+    def clear_novelty(self,owner,character):
+        self.db.execute('DELETE FROM reply_embeddings WHERE message IN (SELECT message FROM reply_novelty WHERE owner=? AND character=?)',(owner,character))
+        self.db.execute('DELETE FROM reply_novelty_search WHERE rowid IN (SELECT rowid FROM reply_novelty WHERE owner=? AND character=?)',(owner,character))
+        self.db.execute('DELETE FROM reply_novelty WHERE owner=? AND character=?',(owner,character))
+    def publish_reply(self,owner,character,request,user_text,script):
+        # Serialize the final check and publication even if another worker/role
+        # finishes while this one is awaiting its model. Index and transcript
+        # commit together; a rejected candidate never becomes replayable.
+        import uuid
+        with self.db:
+            self.db.execute('BEGIN IMMEDIATE')
+            if novelty.match(self,owner,script['text']):raise ValueError('REPLY_REPEATED')
+            now=time.time()
+            if user_text:self.db.execute('INSERT INTO messages VALUES(?,?,?,?,?,?,?)',(str(uuid.uuid4()),owner,character,request,'user',dump(dict(text=user_text)),now))
+            self.db.execute('INSERT INTO messages VALUES(?,?,?,?,?,?,?)',(script['message_id'],owner,character,request,'assistant',dump(script),now+.000001))
+            self.index_reply(script['message_id'],owner,character,script['text'],now)
     def request(self,owner,character,id,payload):
         digest=hashlib.sha256(dump(payload).encode()).hexdigest()
         row=self.db.execute('SELECT * FROM requests WHERE owner=? AND character=? AND id=?',(owner,character,id)).fetchone()

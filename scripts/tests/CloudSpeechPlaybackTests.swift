@@ -17,6 +17,14 @@ import CryptoKit
         let script = AIScript(messageId:message.uuidString,characterId:"anime-kipfel",text:"Audio regression",
             beats:[AIBeat(beatId:"speech",dialogue:AIDialogue(text:"Audio regression"),narrations:[],visuals:[]),
                    AIBeat(beatId:"vocal",narrations:[],visuals:[],vocalEvents:[AIVocalEvent(event:"sigh")])])
+        var staged=script
+        staged.beats[0].parts=[AIReplyPart(kind:"dialogue",text:"先说一句。",at:0),AIReplyPart(kind:"thought",text:"我也有点期待。",at:0.5),AIReplyPart(kind:"dialogue",text:"接着说完。",at:0.5)]
+        var reveal=ReplyReveal();reveal.begin(message,script:staged)
+        try require(reveal.count(message,beat:"speech")==1,"Initial presentation must contain only its first stage")
+        reveal.advance("speech",fraction:0.6);reveal.advance("speech",fraction:0.1)
+        try require(reveal.count(message,beat:"speech")==3,"Corrected audio duration must not retract delivered text")
+        reveal.finish()
+        try require(reveal.count(message,beat:"speech")==nil,"Cancellation/history replay must expose the complete saved script")
         func oldVoiceKey(_ beat:String)->String {
             SHA256.hash(data:Data((scope+"|qwen-audio-3.1-designed-v2|1.0|"+script.messageId+"|"+beat).utf8))
                 .map {String(format:"%02x",$0)}.joined()
@@ -27,6 +35,8 @@ import CryptoKit
         var regressions = 0
         var round = 0
         var frames: [[String:Any]] = []
+        var progress:[String:[Double]]=[:]
+        speech.onBeatProgress = {beat,fraction in progress[beat,default:[]].append(fraction)}
         speech.onState = { state in
             if state == "thinking" { previousTime = 0; round += 1 }
             frames.append(["kind":"state","state":state,"round":round])
@@ -77,6 +87,7 @@ import CryptoKit
         try require(speech.audibleSegments == 2,"Expected both spoken and vocal-only output beats")
         try require(abs((speech.durations[message] ?? 0)-1.2)<0.01,"Playback did not drain both buffers")
         try require(played == ["speech","vocal"],"Beat order changed")
+        try require(progress["speech"]?.last==1 && progress["speech"]?.contains(where:{$0>0 && $0<1})==true,"Reveal progress skipped real playback or never completed")
         try require(regressions == 0,"Speech timestamps moved backwards across streamed beats or finish; Unity rejects later lip-sync frames")
         try require(try await speech.cachedReplay(script,messageID:message),"Cached replay missed")
         try require(speech.audibleSegments == 4 && played == ["speech","vocal","speech","vocal"],"Replay skipped the vocal-only beat")

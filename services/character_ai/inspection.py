@@ -24,9 +24,10 @@ def report(settings,engine,owner,request):
         [dict(r) for r in store.db.execute('SELECT id,source,content,importance,created,recalled FROM memories WHERE owner=? AND character=? ORDER BY created',(owner,char))])
     add('client','本机发送内容','当前草稿及偏好、候选记忆、可用表现等请求正文。',request.model_dump(mode='json'))
     add('payload','完整规划请求预览','与实际 provider 共用构造函数；JSON Schema、system/user 消息及采样参数全部展开。',
-        structured_payload(settings,'plan',structured_messages('plan',prompts.PLANNER,context,schemas.Plan)))
+        structured_payload(settings,'plan',structured_messages('plan',prompts.PLANNER,context,
+            (schemas.ShakeTimelinePlan if request.trigger=='model_shaken' else schemas.TimelinePlan) if request.timeline_reply else schemas.Plan)))
     add('schemas','全部生成结构约束','规划、旁白及客户端请求的完整 JSON Schema。',
-        dict(plan=schemas.Plan.model_json_schema(),narration=schemas.NarrationResult.model_json_schema(),request=schemas.Request.model_json_schema()))
+        dict(plan=schemas.Plan.model_json_schema(),timeline_plan=schemas.TimelinePlan.model_json_schema(),shake_plan=schemas.ShakeTimelinePlan.model_json_schema(),narration=schemas.NarrationResult.model_json_schema(),request=schemas.Request.model_json_schema()))
     add('performances','完整表演目录','实际可选资源、情绪映射所需意图、持续时间、冷却及可见效果。',assets(char))
     voice=store.get('voice','system',char,{})
     add('voice','语音与识别设定','完整音色设计在角色设定中；实际每次合成的文字、指令在请求记录中。',
@@ -34,14 +35,16 @@ def report(settings,engine,owner,request):
              emotion_tags=EMOTIONS,delivery_instructions=DELIVERY,vocal_tags=VOCALS,
              recognition_hotwords=PROFILES[char]['hotwords']+([request.preferences['nickname']] if request.preferences.get('nickname') else [])))
     fields=('character_model','tts_model','asr_model','narration_timeout_seconds','paid_enabled','enforce_conversation_limits',
-            'max_daily_calls','max_daily_tts_characters','max_daily_asr_seconds','max_voice_designs','enable_test_inspector')
+            'max_daily_calls','max_daily_tts_characters','max_daily_asr_seconds','max_voice_designs','enable_test_inspector','semantic_novelty')
     add('models','模型与运行参数','凭证、认证头和本机文件路径不属于角色调教，不在报告中返回。',{k:getattr(settings,k) for k in fields})
     add('requests','最近实际请求','本账号、本角色最近 12 次 provider 请求正文，含格式修正；升级前未记录的请求不会伪造。',
         store.get('inspection_requests',owner,char,[]))
+    add('reply-flow','最近分段编排','本账号、本角色最近一轮的原始心声锚点与实际可见段落；仅测试部署记录。',store.get('reply_flow_review',owner,char,{}))
+    add('novelty','最近重复纠正','本账号、本角色最近一次重复判定、一次重写及是否拦截；仅测试部署记录。',store.get('novelty_review',owner,char,{}))
     # Runtime rules live in executable code as well as prompts. Include the full
     # deployed modules so a tester can inspect thresholds/filters without a
     # hand-maintained summary becoming a second, misleading source of truth.
-    for name in ('prompts','schemas','greetings','director','performance_library','speech_text','orchestrator','provider','asr','storage'):
+    for name in ('prompts','schemas','greetings','novelty','semantic_novelty','reply_flow','director','performance_library','speech_text','orchestrator','provider','asr','storage'):
         module=importlib.import_module('.'+name,__package__)
         add('rules-'+name,'执行规则 · '+name,'当前服务实际加载版本的完整规则源码。',Path(module.__file__).read_text())
     return dict(version=1,character_id=char,captured_at=datetime.now(timezone.utc).isoformat(),sections=sections)

@@ -5,6 +5,8 @@ import SwiftUI
 struct AIReplyContent: View {
     let message: CompanionMessage
     let fontSize: CGFloat
+    var reveal: ReplyReveal = ReplyReveal()
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     private var asideFont:Font {
         let size=max(12,fontSize-1)
         let base=UIFont(name:"Kaiti SC",size:size) ?? UIFont.systemFont(ofSize:size)
@@ -18,6 +20,19 @@ struct AIReplyContent: View {
         VStack(alignment:.leading,spacing:7) {
             if let script = message.aiScript {
                 ForEach(script.beats) { beat in
+                  if let parts=beat.parts {
+                    ForEach(Array(parts.prefix(reveal.count(message.id,beat:beat.beatId) ?? parts.count).enumerated()),id:\.offset) { _,part in
+                        if part.isVisible {
+                            Text(part.kind == "dialogue" ? part.text : aside(part.text))
+                                .font(part.kind == "dialogue" ? .system(size:fontSize) : asideFont)
+                                .foregroundStyle(part.kind == "dialogue" ? Theme.ink : part.kind == "thought" ? Theme.peach.opacity(0.8) : Theme.secondary.opacity(0.92))
+                                .lineSpacing(part.kind == "dialogue" ? 5 : 3)
+                                .fixedSize(horizontal:false,vertical:true)
+                                .accessibilityIdentifier(part.kind == "dialogue" ? "assistantMessage" : part.kind == "thought" ? "aiThought" : "aiNarration")
+                                .transition(.opacity)
+                        }
+                    }
+                  } else {
                     ForEach(Array(beat.visibleNarrations.enumerated()),id:\.offset) { _, narration in
                         Text(aside(narration.text)).font(asideFont)
                             .foregroundStyle(Theme.secondary.opacity(0.92)).lineSpacing(3)
@@ -37,10 +52,12 @@ struct AIReplyContent: View {
                             .accessibilityIdentifier("assistantMessage")
                             .accessibilityValue(message.proactiveScene.map { "主动问候："+$0 } ?? "AI 回复")
                     }
+                  }
                 }
             } else {
                 Text(message.text).font(.system(size:fontSize)).lineSpacing(5).accessibilityIdentifier("assistantMessage")
             }
         }.fixedSize(horizontal:false,vertical:true)
+            .animation(.easeInOut(duration:reduceMotion ? 0.01 : 0.22),value:reveal.revision)
     }
 }

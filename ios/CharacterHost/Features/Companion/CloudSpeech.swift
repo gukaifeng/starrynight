@@ -57,6 +57,7 @@ private final class MicrophonePCM: @unchecked Sendable {
     @ObservationIgnored var onState: ((String) -> Void)?
     @ObservationIgnored var onFrame: ((Double,Float) -> Void)?
     @ObservationIgnored var onBeat: ((String) -> Void)?
+    @ObservationIgnored var onBeatProgress: ((String,Double) -> Void)?
     let soundscape: CompanionSoundscape
     let api: CharacterAI
     let cacheScope: String
@@ -75,6 +76,8 @@ private final class MicrophonePCM: @unchecked Sendable {
     @ObservationIgnored private var totalDuration = 0.0
     @ObservationIgnored private var beatStartTime = 0.0
     @ObservationIgnored private var beatFrames = 0
+    @ObservationIgnored private var beatDuration: Double?
+    @ObservationIgnored private var durationHints: [String:Double] = [:]
     @ObservationIgnored private var playbackSegment = UUID()
     @ObservationIgnored private var cacheGeneration = UUID()
     @ObservationIgnored private var cacheMessage = ""
@@ -93,6 +96,7 @@ private final class MicrophonePCM: @unchecked Sendable {
     func prepare(_ message: UUID, script: AIScript) {
         stop(); error = nil; activeMessageID = message; cacheMessage = script.messageId
         cacheGeneration = SpeechClipCache.shared.generation
+        durationHints=Dictionary(uniqueKeysWithValues:script.beats.map {($0.beatId,$0.readingDuration ?? max(1.8,Double($0.dialogue?.text.count ?? 0)/5.5))})
         isBusy = true; totalDuration = 0; beatStartTime = 0; beatFrames = 0; playbackElapsed = 0; onState?("thinking")
     }
     private func key(_ beat: String) -> String { SpeechClipCache.shared.key(scope:cacheScope,text:cacheMessage+"|"+beat,speed:1) }
@@ -102,7 +106,7 @@ private final class MicrophonePCM: @unchecked Sendable {
             try await drain()
             timer?.invalidate(); timer = nil; playbackSegment = UUID()
             player?.stop(); engine?.stop(); engine = nil; player = nil
-            beat = event.beatId ?? ""; beatPCM = Data(); beatFrames = 0; measured = false
+            beat = event.beatId ?? ""; beatPCM = Data(); beatFrames = 0; measured = false; beatDuration=nil
             beatStartTime = totalDuration; playbackElapsed = beatStartTime; playbackLevel = 0
             onFrame?(playbackElapsed,0)
             try soundscape.beginVoice(.speech)
@@ -125,7 +129,11 @@ private final class MicrophonePCM: @unchecked Sendable {
             guard let data = event.data.flatMap({ Data(base64Encoded:$0) }) else { throw AIConnectionError.remote("INVALID_AUDIO") }
             append(data)
         case "segment.audio.ready":
+            // The full byte count is known before draining, so reveal stages
+            // while sound is actually playing, not when downloading finishes.
+            beatDuration=Double(beatPCM.count)/48000
             try await drain()
+            onBeatProgress?(beat,1)
             playbackSegment = UUID() // Retire late mixer/timer callbacks during the next beat's network wait.
             timer?.invalidate(); timer = nil; playbackLevel = 0
             playbackElapsed = beatStartTime+Double(beatFrames)/24000
@@ -174,6 +182,8 @@ private final class MicrophonePCM: @unchecked Sendable {
                     // Unity orders frames for the whole utterance, not each beat.
                     // Keep this offset stable even when ready updates totalDuration.
                     self.onFrame?(self.beatStartTime+Double(self.beatFrames)/24000,self.playbackLevel)
+                    let duration=max(0.1,self.beatDuration ?? self.durationHints[self.beat] ?? 4)
+                    self.onBeatProgress?(self.beat,min(0.98,Double(self.beatFrames)/24000/duration))
                 }
             }
         }

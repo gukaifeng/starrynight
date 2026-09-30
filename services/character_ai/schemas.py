@@ -12,6 +12,11 @@ class Thought(Strict):
     text: str = Field(max_length=160,description='读者可见的角色第一人称短心声，含我或咱，通常20字以内；不是回复计划、编排说明或旁白意图。不合适时省略thought。')
     visibility: Literal['visible','hidden','unlock_required'] = 'visible'
 
+class StagedThought(Thought):
+    stage: Literal['before','middle','after'] = Field(default='middle',description='心声出现的说话阶段；通常选middle或after。')
+    after_text: str = Field(default='',max_length=220,
+        description='可选精确锚点：复制本beat台词中的一小段，心声紧接其后；省略时使用stage，不填字符数或毫秒。')
+
 class Speech(Strict):
     emotion: Literal['neutral','happy','sad','surprised','serious','worried'] = 'neutral'
     delivery: Literal['normal','soft','gentle','hesitant','teasing','whisper'] = 'normal'
@@ -27,6 +32,7 @@ class Speech(Strict):
                 'bright_smile':'happy','soft_smile':'happy','teasing_smile':'happy','shy_smile':'happy',
                 'angry':'serious','pout':'serious','confused':'neutral','thinking':'neutral',
                 'calm':'neutral','relaxed':'neutral','curious':'neutral',
+                'soft':'neutral','gentle':'neutral','warm':'happy','tender':'happy',
                 'concerned':'worried','anxious':'worried','amazed':'surprised',
                 'melancholy':'sad'}.get(value,value) if isinstance(value,str) else value
 
@@ -72,6 +78,7 @@ class Vocal(Strict):
 class Beat(Strict):
     beat_id: str = Field(pattern=r'^[a-zA-Z0-9_-]{1,32}$')
     thought: Thought | None = None
+    asides: list[StagedThought] = Field(default_factory=list,max_length=3)
     dialogue: Dialogue | None = None
     performance: Performance = Field(default_factory=Performance)
     narration_intent: NarrationIntent | None = None
@@ -119,6 +126,21 @@ class Plan(Strict):
         if sum(len(b.vocal_events) for b in value)>2: raise ValueError('too many vocal events')
         return value
 
+class TimelineBeat(Beat):
+    asides: list[StagedThought] = Field(min_length=1,max_length=3,
+        description='至少一条角色第一人称短心声，优先中段/结尾。只有用户要求纯台词时用hidden，不得省略整个字段。')
+
+class TimelinePlan(Plan):
+    beats: list[TimelineBeat] = Field(default_factory=list,max_length=3)
+
+class ShakeTimelinePlan(TimelinePlan):
+    @field_validator('beats',mode='before')
+    @classmethod
+    def only_reaction(cls,value):
+        # This event has a single task. Ignore an unwanted follow-up beat before
+        # validating its speech controls or spending a repair call on it.
+        return value[:1] if isinstance(value,list) else value
+
 class Narration(Strict):
     beat_id: str
     mode: Literal['performed','literary']
@@ -156,6 +178,7 @@ class Request(Strict):
     available_assets: list[str] = Field(default_factory=list,max_length=256)
     wants_audio: bool = True
     progressive_reply: bool = False
+    timeline_reply: bool = False
 
     @field_validator('preferences','scene')
     @classmethod

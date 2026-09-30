@@ -6,9 +6,10 @@ namespace ModelSpace
     public sealed class CharacterPreviewRotation
     {
         public const float MaximumYaw=18,MaximumPitch=8;
+        public const float ShakeTravel=1.5f,ShakeWindow=5,ShakeCooldown=20;
         Vector2 offset,target,velocity,origin;
         bool returning;
-        float clock,windowStart,travel,lastReaction=-100;
+        float clock,windowStart,travel,lastReaction=-100,lastMove=-100;
         int reversals;
         Vector2 previousTarget,lastDirection;
         public int ShakeCount {get;private set;}
@@ -19,24 +20,27 @@ namespace ModelSpace
         public float PeakPitch {get;private set;}
         public int Count {get;private set;}
         public int ReturnCount {get;private set;}
-        public void Begin() {Active=true;returning=false;origin=offset;target=offset;previousTarget=offset;Count++;}
+        public void Begin() {
+            if(clock-lastMove>.8f || clock-windowStart>ShakeWindow) {windowStart=clock;travel=0;reversals=0;lastDirection=Vector2.zero;}
+            Active=true;returning=false;origin=offset;target=offset;previousTarget=offset;Count++;
+        }
         public void Move(float horizontal,float vertical)
         {
             if(!Active || !float.IsFinite(horizontal) || !float.IsFinite(vertical))return;
             target=new Vector2(Mathf.Clamp(origin.x-horizontal*90,-MaximumYaw,MaximumYaw),
                 Mathf.Clamp(origin.y-vertical*45,-MaximumPitch,MaximumPitch));
-            if(clock-windowStart>7) {windowStart=clock;travel=0;reversals=0;lastDirection=Vector2.zero;}
+            if(clock-windowStart>ShakeWindow) {windowStart=clock;travel=0;reversals=0;lastDirection=Vector2.zero;}
             var delta=new Vector2((target.x-previousTarget.x)/MaximumYaw,(target.y-previousTarget.y)/MaximumPitch);
             if(delta.magnitude>.10f) {
                 if(lastDirection.sqrMagnitude>0 && Vector2.Dot(lastDirection,delta.normalized)<-.35f)reversals++;
-                travel+=delta.magnitude;lastDirection=delta.normalized;previousTarget=target;
+                travel+=delta.magnitude;lastDirection=delta.normalized;previousTarget=target;lastMove=clock;
             }
         }
         public bool End(bool react=false)
         {
             if(!Active)return false;
             Active=false;returning=true;target=Vector2.zero;
-            if(react && clock-lastReaction>=35 && clock-windowStart>=.7f && clock-windowStart<=7 && travel>=5 && reversals>=3) {
+            if(react && clock-lastReaction>=ShakeCooldown && clock-windowStart>=.35f && clock-windowStart<=ShakeWindow && travel>=ShakeTravel && reversals>=2) {
                 ShakeCount++;ShakeIntensity=Mathf.Clamp01(.5f+travel/20);lastReaction=clock;
                 travel=0;reversals=0;lastDirection=Vector2.zero;return true;
             }
@@ -59,7 +63,7 @@ namespace ModelSpace
         {
             Active=returning=false;offset=target=velocity=origin=Vector2.zero;
             PeakYaw=PeakPitch=0;Count=ReturnCount=0;
-            clock=windowStart=travel=0;reversals=ShakeCount=0;ShakeIntensity=0;lastReaction=-100;previousTarget=lastDirection=Vector2.zero;
+            clock=windowStart=travel=0;reversals=ShakeCount=0;ShakeIntensity=0;lastReaction=lastMove=-100;previousTarget=lastDirection=Vector2.zero;
         }
     }
 }

@@ -55,13 +55,16 @@ def create_app(settings=None,provider=None):
         if not settings.enable_test_inspector:raise HTTPException(404)
         who=owner(request.headers)
         if character!=body.character_id:raise HTTPException(400,'CHARACTER_MISMATCH')
+        if request.headers.get('x-starry-reply-mode')=='timeline-v2':body.timeline_reply=True
         return inspection_report(settings,engine,who,body)
     @app.post('/v1/conversations/{character}/messages')
     async def messages(character:str,body:Request,request:HTTPRequest):
         who=owner(request.headers)
         if character!=body.character_id:raise HTTPException(400,'CHARACTER_MISMATCH')
         if body.trigger in ('user_message','story') and not body.text.strip():raise HTTPException(400,'EMPTY_MESSAGE')
-        if request.headers.get('x-starry-reply-mode')=='progressive-v1':body.progressive_reply=True
+        mode=request.headers.get('x-starry-reply-mode')
+        if mode in ('progressive-v1','timeline-v2'):body.progressive_reply=True
+        if mode=='timeline-v2':body.timeline_reply=True
         return await turns.start(who+':'+character,str(body.request_id),lambda: engine.reply(who,body),replace=body.trigger!='idle')
     @app.post('/v1/conversations/{character}/messages/{message_id}/audio')
     async def replay(character:str,message_id:UUID,request:HTTPRequest):
@@ -83,10 +86,13 @@ def create_app(settings=None,provider=None):
                     key=audio_key(who,character,voice.get('voice_id',''),script['message_id'],beat['beat_id'],revision=revision)
                     (settings.data_dir/'audio'/(key+'.pcm')).unlink(missing_ok=True)
         with store.db:
+            store.clear_novelty(who,character)
             store.db.execute('DELETE FROM messages WHERE owner=? AND character=?',(who,character))
             store.db.execute('DELETE FROM requests WHERE owner=? AND character=?',(who,character))
             store.db.execute("DELETE FROM records WHERE kind='greetings' AND owner=? AND character=?",(who,character))
             store.db.execute("DELETE FROM records WHERE kind='inspection_requests' AND owner=? AND character=?",(who,character))
+            store.db.execute("DELETE FROM records WHERE kind='reply_flow_review' AND owner=? AND character=?",(who,character))
+            store.db.execute("DELETE FROM records WHERE kind='novelty_review' AND owner=? AND character=?",(who,character))
         return dict(cleared=True)
     @app.websocket('/v1/asr/{character}')
     async def asr(socket:WebSocket,character:str):
