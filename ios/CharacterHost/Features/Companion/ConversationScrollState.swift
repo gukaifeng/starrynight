@@ -7,10 +7,10 @@ struct ConversationScrollState: Equatable {
     private(set) var isAtLatest = true
     var showsReturnButton: Bool { !followingLatest && !isAtLatest }
 
-    mutating func update(bottomDistance: Double) {
+    mutating func update(bottomDistance: Double, resumeFollowing: Bool = true) {
         guard bottomDistance.isFinite else { return }
         isAtLatest = bottomDistance <= 24
-        if isAtLatest { followingLatest = true }
+        if isAtLatest && resumeFollowing { followingLatest = true }
     }
     mutating func scrollTowardHistory() {
         followingLatest = false

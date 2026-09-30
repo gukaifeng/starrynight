@@ -11,7 +11,7 @@ class Settings:
     client_token: str = field(default='', repr=False)
     admin_token: str = field(default='', repr=False)
     host: str = 'https://dashscope.aliyuncs.com'
-    character_model: str = 'qwen-flash-character-2026-02-26'
+    character_model: str = 'qwen-plus-character'
     tts_model: str = 'qwen-audio-3.1-tts-flash'
     asr_model: str = 'fun-asr-realtime'
     max_daily_calls: int = 60

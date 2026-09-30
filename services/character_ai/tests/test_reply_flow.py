@@ -40,7 +40,7 @@ def test_anchor_before_comma_keeps_punctuation_with_speech():
 
 def test_timeline_requires_stage_data_and_shake_validates_only_its_real_task():
     with pytest.raises(ValueError):TimelinePlan.model_validate(dict(beats=[dict(beat_id='b',dialogue=dict(text='你好'))]))
-    plan=ShakeTimelinePlan.model_validate(dict(beats=[dict(beat_id='b',dialogue=dict(text='这一回换我出一道小小的题目。',speech=dict(emotion='soft')),
+    plan=ShakeTimelinePlan.model_validate(dict(response_focus='邀请对方答题',beats=[dict(beat_id='b',dialogue=dict(text='这一回换我出一道小小的题目。',speech=dict(emotion='soft')),
         asides=[dict(text='我也想赢一回呢。',stage='after')]),dict(beat_id='extra',dialogue=dict(text='多余的话题',speech=dict(emotion='unsupported')))]))
     assert len(plan.beats)==1 and plan.beats[0].dialogue.speech.emotion=='neutral'
     parts=compile_parts(plan.beats[0],dict(performances=[]))
@@ -59,16 +59,17 @@ def test_upgrade_indexes_existing_history_and_publication_race_is_closed(tmp_pat
         store.publish_reply('u','b','r','你好',dict(message_id='new',text=old))
     assert not store.history('u','b'), 'Failed publication must roll back the user and assistant rows together'
 
-def test_rewrite_keeps_new_user_turn_and_capabilities_without_parroting_old_answer_corpus():
+def test_rewrite_keeps_real_roles_and_current_turn_without_duplicating_the_answer_corpus():
     context=dict(trigger='user_message',user_message='今天想聊画画',character_profile={'name':'test'},
         recent_messages=[dict(role='user',text='我喜欢画画'),dict(role='assistant',text='历史套话样本')],
         avatar_capability={'groups':['expression','author.new']},novelty_context={'instruction':'内容要新','previous_lines_to_avoid':['历史套话样本']},
         novelty_correction={'rejected_text':'重复候选','instruction':'换一个实质切入点'})
     messages=structured_messages('plan','system',context,TimelinePlan)
-    assert '历史套话样本' not in messages[1]['content']
-    assert '我喜欢画画' in messages[1]['content'] and 'author.new' in messages[1]['content']
     assert [m['role'] for m in messages]==['system','user','assistant','user']
-    assert '今天想聊画画' in messages[-1]['content']
+    assert messages[1]['content']=='我喜欢画画' and 'author.new' in messages[0]['content']
+    assert messages[2]['content']=='历史套话样本' and messages[-1]['content']=='今天想聊画画'
+    assert sum(m['content'].count('历史套话样本') for m in messages)==1
+    assert '重复候选' in messages[0]['content'] and all('重复候选' not in m['content'] for m in messages[1:])
 
 class Provider:
     def __init__(self,answers):self.answers=iter(answers);self.calls=[]
@@ -109,10 +110,11 @@ def test_same_subject_with_new_content_is_allowed():
     assert not novelty.similar('你画的小花很漂亮，花瓣上的颜色也很温柔。','画画时你通常先勾轮廓，还是先挑颜色？我想听听你的习惯。')
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize('trigger',['user_message','appLaunch','firstMeeting','characterSwitch','story','model_shaken'])
+@pytest.mark.parametrize('trigger',['user_message','appLaunch','firstLaunch','firstMeeting','characterSwitch','story','model_shaken','idle'])
 async def test_every_new_trigger_rewrites_duplicate_before_publication(tmp_path,trigger):
     store=Store(tmp_path/'test.db');char='anime-kipfel';old='刚才晃得我有点迷糊啦，轻一点好不好嘛？';new='哼，轮到我出题了，你能说出我的一个优点吗？'
     store.message('prior','u',char,'old','assistant',dict(text=old))
+    if trigger=='idle':store.message('user','u',char,'old','user',dict(text='你好'))
     provider=Provider([old,new]);engine=Orchestrator(Settings(data_dir=tmp_path,paid_enabled=False),store,provider)
     req=Request(request_id=uuid.uuid4(),character_id=char,text='再来',trigger=trigger,
         interaction=dict(kind='shake',intensity=.7) if trigger=='model_shaken' else None,timeline_reply=True,wants_audio=False)
@@ -138,9 +140,9 @@ def test_persistent_exact_index_and_old_near_copy_retrieval_are_account_scoped(t
 async def test_failed_rewrite_is_never_stored_or_spoken(tmp_path):
     store=Store(tmp_path/'test.db');old='你能回来我真的很开心，我们接着慢慢聊吧。'
     store.message('old','u','anime-mamehinata','r','assistant',dict(text=old))
-    provider=Provider([old,old]);engine=Orchestrator(Settings(data_dir=tmp_path),store,provider)
+    provider=Provider([old,old,old]);engine=Orchestrator(Settings(data_dir=tmp_path),store,provider)
     req=Request(request_id=uuid.uuid4(),character_id='anime-kipfel',text='你好',timeline_reply=True)
-    with pytest.raises(ValueError,match='REPLY_REPEATED'):
+    with pytest.raises(ValueError,match='REPLY_UNAVAILABLE'):
         _=[e async for e in engine.reply('u',req)]
-    assert len(provider.calls)==2 and not store.history('u','anime-kipfel')
+    assert len(provider.calls)==3 and not store.history('u','anime-kipfel')
     assert store.db.execute('SELECT status FROM requests').fetchone()[0]=='interrupted'

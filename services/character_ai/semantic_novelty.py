@@ -1,8 +1,10 @@
-"""Local Chinese BGE embeddings: semantic repetition without a paid judge.
+"""Local Chinese BGE embeddings: retrieve related responses without a paid judge.
 
 The model is provisioned separately, never downloaded on a conversation request.
 SQLite caches vectors per message and model; only this account's recent replies
 are compared. CPU inference is bounded and runs off the HTTP event loop.
+Low-score retrieval is a suggestion, not proof of equivalent meaning; the
+orchestrator permits one revision for it, never endless topic-based rejection.
 """
 import asyncio
 import json

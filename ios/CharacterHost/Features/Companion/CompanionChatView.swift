@@ -1,8 +1,12 @@
 import SwiftUI
 
+private struct ConversationScrollGeometry: Equatable {
+    var height: CGFloat
+    var bottomDistance: CGFloat
+}
 private struct ConversationBottomPreference: PreferenceKey {
-    static let defaultValue: CGFloat? = nil
-    static func reduce(value: inout CGFloat?, nextValue: () -> CGFloat?) { value = nextValue() ?? value }
+    static let defaultValue: ConversationScrollGeometry? = nil
+    static func reduce(value: inout ConversationScrollGeometry?, nextValue: () -> ConversationScrollGeometry?) { value = nextValue() ?? value }
 }
 private struct ConversationMessageFramePreference: PreferenceKey {
     static let defaultValue = CGRect.zero
@@ -25,12 +29,14 @@ struct CompanionChatView: View {
     @ScaledMetric(relativeTo:.body) private var textScale: CGFloat = 1
     private var chatFontSize: CGFloat { CGFloat(session.store.chatDisplay.normalized.fontSize)*textScale }
     @State private var scrollState = ConversationScrollState()
+    @State private var measuredContentHeight: CGFloat = 0
+    @State private var bottomScrollTask: Task<Void,Never>?
     @Namespace private var chatViewport
     @State private var editing = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     private var interfaceAnimation: Animation { reduceMotion ? .easeInOut(duration:0.18) : .spring(response:0.42,dampingFraction:0.9) }
-    private var latestContent: [String] { [String(session.record.messages.count),String(session.replyReveal.revision)] + (session.record.messages.last?.visibleContentKey ?? []) }
+    private var latestContent: [String] { [String(session.record.messages.count),String(session.replyReveal.revision),String(session.generating)] + (session.record.messages.last?.visibleContentKey ?? []) }
     var body: some View {
         GeometryReader { geometry in
           VStack(spacing:0) {
@@ -93,42 +99,51 @@ struct CompanionChatView: View {
                                 .accessibilityLabel("正在回复").accessibilityIdentifier("streamingReply")
                                 .conversationHitRegion(.message,id:"streaming")
                         }
-                        Color.clear.frame(height:3).id("latest")
+                        // Include the entire bottom inset in the scroll target.
+                        Color.clear.frame(height:18).id("latest")
                     }.padding(.horizontal,22)
                         // Real scrollable breathing room lets the first line travel below
                         // the mask's fade, even when the history is already at its beginning.
                         .padding(.top,reduceTransparency || (session.record.messages.isEmpty && !session.generating)
                             ? 10 : ConversationContentMask.readableStart(in:viewport.size.height)+12)
-                        .padding(.bottom,18)
                         .background {
                             GeometryReader { content in
                                 Color.clear.preference(key:ConversationBottomPreference.self,
-                                    value:content.frame(in:.named(chatViewport)).maxY - viewport.size.height)
+                                    value:ConversationScrollGeometry(height:content.size.height,
+                                        bottomDistance:content.frame(in:.named(chatViewport)).maxY - viewport.size.height))
                             }
                         }
                 }.scrollDisabled(session.inspectionActive).scrollIndicators(.hidden).scrollDismissesKeyboard(.interactively).accessibilityIdentifier("chatMessages")
                     .accessibilityValue(scrollState.isAtLatest ? "最新消息" : "历史消息")
                     .coordinateSpace(name:chatViewport)
-                    .onPreferenceChange(ConversationBottomPreference.self) { distance in
-                        if let distance { scrollState.update(bottomDistance:Double(distance)) }
+                    .onPreferenceChange(ConversationBottomPreference.self) { geometry in
+                        guard let geometry else { return }
+                        scrollState.update(bottomDistance:Double(geometry.bottomDistance),resumeFollowing:session.focusedMessageID == nil)
+                        // Content grows after the model update (ellipsis insertion,
+                        // staged paragraphs, wrapping). Follow the measured layout too.
+                        if abs(measuredContentHeight-geometry.height)>0.5 {
+                            measuredContentHeight = geometry.height
+                            if scrollState.followingLatest { settleAtBottom(using:proxy) }
+                        }
                     }
                     .compositingGroup()
                     .mask {
                         ConversationContentMask(reduceTransparency:reduceTransparency)
                     }
                     .simultaneousGesture(DragGesture(minimumDistance:20)
-                        .onChanged { if $0.translation.height > 20 { scrollState.scrollTowardHistory() } }
+                        .onChanged { if $0.translation.height > 20 { scrollState.scrollTowardHistory(); bottomScrollTask?.cancel() } }
                         .onEnded { _ in if scrollState.isAtLatest { scrollState.returnToLatest() } })
                     .onAppear { showFocusedMessage(using:proxy) }
                     .onChange(of:session.messageFocusRequest) { showFocusedMessage(using:proxy) }
-                    .onChange(of:session.store.chatDisplay.fontSize) { if scrollState.followingLatest { proxy.scrollTo("latest",anchor:.bottom) } }
-                    .onChange(of:viewport.size.height) { if scrollState.followingLatest { proxy.scrollTo("latest",anchor:.bottom) } }
+                    .onChange(of:session.store.chatDisplay.fontSize) { if scrollState.followingLatest { settleAtBottom(using:proxy) } }
+                    .onChange(of:viewport.size.height) { if scrollState.followingLatest { settleAtBottom(using:proxy) } }
                     .onChange(of:latestContent) { receiveContent(using:proxy) }
+                    .onDisappear { bottomScrollTask?.cancel() }
                 if (scrollState.showsReturnButton || session.focusedMessageID != nil) && !session.record.messages.isEmpty {
                     ReturnLatestControl {
                         session.clearMessageFocus(); scrollState.returnToLatest()
                         // The latest window must exist before scrolling to it.
-                        DispatchQueue.main.async { withAnimation(interfaceAnimation) { proxy.scrollTo("latest",anchor:.bottom) } }
+                        settleAtBottom(using:proxy)
                     }.conversationHitRegion(.control,id:"returnLatest").transition(.opacity)
                 }
             }
@@ -142,9 +157,9 @@ struct CompanionChatView: View {
             if editing {
                 Text("写下此刻想说的话").font(.subheadline).foregroundStyle(Theme.secondary)
             } else {
-                Text("今天，有什么想和我分享？")
+                Text("开启对话")
                     .font(.system(size:21,weight:.medium,design:.rounded)).fixedSize(horizontal:false,vertical:true)
-                Text("我在这里，听你慢慢说。")
+                Text("写下此刻想说的话")
                     .font(.subheadline).foregroundStyle(Theme.secondary).fixedSize(horizontal:false,vertical:true)
             }
         }.padding(.vertical,editing ? 0 : 5).frame(maxWidth:.infinity,alignment:.leading).accessibilityIdentifier("chatEmptyState")
@@ -218,7 +233,8 @@ struct CompanionChatView: View {
     private var canSend: Bool { !session.input.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty }
 
     private func showFocusedMessage(using proxy:ScrollViewProxy) {
-        guard let id = session.focusedMessageID else { proxy.scrollTo("latest",anchor:.bottom); return }
+        guard let id = session.focusedMessageID else { if scrollState.followingLatest { settleAtBottom(using:proxy) }; return }
+        bottomScrollTask?.cancel()
         scrollState.scrollTowardHistory()
         DispatchQueue.main.async { proxy.scrollTo(id,anchor:UnitPoint(x:0.5,y:0.8)) }
     }
@@ -226,8 +242,20 @@ struct CompanionChatView: View {
         session.clearMessageFocus(); scrollState.returnToLatest()
         // Clearing a search focus replaces the historical window. Scroll after
         // that layout update so the real latest message already exists.
-        DispatchQueue.main.async {
-            if scrollState.followingLatest { withAnimation(interfaceAnimation) { proxy.scrollTo("latest",anchor:.bottom) } }
+        settleAtBottom(using:proxy)
+    }
+    private func settleAtBottom(using proxy:ScrollViewProxy) {
+        bottomScrollTask?.cancel()
+        bottomScrollTask = Task { @MainActor in
+            await Task.yield()
+            guard !Task.isCancelled, scrollState.followingLatest else { return }
+            withAnimation(.easeOut(duration:reduceMotion ? 0.1 : 0.22)) { proxy.scrollTo("latest",anchor:.bottom) }
+            // A layout/keyboard transition can finish after the first scroll.
+            // Reconcile once after it settles, without a second visible animation.
+            do { try await Task.sleep(for:.milliseconds(450)) } catch { return }
+            guard !Task.isCancelled, scrollState.followingLatest else { return }
+            var transaction = Transaction(); transaction.disablesAnimations = true
+            withTransaction(transaction) { proxy.scrollTo("latest",anchor:.bottom) }
         }
     }
     private func send() {

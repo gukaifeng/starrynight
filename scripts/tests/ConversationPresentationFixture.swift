@@ -32,11 +32,30 @@ struct ConversationPresentationFixture: View {
                 Button("新增AI回复") { appendAI() }.accessibilityIdentifier("fixtureAI")
             }.font(.caption)
             Button("补充旁白") { enrich() }.accessibilityIdentifier("fixtureNarration")
+            HStack {
+                Button("开始加载") { session.generating = true }.accessibilityIdentifier("fixtureLoading")
+                Button("逐段增长") { growReply() }.accessibilityIdentifier("fixtureGrowth")
+            }.font(.caption)
             Text(contentCheck).font(.caption2).accessibilityIdentifier("presentationContentResult")
             Spacer(minLength:0)
             CompanionChatView(session:session).frame(height:400)
         }.padding(.top,24).padding(.bottom,12).background(Theme.background)
             .foregroundStyle(Theme.ink).preferredColorScheme(.dark)
+    }
+    private func growReply() {
+        session.generating = false
+        let id=UUID()
+        session.store.update(session.model.id) { $0.messages.append(CompanionMessage(id:id,role:"assistant",text:"逐段回复")) }
+        Task { @MainActor in
+            for count in 1...8 {
+                try? await Task.sleep(for:.milliseconds(220))
+                session.store.update(session.model.id) { record in
+                    guard let index=record.messages.firstIndex(where:{$0.id==id}) else { return }
+                    record.messages[index].text=(1...count).map { "第\($0)段：内容逐渐展开，实际高度变化后也应保持在消息的末尾。" }.joined(separator:"\n")
+                }
+            }
+            contentCheck = "growth-complete"
+        }
     }
     private func appendAI() {
         let id=UUID()

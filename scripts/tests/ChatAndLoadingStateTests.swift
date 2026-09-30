@@ -28,6 +28,8 @@ import Foundation
         check(!scroll.showsReturnButton && scroll.followingLatest,"A taller viewport or smaller text can also reach the bottom")
         let previous = scroll; scroll.update(bottomDistance:.nan)
         check(scroll == previous,"Invalid layout samples do not change state")
+        scroll.scrollTowardHistory(); scroll.update(bottomDistance:0,resumeFollowing:false)
+        check(!scroll.followingLatest,"A stale layout sample must not steal a newly focused historical message")
         for source in ["user message","AI message","late AI narration"] {
             scroll.scrollTowardHistory(); scroll.update(bottomDistance:480)
             scroll.returnToLatest()

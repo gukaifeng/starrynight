@@ -40,7 +40,7 @@ def report(settings,engine,owner,request):
     add('requests','最近实际请求','本账号、本角色最近 12 次 provider 请求正文，含格式修正；升级前未记录的请求不会伪造。',
         store.get('inspection_requests',owner,char,[]))
     add('reply-flow','最近分段编排','本账号、本角色最近一轮的原始心声锚点与实际可见段落；仅测试部署记录。',store.get('reply_flow_review',owner,char,{}))
-    add('novelty','最近重复纠正','本账号、本角色最近一次重复判定、一次重写及是否拦截；仅测试部署记录。',store.get('novelty_review',owner,char,{}))
+    add('novelty','最近内部生成复核','本账号、本角色最近候选的原文检查、语义相关提示和最多两次内部修订；不向聊天展示。仅测试部署记录。',store.get('novelty_review',owner,char,{}))
     # Runtime rules live in executable code as well as prompts. Include the full
     # deployed modules so a tester can inspect thresholds/filters without a
     # hand-maintained summary becoming a second, misleading source of truth.

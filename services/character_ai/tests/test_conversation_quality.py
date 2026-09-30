@@ -149,11 +149,11 @@ async def test_second_duplicate_is_not_spoken_or_saved_and_normal_reply_is_also_
     store=Store(tmp_path/'state.db');settings=Settings(data_dir=tmp_path);char='anime-kipfel'
     old='我给你留了一个位置，我们慢慢聊。'
     store.message('old','u',char,'r','assistant',dict(text=old))
-    provider=GreetingProvider([old,old]);engine=Orchestrator(settings,store,provider)
+    provider=GreetingProvider([old,old,old]);engine=Orchestrator(settings,store,provider)
     req=Request(request_id=uuid.uuid4(),character_id=char,trigger='characterSwitch',wants_audio=False)
-    with pytest.raises(ValueError,match='REPLY_REPEATED'):
-        _=[e async for e in engine.reply('u',req)]
-    assert len(provider.contexts)==2 and len(store.history('u',char))==1
+    events=[e async for e in engine.reply('u',req)]
+    assert all(e['type']=='reply.completed' for e in events)
+    assert len(provider.contexts)==3 and len(store.history('u',char))==1
     provider=GreetingProvider([old,'当然，我们接着刚才没讲完的故事吧。']);engine=Orchestrator(settings,store,provider)
     req=Request(request_id=uuid.uuid4(),character_id=char,text='再说一遍',wants_audio=False)
     _=[e async for e in engine.reply('u',req)]

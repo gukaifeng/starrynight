@@ -22,6 +22,12 @@ class Speech(Strict):
     delivery: Literal['normal','soft','gentle','hesitant','teasing','whisper'] = 'normal'
     intensity: float = Field(default=.4, ge=0, le=1)
 
+    @field_validator('delivery',mode='before')
+    @classmethod
+    def canonical_delivery(cls,value):
+        # A small, documented vocabulary mapping, never invented speech.
+        return {'playful':'teasing','warm':'gentle','tender':'gentle','calm':'soft'}.get(value,value) if isinstance(value,str) else value
+
     @field_validator('emotion',mode='before')
     @classmethod
     def canonical_emotion(cls,value):
@@ -32,7 +38,7 @@ class Speech(Strict):
                 'bright_smile':'happy','soft_smile':'happy','teasing_smile':'happy','shy_smile':'happy',
                 'angry':'serious','pout':'serious','confused':'neutral','thinking':'neutral',
                 'calm':'neutral','relaxed':'neutral','curious':'neutral',
-                'soft':'neutral','gentle':'neutral','warm':'happy','tender':'happy',
+                'soft':'neutral','gentle':'neutral','serene':'neutral','warm':'happy','tender':'happy','pleasant':'happy','contented':'happy',
                 'concerned':'worried','anxious':'worried','amazed':'surprised',
                 'melancholy':'sad'}.get(value,value) if isinstance(value,str) else value
 
@@ -113,6 +119,8 @@ class MemoryProposal(Strict):
 
 class Plan(Strict):
     reply_type: Literal['normal_reply','idle_event','fallback'] = 'normal_reply'
+    response_focus: str = Field(default='',max_length=100,
+        description='本轮新增的具体内容摘要，先确定一个还没有讲过的新细节、观点或回应，再据此生成台词。不是台词或思考步骤。')
     state_interpretation: Interpretation = Field(default_factory=Interpretation)
     idle_decision: Literal['do_nothing','visual_only','thought_only','proactive_speech'] | None = None
     beats: list[Beat] = Field(default_factory=list,max_length=3)
@@ -131,6 +139,8 @@ class TimelineBeat(Beat):
         description='至少一条角色第一人称短心声，优先中段/结尾。只有用户要求纯台词时用hidden，不得省略整个字段。')
 
 class TimelinePlan(Plan):
+    response_focus: str = Field(min_length=1,max_length=100,
+        description='本轮新增内容的一句话摘要，必须不同于recent_response_focus以及刚刚的回答。先写此项，再写beats；静默时写保持安静。')
     beats: list[TimelineBeat] = Field(default_factory=list,max_length=3)
 
 class ShakeTimelinePlan(TimelinePlan):

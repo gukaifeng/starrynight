@@ -4,9 +4,11 @@
 
 正式英文名 **StarryNight**，仓库和根目录统一为 `starrynight`。当前根目录 `/Users/gukaifeng/Documents/starrynight`，Xcode 真机入口为 `ios/StarryNight.xcworkspace`，模拟器入口为 `ios/StarryNight-Simulator.xcworkspace`，scheme 均为 `CharacterHost`。命名约定与迁移记录见 [英文命名与目录](docs/project-naming.md)。
 
-以精致 3D 角色为核心的 AI 陪伴产品。当前源码 **v0.58.0 / build 84**，名称保持「星夜」，默认月白深色主题，保留彩色星夜等可选主题，Logo 更新为极简月白星月矢量标志。原生 SwiftUI / UIKit + Unity as a Library，当前优先 **iPhone 手机版**，暂停新增 iPad 测试。
+以精致 3D 角色为核心的 AI 陪伴产品。当前源码 **v0.59.0 / build 85**，名称保持「星夜」，默认月白深色主题，保留彩色星夜等可选主题，Logo 更新为极简月白星月矢量标志。原生 SwiftUI / UIKit + Unity as a Library，当前优先 **iPhone 手机版**，暂停新增 iPad 测试。
 
-v0.58.0 将心声与真实动作说明提前编入有序回复，随语音／静音阅读进度穿插展开，兼容旧记录；所有新回复在显示和朗读前经过历史原文、近似措辞与本地中文 BGE 语义去重，最多重写一次，仍重复则不发布。轻晃门槛降为约 1 秒、两次小幅反向，冷却 20 秒。两平台构建、原生播放与手势回归完成，已安装 iPhone 0.58.0 / 84。详见[分段回复与去重记录](docs/design/2026-09-30-conversation-flow.md)。
+v0.59.0 将加载中的消息也纳入自动跟随，并在实际内容布局完成后校准底部；保留手动翻阅历史。对话改用 Qwen-Plus-Character，真实 user／assistant 多轮历史与 AI 生成的本轮内容摘要共同推进聊天，所有场景仍调用真实 AI。重复候选在内部修订，低分语义相关不再反复作为拦截理由，不向用户抛出重复拦截提示。116 项服务测试、3 条模拟器实际流程通过，最终模型 8 轮真实会话验证全部返回有效新回复。详见[生成源头与滚动修复](docs/design/2026-09-30-source-dialogue-and-scroll.md)。
+
+v0.58.0 将心声与真实动作说明提前编入有序回复，随语音／静音阅读进度穿插展开，兼容旧记录；引入历史原文、近似措辞与本地中文 BGE 召回，生成与拦截策略已由 v0.59 替代。轻晃门槛降为约 1 秒、两次小幅反向，冷却 20 秒。两平台构建、原生播放与手势回归完成，已安装 iPhone 0.58.0 / 84。详见[分段回复与去重记录](docs/design/2026-09-30-conversation-flow.md)。
 
 v0.57.0 已接入全部角色表现的语义目录和多组时间轴，普通对话目标组合 4–8 项表情／动作；新分组通过 core.performance@2 扩展。静态外貌旁白隐藏，动作与心声用括号斜体；普通单指反复晃动会触发真实 AI 的撒娇／小生气和语音。已安装 iPhone 并读回 **0.57.0 / 83**；手机锁定阻止自动打开，模拟器验证通过。见[本轮实施与验证](docs/design/2026-09-30-expressive-conversation.md)。
 

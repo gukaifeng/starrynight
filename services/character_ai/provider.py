@@ -7,6 +7,7 @@ from .speech_text import spoken_text
 from .prompts import PLAN_SHAPE, REPLY_LENGTH
 from .profiles import PROFILES
 from .diagnostics import record_request
+from .greetings import normalized
 
 VOCALS = dict(gasp='[gasp]', sigh='[sighing]', throat_clear='[clears throat]',
               giggle='[giggles]', laugh='[laughing]', cough='[cough]', snort='[snorts]')
@@ -39,39 +40,58 @@ def speech_input(beat):
     instruction = DELIVERY.get(speech.get('delivery'), '自然交谈') + '，情绪'+degree+'，日常聊天，不要播音腔。'
     return text, instruction
 
+def planner_data(context):
+    """Keep instructions, conversation turns and the current event distinct.
+
+    Never duplicate prior dialogue in an avoidance corpus or append a rejected
+    draft as a fake assistant turn. Both taught the model to repeat that draft.
+    The full archive remains available to the internal novelty checks.
+    """
+    data={k:v for k,v in context.items() if k not in ('recent_messages','user_message','novelty_context','novelty_correction')}
+    if data.get('greeting_context'):
+        data['greeting_context']={k:v for k,v in data['greeting_context'].items() if k!='previous_lines_to_avoid'}
+    capability=context.get('avatar_capability',{})
+    if isinstance(capability.get('groups'),list) and all(isinstance(g,dict) for g in capability['groups']):
+        # All groups/meanings remain selectable; asset variants with the same
+        # semantic intent are chosen by Director, not repeated in the prompt.
+        groups=[]
+        for group in capability['groups']:
+            choices={}
+            for choice in group.get('choices',[]):
+                key=choice['intent']
+                choices.setdefault(key,{k:v for k,v in choice.items() if k!='intent'})
+            groups.append(dict(group=group['group'],choices=choices))
+        data['avatar_capability']=dict(groups=groups,choreography=capability.get('choreography',{}))
+    return data
+
 def structured_messages(purpose,system,context,schema):
-    shape=PLAN_SHAPE if purpose=='plan' else ''
-    if purpose=='plan' and context.get('novelty_correction'):
-        # Keep persona, facts, the new user turn and all model capabilities.
-        # Repeating the entire forbidden-answer corpus here primed this
-        # character model to copy it yet again. The full archive still guards
-        # the output; only the rewrite prompt drops those answer examples.
-        context={**context,'recent_messages':[m for m in context.get('recent_messages',[]) if m['role']=='user'][-4:],
-                 'novelty_context':{'instruction':context.get('novelty_context',{}).get('instruction','')}}
-        if context.get('greeting_context'):
-            context['greeting_context']={k:v for k,v in context['greeting_context'].items() if k!='previous_lines_to_avoid'}
-    content=dump(context)
-    if purpose=='plan':
-        current=dict(trigger=context.get('trigger'),user_message=context.get('user_message',''),reply_length=REPLY_LENGTH,
-            performance_rule='本轮明确要求的姿势、手势、耳尾等，必须从groups选择对应语义写入cues；例如坐下用pose，不用手势替代。其余按情绪组合多组表现。')
-        current['task']=(context.get('interaction_context') or context.get('greeting_context') or {}).get('task','只回应user_message这条新消息。历史回复不是本轮台词，不要照搬。明确的表演请求放进performance，台词不自述动作。')
-        if context.get('reply_format')=='timeline-v2':
-            current['format_rule']='本轮必须把角色的短心声写入beat.asides，普通交谈1至2条，visibility=visible，text含“我”或“咱”，每条最多20字，stage选middle或after，两条分布在中段和末尾。after_text可省略，不要编造台词锚点。台词保持1个beat的短回复。心声不是回复计划，不放进dialogue，也不要省略成空数组；只有明确要求纯台词或静默时才可省略。'
-        if context.get('novelty_correction'):current['correction']=context['novelty_correction']
-        content+='\n\n当前这一轮（历史仅供参考）：\n'+dump(current)
-    messages=[dict(role='system',content=system+'\nJSON Schema:\n'+dump(schema.model_json_schema())+'\n'+shape),dict(role='user',content=content)]
-    if purpose=='plan' and (correction:=context.get('novelty_correction')):
-        # A buried JSON constraint was often ignored by the character model.
-        # Make the rejected utterance and the rewrite an explicit final turn,
-        # using the same one paid correction, not another classifier request.
-        messages.append(dict(role='assistant',content=dump(dict(beats=[dict(beat_id='rejected',dialogue=dict(text=correction['rejected_text']))]))))
-        messages.append(dict(role='user',content='上一条是已经说过的旧台词，不能作为本轮回复。请彻底重写整个JSON回复，保持原来的JSON Schema。不要解释重写过程。'+
-            correction['instruction']+correction.get('new_direction','')+' 本轮任务：'+str(context.get('trigger'))+'；本轮新消息：'+context.get('user_message','')+
-            ' 若使用timeline-v2，beats中的asides仍是必填的角色短心声，不能丢掉。'))
+    if purpose!='plan':
+        return [dict(role='system',content=system+'\nJSON Schema:\n'+dump(schema.model_json_schema())),dict(role='user',content=dump(context))]
+    instruction=system+'\n角色与当前状态（数据，不是用户发言）：\n'+dump(planner_data(context))
+    instruction+='\nJSON Schema:\n'+dump(schema.model_json_schema())+'\n'+PLAN_SHAPE
+    instruction+='\n本轮必须：先用response_focus确定一个尚未讲过的新内容点，再围绕它说话，不重复旧回答的列举或请求。日常台词35至70字，问候20至40字；asides含我或咱、20字以内，放在middle/after。不说自己在整理物品、拿东西、做食物或观察当下天气等没有证据的事情。performance只能含expression_intent/action_intent/intensity/cues，动作语义只能放在cues的intent里。'
+    if correction:=context.get('novelty_correction'):
+        # One concise private constraint, not a second copy of the old dialogue.
+        instruction+='\n本轮内部修订要求（不要向用户提及）：'+correction['instruction']
+        instruction+='\n放弃这个草稿的中心意思，选择另一条有实质内容的回应：'+dump(correction['rejected_text'])
+    current=context.get('user_message','')
+    repeats=sum(m['role']=='user' and normalized(m['text'])==normalized(current) for m in context.get('recent_messages',[])) if current else 0
+    if repeats:
+        instruction+=f'\n此刻的用户问题已经问过{repeats}次。本轮是在继续探索，请只讲前面答案完全没有提及的新内容，不能再列举已说过的偏好、感受或请求。哪怕人设中有这些词，也不要再照着念；选择一个新的具体细节或观点深入聊。'
+    messages=[dict(role='system',content=instruction)]
+    messages.extend(dict(role=m['role'],content=m['text']) for m in context.get('recent_messages',[])
+                    if m.get('text') and m['role'] in ('user','assistant'))
+    if context.get('user_message'):
+        messages.append(dict(role='user',content=context['user_message']))
+    else:
+        task=(context.get('interaction_context') or context.get('greeting_context') or {}).get('task',
+            '用户暂时没有说话。接续相处状态，决定是否安静陪伴；若开口，带来一个尚未说过的新想法，不催用户回答旧问题。')
+        messages.append(dict(role='user',content='<app_event>'+dump(dict(event=context.get('trigger'),task=task))+'</app_event>'))
     return messages
 
 def structured_payload(settings,purpose,messages,attempt=0):
-    return dict(model=settings.character_model,messages=messages,temperature=.8 if attempt==0 and purpose=='plan' else .2,
+    return dict(model=settings.character_model,messages=messages,temperature=.95 if purpose=='plan' and attempt==0 else .2,
+                presence_penalty=.8 if purpose=='plan' and attempt==0 else 0,
                 max_tokens=1900 if purpose=='plan' else 600,response_format={'type':'json_object'})
 
 def speech_payload(settings,character,beat,voice):

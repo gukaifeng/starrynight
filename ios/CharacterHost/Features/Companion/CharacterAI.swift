@@ -91,8 +91,6 @@ enum AIConnectionError: LocalizedError {
         case "DAILY_CALL_LIMIT","USAGE_LIMIT_TTS","USAGE_LIMIT_ASR": return "AI 服务仍在使用旧版测试额度设置，请更新本机服务。"
         case "REQUEST_INCOMPLETE": return "这次回复已中断，可以重新发送。"
         case "REPLY_TIMEOUT": return "这次回复等待过久，可以重新发送。"
-        case "GREETING_REPEATED": return "这次问候与之前重复了，已跳过。你可以直接继续聊。"
-        case "REPLY_REPEATED": return "这次回复还是重复了，已拦下。可以换个说法继续聊。"
         default:
             if code.hasPrefix("PROVIDER_429_") {return "AI 服务暂时繁忙，请稍后重试。"}
             return "AI 暂时没有完成回复，请稍后重试。"

@@ -60,6 +60,7 @@ class Orchestrator:
         # back to the model as a demonstration of how to speak.
         context['recent_messages']=[m for m in context['recent_messages'] if m['role']!='assistant' or not CONTROL_TEXT.search(m['text'])]
         context['novelty_context']=novelty.context(self.store,owner,char)
+        context['recent_response_focus']=self.store.get('response_focus',owner,char,[])
         context['reply_format']='timeline-v2' if request.timeline_reply else 'legacy'
         if request.trigger in ENTRY_TRIGGERS:
             last = self.store.db.execute('SELECT max(created) FROM messages WHERE owner=? AND character=?',(owner,char)).fetchone()[0]
@@ -68,7 +69,7 @@ class Orchestrator:
         if request.trigger=='model_shaken':
             context['interaction_context']=dict(kind='shake',intensity=request.interaction.intensity if request.interaction else 0,
                 mood=random.choice(['playful','serious']) if persist else 'playful',
-                task='唯一任务：对刚刚连续晃动虚拟角色作出一句15至35字的新吐槽；只生成1个beat，撒娇或轻微生气，附多组真实表演。不要另开话题、提出新游戏、编造刚做了食物或回复历史问题。')
+                task='用户刚刚连续晃动虚拟角色。用角色的个性做一次新的俏皮回应或小抱怨，1个beat、短短1至2句，附多组真实表演。注意与之前的反应不同：推进这次玩闹，而非再次复述同一种不适或同一句请求。不编造现实伤害，不重答过去的问题。')
         return context
     async def narration(self,owner,char,plan,resolved,scene):
         facts=[]
@@ -92,18 +93,55 @@ class Orchestrator:
         except Exception:
             return [],'旁白暂未生成，台词与语音仍可使用。'
     async def reply(self,owner,request):
+        budget=[3]  # Original + at most two internal quality revisions, shared with publication races.
         try:
-            async with aclosing(self._reply(owner,request)) as source:
-                async for item in source:yield item
+            for attempt in range(3):
+                try:
+                    async with aclosing(self._reply(owner,request,resume=attempt>0,budget=budget)) as source:
+                        async for item in source:yield item
+                    return
+                except ValueError as error:
+                    # Another role/worker may publish the same line while this
+                    # request awaits the provider. The atomic final guard stays
+                    # internal; retry from fresh history before exposing text.
+                    if str(error)!='REPLY_REPEATED':raise
+                    if not budget[0]:raise ValueError('REPLY_UNAVAILABLE') from None
         finally:
             # Completed text is retained; interrupted generations aren't left
             # labelled as running. Never retry an ambiguously billed request.
             self.store.interrupt(owner,request.character_id,str(request.request_id))
-    async def _reply(self,owner,request):
+    async def fresh_plan(self,owner,request,context,schema,budget):
+        char=request.character_id;reviews=[];correction=None
+        extra=[m for m in context['recent_messages'] if m['role']=='assistant']
+        while budget[0]:
+            budget[0]-=1
+            plan=await self.provider.structured(owner,char,'plan',PLANNER,
+                {**context,**({'novelty_correction':correction} if correction else {})},schema)
+            if request.trigger=='model_shaken':brief_shake_plan(plan,context['interaction_context']['mood'])
+            text=plan_text(plan)
+            duplicate=novelty.match(self.store,owner,text,extra)
+            related=await self.semantic.match(owner,text,request.trigger) if not duplicate else None
+            # BGE is a retrieval model, not an equivalence judge. One semantic
+            # suggestion may steer a new draft; it cannot reject a succession
+            # of otherwise distinct answers merely sharing a topic or event.
+            revise=bool(duplicate or (related and (related['score']>=.86 or (correction is None and budget[0]>0))))
+            reviews.append(dict(text=text,duplicate=duplicate,semantic_hint=related,revised=revise))
+            if self.settings.enable_test_inspector:
+                self.store.put('novelty_review',owner,char,dict(attempts=reviews,accepted=not revise,remaining=budget[0]))
+            if not revise:return plan
+            correction=dict(rejected_text=text,reason=(duplicate or related)['reason'],
+                instruction='本轮需要一个实质不同的新回应。舍弃草稿的核心观点、请求和比喻，结合当前这条输入换一个具体切入点；不要仅更换同义词，不复述旧问题，不向用户解释修订。保留角色身份、正确事实、真实可执行表演和简短心声。')
+        # No canned answer, repeated speech or unbounded paid retry. Optional
+        # proactive turns stay quiet; a failed direct question uses the normal
+        # availability error, never a moderation/repetition message.
+        if request.trigger not in ('user_message','story'):return None
+        raise ValueError('REPLY_UNAVAILABLE')
+
+    async def _reply(self,owner,request,*,resume=False,budget=None):
         char=request.character_id; rid=str(request.request_id)
         # Delivery negotiation isn't conversation content. Preserve hashes for
         # pre-upgrade requests and never re-bill a retry with a different mode.
-        cached=self.store.request(owner,char,rid,request.model_dump(mode='json',exclude={'progressive_reply','timeline_reply'}|({'interaction'} if request.interaction is None else set())))
+        cached=None if resume else self.store.request(owner,char,rid,request.model_dump(mode='json',exclude={'progressive_reply','timeline_reply'}|({'interaction'} if request.interaction is None else set())))
         if cached:
             # Revalidate pre-upgrade cached thoughts without rewriting archives
             # or generating/charging for the same message again.
@@ -116,14 +154,14 @@ class Orchestrator:
                     async for e in audio:yield e
             yield event('reply.completed',message_id=cached['message_id']); return
         context=self.context(owner,request)
-        if request.trigger=='model_shaken':
+        if request.trigger=='model_shaken' and not resume:
             previous=self.store.get('shake_reaction',owner,char,{})
             if request.interaction is None or request.interaction.kind!='shake' or request.interaction.intensity<.4 or time.time()-previous.get('last',0)<20:
                 empty=dict(message_id=str(uuid.uuid4()),character_id=char,beats=[],text='')
                 self.store.complete(owner,char,rid,empty)
                 yield event('reply.completed',message_id=empty['message_id']);return
             self.store.put('shake_reaction',owner,char,dict(last=time.time()))
-        if request.trigger=='idle':
+        if request.trigger=='idle' and not resume:
             timing=self.store.get('proactive',owner,char,{})
             unanswered=timing.get('unanswered',0)
             allowed=(any(m['role']=='user' for m in context['recent_messages']) and time.time()-timing.get('last',0)>150 and unanswered<3)
@@ -133,25 +171,11 @@ class Orchestrator:
                 self.store.complete(owner,char,rid,empty)
                 yield event('reply.completed',message_id=empty['message_id']); return
         schema=(ShakeTimelinePlan if request.trigger=='model_shaken' else TimelinePlan) if request.timeline_reply else Plan
-        plan=await self.provider.structured(owner,char,'plan',PLANNER,context,schema)
-        if request.trigger=='model_shaken':
-            brief_shake_plan(plan,context['interaction_context']['mood'])
-        extra=[m for m in context['recent_messages'] if m['role']=='assistant']
-        duplicate=novelty.match(self.store,owner,plan_text(plan),extra) or await self.semantic.match(owner,plan_text(plan),request.trigger)
-        if duplicate:
-            # At most one quality rewrite, before any TTS or visible reply. It
-            # is not an ambiguous network retry and is separately metered.
-            correction=dict(rejected_text=plan_text(plan),reason=duplicate['reason'],
-                instruction='刚生成的整句或其中一句与旧回复重复。保持角色、事实和本轮任务，从新的切入点重新回应，必须换实质内容，不仅替换近义词。不要重答历史问题。')
-            if duplicate.get('character')==char:correction['similar_previous_reply']=duplicate['text']
-            if request.trigger=='model_shaken':
-                correction['new_direction']='换一个全新的俏皮回应方式，例如提出一个具体小要求或给这次玩闹一个新评价。不要再提晃晕、稳住、轻一点、此前的小花或光线，不编造物体互动。只写一句15至35字的新台词。'
-            plan=await self.provider.structured(owner,char,'plan',PLANNER,{**context,'novelty_correction':correction},schema)
-            if request.trigger=='model_shaken':brief_shake_plan(plan,context['interaction_context']['mood'])
-            repeated=novelty.match(self.store,owner,plan_text(plan),extra) or await self.semantic.match(owner,plan_text(plan),request.trigger)
-            if self.settings.enable_test_inspector:
-                self.store.put('novelty_review',owner,char,dict(first=duplicate,rewrite=plan_text(plan),rejected=bool(repeated),final_match=repeated))
-            if repeated:raise ValueError('REPLY_REPEATED')
+        plan=await self.fresh_plan(owner,request,context,schema,budget if budget is not None else [3])
+        if plan is None:
+            empty=dict(message_id=str(uuid.uuid4()),character_id=char,beats=[],text='',idle_decision='do_nothing')
+            self.store.complete(owner,char,rid,empty)
+            yield event('reply.completed',message_id=empty['message_id']);return
         # Silence is a first-class outcome; no TTS or narration expense.
         if request.trigger=='idle' and plan.idle_decision=='do_nothing': plan.beats=[]
         if request.trigger!='idle' and not any(b.dialogue for b in plan.beats): raise ValueError('EMPTY_REPLY')
@@ -198,6 +222,8 @@ class Orchestrator:
         script=dict(message_id=str(uuid.uuid4()),character_id=char,beats=beats,text=text,trigger=request.trigger,idle_decision=plan.idle_decision,
             memory_suggestions=[m.content for m in plan.memory_updates] if request.trigger=='user_message' else [])
         self.store.publish_reply(owner,char,rid,request.text,script)
+        if plan.response_focus and text:
+            self.store.put('response_focus',owner,char,(context['recent_response_focus']+[plan.response_focus])[-12:])
         if request.trigger in ENTRY_TRIGGERS:
             self.store.put('greetings',owner,char,(self.store.get('greetings',owner,char,[])+[text])[-5:])
         # Only allowed, bounded state fields. Relationship never leaks between roles/accounts.

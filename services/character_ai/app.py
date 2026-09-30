@@ -93,6 +93,7 @@ def create_app(settings=None,provider=None):
             store.db.execute("DELETE FROM records WHERE kind='inspection_requests' AND owner=? AND character=?",(who,character))
             store.db.execute("DELETE FROM records WHERE kind='reply_flow_review' AND owner=? AND character=?",(who,character))
             store.db.execute("DELETE FROM records WHERE kind='novelty_review' AND owner=? AND character=?",(who,character))
+            store.db.execute("DELETE FROM records WHERE kind='response_focus' AND owner=? AND character=?",(who,character))
         return dict(cleared=True)
     @app.websocket('/v1/asr/{character}')
     async def asr(socket:WebSocket,character:str):
