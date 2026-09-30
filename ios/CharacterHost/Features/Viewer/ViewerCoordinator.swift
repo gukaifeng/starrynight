@@ -366,10 +366,10 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
         guard let original = aiVisualBaseline.removeValue(forKey:group) else { return }
         aiVisualTasks.removeValue(forKey:group)
         signal(CharacterIntent(eventName:"performance.reset",target:group))
-        for option in selectedModel.performance?.options.filter({$0.group==group}) ?? [] {
-            if option.isToggle || original.contains(option.id) {
-                signal(CharacterIntent(eventName:"performance.select",target:option.id,intensity:original.contains(option.id) ? 1 : 0))
-            }
+        for option in selectedModel.performance?.restoring(group,baseline:original) ?? [] {
+            // Portable enum choices share a parameter. Writing every unselected
+            // choice as OFF would overwrite the restored selected expression.
+            signal(CharacterIntent(eventName:"performance.select",target:option.id,intensity:original.contains(option.id) ? 1 : 0))
         }
     }
     private func endAIVisuals() {

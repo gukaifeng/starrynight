@@ -40,17 +40,23 @@ namespace ModelSpace
         {
             if(!Active)return false;
             Active=false;returning=true;target=Vector2.zero;
-            if(react && clock-lastReaction>=ShakeCooldown && clock-windowStart>=.35f && clock-windowStart<=ShakeWindow && travel>=ShakeTravel && reversals>=2) {
+            if(react && TryReact())return true;
+            if(!react) {travel=0;reversals=0;lastDirection=Vector2.zero;}
+            return false;
+        }
+        bool TryReact()
+        {
+            if(clock-lastReaction>=ShakeCooldown && clock-windowStart>=.35f && clock-windowStart<=ShakeWindow && travel>=ShakeTravel && reversals>=2) {
                 ShakeCount++;ShakeIntensity=Mathf.Clamp01(.5f+travel/20);lastReaction=clock;
                 travel=0;reversals=0;lastDirection=Vector2.zero;return true;
             }
-            if(!react) {travel=0;reversals=0;lastDirection=Vector2.zero;}
             return false;
         }
         public void Step(float deltaTime)
         {
             if(!float.IsFinite(deltaTime) || deltaTime<=0)return;
             clock+=deltaTime;
+            if(Active)TryReact(); // Threshold is observed while the finger is still down.
             offset=Vector2.SmoothDamp(offset,target,ref velocity,Active ? .08f : .20f,Mathf.Infinity,Mathf.Min(deltaTime,.05f));
             // A quick reversal must not overshoot the hard gesture envelope.
             offset=new Vector2(Mathf.Clamp(offset.x,-MaximumYaw,MaximumYaw),Mathf.Clamp(offset.y,-MaximumPitch,MaximumPitch));

@@ -25,6 +25,7 @@ namespace ModelSpace
         float targetMouth, mouth;
         string state = "idle";
         bool companion;
+        public bool IsSpeaking=>companion && state=="speaking";
         AvatarControlDriver authored;
         Color tint = Color.white;
         Light[] lights;

@@ -28,6 +28,7 @@ namespace ModelSpace
         public FramingEnvelope[] framingEnvelopes;
         public bool useAuthoredRestBounds;
         public Bounds authoredRestBounds;
+        public CharacterPortrait portrait;
         public Bounds FramingBounds(string action)
         {
             var envelope = System.Array.Find(framingEnvelopes ?? System.Array.Empty<FramingEnvelope>(), e => e.action == action);

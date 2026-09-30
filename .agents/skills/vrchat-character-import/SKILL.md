@@ -114,3 +114,5 @@ python3 scripts/check_export_content.py --platform simulator
 它仍运行 Validate，只跳过已成功完成的 Setup/缩略图；不是处理脚本编译错误、过期 GLB 或缺少资源的通用绕过方式。保留第一次失败日志和恢复结果。
 
 当前位置编辑允许横向不限圈数、纵向 ±80°，身体中轴固定；非编辑模式的小幅单指旋转松手恢复，缩放平移仍受构图安全区约束。以现行代码和 [取景验证](../../../docs/verification/position-controls/README.md) 为准，导入不得恢复历史交互。声音只有各通道音量、0 静音，不恢复长按蓄力或总静音入口。
+
+2026-09-30 用户进一步授权所有角色在会话待机及说话时做更小的随机根转动。`CharacterAmbientTurn` 是宿主展示层，不是原作骨骼动画：不写入保存位置，不计入晃动投诉，编辑/手动拖转时平滑让位。不得把这种视觉活动标成原包自带待机。新包由 `CharacterPortraitCalibrationBuilder` 从中性眼骨/头骨生成取景，保留脸部屏幕锚点、头饰空间及硬件安全区；不要复制上一角色的固定摄像机距离。详见 [0.61 验证](../../../docs/verification/ambient-portrait/README.md)。

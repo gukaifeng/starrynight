@@ -44,7 +44,7 @@ Compose 是单机开发拓扑，不能把它当成已经部署的生产高可用
 
 集成测试要求 `TEST_DATABASE_URL` 指向名称以 `_test` 结尾的独立数据库，`TEST_REDIS_URL` 指向测试 Redis。每次使用唯一键前缀，只清理自己创建的账户和键。不会使用 SQLite 或内存仓库冒充真实数据库测试。
 
-CI 为仓库根的 `.github/workflows/backend.yml`，只由服务端路径变化触发。它构建 Linux 二进制与独立容器，并使用真实 PostgreSQL、Redis 运行测试。原生账户协议另有独立 macOS 检查；两者均不下载受限模型，也不会调用付费 AI。
+仓库按用户要求不再启用 GitHub Actions，使用普通提交和推送。服务端构建与 PostgreSQL、Redis 集成验证在本机按上述命令独立运行，原生账户协议也保留本地检查；这些检查不下载受限模型，也不调用付费 AI。
 
 ## App 连接
 

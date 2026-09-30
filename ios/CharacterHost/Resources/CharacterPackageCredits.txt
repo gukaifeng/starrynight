@@ -1,4 +1,4 @@
-戚风 · 3.0.0
+戚风 · 3.0.1
 戚风 / Chiffon 1.00
 素材原作者：こまど / komado（あまとうさぎ）
 许可：Original author avatar terms — private local conversion
@@ -39,7 +39,7 @@ See portable-conversion.json and physics-source.json for explicit adaptation lim
 }
 
 
-卡琳 · 3.0.0
+卡琳 · 3.0.1
 卡琳 / Karin 1.11
 素材原作者：こまど / komado（あまとうさぎ）
 许可：Original author avatar terms — private local conversion

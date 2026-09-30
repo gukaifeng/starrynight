@@ -55,8 +55,9 @@ class PerformanceContractTests(unittest.TestCase):
             p['options']=[dict(copy.deepcopy(base),id='variant-'+str(i)) for i in range(129)]
         self.reject(exceed,'profile exceeds 256 morph tracks')
     def test_ai_semantics_are_bounded_and_conflicts_reference_real_groups(self):
-        self.m['performance']['options'][0]['ai']=dict(intent='smile',effects=['轻轻微笑'],moods=['happy'],automatic=True,speechCompatible=True,conflicts=['appearance'])
+        self.m['performance']['options'][0]['ai']=dict(kind='expression',intent='smile',effects=['轻轻微笑'],moods=['happy'],automatic=True,speechCompatible=True,conflicts=['appearance'])
         self.validate()
+        self.reject(lambda p:p['options'][0]['ai'].update(kind='unknown'),'AI performance kind')
         self.reject(lambda p:p['options'][0]['ai'].update(conflicts=['unknown']),'AI moods/conflicts')
         self.reject(lambda p:p['options'][0]['ai'].update(effects=[]),'AI effects')
         self.reject(lambda p:p['options'][0]['ai'].update(cooldownSeconds=float('nan')),'AI policy')

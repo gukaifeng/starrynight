@@ -13,6 +13,26 @@ from services.character_ai.orchestrator import Orchestrator, brief_shake_plan
 
 ROLES=['anime-kipfel','anime-mamehinata']
 
+@pytest.mark.parametrize('role',['anime-chiffon','anime-karin'])
+def test_portable_gesture_faces_are_available_as_emotions(tmp_path,role):
+    library=assets(role)
+    faces=[a for a in library if a['kind']=='expression']
+    assert len(faces)>=12
+    assert all(a['asset_id'].startswith('gesture-') and a['automatic'] for a in faces)
+    store=Store(tmp_path/'state.db');director=Director(store,random.Random(3))
+    assert 'soft_smile' in director.capability(role,[a['asset_id'] for a in library])['supported_expression_intents']
+    # This request uses the old planner's top-level emotion, not an author menu
+    # group. It must ground to the new hashed menu without special-case IDs.
+    beat=Beat(beat_id='b',dialogue=dict(text='今天也想和你聊一小会儿呀。'),performance=dict(expression_intent='soft_smile'))
+    result=director.beat('u',role,beat,{}, {},[a['asset_id'] for a in library])
+    assert result['expression_asset']['intent']=='soft_smile'
+    assert result['expression_asset']['group'].startswith('menu-')
+    assert all(c['asset']['kind']=='expression' for c in result['performances'])
+    assert len(result['performances'])>=2
+    special=next(a for a in faces if a['asset_id']=='gesture-left-6')
+    assert special['intent']==('surprised' if role=='anime-chiffon' else 'sad')
+    store.db.close()
+
 def test_switching_an_accessory_off_cannot_narrate_its_on_effect(tmp_path):
     store=Store(tmp_path/'state.db');director=Director(store)
     toggle=next(a for a in assets(ROLES[0]) if a['source_kind']=='toggle' and a['speech_compatible'])

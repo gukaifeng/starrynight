@@ -4413,7 +4413,7 @@
       {
         "asset_id": "gesture-left-2",
         "label": "左手 · 张开",
-        "kind": "action",
+        "kind": "expression",
         "group": "menu-5a963eacb2279abe",
         "group_label": "表情与手势",
         "intent": "soft_smile",
@@ -4434,7 +4434,9 @@
         "speech_compatible": true,
         "moods": [
           "neutral",
-          "happy"
+          "happy",
+          "curious",
+          "worried"
         ],
         "conflicts": [],
         "interruptible": true,
@@ -4444,43 +4446,12 @@
       {
         "asset_id": "gesture-left-3",
         "label": "左手 · 指向",
-        "kind": "action",
+        "kind": "expression",
         "group": "menu-5a963eacb2279abe",
         "group_label": "表情与手势",
-        "intent": "teasing_smile",
+        "intent": "proud",
         "observable_effects": [
-          "露出俏皮的神情"
-        ],
-        "intensity_min": 0,
-        "intensity_max": 1,
-        "base_weight": 1,
-        "rarity": "common",
-        "min_closeness": 0,
-        "max_anger": 1,
-        "cooldown_sec": 5.0,
-        "duration_ms": 3500,
-        "source_kind": "toggle",
-        "loop": false,
-        "automatic": true,
-        "speech_compatible": true,
-        "moods": [
-          "happy",
-          "playful"
-        ],
-        "conflicts": [],
-        "interruptible": true,
-        "return_to": "baseline",
-        "enabled": true
-      },
-      {
-        "asset_id": "gesture-left-4",
-        "label": "左手 · 比心手势",
-        "kind": "action",
-        "group": "menu-5a963eacb2279abe",
-        "group_label": "表情与手势",
-        "intent": "playful",
-        "observable_effects": [
-          "露出小小得意或眨眼的表情"
+          "露出小小得意的表情"
         ],
         "intensity_min": 0,
         "intensity_max": 1,
@@ -4504,9 +4475,40 @@
         "enabled": true
       },
       {
+        "asset_id": "gesture-left-4",
+        "label": "左手 · 比心手势",
+        "kind": "expression",
+        "group": "menu-5a963eacb2279abe",
+        "group_label": "表情与手势",
+        "intent": "excited",
+        "observable_effects": [
+          "露出开心的神情"
+        ],
+        "intensity_min": 0,
+        "intensity_max": 1,
+        "base_weight": 1,
+        "rarity": "common",
+        "min_closeness": 0,
+        "max_anger": 1,
+        "cooldown_sec": 5.0,
+        "duration_ms": 3500,
+        "source_kind": "toggle",
+        "loop": false,
+        "automatic": true,
+        "speech_compatible": true,
+        "moods": [
+          "happy",
+          "excited"
+        ],
+        "conflicts": [],
+        "interruptible": true,
+        "return_to": "baseline",
+        "enabled": true
+      },
+      {
         "asset_id": "gesture-left-5",
         "label": "左手 · 摇滚",
-        "kind": "action",
+        "kind": "expression",
         "group": "menu-5a963eacb2279abe",
         "group_label": "表情与手势",
         "intent": "confused",
@@ -4536,12 +4538,12 @@
       {
         "asset_id": "gesture-left-6",
         "label": "左手 · 手枪",
-        "kind": "action",
+        "kind": "expression",
         "group": "menu-5a963eacb2279abe",
         "group_label": "表情与手势",
-        "intent": "perform_gesture_left_6",
+        "intent": "surprised",
         "observable_effects": [
-          "表情与手势呈现左手 · 手枪"
+          "眼睛变成惊讶的圆眼"
         ],
         "intensity_min": 0,
         "intensity_max": 1,
@@ -4549,13 +4551,15 @@
         "rarity": "common",
         "min_closeness": 0,
         "max_anger": 1,
-        "cooldown_sec": 3,
+        "cooldown_sec": 5.0,
         "duration_ms": 3500,
         "source_kind": "toggle",
         "loop": false,
-        "automatic": false,
+        "automatic": true,
         "speech_compatible": true,
-        "moods": [],
+        "moods": [
+          "surprised"
+        ],
         "conflicts": [],
         "interruptible": true,
         "return_to": "baseline",
@@ -4564,7 +4568,7 @@
       {
         "asset_id": "gesture-left-7",
         "label": "左手 · 赞",
-        "kind": "action",
+        "kind": "expression",
         "group": "menu-5a963eacb2279abe",
         "group_label": "表情与手势",
         "intent": "bright_smile",
@@ -4651,7 +4655,7 @@
       {
         "asset_id": "gesture-right-2",
         "label": "右手 · 张开",
-        "kind": "action",
+        "kind": "expression",
         "group": "menu-5a963eacb2279abe",
         "group_label": "表情与手势",
         "intent": "soft_smile",
@@ -4672,7 +4676,9 @@
         "speech_compatible": true,
         "moods": [
           "neutral",
-          "happy"
+          "happy",
+          "curious",
+          "worried"
         ],
         "conflicts": [],
         "interruptible": true,
@@ -4682,43 +4688,12 @@
       {
         "asset_id": "gesture-right-3",
         "label": "右手 · 指向",
-        "kind": "action",
+        "kind": "expression",
         "group": "menu-5a963eacb2279abe",
         "group_label": "表情与手势",
-        "intent": "teasing_smile",
+        "intent": "proud",
         "observable_effects": [
-          "露出俏皮的神情"
-        ],
-        "intensity_min": 0,
-        "intensity_max": 1,
-        "base_weight": 1,
-        "rarity": "common",
-        "min_closeness": 0,
-        "max_anger": 1,
-        "cooldown_sec": 5.0,
-        "duration_ms": 3500,
-        "source_kind": "toggle",
-        "loop": false,
-        "automatic": true,
-        "speech_compatible": true,
-        "moods": [
-          "happy",
-          "playful"
-        ],
-        "conflicts": [],
-        "interruptible": true,
-        "return_to": "baseline",
-        "enabled": true
-      },
-      {
-        "asset_id": "gesture-right-4",
-        "label": "右手 · 比心手势",
-        "kind": "action",
-        "group": "menu-5a963eacb2279abe",
-        "group_label": "表情与手势",
-        "intent": "playful",
-        "observable_effects": [
-          "露出小小得意或眨眼的表情"
+          "露出小小得意的表情"
         ],
         "intensity_min": 0,
         "intensity_max": 1,
@@ -4742,9 +4717,40 @@
         "enabled": true
       },
       {
+        "asset_id": "gesture-right-4",
+        "label": "右手 · 比心手势",
+        "kind": "expression",
+        "group": "menu-5a963eacb2279abe",
+        "group_label": "表情与手势",
+        "intent": "excited",
+        "observable_effects": [
+          "露出开心的神情"
+        ],
+        "intensity_min": 0,
+        "intensity_max": 1,
+        "base_weight": 1,
+        "rarity": "common",
+        "min_closeness": 0,
+        "max_anger": 1,
+        "cooldown_sec": 5.0,
+        "duration_ms": 3500,
+        "source_kind": "toggle",
+        "loop": false,
+        "automatic": true,
+        "speech_compatible": true,
+        "moods": [
+          "happy",
+          "excited"
+        ],
+        "conflicts": [],
+        "interruptible": true,
+        "return_to": "baseline",
+        "enabled": true
+      },
+      {
         "asset_id": "gesture-right-5",
         "label": "右手 · 摇滚",
-        "kind": "action",
+        "kind": "expression",
         "group": "menu-5a963eacb2279abe",
         "group_label": "表情与手势",
         "intent": "confused",
@@ -4774,12 +4780,12 @@
       {
         "asset_id": "gesture-right-6",
         "label": "右手 · 手枪",
-        "kind": "action",
+        "kind": "expression",
         "group": "menu-5a963eacb2279abe",
         "group_label": "表情与手势",
-        "intent": "perform_gesture_right_6",
+        "intent": "surprised",
         "observable_effects": [
-          "表情与手势呈现右手 · 手枪"
+          "眼睛变成惊讶的圆眼"
         ],
         "intensity_min": 0,
         "intensity_max": 1,
@@ -4787,13 +4793,15 @@
         "rarity": "common",
         "min_closeness": 0,
         "max_anger": 1,
-        "cooldown_sec": 3,
+        "cooldown_sec": 5.0,
         "duration_ms": 3500,
         "source_kind": "toggle",
         "loop": false,
-        "automatic": false,
+        "automatic": true,
         "speech_compatible": true,
-        "moods": [],
+        "moods": [
+          "surprised"
+        ],
         "conflicts": [],
         "interruptible": true,
         "return_to": "baseline",
@@ -4802,7 +4810,7 @@
       {
         "asset_id": "gesture-right-7",
         "label": "右手 · 赞",
-        "kind": "action",
+        "kind": "expression",
         "group": "menu-5a963eacb2279abe",
         "group_label": "表情与手势",
         "intent": "bright_smile",
@@ -4891,7 +4899,7 @@
       {
         "asset_id": "gesture-left-2",
         "label": "左手 · 张开",
-        "kind": "action",
+        "kind": "expression",
         "group": "menu-5a963eacb2279abe",
         "group_label": "表情与手势",
         "intent": "soft_smile",
@@ -4912,7 +4920,9 @@
         "speech_compatible": true,
         "moods": [
           "neutral",
-          "happy"
+          "happy",
+          "curious",
+          "worried"
         ],
         "conflicts": [],
         "interruptible": true,
@@ -4922,43 +4932,12 @@
       {
         "asset_id": "gesture-left-3",
         "label": "左手 · 指向",
-        "kind": "action",
-        "group": "menu-5a963eacb2279abe",
-        "group_label": "表情与手势",
-        "intent": "teasing_smile",
-        "observable_effects": [
-          "露出俏皮的神情"
-        ],
-        "intensity_min": 0,
-        "intensity_max": 1,
-        "base_weight": 1,
-        "rarity": "common",
-        "min_closeness": 0,
-        "max_anger": 1,
-        "cooldown_sec": 5.0,
-        "duration_ms": 3500,
-        "source_kind": "toggle",
-        "loop": false,
-        "automatic": true,
-        "speech_compatible": true,
-        "moods": [
-          "happy",
-          "playful"
-        ],
-        "conflicts": [],
-        "interruptible": true,
-        "return_to": "baseline",
-        "enabled": true
-      },
-      {
-        "asset_id": "gesture-left-4",
-        "label": "左手 · 比心手势",
-        "kind": "action",
+        "kind": "expression",
         "group": "menu-5a963eacb2279abe",
         "group_label": "表情与手势",
         "intent": "playful",
         "observable_effects": [
-          "露出小小得意或眨眼的表情"
+          "俏皮地眨起一只眼睛"
         ],
         "intensity_min": 0,
         "intensity_max": 1,
@@ -4982,9 +4961,40 @@
         "enabled": true
       },
       {
+        "asset_id": "gesture-left-4",
+        "label": "左手 · 比心手势",
+        "kind": "expression",
+        "group": "menu-5a963eacb2279abe",
+        "group_label": "表情与手势",
+        "intent": "teasing_smile",
+        "observable_effects": [
+          "露出俏皮的笑意"
+        ],
+        "intensity_min": 0,
+        "intensity_max": 1,
+        "base_weight": 1,
+        "rarity": "common",
+        "min_closeness": 0,
+        "max_anger": 1,
+        "cooldown_sec": 5.0,
+        "duration_ms": 3500,
+        "source_kind": "toggle",
+        "loop": false,
+        "automatic": true,
+        "speech_compatible": true,
+        "moods": [
+          "happy",
+          "playful"
+        ],
+        "conflicts": [],
+        "interruptible": true,
+        "return_to": "baseline",
+        "enabled": true
+      },
+      {
         "asset_id": "gesture-left-5",
         "label": "左手 · 摇滚",
-        "kind": "action",
+        "kind": "expression",
         "group": "menu-5a963eacb2279abe",
         "group_label": "表情与手势",
         "intent": "confused",
@@ -5014,12 +5024,12 @@
       {
         "asset_id": "gesture-left-6",
         "label": "左手 · 手枪",
-        "kind": "action",
+        "kind": "expression",
         "group": "menu-5a963eacb2279abe",
         "group_label": "表情与手势",
-        "intent": "perform_gesture_left_6",
+        "intent": "sad",
         "observable_effects": [
-          "表情与手势呈现左手 · 手枪"
+          "露出难过的神情"
         ],
         "intensity_min": 0,
         "intensity_max": 1,
@@ -5027,13 +5037,17 @@
         "rarity": "common",
         "min_closeness": 0,
         "max_anger": 1,
-        "cooldown_sec": 3,
+        "cooldown_sec": 5.0,
         "duration_ms": 3500,
         "source_kind": "toggle",
         "loop": false,
-        "automatic": false,
+        "automatic": true,
         "speech_compatible": true,
-        "moods": [],
+        "moods": [
+          "sad",
+          "worried",
+          "serious"
+        ],
         "conflicts": [],
         "interruptible": true,
         "return_to": "baseline",
@@ -5042,7 +5056,7 @@
       {
         "asset_id": "gesture-left-7",
         "label": "左手 · 赞",
-        "kind": "action",
+        "kind": "expression",
         "group": "menu-5a963eacb2279abe",
         "group_label": "表情与手势",
         "intent": "bright_smile",
@@ -5129,7 +5143,7 @@
       {
         "asset_id": "gesture-right-2",
         "label": "右手 · 张开",
-        "kind": "action",
+        "kind": "expression",
         "group": "menu-5a963eacb2279abe",
         "group_label": "表情与手势",
         "intent": "soft_smile",
@@ -5150,7 +5164,9 @@
         "speech_compatible": true,
         "moods": [
           "neutral",
-          "happy"
+          "happy",
+          "curious",
+          "worried"
         ],
         "conflicts": [],
         "interruptible": true,
@@ -5160,43 +5176,12 @@
       {
         "asset_id": "gesture-right-3",
         "label": "右手 · 指向",
-        "kind": "action",
-        "group": "menu-5a963eacb2279abe",
-        "group_label": "表情与手势",
-        "intent": "teasing_smile",
-        "observable_effects": [
-          "露出俏皮的神情"
-        ],
-        "intensity_min": 0,
-        "intensity_max": 1,
-        "base_weight": 1,
-        "rarity": "common",
-        "min_closeness": 0,
-        "max_anger": 1,
-        "cooldown_sec": 5.0,
-        "duration_ms": 3500,
-        "source_kind": "toggle",
-        "loop": false,
-        "automatic": true,
-        "speech_compatible": true,
-        "moods": [
-          "happy",
-          "playful"
-        ],
-        "conflicts": [],
-        "interruptible": true,
-        "return_to": "baseline",
-        "enabled": true
-      },
-      {
-        "asset_id": "gesture-right-4",
-        "label": "右手 · 比心手势",
-        "kind": "action",
+        "kind": "expression",
         "group": "menu-5a963eacb2279abe",
         "group_label": "表情与手势",
         "intent": "playful",
         "observable_effects": [
-          "露出小小得意或眨眼的表情"
+          "俏皮地眨起一只眼睛"
         ],
         "intensity_min": 0,
         "intensity_max": 1,
@@ -5220,9 +5205,40 @@
         "enabled": true
       },
       {
+        "asset_id": "gesture-right-4",
+        "label": "右手 · 比心手势",
+        "kind": "expression",
+        "group": "menu-5a963eacb2279abe",
+        "group_label": "表情与手势",
+        "intent": "teasing_smile",
+        "observable_effects": [
+          "露出俏皮的笑意"
+        ],
+        "intensity_min": 0,
+        "intensity_max": 1,
+        "base_weight": 1,
+        "rarity": "common",
+        "min_closeness": 0,
+        "max_anger": 1,
+        "cooldown_sec": 5.0,
+        "duration_ms": 3500,
+        "source_kind": "toggle",
+        "loop": false,
+        "automatic": true,
+        "speech_compatible": true,
+        "moods": [
+          "happy",
+          "playful"
+        ],
+        "conflicts": [],
+        "interruptible": true,
+        "return_to": "baseline",
+        "enabled": true
+      },
+      {
         "asset_id": "gesture-right-5",
         "label": "右手 · 摇滚",
-        "kind": "action",
+        "kind": "expression",
         "group": "menu-5a963eacb2279abe",
         "group_label": "表情与手势",
         "intent": "confused",
@@ -5252,12 +5268,12 @@
       {
         "asset_id": "gesture-right-6",
         "label": "右手 · 手枪",
-        "kind": "action",
+        "kind": "expression",
         "group": "menu-5a963eacb2279abe",
         "group_label": "表情与手势",
-        "intent": "perform_gesture_right_6",
+        "intent": "sad",
         "observable_effects": [
-          "表情与手势呈现右手 · 手枪"
+          "露出难过的神情"
         ],
         "intensity_min": 0,
         "intensity_max": 1,
@@ -5265,13 +5281,17 @@
         "rarity": "common",
         "min_closeness": 0,
         "max_anger": 1,
-        "cooldown_sec": 3,
+        "cooldown_sec": 5.0,
         "duration_ms": 3500,
         "source_kind": "toggle",
         "loop": false,
-        "automatic": false,
+        "automatic": true,
         "speech_compatible": true,
-        "moods": [],
+        "moods": [
+          "sad",
+          "worried",
+          "serious"
+        ],
         "conflicts": [],
         "interruptible": true,
         "return_to": "baseline",
@@ -5280,7 +5300,7 @@
       {
         "asset_id": "gesture-right-7",
         "label": "右手 · 赞",
-        "kind": "action",
+        "kind": "expression",
         "group": "menu-5a963eacb2279abe",
         "group_label": "表情与手势",
         "intent": "bright_smile",

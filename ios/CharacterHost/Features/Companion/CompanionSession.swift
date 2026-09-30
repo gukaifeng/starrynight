@@ -171,7 +171,6 @@ final class CompanionSession {
         shakeReactions+=1
         shakeTask=Task { @MainActor [weak self] in
             defer {self?.shakeTask=nil}
-            try? await Task.sleep(for:.milliseconds(350))
             for _ in 0..<60 {
                 guard !Task.isCancelled,let self,!self.inspectionActive,!self.characterEditorPresented,
                       self.store.accountID==self.ownerID else {return}

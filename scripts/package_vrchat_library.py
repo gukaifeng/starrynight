@@ -75,10 +75,18 @@ def assemble(row,folder,stage,order):
             bones=[],morphs=[],offMorphs=[],morphTracks=[],visibility=[],offVisibility=[],control=c)
         # Reviewed source FX ties these hand parameters to facial expressions.
         # Clothes/body variants stay manual; automatic acting never toggles them.
-        face={2:('soft_smile','露出轻柔的笑意',['neutral','happy']),3:('teasing_smile','露出俏皮的神情',['happy','playful']),4:('playful','露出小小得意或眨眼的表情',['playful','happy']),5:('confused','露出晕乎乎的表情',['confused']),7:('bright_smile','眼睛变得亮晶晶',['happy','excited'])}
+        face={2:('soft_smile','露出轻柔的笑意',['neutral','happy','curious','worried']),
+              5:('confused','露出晕乎乎的表情',['confused']),7:('bright_smile','眼睛变得亮晶晶',['happy','excited'])}
+        # Source FX evidence: Chiffon F_doya/F_joy/F_marushiro, Karin
+        # Karin_wink/Karin_niyari/Karin_sad. Identical hand enums do NOT
+        # imply identical facial expressions across authors/characters.
+        face.update({3:('proud','露出小小得意的表情',['playful','happy']),4:('excited','露出开心的神情',['happy','excited']),
+                     6:('surprised','眼睛变成惊讶的圆眼',['surprised'])} if row['role']=='chiffon' else
+                    {3:('playful','俏皮地眨起一只眼睛',['playful','happy']),4:('teasing_smile','露出俏皮的笑意',['happy','playful']),
+                     6:('sad','露出难过的神情',['sad','worried','serious'])})
         if row['role'] in ('chiffon','karin') and c['parameter'] in ('GestureLeft','GestureRight') and c['value'] in face:
             intent,effect,moods=face[c['value']]
-            option['ai']=dict(intent=intent,effects=[effect],moods=moods,automatic=True,speechCompatible=True,cooldownSeconds=5,conflicts=[])
+            option['ai']=dict(kind='expression',intent=intent,effects=[effect],moods=moods,automatic=True,speechCompatible=True,cooldownSeconds=5,conflicts=[])
         options.append(option)
     if len(groups)>32 or len(options)>256:raise ValueError('Menu exceeds current verified UI control budget: '+str((len(groups),len(options))))
     optional=['core.secondary-motion@2']
@@ -86,7 +94,7 @@ def assemble(row,folder,stage,order):
     required=['core.animation@1','core.avatar-controls@1']
     if options:required.append('core.performance@2')
     original=row['role'].capitalize()+' '+str(row['version'] or '')
-    m=dict(schemaVersion=1,id=row['id'],packageId='app.starry.characters.'+row['id'],packageVersion='3.0.0',
+    m=dict(schemaVersion=1,id=row['id'],packageId='app.starry.characters.'+row['id'],packageVersion='3.0.1',
         display=dict(name=row['name'],originalName=original.strip(),description='在星夜遇见'+row['name']+'，保留原作造型和角色表现。',invitation='一起聊聊此刻的心情。',tagline='让每一次相遇，都有新的故事',symbol='sparkles',thumbnail='Anime_'+row['role'],cardIdentifier='card-'+row['id'],openIdentifier='open-'+row['id'],style='anime',thumbnailScale=1,order=order),
         compatibility=dict(apiMajor=1,minApiMinor=1,required=required,optional=optional),source=dict(format='glb',model='model.glb',scale=1,yaw=0),
         rig=dict(head=human['Head'],neck=human.get('Neck',''),leftEye=human.get('LeftEye',''),rightEye=human.get('RightEye',''),headRenderer=renderer,conversationStart=.49,portraitWidthScale=1),

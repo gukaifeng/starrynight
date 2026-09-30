@@ -102,6 +102,7 @@ public static class CharacterPackageBuilder
             if(manifest.Supports("core.avatar-controls@1"))PortableAvatarControllerBuilder.Prepare(character.gameObject,folder,player.GetClip("Idle"));
             var bounds=character.RestBounds(); character.transform.position=new Vector3(-bounds.center.x,-bounds.min.y,-bounds.center.z);
             FramingReview.BakeCharacter(character);
+            CharacterPortraitCalibrationBuilder.Prepare(character);
             PostureGroundingBuilder.Build(character);
             float restSize=character.RestBounds().size.magnitude;
             foreach(var envelope in character.framingEnvelopes)

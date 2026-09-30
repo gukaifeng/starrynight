@@ -54,6 +54,9 @@ namespace ModelSpace
         public int previewShakeCount;
         public float previewShakeIntensity;
         public float previewRotationYaw,previewRotationPitch,previewRotationPeakYaw,previewRotationPeakPitch;
+        public float ambientTurnYaw,ambientTurnPitch,ambientTurnTravel;
+        public int ambientTurnWaypoints;
+        public bool ambientTurnSpeaking,ambientTurnSuppressed;
         public CharacterViewPose inspectionPose;
         public Rect inspectionEnvelope;
         public int inspectionToken;
@@ -112,6 +115,9 @@ namespace ModelSpace
         string activeModelId = "studio-robot";
         public string ActiveModelId => activeModelId;
         Bounds bounds, targetRegion;
+        Bounds neutralPortrait;
+        Vector3 neutralFace;
+        float neutralFaceHeight;
         readonly CameraFramingMotion cameraMotion = new CameraFramingMotion();
         readonly CharacterInspectionRotation inspection = new CharacterInspectionRotation();
         Rect compositionArea = new Rect(0,0,1,1);
@@ -187,6 +193,8 @@ namespace ModelSpace
             actions?.Initialize(model, viewCamera, OnAction);
             posture.Bind(character,actions);
             bounds = character.RestBounds();
+            neutralFaceHeight=character.portrait?.FaceHeight(character.transform) ?? 0;
+            if(neutralFaceHeight>0) {neutralFace=character.portrait.Face(character.transform);neutralPortrait=character.portrait.Region(character.transform);}
             companion.Bind(model, viewCamera);
             if (studio) { studio.Bind(character); studio.Configure(new StudioSettings()); }
             gaze.Bind(model, viewCamera, actions);
@@ -285,7 +293,8 @@ namespace ModelSpace
             lastAspect = viewCamera.aspect;
             targetRegion = EffectiveShot == "full" || (posture && posture.State.id!="stand")
                 ? FramingMath.FullRegion(character.FramingBounds(actions.FramingClip))
-                : FramingMath.Region(bounds, "conversation", false,character.conversationStart);
+                : neutralFaceHeight>0 ? neutralPortrait
+                    : FramingMath.Region(bounds, "conversation", false,character.conversationStart);
             if(EffectiveShot!="full" && (!posture || posture.State.id=="stand"))
             {
                 float authoredWidth=character.Manifest.rig.portraitWidthScale;
@@ -301,7 +310,13 @@ namespace ModelSpace
             inspection.RestoreFrame();
             HandleInput();
             int previewReturns=inspection.Preview.ReturnCount;
+            int previewReactions=inspection.Preview.ShakeCount;
             if(inspection.Step(Time.unscaledDeltaTime))Emit("inspectionReturned");
+            if(previewReactions!=inspection.Preview.ShakeCount)Emit("characterShaken");
+            inspection.Ambient.Step(Time.unscaledDeltaTime,
+                ready && immersive && gesturesEnabled && !inspection.Active && !inspection.Preparing && !inspection.Preview.Active &&
+                inspection.Preview.Offset.sqrMagnitude<.001f && string.IsNullOrEmpty(actions.CurrentAction) && (!posture || posture.State.id=="stand"),
+                companion && companion.IsSpeaking);
             if(previewReturns!=inspection.Preview.ReturnCount)Emit("previewRotationReturned");
             float t = 1 - Mathf.Exp(-18f * Time.unscaledDeltaTime);
             currentSize = Mathf.Lerp(currentSize, size, t);
@@ -579,6 +594,15 @@ namespace ModelSpace
                 // envelope, not animated head tracking, so breathing and gestures don't move the camera.
                 focus = FramingMath.ImmersiveFocus(targetRegion,bounds,character.conversationStart,rotation,
                     viewCamera.aspect,viewCamera.fieldOfView,distanceTarget);
+                if(EffectiveShot!="full" && (!posture || posture.State.id=="stand") && neutralFaceHeight>0)
+                {
+                    CharacterPortrait.ComposeAt(neutralFace,neutralFaceHeight,rotation,viewCamera.aspect,viewCamera.fieldOfView,
+                        currentSize,viewCamera.nearClipPlane,out focus,out distanceTarget);
+                    CharacterPortrait.ComposeAt(neutralFace,neutralFaceHeight,rotation,viewCamera.aspect,viewCamera.fieldOfView,
+                        1,viewCamera.nearClipPlane,out _,out normal);
+                    inspection.ComposePortrait(targetRegion,neutralFace,rotation,
+                        viewCamera.aspect,viewCamera.fieldOfView,characterSafeFrame,ref focus,ref distanceTarget);
+                }
                 if (posture && posture.State.id != "stand")
                 {
                     // Wide, low poses occupy the chat header in landscape. Fit their complete
@@ -764,6 +788,9 @@ namespace ModelSpace
                 inspectionActive=inspection.Active,inspectionPreparing=inspection.Preparing,inspectionToken=inspectionToken,
                 previewToken=previewToken,previewRotationActive=inspection.Preview.Active,
                 previewRotationYaw=inspection.Preview.Offset.x,previewRotationPitch=inspection.Preview.Offset.y,
+                ambientTurnYaw=inspection.Ambient.Offset.x,ambientTurnPitch=inspection.Ambient.Offset.y,
+                ambientTurnTravel=inspection.Ambient.Travel,ambientTurnWaypoints=inspection.Ambient.Waypoints,
+                ambientTurnSpeaking=inspection.Ambient.Speaking,ambientTurnSuppressed=inspection.Ambient.Suppressed,
                 previewRotationPeakYaw=inspection.Preview.PeakYaw,previewRotationPeakPitch=inspection.Preview.PeakPitch,
                 previewRotationCount=inspection.Preview.Count,previewRotationReturnCount=inspection.Preview.ReturnCount,
                 previewShakeCount=inspection.Preview.ShakeCount,previewShakeIntensity=inspection.Preview.ShakeIntensity,

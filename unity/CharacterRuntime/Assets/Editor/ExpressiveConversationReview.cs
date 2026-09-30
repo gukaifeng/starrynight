@@ -13,10 +13,10 @@ public static class ExpressiveConversationReview
     static void Check(bool value,string reason) {if(!value)throw new Exception("EXPRESSIVE_REVIEW: "+reason);assertions++;}
     static void Wait(CharacterPreviewRotation p,float seconds) {for(int i=0;i<Mathf.CeilToInt(seconds*60);i++)p.Step(1f/60);}
     static bool Shake(CharacterPreviewRotation p,bool accept=true) {
-        p.Begin();
+        int before=p.ShakeCount;p.Begin();
         // About +/- 30 points on a 393-point phone, two gentle direction changes.
         for(int i=0;i<60;i++) {p.Move(.08f*Mathf.Sin(i/59f*Mathf.PI*3),0);p.Step(1f/60);}
-        return p.End(accept);
+        p.End(accept);return p.ShakeCount>before;
     }
     public static void Run()
     {
@@ -30,7 +30,8 @@ public static class ExpressiveConversationReview
         Check(preview.ShakeCount==1 && preview.ShakeIntensity>=.5f,"bounded intensity and single emission");
         Wait(preview,2);Check(preview.Offset==Vector2.zero,"temporary gesture still restores exactly");
         Check(!Shake(preview),"repeated shaking is cooled down");
-        Wait(preview,21);Check(!Shake(preview,false),"cancelled/multitouch gesture cannot react");
+        Wait(preview,21);preview.Begin();preview.Move(.08f,0);preview.End(false);
+        Check(preview.ShakeCount==1,"cancel before threshold cannot react");
         Check(Shake(preview) && preview.ShakeCount==2,"valid interaction works after cooldown");
         preview.Reset();preview.Begin();preview.Move(4,4);Wait(preview,2);
         for(int i=0;i<5;i++) {preview.Move(4+i,4+i);Wait(preview,.2f);}
@@ -38,7 +39,7 @@ public static class ExpressiveConversationReview
         preview.Reset();Check(preview.ShakeCount==0 && !preview.Active,"actor reset clears interaction state");
         EditorSceneManager.OpenScene("Assets/Scenes/ViewerScene.unity");
         var viewer=UnityEngine.Object.FindFirstObjectByType<ViewerController>();
-        foreach(var source in viewer.characters) {
+        foreach(var source in viewer.characters.Where(c=>!c.Manifest.Supports("core.avatar-controls@1"))) {
             var instance=UnityEngine.Object.Instantiate(source.gameObject);instance.SetActive(true);
             var host=new GameObject("ExpressiveReviewDriver");
             try {

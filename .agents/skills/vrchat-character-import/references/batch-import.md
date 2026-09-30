@@ -48,6 +48,7 @@ unity run "$PWD/unity/CharacterRuntime" --timeout 900 -- \
 
 - 每位新角色在 `profiles.py` 注册经审核的人设与公开资料；schemas 从注册表接受角色 ID，不恢复只允许两位角色的 Literal。
 - AI 自动表现仅开放核对过的原作表情/手势。不要把衣服、体型、任意 shader 开关自动暴露给 LLM。
+- 表情可能绑定 `GestureLeft/Right` 或任意作者参数。核对 FX 实际动画再设置 `ai.kind=expression`，不能用菜单组名判断表情，也不能假设不同模型同一手势值的表情相同。共享枚举参数复位后只重放原选中项，不能遍历未选中项逐个写 0。
 - 在 soundscape 生成器登记独立曲目，`--only ROLE` 增量生成，不改旧曲目。集合与 CAF 哈希通过 `check_character_collections.py`。
 - 原图封面记录 `source=author-supplied` 与 SHA。`CharacterCoverBuilder.Export` 原样保留来源图，只有非来源封面走模型渲染；不调用 AI 重绘来冒充作者图。
 - `provision_character_voices.py --characters ROLE... --allow-paid` 是真实计费，单次最多三位，持久化 job 防止不明重试。遵守本会话已给预算；不要因自动测试而批量创建音色。

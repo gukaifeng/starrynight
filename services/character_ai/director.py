@@ -92,7 +92,7 @@ class Director:
             pool=[a for a in library if a['group']==group and a['asset_id'] not in selected]
             if automatic:
                 pool=[a for a in pool if a.get('automatic',True) and
-                      (not a.get('moods') or mood in a['moods'] or (group=='expression' and mood=='neutral' and a['intent']=='soft_smile'))]
+                      (not a.get('moods') or mood in a['moods'] or (a['kind']=='expression' and mood=='neutral' and a['intent']=='soft_smile'))]
             elif intent:
                 intent=ALIASES.get(intent,intent)
                 pool=[a for a in pool if a['intent']==intent]
@@ -121,7 +121,12 @@ class Director:
             matches={a['group'] for a in library if a['intent']==ALIASES.get(cue.intent,cue.intent)}
             if group not in matches and len(matches)==1:group=next(iter(matches))
             add(group,cue.intent,cue.offset_ms,cue.active)
-        if performance.expression_intent!='neutral':add('expression',performance.expression_intent)
+        if performance.expression_intent!='neutral':
+            for semantic in [performance.expression_intent]+FALLBACK.get(performance.expression_intent,[]):
+                match=next((a for a in library if a['kind']=='expression' and a['intent']==semantic),None)
+                if match:
+                    add(match['group'],semantic)
+                    break
         if performance.action_intent!='idle':
             match=next((a for a in library if a['intent']==performance.action_intent),None)
             if match:add(match['group'],performance.action_intent)

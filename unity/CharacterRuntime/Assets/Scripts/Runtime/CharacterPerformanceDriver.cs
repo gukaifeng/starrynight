@@ -7,7 +7,7 @@ namespace ModelSpace
 {
     [Serializable] public sealed class CharacterPerformanceGroup { public string id,label,symbol; }
     [Serializable] public sealed class CharacterAIPerformanceHint {
-        public string intent;
+        public string intent,kind;
         public string[] effects,moods,conflicts;
         public bool automatic,speechCompatible;
         public float cooldownSeconds=3;

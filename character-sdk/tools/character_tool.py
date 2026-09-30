@@ -257,6 +257,7 @@ def validate_performances(m,model):
             if not effects or any(not name(e) for e in effects):fail('AI effects are invalid')
             moods=bounded(hint.get('moods',[]),16,'AI moods');conflicts=bounded(hint.get('conflicts',[]),32,'AI conflicts')
             if any(not name(v) for v in moods) or any(v not in group_ids or v==o.get('group') for v in conflicts):fail('AI moods/conflicts are invalid')
+            if hint.get('kind','action') not in ('expression','action'):fail('AI performance kind is invalid')
             if not isinstance(hint.get('automatic'),bool) or not isinstance(hint.get('speechCompatible'),bool) or not number(hint.get('cooldownSeconds',3),0,300):fail('AI policy is invalid')
         if o.get('group') not in group_ids or not name(o.get('label')) or kind not in {'preset','motion','toggle'} or not number(o.get('duration',0),0,120):fail('option fields are invalid: '+o['id'])
         if any(not path(b) for b in bones):fail('bone path is invalid (paths <=128 UTF-16 units): '+o['id'])

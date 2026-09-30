@@ -57,6 +57,7 @@ namespace ModelSpace
         public Vector2 Translation {get;private set;}
         public Vector2 TargetTranslation {get;private set;}
         public CharacterPreviewRotation Preview {get;}=new CharacterPreviewRotation();
+        public CharacterAmbientTurn Ambient {get;}=new CharacterAmbientTurn();
         public int Count { get; private set; }
         public int RejectedCount { get; private set; }
         public int ReturnCount { get; private set; }
@@ -137,6 +138,27 @@ namespace ModelSpace
         }
         // Keep the existing close portrait size. Reserve a little headroom from
         // the first frame; opening the editor must not reframe the character.
+        public void ComposePortrait(Bounds portrait,Vector3 face,Quaternion rotation,float aspect,float fov,Rect viewport,
+            ref Vector3 focus,ref float distance)
+        {
+            var envelope=PortraitEnvelope(portrait);
+            viewport.height-=Mathf.Min(.05f,viewport.height*.06f);
+            float tangent=Mathf.Tan(fov*Mathf.Deg2Rad*.5f);
+            float left=(2*viewport.xMin-1)*tangent*aspect,right=(2*viewport.xMax-1)*tangent*aspect;
+            float bottom=(2*viewport.yMin-1)*tangent,top=(2*viewport.yMax-1)*tangent;
+            float faceSlope=(2*.62f-1)*tangent;
+            var inverse=Quaternion.Inverse(rotation);
+            // Retreat around a fixed face anchor rather than pushing a tall-eared
+            // character's face down into the chat. Accessories retain headroom.
+            for(int i=0;i<8;i++) {
+                var p=inverse*(FramingMath.Corner(envelope,i)-face);
+                distance=Mathf.Max(distance,Mathf.Max((p.x-right*p.z)/Mathf.Max(.001f,right),
+                    (left*p.z-p.x)/Mathf.Max(.001f,-left)));
+                distance=Mathf.Max(distance,Mathf.Max((p.y-top*p.z)/Mathf.Max(.001f,top-faceSlope),
+                    (bottom*p.z-p.y)/Mathf.Max(.001f,faceSlope-bottom)));
+            }
+            focus=face-rotation*Vector3.up*(distance*faceSlope);
+        }
         public void ConstrainComposition(Bounds portrait,Quaternion rotation,float aspect,float fov,Rect viewport,ref Vector3 focus,ref float distance) {
             var envelope=PortraitEnvelope(portrait);
             viewport.height-=Mathf.Min(.05f,viewport.height*.06f);
@@ -216,7 +238,7 @@ namespace ModelSpace
         }
         public void ResetImmediate()
         {
-            Preview.Reset();
+            Preview.Reset();Ambient.Reset(System.Environment.TickCount);
             RestoreFrame();rotationOnly=false;Active=Preparing=Moving=returning=false;Yaw=Pitch=chargeTime=0;Scale=1;Translation=Vector2.zero;
             Assign(CharacterViewPose.Default);ClearVelocity();
         }
@@ -335,6 +357,8 @@ namespace ModelSpace
             // the saved pose. No preview angle enters projection compensation.
             p.yaw+=Preview.Offset.x;
             p.pitch=Mathf.Clamp(p.pitch+Preview.Offset.y,-MaximumPitch,MaximumPitch);
+            p.yaw+=Ambient.Offset.x;
+            p.pitch=Mathf.Clamp(p.pitch+Ambient.Offset.y,-MaximumPitch,MaximumPitch);
             ProjectedEnvelope=Project(p);
             if(p.IsDefault)return;
             authoredRotation=model.rotation;authoredPosition=model.position;authoredScale=model.localScale;

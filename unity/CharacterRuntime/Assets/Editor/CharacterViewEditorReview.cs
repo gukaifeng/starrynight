@@ -56,7 +56,7 @@ public static class CharacterViewEditorReview
                 var bones=instance.GetComponentsInChildren<Transform>(true).Where(t=>t!=instance.transform).ToArray();
                 var originals=bones.Select(t=>t.localRotation).ToArray();
                 var root=instance.transform;var position=root.position;var rotation=root.rotation;var scale=root.localScale;
-                var region=FramingMath.Region(character.RestBounds(),"conversation",false,character.conversationStart);
+                var region=character.portrait!=null ? character.portrait.Region(root) : FramingMath.Region(character.RestBounds(),"conversation",false,character.conversationStart);
                 edit.Bind(root);actions.Initialize(root,camera,(a,b,c)=>{});
                 foreach(var size in sizes) {
                     edit.ResetImmediate();camera.aspect=size.x/size.y;
@@ -64,6 +64,8 @@ public static class CharacterViewEditorReview
                     var cameraRotation=FramingMath.Rotation(0);
                     float distance=FramingMath.Distance(region,cameraRotation,camera.aspect,camera.fieldOfView,1,camera.nearClipPlane)*CharacterInspectionRotation.TurnFramingReserve;
                     var focus=FramingMath.ImmersiveFocus(region,character.RestBounds(),character.conversationStart,cameraRotation,camera.aspect,camera.fieldOfView,distance);
+                    if(character.portrait!=null)character.portrait.Compose(root,cameraRotation,camera.aspect,camera.fieldOfView,1,camera.nearClipPlane,out focus,out distance);
+                    if(character.portrait!=null)edit.ComposePortrait(region,character.portrait.Face(root),cameraRotation,camera.aspect,camera.fieldOfView,safe,ref focus,ref distance);
                     edit.ConstrainComposition(region,cameraRotation,camera.aspect,camera.fieldOfView,safe,ref focus,ref distance);
                     camera.transform.SetPositionAndRotation(focus-cameraRotation*Vector3.forward*distance,cameraRotation);
                     var cameraPosition=camera.transform.position;

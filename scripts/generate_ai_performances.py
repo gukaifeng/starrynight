@@ -62,7 +62,7 @@ def generate(root=ROOT):
             automatic=hint.get('automatic',group not in ('pose','appearance') and option['kind']!='toggle' and '自然' not in label and compatible and (bool(moods) or group not in ('expression','hands')))
             if not hint and label in ('收起耳朵','展开耳朵'):automatic=False
             duration=int(min(15000,max(3500,option.get('duration',0)*1000)))
-            options.append(dict(asset_id=id,label=label,kind='expression' if group=='expression' else 'action',
+            options.append(dict(asset_id=id,label=label,kind=hint.get('kind') or ('expression' if group=='expression' else 'action'),
                 group=group,group_label=groups[group],intent=intent,observable_effects=hint.get('effects',effect),
                 intensity_min=0,intensity_max=1,base_weight=old.get('base_weight',1),rarity='common',
                 min_closeness=0,max_anger=1,cooldown_sec=hint.get('cooldownSeconds',3),duration_ms=duration,

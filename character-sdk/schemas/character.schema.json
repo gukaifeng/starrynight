@@ -1248,6 +1248,11 @@
                 "type": "object",
                 "description": "Optional authored conversation semantics, exported to the AI service catalog.",
                 "properties": {
+                  "kind": {
+                    "type": "string",
+                    "enum": ["expression", "action"],
+                    "description": "Semantic category independent of author menu group IDs; omitted preserves legacy group inference."
+                  },
                   "intent": {
                     "type": "string",
                     "minLength": 1,
