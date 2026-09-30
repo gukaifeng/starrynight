@@ -11,6 +11,7 @@ from .schemas import Request
 from .profiles import PROFILES
 from .asr import recognize
 from .streams import TurnStreams
+from .speech_text import audio_key
 
 def create_app(settings=None,provider=None):
     settings=settings or Settings.load();store=Store(settings.data_dir/'state.sqlite3')
@@ -37,7 +38,7 @@ def create_app(settings=None,provider=None):
         if len(busy)>=4:raise HTTPException(503,'SERVER_BUSY')
         busy.add(key)
     @app.get('/health')
-    async def health():return dict(status='ok',protocol=1,revision=4,paid_calls=False)
+    async def health():return dict(status='ok',protocol=1,revision=5,paid_calls=False)
     @app.get('/v1/status')
     async def status(request:HTTPRequest):
         owner(request.headers)
@@ -65,11 +66,13 @@ def create_app(settings=None,provider=None):
         for row in rows:
             script=json.loads(row[0])
             for beat in script.get('beats',[]):
-                key=hashlib.sha256((who+'|'+character+'|'+voice.get('voice_id','')+'|'+script['message_id']+'|'+beat['beat_id']).encode()).hexdigest()
-                (settings.data_dir/'audio'/(key+'.pcm')).unlink(missing_ok=True)
+                for revision in ('', 'spoken-v2'):
+                    key=audio_key(who,character,voice.get('voice_id',''),script['message_id'],beat['beat_id'],revision=revision)
+                    (settings.data_dir/'audio'/(key+'.pcm')).unlink(missing_ok=True)
         with store.db:
             store.db.execute('DELETE FROM messages WHERE owner=? AND character=?',(who,character))
             store.db.execute('DELETE FROM requests WHERE owner=? AND character=?',(who,character))
+            store.db.execute("DELETE FROM records WHERE kind='greetings' AND owner=? AND character=?",(who,character))
         return dict(cleared=True)
     @app.websocket('/v1/asr/{character}')
     async def asr(socket:WebSocket,character:str):

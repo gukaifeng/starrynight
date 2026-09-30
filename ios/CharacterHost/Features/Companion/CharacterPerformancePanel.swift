@@ -12,11 +12,17 @@ import Observation
     private(set) var pendingID: String?
     private(set) var pendingOption: String?
     private(set) var error: String?
+#if DEBUG
+    private(set) var confirmedCounts: [String:Int] = [:]
+#endif
 
     func begin(modelID: String, presentation: Int) {
         self.modelID = modelID; self.presentation = presentation
         selections.removeAll(); ready = false; transitioning = false
         pendingID = nil; pendingOption = nil; error = nil
+#if DEBUG
+        confirmedCounts.removeAll()
+#endif
     }
     func request(id: String, option: String) {
         pendingID = id; pendingOption = option; error = nil
@@ -34,6 +40,11 @@ import Observation
             selections = Set(selected); ready = true
             transitioning = platform["performanceTransitioning"] as? Bool ?? false
         }
+#if DEBUG
+        if let receipt=event["receipt"] as? [String:Any],receipt["eventName"] as? String == "performance.select",
+           receipt["status"] as? String == "accepted",let target=receipt["target"] as? String,
+           selections.contains(target) { confirmedCounts[target,default:0] += 1 }
+#endif
         if let receipt = event["receipt"] as? [String: Any],
            let id = pendingID, receipt["eventId"] as? String == id {
             pendingID = nil; pendingOption = nil

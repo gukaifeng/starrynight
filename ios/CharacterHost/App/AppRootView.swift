@@ -18,11 +18,7 @@ struct AppRootView: View {
             VStack(spacing:0) {
                 Group {
                     if coordinator.stageLoadingVisible {
-                        if coordinator.preparingInitialConversation {
-                            InitialConversationLanding(coordinator:coordinator)
-                        } else {
-                            CharacterArrivalView(name:coordinator.profile(for:coordinator.selectedModel).name)
-                        }
+                        ConversationPreparingCover(coordinator:coordinator)
                     } else { switch coordinator.visibleShellTab {
                     case .home: ConversationLanding(coordinator:coordinator)
                     case .messages: MessagesPage(coordinator:coordinator)
@@ -49,7 +45,7 @@ struct AppRootView: View {
 
 /// Native content is usable before Unity starts. Only bundled artwork and the
 /// existing local transcript are read here; no network request or fake reply.
-private struct InitialConversationLanding: View {
+private struct ConversationPreparingCover: View {
     let coordinator: ViewerCoordinator
     private var model: ModelDescriptor { coordinator.selectedModel }
     private var profile: CharacterProfile { coordinator.profile(for:model) }
@@ -62,6 +58,7 @@ private struct InitialConversationLanding: View {
                 .mask(LinearGradient(colors:[.clear,.white,.white.opacity(0.2),.clear],
                     startPoint:.top,endPoint:.bottom))
                 .allowsHitTesting(false)
+                .accessibilityIdentifier("conversationPreparingCover-"+model.id)
             VStack(alignment:.leading,spacing:0) {
                 HStack(spacing:9) {
                     CharacterAvatar(model:model,profile:profile,portraits:coordinator.portraits,

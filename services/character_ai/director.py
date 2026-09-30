@@ -3,15 +3,35 @@ from .profiles import assets
 
 FALLBACK={'shy_smile':['soft_smile','neutral'],'teasing_smile':['soft_smile','neutral'],
  'bright_smile':['soft_smile','neutral'],'worried':['thinking','neutral'],
+ 'excited':['bright_smile','soft_smile','neutral'],'proud':['confident','teasing_smile','neutral'],
  'nod':['idle'],'shake_head':['idle'],'wave':['open_hands','idle'],'cover_mouth':['idle'],
  'look_away':['idle'],'lean_forward':['idle'],'hug':['idle']}
+
+INTENT_GUIDE = dict(soft_smile='柔和微笑：问候、安心、倾听',bright_smile='开心明亮的笑：好消息、被认可',
+    teasing_smile='俏皮笑：轻松打趣',playful='单眼眨眼：俏皮回应或用户要求眨眼',
+    confident='自信：鼓励、打气',proud='小小得意：自己的小成就',pout='鼓脸/嘟嘴：轻微撒娇或玩笑',
+    playful_tongue='短暂吐舌：调皮玩笑',confused='晕乎乎：困惑',sleepy='打哈欠表情：困倦',
+    excited='兴奋：惊喜、期待',sad='难过/含泪：悲伤',thinking='疑惑思考：好奇、问题',
+    surprised='惊叹：意外消息',serious='严肃/不满',worried='担心/紧张',
+    thumbs_up='手指点赞：认可、称赞；不抬整条手臂',peace='剪刀手/比耶：庆祝、合照；手指姿势',
+    open_hands='舒展手掌：友好问候；不是挥手动画',fist='手指握拳：打气',point='伸直食指：强调一个想法；不指向具体物体',
+    rock='摇滚手指：活泼玩笑',ear_wiggle='耳朵动态轻动：见面、好奇、期待',ear_perk='竖耳：认真倾听、惊喜',
+    ear_lower='垂耳：低落或担心',tail_wag='竖尾摇动：开心、欢迎',tail_sway='尾巴上下轻摆：轻松交流',
+    tail_lower='低垂摇尾：安慰、低落')
+ALIASES = dict(smile='soft_smile',happy='bright_smile',cheerful='bright_smile',curious='thinking',
+               curious_smile='thinking',wink='playful',pouting='pout',excited_smile='excited',
+               victory='peace',v_sign='peace',ear_twitch='ear_wiggle',wag_tail='tail_wag')
+EMOTION_FACE = dict(happy='bright_smile',sad='sad',surprised='surprised',serious='serious',worried='worried',
+                    curious='thinking',confused='confused',excited='excited',playful='teasing_smile')
 
 class Director:
     def __init__(self,store,rng=None):self.store=store;self.rng=rng or random.Random()
     def capability(self,character,available):
         enabled=[a for a in assets(character) if a['asset_id'] in available]
+        intents={a['intent'] for a in enabled}
         return dict(supported_expression_intents=sorted({'neutral'}|{a['intent'] for a in enabled if a['kind']=='expression'}),
-                    supported_action_intents=sorted({'idle'}|{a['intent'] for a in enabled if a['kind']=='action'}))
+                    supported_action_intents=sorted({'idle'}|{a['intent'] for a in enabled if a['kind']=='action'}),
+                    intent_guide={k:v for k,v in INTENT_GUIDE.items() if k in intents})
     def resolve(self,owner,character,kind,intent,intensity,relationship,state,available):
         now=time.time()
         library=[a for a in assets(character) if a['enabled'] and a['asset_id'] in available and a['kind']==kind]
@@ -35,12 +55,21 @@ class Director:
                 return chosen,match
             match='approximate'
         return None,'none'
-    def beat(self,owner,character,beat,relationship,state,available):
+    def beat(self,owner,character,beat,relationship,state,available,dominant_emotion='neutral',trigger='user_message'):
         performance=beat.performance.model_copy()
+        performance.expression_intent=ALIASES.get(performance.expression_intent,performance.expression_intent)
+        performance.action_intent=ALIASES.get(performance.action_intent,performance.action_intent)
         for vocal in beat.vocal_events:
             if vocal.visual_sync:
                 if performance.expression_intent=='neutral':performance.expression_intent=vocal.visual_sync.expression_intent
                 if performance.action_intent=='idle':performance.action_intent=vocal.visual_sync.action_intent
+        # A typed speech emotion is reliable fallback evidence; don't discard it
+        # just because the planner left its separate performance at the default.
+        if performance.expression_intent=='neutral':
+            emotion=beat.dialogue.speech.emotion if beat.dialogue else 'neutral'
+            performance.expression_intent=EMOTION_FACE.get(emotion,EMOTION_FACE.get(dominant_emotion,'neutral'))
+            if performance.expression_intent=='neutral' and trigger in ('appLaunch','firstLaunch','firstMeeting','characterSwitch'):
+                performance.expression_intent='soft_smile'
         face,fg=self.resolve(owner,character,'expression',performance.expression_intent,performance.intensity,relationship,state,available)
         action,ag=self.resolve(owner,character,'action',performance.action_intent,performance.intensity,relationship,state,available)
         return dict(beat_id=beat.beat_id,expression_asset=face,action_asset=action,

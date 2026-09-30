@@ -1,10 +1,12 @@
-import asyncio, base64, hashlib, random, time, uuid, wave
+import asyncio, base64, random, time, uuid
 from contextlib import aclosing
-from .schemas import Plan, NarrationResult, Speech, Vocal, visible_text, visible_thought
+from .schemas import Plan, NarrationResult, Speech, Vocal, visible_text, visible_thought, CONTROL_TEXT
 from .profiles import PROFILES
 from .prompts import PLANNER, NARRATOR
 from .director import Director, grounded_excerpt
 from .storage import clamp, dump
+from .speech_text import audio_key
+from .greetings import ENTRY_TRIGGERS, greeting_context, repeated_greeting, plan_text
 
 def event(kind, **data): return dict(type=kind,**data)
 
@@ -15,7 +17,7 @@ class Orchestrator:
     def context(self,owner,request):
         char=request.character_id
         self.store.sync_memories(owner,char,request.memories)
-        return dict(character_profile={k:v for k,v in PROFILES[char].items() if k not in ('voice_prompt','preview_text')},
+        context = dict(character_profile={k:v for k,v in PROFILES[char].items() if k not in ('voice_prompt','preview_text','voice_revision','voice_delivery')},
             user_message=request.text,trigger=request.trigger,preferences=request.preferences,scene=request.scene,
             recent_messages=self.store.history(owner,char) or [m.model_dump() for m in request.recent_messages],memories=self.store.recall(owner,char,request.text),
             relationship=self.store.get('relationship',owner,char,dict(closeness=.05,trust=.1,conflict=0)),
@@ -23,6 +25,14 @@ class Orchestrator:
             speech_capability=dict(emotions=Speech.model_json_schema()['properties']['emotion']['enum'],
                                    deliveries=Speech.model_json_schema()['properties']['delivery']['enum'],
                                    vocal_events=Vocal.model_json_schema()['properties']['event']['enum']))
+        # Retain original archives, but don't feed historical broken control JSON
+        # back to the model as a demonstration of how to speak.
+        context['recent_messages']=[m for m in context['recent_messages'] if m['role']!='assistant' or not CONTROL_TEXT.search(m['text'])]
+        if request.trigger in ENTRY_TRIGGERS:
+            last = self.store.db.execute('SELECT max(created) FROM messages WHERE owner=? AND character=?',(owner,char)).fetchone()[0]
+            context['greeting_context'] = greeting_context(context['recent_messages'],
+                self.store.get('greetings',owner,char,[]),max(0,int(time.time()-last)) if last else None)
+        return context
     async def narration(self,owner,char,plan,resolved,scene):
         facts=PROFILES[char].get('appearance_facts',[])
         try:
@@ -74,6 +84,16 @@ class Orchestrator:
                 self.store.complete(owner,char,rid,empty)
                 yield event('reply.completed',message_id=empty['message_id']); return
         plan=await self.provider.structured(owner,char,'plan',PLANNER,context,Plan)
+        if request.trigger in ENTRY_TRIGGERS:
+            previous=context['greeting_context']['previous_lines_to_avoid']
+            if repeated_greeting(plan_text(plan),previous):
+                # One bounded semantic correction, only for a confirmed duplicate.
+                # This is a new completed model request, not a network retry.
+                correction={**context,'greeting_correction':dict(rejected_text=plan_text(plan),
+                    instruction='刚生成的内容重复了历史回复。重新写一句新的见面问候，换一个切入点，不要再次解答历史问题，也不要只改几个词。')}
+                plan=await self.provider.structured(owner,char,'plan',PLANNER,correction,Plan)
+                if repeated_greeting(plan_text(plan),previous):
+                    raise ValueError('GREETING_REPEATED')
         # Silence is a first-class outcome; no TTS or narration expense.
         if request.trigger=='idle' and plan.idle_decision=='do_nothing': plan.beats=[]
         if request.trigger!='idle' and not any(b.dialogue for b in plan.beats): raise ValueError('EMPTY_REPLY')
@@ -91,7 +111,8 @@ class Orchestrator:
                 b.dialogue=None; b.vocal_events=[]
         self.store.put('vocals',owner,char,used)
         yield event('reply.plan.ready',beat_count=len(plan.beats))
-        resolved=[self.director.beat(owner,char,b,context['relationship'],context['state'],request.available_assets) for b in plan.beats]
+        resolved=[self.director.beat(owner,char,b,context['relationship'],context['state'],request.available_assets,
+                  plan.state_interpretation.dominant_emotion,request.trigger) for b in plan.beats]
         yield event('segment.visual.resolved',count=len(resolved))
         narrations=[]; warning=None
         if plan.beats and not request.progressive_reply:
@@ -105,10 +126,12 @@ class Orchestrator:
                 vocal_events=[v.model_dump() for v in b.vocal_events],
                 visuals=[dict(asset_id=a['asset_id'],group=a['group'],duration_ms=a['duration_ms'],grounding=r['grounding']) for k in ('expression_asset','action_asset') if (a:=r.get(k))]))
         text='\n'.join(b['dialogue']['text'] for b in beats if b['dialogue'])
-        script=dict(message_id=str(uuid.uuid4()),character_id=char,beats=beats,text=text,idle_decision=plan.idle_decision,
+        script=dict(message_id=str(uuid.uuid4()),character_id=char,beats=beats,text=text,trigger=request.trigger,idle_decision=plan.idle_decision,
             memory_suggestions=[m.content for m in plan.memory_updates] if request.trigger=='user_message' else [])
         if request.text:self.store.message(str(uuid.uuid4()),owner,char,rid,'user',dict(text=request.text))
         self.store.message(script['message_id'],owner,char,rid,'assistant',script)
+        if request.trigger in ENTRY_TRIGGERS:
+            self.store.put('greetings',owner,char,(self.store.get('greetings',owner,char,[])+[text])[-5:])
         # Only allowed, bounded state fields. Relationship never leaks between roles/accounts.
         for key,value in plan.suggested_state_delta.items():
             if not isinstance(value,(int,float)) or not (-.08<=value<=.08):continue
@@ -165,7 +188,7 @@ class Orchestrator:
         folder=self.settings.data_dir/'audio';folder.mkdir(exist_ok=True)
         for beat in script['beats']:
             if not beat['dialogue'] and not beat['vocal_events']:continue
-            key=hashlib.sha256((owner+'|'+char+'|'+voice['voice_id']+'|'+script['message_id']+'|'+beat['beat_id']).encode()).hexdigest()
+            key=audio_key(owner,char,voice['voice_id'],script['message_id'],beat['beat_id'])
             path=folder/(key+'.pcm')
             if not create and not path.exists():
                 yield event('audio.error',message='这句语音未完成，可点播放重新生成。');continue

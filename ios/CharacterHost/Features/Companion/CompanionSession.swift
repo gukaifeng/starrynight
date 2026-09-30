@@ -51,6 +51,7 @@ final class CompanionSession {
     @ObservationIgnored private var pendingGreeting: ConversationEntry?
     @ObservationIgnored private let ownerID: String
     @ObservationIgnored private var activeScript: AIScript?
+    @ObservationIgnored private var performedBeats = Set<String>()
     @ObservationIgnored private var microphoneDraft = ""
     var record: CharacterRecord {
         var value = store.record(model.id)
@@ -65,7 +66,10 @@ final class CompanionSession {
     var effectiveVoiceSpeed: Double { 1 } // Voice Design and per-beat delivery own the voice.
     func setSpeechVolume(_ value: Double) {
         soundscape.setSpeechVolume(value)
-        if muted { speech.stop() } else { speech.refreshVolume() }
+        if muted {
+            speech.stop()
+            if let activeScript { playSilentVisuals(activeScript) }
+        } else { speech.refreshVolume() }
     }
     var availableActions: [CharacterAction] { model.availableActions(for:record.profile.resolvedStudio.posture ?? PosturePreferences()) }
     func performAction(_ id: String) {
@@ -106,6 +110,7 @@ final class CompanionSession {
         }
         speech.onBeat = { [weak self] id in
             guard let self, let beat = self.activeScript?.beats.first(where:{ $0.beatId == id }) else { return }
+            self.performedBeats.insert(id)
             self.onAIVisual?(beat.visuals)
         }
     }
@@ -181,7 +186,15 @@ final class CompanionSession {
                                 record.greeting = ConversationGreetingHistory(count:(record.greeting?.count ?? 0)+1,lastDate:Date(),lastText:script.text,lastEntryID:entry.id)
                             }
                         }
-                        if !self.muted { self.speech.prepare(message.id,script:script) }
+                        if !self.muted {
+                            self.speech.prepare(message.id,script:script)
+                            // React when the text arrives, even while voice is
+                            // connecting. Audio onset then aligns/renews the beat.
+                            if let first=script.beats.first {
+                                self.performedBeats.insert(first.beatId)
+                                self.onAIVisual?(first.visuals)
+                            }
+                        }
                         else { self.playSilentVisuals(script) }
                     case "reply.script.updated":
                         guard let script=event.script,let id=UUID(uuidString:script.messageId) else {return}
@@ -194,15 +207,23 @@ final class CompanionSession {
                     case "reply.warning": self.notice = event.message
                     case "segment.audio.started", "segment.audio.chunk", "segment.audio.ready", "audio.error":
                         if !self.muted { try await self.speech.accept(event) }
+                        if event.type == "audio.error", let script=self.activeScript { self.playSilentVisuals(script) }
                     default: break
                     }
                 }
                 guard current == token else { return }
-                generating = false; speech.finish(); if !muted { onEndAIVisual?() }; emit("state.idle")
+                generating = false; speech.finish()
+                if !muted, let script=activeScript { playSilentVisuals(script) }
+                // Each group has its own bounded restore timer. Finishing a
+                // short utterance must not immediately erase its expression.
+                emit("state.idle")
                 if trigger == "user_message" { scheduleIdle() }
             } catch {
                 guard current == token, !Task.isCancelled else { return }
-                generating = false; speech.stop(); onEndAIVisual?(); emit("state.idle")
+                generating = false; speech.stop()
+                if received, let script=activeScript { playSilentVisuals(script) }
+                else { onEndAIVisual?() }
+                emit("state.idle")
                 if !(error is CancellationError) {
                     notice = (error as? LocalizedError)?.errorDescription ?? "AI 连接中断，请稍后重试。"
                     if !received && !text.isEmpty && input.isEmpty { input = text }
@@ -220,15 +241,19 @@ final class CompanionSession {
         }
     }
     private func playSilentVisuals(_ script: AIScript) {
+        let remaining=script.beats.filter { !performedBeats.contains($0.beatId) }
+        guard !remaining.isEmpty else { return }
         silentVisualTask?.cancel()
         silentVisualTask = Task { @MainActor [weak self] in
             guard let self else { return }
-            for beat in script.beats {
+            for beat in remaining {
                 guard !Task.isCancelled else { return }
+                // A voice beat may have arrived since this fallback was queued.
+                guard !performedBeats.contains(beat.beatId) else { continue }
+                performedBeats.insert(beat.beatId)
                 onAIVisual?(beat.visuals)
                 try? await Task.sleep(for:.milliseconds(beat.visuals.map(\.durationMs).max() ?? 2500))
             }
-            if !Task.isCancelled { onEndAIVisual?() }
         }
     }
     func playMessage(_ message: CompanionMessage) {
@@ -239,16 +264,16 @@ final class CompanionSession {
         task = Task { @MainActor [weak self] in
             guard let self else { return }
             do {
-                if try await speech.cachedReplay(script,messageID:message.id) { onEndAIVisual?(); return }
+                if try await speech.cachedReplay(script,messageID:message.id) { playSilentVisuals(script); return }
                 speech.prepare(message.id,script:script)
                 try await api.events(path:"/v1/conversations/"+model.id+"/messages/"+script.messageId+"/audio",body:nil) { [weak self] event in
                     guard let self, self.token == current else { throw CancellationError() }
                     try await self.speech.accept(event)
                 }
-                guard current == token else { return }; speech.finish(); onEndAIVisual?()
+                guard current == token else { return }; speech.finish(); playSilentVisuals(script)
             } catch {
                 guard current == token, !Task.isCancelled else { return }
-                speech.stop(); onEndAIVisual?(); notice = (error as? LocalizedError)?.errorDescription ?? "语音暂时不可用。"
+                speech.stop(); playSilentVisuals(script); notice = (error as? LocalizedError)?.errorDescription ?? "语音暂时不可用。"
             }
         }
     }
@@ -257,6 +282,7 @@ final class CompanionSession {
         silentVisualTask?.cancel(); silentVisualTask = nil
         if activeTurn { emit("turn.cancel") }
         activeTurn = false; token = UUID(); generating = false; draftReply = ""; activeScript = nil
+        performedBeats.removeAll()
         speech.stop(); onEndAIVisual?()
     }
 }

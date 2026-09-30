@@ -51,6 +51,17 @@ def assets(character):
       ('kipfel-facial-angry','serious','眉眼带上一点不满'),
       ('kipfel-facial-muu','worried','嘴巴轻轻抿起'),
       ('kipfel-facial-wink','playful','轻轻眨了一只眼'),
+      ('kipfel-facial-wink2','playful','俏皮地眨了一只眼'),
+      ('kipfel-facial-kirakira2','bright_smile','眼神变得亮晶晶'),
+      ('kipfel-facial-confidence','confident','露出自信的神情'),
+      ('kipfel-facial-confidence2','confident','神情带上一点自信'),
+      ('kipfel-facial-doya','proud','露出小小得意的表情'),
+      ('kipfel-facial-cheek','pout','轻轻鼓起脸颊'),
+      ('kipfel-facial-pero','playful_tongue','俏皮地吐了吐舌头'),
+      ('kipfel-facial-cry','sad','露出难过的表情'),
+      ('kipfel-facial-guruguru','confused','露出晕乎乎的神情'),
+      ('kipfel-facial-akubi','sleepy','露出打哈欠的表情'),
+      ('kipfel-facial-he','surprised','嘴巴微微张开'),
     ] if k else [
       ('f-smile','soft_smile','嘴角浮起轻柔的笑意'),
       ('f-bigsmile','bright_smile','露出灿烂的笑容'),
@@ -63,13 +74,43 @@ def assets(character):
       ('f-anger','serious','眉眼带上一点不满'),
       ('f-sweat','worried','神情有些紧张'),
       ('f-wink-kira','playful','轻轻眨了一只眼'),
+      ('f-exciting','excited','露出兴奋的神情'),
+      ('f-hunsu','confident','露出充满干劲的神情'),
+      ('f-hukure','pout','轻轻鼓起脸颊'),
+      ('f-muu','pout','轻轻嘟起嘴'),
+      ('f-musu','worried','神情有一点别扭'),
+      ('f-pero','playful_tongue','俏皮地吐了吐舌头'),
+      ('f-cry','sad','露出难过的表情'),
+      ('f-donbiki','surprised','露出震惊的神情'),
+      ('f-guruguru','confused','露出晕乎乎的神情'),
     ])
     items=[]
     for id,intent,effect in faces:
         items.append(dict(asset_id=id,kind='expression',group='expression',intent=intent,observable_effects=[effect],
-                          intensity_min=0,intensity_max=1,base_weight=1,rarity='common',min_closeness=0,max_anger=1,cooldown_sec=18,duration_ms=3800,interruptible=True,return_to='idle',enabled=True))
+                          intensity_min=0,intensity_max=1,base_weight=1,rarity='common',min_closeness=0,max_anger=1,cooldown_sec=5,
+                          duration_ms=1500 if intent in ('playful','playful_tongue') else 4800,interruptible=True,return_to='baseline',enabled=True))
     prefix='kipfel-hand-' if k else 'mamehinata-'
-    for suffix,intent,effect in [('thumbs-up','thumbs_up','手指摆出点赞手势'),('peace','peace','手指比出剪刀手'),('open','open_hands','手掌舒展开来')]:
+    for suffix,intent,effect in [('thumbs-up','thumbs_up','手指摆出点赞手势'),('peace','peace','手指比出剪刀手'),('open','open_hands','手掌舒展开来'),
+                               ('fist','fist','手指轻轻握成拳'),('point','point','食指伸直，摆出指示手势'),('rock','rock','手指摆出摇滚手势')]:
         items.append(dict(asset_id=prefix+suffix,kind='action',group='hands',intent=intent,observable_effects=[effect],
-                          intensity_min=0,intensity_max=1,base_weight=.8,rarity='uncommon',min_closeness=0,max_anger=1,cooldown_sec=35,duration_ms=3200,interruptible=True,return_to='idle',enabled=True))
+                          intensity_min=0,intensity_max=1,base_weight=.8,rarity='uncommon',min_closeness=0,max_anger=1,cooldown_sec=9,duration_ms=4200,interruptible=True,return_to='baseline',enabled=True))
+    secondary = ([
+      ('kipfel-catear-pyoko-loop','ears','ear_wiggle','耳朵轻轻动了起来'),
+      ('kipfel-catear-up','ears','ear_perk','耳朵竖了起来'),
+      ('kipfel-catear-down','ears','ear_lower','耳朵轻轻垂下'),
+      ('kipfel-cattail-upwag','tail','tail_wag','尾巴竖起并轻轻摇动'),
+      ('kipfel-cattail-updown','tail','tail_sway','尾巴上下轻摆'),
+      ('kipfel-cattail-downwag','tail','tail_lower','尾巴低垂着轻轻摆动'),
+    ] if k else [
+      ('dogear-pyoko','ears','ear_wiggle','耳朵轻轻动了起来'),
+      ('dogear-up','ears','ear_perk','耳朵竖了起来'),
+      ('dogear-down','ears','ear_lower','耳朵轻轻垂下'),
+      ('dogtail-upwag','tail','tail_wag','尾巴竖起并轻轻摇动'),
+      ('dogtail-updown','tail','tail_sway','尾巴上下轻摆'),
+      ('dogtail-downwag','tail','tail_lower','尾巴低垂着轻轻摆动'),
+    ])
+    for id,group,intent,effect in secondary:
+        items.append(dict(asset_id=id,kind='action',group=group,intent=intent,observable_effects=[effect],
+                          intensity_min=0,intensity_max=1,base_weight=1,rarity='common',min_closeness=0,max_anger=1,cooldown_sec=9,
+                          duration_ms=4200,interruptible=True,return_to='baseline',enabled=True))
     return items

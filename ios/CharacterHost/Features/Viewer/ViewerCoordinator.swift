@@ -196,7 +196,6 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
     @ObservationIgnored private var postureRequests: [String:CheckedContinuation<String?,Never>] = [:]
     private(set) var page: Page = .home
     private(set) var stageLoadingVisible = false
-    private(set) var preparingInitialConversation = false
     var showsLoadingIndicator: Bool { page == .error } // Legacy gallery error surface only.
     private(set) var errorMessage = ""
     private(set) var selectedModel = ModelDescriptor.defaultCharacter
@@ -333,7 +332,7 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
               let profile = selectedModel.performance else { return }
         for visual in visuals {
             guard let option = profile.options.first(where:{ $0.id == visual.assetId && $0.group == visual.group }),
-                  ["expression","hands"].contains(option.group), !option.isToggle else { continue }
+                  ["expression","hands","ears","tail"].contains(option.group), !option.isToggle else { continue }
             let group = option.group
             if aiVisualBaseline[group] == nil {
                 aiVisualBaseline[group] = characterPerformance.selections.intersection(Set(profile.options.filter { $0.group == group }.map(\.id)))
@@ -349,13 +348,14 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
         }
     }
     private func restoreAIGroup(_ group: String) {
-        guard let original = aiVisualBaseline[group] else { return }
+        guard let original = aiVisualBaseline.removeValue(forKey:group) else { return }
+        aiVisualTasks.removeValue(forKey:group)
         signal(CharacterIntent(eventName:"performance.reset",target:group))
         for id in original { signal(CharacterIntent(eventName:"performance.select",target:id)) }
     }
     private func endAIVisuals() {
         aiVisualTasks.values.forEach { $0.cancel() }; aiVisualTasks.removeAll()
-        for group in aiVisualBaseline.keys { restoreAIGroup(group) }
+        for group in Array(aiVisualBaseline.keys) { restoreAIGroup(group) }
         aiVisualBaseline.removeAll()
     }
     private func sendPerformance(_ intent: CharacterIntent) {
@@ -414,7 +414,6 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
         bundledBackdropVisible = false
         pendingReset = ""; pendingReveal = ""; frameReady = false
         stageLoadingVisible = true
-        preparingInitialConversation = startupInProgress
         presentation += 1; desiredVisible = true; page = .loading
         characterPerformance.begin(modelID:model.runtimeID,presentation:presentation)
         // Keep a fully opaque native canvas above Unity even if its startup makes a

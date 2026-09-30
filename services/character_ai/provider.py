@@ -3,7 +3,7 @@ import asyncio, base64, hashlib, io, json, sqlite3, time, uuid, wave
 import httpx
 from pydantic import ValidationError
 from .storage import dump
-from .schemas import visible_text
+from .speech_text import spoken_text
 from .prompts import PLAN_SHAPE
 from .profiles import PROFILES
 
@@ -31,7 +31,8 @@ def speech_input(beat):
     dialogue = beat.get('dialogue')
     speech = (dialogue or {}).get('speech', {})
     tags = ''.join(VOCALS[v['event']] for v in beat.get('vocal_events', []) if v['event'] in VOCALS)
-    text = EMOTIONS.get(speech.get('emotion'), '') + tags + visible_text((dialogue or {}).get('text', ''))
+    spoken = spoken_text((dialogue or {}).get('text', ''))
+    text = (EMOTIONS.get(speech.get('emotion'), '') + tags + spoken) if spoken or tags else ''
     intensity=speech.get('intensity',.4)
     degree='轻微' if intensity<.35 else '适度' if intensity<.7 else '明显'
     instruction = DELIVERY.get(speech.get('delivery'), '自然交谈') + '，情绪'+degree+'，日常聊天，不要播音腔。'
@@ -53,8 +54,20 @@ class Provider:
             raise ProviderError('PROVIDER_'+str(response.status_code)+'_'+str(code or 'ERROR')[:60])
     async def structured(self, owner, character, purpose, system, context, schema):
         shape = PLAN_SHAPE if purpose == 'plan' else ''
+        content=dump(context)
+        if purpose=='plan':
+            # The previous layout placed the current user message BEFORE a long
+            # history/capability object. Explicitly anchor the current turn last;
+            # older dialogue is background, not another request to answer.
+            current=dict(trigger=context.get('trigger'),user_message=context.get('user_message',''))
+            if context.get('greeting_context'):
+                current['task']=context['greeting_context']['task']
+            else:
+                current['task']='只回应user_message这条新消息。历史回复不是本轮台词，不要照搬。明确的表演请求放进performance，台词不自述动作。'
+            if context.get('greeting_correction'): current['correction']=context['greeting_correction']
+            content+='\n\n当前这一轮（历史仅供参考）：\n'+dump(current)
         messages = [dict(role='system',content=system+'\nJSON Schema:\n'+dump(schema.model_json_schema())+'\n'+shape),
-                    dict(role='user',content=dump(context))]
+                    dict(role='user',content=content)]
         # Exactly one schema correction; network/timeouts are never blindly retried.
         for attempt in range(2):
             usage = self.store.reserve(purpose, owner, character, 1, self.settings)

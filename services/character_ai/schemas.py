@@ -3,6 +3,8 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 import re, hashlib
 
+CONTROL_TEXT = re.compile(r'["\'](?:speech|dialogue|performance|beat_id|expression_intent|action_intent|vocal_events)["\']\s*:')
+
 class Strict(BaseModel):
     model_config = ConfigDict(extra='forbid')
 
@@ -29,6 +31,16 @@ class Speech(Strict):
 class Dialogue(Strict):
     text: str = Field(min_length=1,max_length=220)
     speech: Speech = Field(default_factory=Speech)
+
+    @field_validator('text')
+    @classmethod
+    def no_embedded_control_fields(cls,value):
+        # Syntactically valid JSON can still hide a broken JSON fragment inside
+        # its speech string. Reject via the existing single schema correction;
+        # never display/read implementation fields as character dialogue.
+        if CONTROL_TEXT.search(value):
+            raise ValueError('dialogue.text contains control JSON; put speech/performance beside dialogue, never inside its text')
+        return value
 
 class Performance(Strict):
     expression_intent: str = Field(default='neutral',max_length=40)

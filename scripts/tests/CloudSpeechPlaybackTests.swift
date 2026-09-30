@@ -18,7 +18,7 @@ import CryptoKit
             beats:[AIBeat(beatId:"speech",dialogue:AIDialogue(text:"Audio regression"),narrations:[],visuals:[]),
                    AIBeat(beatId:"vocal",narrations:[],visuals:[],vocalEvents:[AIVocalEvent(event:"sigh")])])
         func oldVoiceKey(_ beat:String)->String {
-            SHA256.hash(data:Data((scope+"|qwen-audio-3.1-designed-v1|1.0|"+script.messageId+"|"+beat).utf8))
+            SHA256.hash(data:Data((scope+"|qwen-audio-3.1-designed-v2|1.0|"+script.messageId+"|"+beat).utf8))
                 .map {String(format:"%02x",$0)}.joined()
         }
         var peak: Float = 0

@@ -15,9 +15,9 @@ import CryptoKit
         try? FileManager.default.createDirectory(at:self.directory,withIntermediateDirectories:true)
     }
     func key(scope:String,text:String,speed:Double) -> String {
-        // Both bundled characters received childlike-v2 voices together. Old
-        // clips age out normally; replay fetches the current server voice.
-        SHA256.hash(data:Data((scope+"|qwen-audio-3.1-designed-v2|"+String(speed)+"|"+text).utf8)).map { String(format:"%02x",$0) }.joined()
+        // Refresh pre-sanitizer audio too: old clips may have spoken stage
+        // directions. New playback uses the same voice and clean spoken text.
+        SHA256.hash(data:Data((scope+"|qwen-audio-3.1-designed-v2-spoken-v2|"+String(speed)+"|"+text).utf8)).map { String(format:"%02x",$0) }.joined()
     }
     func data(_ key:String) -> Data? {
         let url = directory.appendingPathComponent(key+".wav")

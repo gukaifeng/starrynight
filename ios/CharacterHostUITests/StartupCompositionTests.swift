@@ -1,6 +1,25 @@
 import XCTest
 
 final class StartupCompositionTests:XCTestCase {
+    @MainActor func testNewCharacterUsesTheSameCoverAsInitialLoading() {
+        continueAfterFailure = false
+        let app=XCUIApplication()
+        app.launchArguments=["--ui-testing","--companion-testing","--auth-testing","--shell-discover","--test-ready-delay=7"]
+        app.launch()
+        let character=app.buttons["discover-open-anime-mamehinata"]
+        XCTAssertTrue(character.waitForExistence(timeout:12));character.tap()
+        XCTAssertTrue(app.buttons["profileChatButton"].waitForExistence(timeout:8));app.buttons["profileChatButton"].tap()
+        XCTAssertTrue(app.otherElements["conversationPreparing"].waitForExistence(timeout:5))
+        XCTAssertFalse(app.descendants(matching:.any).matching(identifier:"characterArrival").firstMatch.exists)
+        XCTAssertTrue(app.staticTexts["豆日向正在来到你身边"].exists)
+        XCTAssertTrue(app.buttons["tab-messages"].isHittable)
+        capture("06-switched-character-cover")
+        waitForConversation(app)
+        XCTAssertEqual(app.characterRuntime["modelId"] as? String,"anime-mamehinata")
+        XCTAssertEqual(app.characterRuntime["framingMotionActive"] as? Bool,false)
+        capture("07-switched-character-ready")
+        app.terminate()
+    }
     @MainActor func testNativeHomeAppearsBeforeCharacterAndKeepsFinalFraming() {
         let app = launch(delay:10)
         assertNativeHome(app)
