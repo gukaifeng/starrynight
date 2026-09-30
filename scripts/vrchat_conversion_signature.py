@@ -3,7 +3,7 @@ import hashlib
 from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[1]
-TOOLS=('vrchat_conversion_signature.py','vrchat_portable_convert.py','vrchat_controls.py','vrchat_physics.py','prepare_liltoon.py',
+TOOLS=('vrchat_conversion_signature.py','vrchat_portable_convert.py','vrchat_controls.py','vrchat_host_context.py','vrchat_material_variants.py','vrchat_physics.py','prepare_liltoon.py',
        'audit_vrchat_archives.py','vrchat_materials.py','prepare_anime_characters.py',
        'vrchat/VrcSourceInspector.cs','vrchat/VrcPortableGeometry.cs','vrchat/requirements.txt')
 
@@ -12,6 +12,11 @@ def digest(path):
     with path.open('rb') as stream:
         for block in iter(lambda:stream.read(1024*1024),b''):result.update(block)
     return result.hexdigest()
+
+def inspection_signature(root=ROOT):
+    # Both the geometry sampler and source identity reader affect the snapshot.
+    return hashlib.sha256(''.join(digest(root/'scripts/vrchat'/name) for name in
+        ('VrcPortableGeometry.cs','VrcSourceInspector.cs')).encode()).hexdigest()
 
 def signature(stage,role,root=ROOT):
     snapshot=stage/'Inspection/Portable'/role

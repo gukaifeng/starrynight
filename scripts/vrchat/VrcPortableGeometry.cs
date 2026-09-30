@@ -127,10 +127,16 @@ public static class VrcPortableGeometry
         if(animator && animator.avatar && animator.avatar.isHuman)
             foreach(HumanBodyBones bone in Enum.GetValues(typeof(HumanBodyBones)))
                 if(bone!=HumanBodyBones.LastBone) {var t=animator.GetBoneTransform(bone);if(t)humanPaths.Add(PathOf(t,root));}
-        foreach(string file in Directory.GetFiles("Assets","*.anim",SearchOption.AllDirectories).OrderBy(x=>x,StringComparer.Ordinal))
+        var clipPaths=Directory.GetFiles("Assets","*",SearchOption.AllDirectories)
+            .Where(p=>new[]{".anim",".fbx",".asset",".controller"}.Contains(System.IO.Path.GetExtension(p).ToLowerInvariant()))
+            .OrderBy(x=>x,StringComparer.Ordinal);
+        foreach(string file in clipPaths)
+        foreach(var clip in AssetDatabase.LoadAllAssetsAtPath(file.Replace('\\','/')).OfType<AnimationClip>()
+            .Where(c=>!c.name.StartsWith("__preview__",StringComparison.Ordinal)))
         {
-            string path=file.Replace('\\','/');var clip=AssetDatabase.LoadAssetAtPath<AnimationClip>(path);
-            if(!clip)throw new Exception("SOURCE_CLIP_MISSING: "+path);
+            string path=file.Replace('\\','/');
+            if(!AssetDatabase.TryGetGUIDAndLocalFileIdentifier(clip,out string clipGuid,out long clipFileID))throw new Exception("SOURCE_CLIP_ID_MISSING: "+path);
+            string motionID=path.EndsWith(".anim",StringComparison.OrdinalIgnoreCase)?clipGuid:clipGuid+":"+clipFileID;
             var bindings=AnimationUtility.GetCurveBindings(clip);
             var muscles=new System.Collections.Generic.HashSet<string>(HumanTrait.MuscleName);
             var humanoidProperties=bindings.Where(b=>b.type==typeof(Animator) &&
@@ -160,7 +166,7 @@ public static class VrcPortableGeometry
                 keys=AnimationUtility.GetEditorCurve(clip,b).keys.Select(k=>new Key {time=k.time,value=k.value,inTangent=k.inTangent,outTangent=k.outTangent,inWeight=k.inWeight,outWeight=k.outWeight,weightedMode=(int)k.weightedMode}).ToArray()}).ToArray();
             var objects=AnimationUtility.GetObjectReferenceCurveBindings(clip).Select(b=>new ObjectCurve {path=b.path,component=b.type.FullName,property=b.propertyName,
                 keys=AnimationUtility.GetObjectReferenceCurve(clip,b).Select(k=>{string guid="";long id=0;if(k.value)AssetDatabase.TryGetGUIDAndLocalFileIdentifier(k.value,out guid,out id);return new ObjectKey {time=k.time,guid=guid,fileID=id,path=k.value?AssetDatabase.GetAssetPath(k.value):""};}).ToArray()}).ToArray();
-            reports.Add(new Motion {path=path,name=clip.name,guid=AssetDatabase.AssetPathToGUID(path),humanoid=humanoid,humanoidProperties=humanoidProperties,loop=AnimationUtility.GetAnimationClipSettings(clip).loopTime,duration=clip.length,times=times,tracks=tracks,curves=curves,objects=objects,omittedEventCount=AnimationUtility.GetAnimationEvents(clip).Length});
+            reports.Add(new Motion {path=path,name=clip.name,guid=motionID,humanoid=humanoid,humanoidProperties=humanoidProperties,loop=AnimationUtility.GetAnimationClipSettings(clip).loopTime,duration=clip.length,times=times,tracks=tracks,curves=curves,objects=objects,omittedEventCount=AnimationUtility.GetAnimationEvents(clip).Length});
         }
         File.WriteAllText(output+"/motions.json",JsonUtility.ToJson(new Motions {role=spec.role,motions=reports.ToArray()})+"\n");
         // A source that delegates standing to VRChat's platform controller has no

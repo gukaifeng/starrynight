@@ -52,6 +52,17 @@ PROFILES.update({
     voice_delivery='清亮亲切，吐字轻巧，语调灵动但不夸张。',preview_text='我是卡琳！明信片还差最后一笔，想听听你的主意。'),
 })
 
+def _load_authored_library():
+    import json
+    from pathlib import Path
+    source=json.loads(Path(__file__).with_name('character_profiles.json').read_text())
+    if source['schemaVersion']!=1:raise ValueError('UNKNOWN_AUTHORED_LIBRARY_VERSION')
+    for identity,profile in source['characters'].items():
+        if identity in PROFILES:raise ValueError('DUPLICATE_AUTHORED_CHARACTER')
+        PROFILES[identity]=dict(COMMON,**profile)
+
+_load_authored_library()
+
 def reviewed_assets(character):
     if character not in PROFILES: raise ValueError('UNKNOWN_CHARACTER')
     if character not in ('anime-kipfel','anime-mamehinata'):return [] # portable packages carry reviewed option.ai hints

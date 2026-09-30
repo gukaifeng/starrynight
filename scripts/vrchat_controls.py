@@ -14,7 +14,7 @@ import yaml
 from audit_vrchat_archives import unity_blocks
 
 
-class UnityLoader(yaml.SafeLoader):
+class UnityLoader(getattr(yaml,'CSafeLoader',yaml.SafeLoader)):
     # Unity stores booleans as 0/1. YAML 1.1's ON/OFF/yes coercion corrupts
     # perfectly valid state and parameter names in many author controllers.
     yaml_implicit_resolvers = {
@@ -90,8 +90,8 @@ class BlendReader:
     The host receives the same portable graph, not extra Unity asset files.
     Source-qualified IDs prevent two .asset files' 20600000 roots colliding.
     """
-    def __init__(self,controller,read,graph):
-        self.controller=controller;self.read=read;self.graph=graph;self.added=set()
+    def __init__(self,controller,read,graph,motion_id=None):
+        self.controller=controller;self.read=read;self.graph=graph;self.added=set();self.motion_id=motion_id
 
     def motion(self,ref,owner=None):
         ref=ref or {};owner=owner or self.controller
@@ -100,6 +100,7 @@ class BlendReader:
         if data.get('classID')==206:
             identity=fileid if source==self.controller else source+':'+fileid
             self.add(data,identity,source);return identity
+        if self.motion_id and fileid!='0':return self.motion_id(source,fileid)
         return ref.get('guid') or (fileid if source==self.controller else source if fileid!='0' else '0')
 
     def add(self,d,identity,owner):
@@ -115,6 +116,21 @@ class BlendReader:
                 x=c.get('m_Position',{}).get('x',0),y=c.get('m_Position',{}).get('y',0),speed=float(c.get('m_TimeScale',1)),
                 cycle=float(c.get('m_CycleOffset',0)),mirror=bool(c.get('m_Mirror',0)),parameter=c.get('m_DirectBlendParameter',''))
                 for c in d.get('m_Childs',[])]))
+
+
+def referenced_motion_ids(controls):
+    """Leaf assets reachable from live states, retaining unknown dependencies."""
+    result=set()
+    for graph in controls['controllers']:
+        trees={b['id']:b for b in graph['blends']}
+        pending=[s['motion'] for s in graph['states']];seen=set()
+        while pending:
+            identity=pending.pop()
+            if not identity or identity=='0' or identity in seen:continue
+            seen.add(identity)
+            if identity in trees:pending.extend(c['motion'] for c in trees[identity]['children'])
+            else:result.add(identity)
+    return result
 
 
 def build(stage,geometry):
@@ -165,7 +181,7 @@ def build(stage,geometry):
             notes.append(dict(kind='missing-menu',guid=guid));return
         for d in read(guid).values():
             for i,c in enumerate(d.get('controls',[])):
-                label=c.get('name') or 'Control '+str(i+1)
+                label=str(c.get('name') or 'Control '+str(i+1))
                 kind={101:1,102:2,103:3,201:4,202:5,203:6}.get(int(c.get('type',0)),int(c.get('type',0)))
                 if kind==3:
                     name=c.get('parameter',{}).get('name','')
@@ -187,6 +203,11 @@ def build(stage,geometry):
     menu(desc.get('expressionsMenu',{}).get('guid'),[],set())
     used_masks=set()
     def behavior(d):
+        if 'disableLocomotion' in d or 'enterPoseSpace' in d:
+            notes.append(dict(kind='host-stationary-tracking-context',script=d.get('m_Script',{}).get('guid'),
+                source={k:v for k,v in d.items() if not k.startswith('m_') and k!='classID'},
+                detail='The conversation host has neither world locomotion nor tracked-head pose space; original body animation remains evaluated.'))
+            return None
         if 'parameters' in d and isinstance(d['parameters'],list) and any('type' in p and 'name' in p for p in d['parameters']):
             return dict(kind='parameter-driver',parameters=[dict(name=p.get('name',''),operation=int(p.get('type',0)),value=float(p.get('value',0)),minimum=float(p.get('valueMin',0)),maximum=float(p.get('valueMax',1)),chance=float(p.get('chance',1)),source=p.get('source',''),convertRange=bool(p.get('convertRange',0)),sourceMin=float(p.get('sourceMin',0)),sourceMax=float(p.get('sourceMax',1)),destMin=float(p.get('destMin',0)),destMax=float(p.get('destMax',1))) for p in d['parameters']],localOnly=bool(d.get('localOnly',0)))
         if 'goalWeight' in d and 'playable' not in d and 'layer' in d:
@@ -204,7 +225,8 @@ def build(stage,geometry):
         if not controller:
             notes.append(dict(kind='missing-controller',guid=guid));continue
         graph=dict(id=guid,playable=int(layer['type']),parameters=[],layers=[],machines=[],states=[],transitions=[],blends=[])
-        blend_reader=BlendReader(guid,lambda g:read(g) if g in assets and assets[g]['extension'] in ('.controller','.asset') else {},graph)
+        blend_reader=BlendReader(guid,lambda g:read(g) if g in assets and assets[g]['extension'] in ('.controller','.asset') else {},graph,
+            lambda source,fileid:source+':'+fileid if assets.get(source,{}).get('extension') in ('.fbx','.asset','.controller') else source)
         for p in controller.get('m_AnimatorParameters',[]):
             name=p['m_Name'];kind={1:'float',3:'int',4:'bool',9:'trigger'}.get(p['m_Type'],'float')
             initial=p.get({'float':'m_DefaultFloat','int':'m_DefaultInt','bool':'m_DefaultBool','trigger':'m_DefaultBool'}[kind],0)
@@ -243,4 +265,8 @@ def build(stage,geometry):
         if name in params:
             for value,label in enumerate(('默认','握拳','张开','指向','比心手势','摇滚','手枪','赞')):
                 out['controls'].append(dict(id='gesture-'+side.lower()+'-'+str(value),label=('左手' if side=='Left' else '右手')+' · '+label,group='原作手势',parameter=name,kind='toggle',value=value,initial=0,minimum=0,maximum=7))
-    return out,desc
+    from vrchat_host_context import specialize
+    motion_file=stage/'Inspection/Portable'/geometry['role']/'motions.json'
+    motions=json.loads(motion_file.read_text()).get('motions',[]) if motion_file.exists() else []
+    animated={c['property'] for m in motions for c in m.get('curves',[]) if c['component']=='UnityEngine.Animator'}
+    return specialize(out,animated),desc

@@ -38,12 +38,26 @@ class PhysicsResolver:
         self.nodes = {n['path']: n for n in inspection['nodes']}
         self.ids = {(n['sourceGUID'], n['sourceID']): n['path'] for n in inspection['nodes']}
         self.fbx_ids = {(n['sourceGUID'], n['sourceID']): n['path'] for n in fbx_inspection['nodes']}
+        self.source_transforms = {}; self.source_objects = {}
+        for node in inspection['nodes']:
+            for source in node.get('sources', []):
+                self.source_transforms.setdefault((source['guid'],source['transformID']),set()).add(node['path'])
+                if source.get('gameObjectID'):
+                    self.source_objects.setdefault((source['guid'],source['gameObjectID']),set()).add(node['path'])
         self.occurrences = []
         self.unresolved = []
         self.collect(self.main, '', [])
 
+    def source_path(self, guid, file_id, prefix, objects=False):
+        table=self.source_objects if objects else self.source_transforms
+        paths=table.get((guid,file_id),set())
+        matches={p for p in paths if not prefix or p==prefix or p.startswith(prefix+'/')}
+        return next(iter(matches)) if len(matches)==1 else None
+
     def own_transform_path(self, occurrence, file_id, seen=None):
         guid, prefix, asset = occurrence['guid'], occurrence['prefix'], occurrence['asset']
+        resolved=self.source_path(guid,file_id,prefix)
+        if resolved is not None:return resolved
         if (guid, file_id) in self.ids: return self.ids[(guid, file_id)]
         if (guid, file_id) in self.fbx_ids: return self.fbx_ids[(guid, file_id)]
         seen = set() if seen is None else seen
@@ -69,16 +83,33 @@ class PhysicsResolver:
 
     def component_owner_path(self, occurrence, component):
         go_id = component['gameObject'].get('fileID')
+        resolved=self.source_path(occurrence['guid'],go_id,occurrence['prefix'],objects=True)
+        if resolved is not None:return resolved
         transforms = [t for t in occurrence['asset']['prefab']['transforms'] if t['gameObject'].get('fileID') == go_id]
         if len(transforms) == 1: return self.own_transform_path(occurrence, transforms[0]['fileID'])
-        # A component added to an FBX-backed prefab root may have only its
-        # GameObject stripped record; the instance root path was resolved by
-        # the parent export, not by guessing the source name.
+        # A stripped GameObject can be any bone, not just the avatar root.
+        # Match the exact source identity from Unity's full prefab ancestry.
         stripped = [s for s in occurrence['asset']['prefab']['strippedSourceObjects'] if s['fileID'] == go_id and s['classID'] == 1]
-        if len(stripped) == 1 and occurrence['prefix'] in self.nodes: return occurrence['prefix']
+        if len(stripped) == 1:
+            ref=stripped[0]['source']
+            return self.source_path(ref.get('guid'),ref.get('fileID'),occurrence['prefix'],objects=True)
         return None
 
     def nested_prefix(self, occurrence, instance, child):
+        if not instance.get('transformParent',{}).get('fileID'):
+            prefix=occurrence['prefix']
+            if any(guid==child['guid'] and prefix in paths for (guid,_),paths in self.source_transforms.items()):
+                return prefix
+        # A prefab variant inherits its source root at the same location.
+        # Resolve the child's serialized root identity before name/path fallback.
+        roots=[t for t in child['prefab']['transforms'] if not t['parent'].get('fileID')]
+        for root in roots:
+            resolved=self.source_path(child['guid'],root['fileID'],occurrence['prefix'])
+            if resolved is not None:return resolved
+        for inner in child['prefab']['strippedSourceObjects']:
+            if inner['classID']!=4:continue
+            resolved=self.source_path(child['guid'],inner['fileID'],occurrence['prefix'])
+            if resolved==occurrence['prefix']:return resolved
         candidates = []
         for stripped in occurrence['asset']['prefab']['strippedSourceObjects']:
             if stripped['classID'] != 4 or stripped['prefabInstance'].get('fileID') != instance['fileID']: continue
@@ -123,6 +154,8 @@ class PhysicsResolver:
         file_id = ref.get('fileID', 0)
         if not file_id: return None
         guid = ref.get('guid', occurrence['guid'])
+        resolved=self.source_path(guid,file_id,occurrence['prefix'])
+        if resolved is not None:return resolved
         if (guid, file_id) in self.ids: return self.ids[(guid, file_id)]
         if (guid, file_id) in self.fbx_ids: return self.fbx_ids[(guid, file_id)]
         context = occurrence if guid == occurrence['guid'] else next((o for o in self.occurrences if o['guid'] == guid), None)

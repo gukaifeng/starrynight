@@ -11,7 +11,9 @@ INTRODUCTIONS = {
 }
 
 def public_profile(character):
-    p=PROFILES[character]; invitation,story=INTRODUCTIONS[character]
+    p=PROFILES[character]
+    if character in INTRODUCTIONS:invitation,story=INTRODUCTIONS[character]
+    else:invitation,story=p['presentation']['invitation'],p['presentation']['story']
     return dict(id=character,name=p['name'],invitation=invitation,story=story,
                 occupation=p['occupation'],world=p['world'],traits=p['personality']['traits'],
                 likes=p['personality']['likes'],tone=p['speaking_style']['tone'])

@@ -56,6 +56,104 @@
       "density": 0.7,
       "backgroundSHA256": "8ca71d3cd58203d1a1cf500ba51158166b8a520511280581b25012600ea0dc4e",
       "imageModel": "qwen-image-3.0-pro"
+    },
+    {
+      "id": "anime-torao",
+      "title": "灯下的齿轮",
+      "background": "Atmospheres/anime-torao/background",
+      "effect": "stardust",
+      "palette": [
+        "#7DABBA",
+        "#F6CB91",
+        "#55647F"
+      ],
+      "density": 0.62,
+      "backgroundSHA256": "a4a56c35edbf83d23d666378921ac841f76f5f4f65700b0616c5a9869ebc09cb",
+      "imageModel": "qwen-image-3.0-pro"
+    },
+    {
+      "id": "anime-ichigo",
+      "title": "石桥边的甜香",
+      "background": "Atmospheres/anime-ichigo/background",
+      "effect": "petal",
+      "palette": [
+        "#F5ADAD",
+        "#F8D6AC",
+        "#8EA895"
+      ],
+      "density": 0.65,
+      "backgroundSHA256": "1669725c49d2f863279c545279a329f2f997939308031b8978aa965b53585c57",
+      "imageModel": "qwen-image-3.0-pro"
+    },
+    {
+      "id": "anime-mafuyu",
+      "title": "雪窗暖茶",
+      "background": "Atmospheres/anime-mafuyu/background",
+      "effect": "sunbeam",
+      "palette": [
+        "#BDD8E0",
+        "#E9D8BF",
+        "#A9A7B4"
+      ],
+      "density": 0.45,
+      "backgroundSHA256": "a21ff3186bc1eed8a2e211417d0a7d1f44b1a3aa085e02690940e37c889b115e",
+      "imageModel": "qwen-image-3.0-pro"
+    },
+    {
+      "id": "anime-lime",
+      "title": "新叶微光",
+      "background": "Atmospheres/anime-lime/background",
+      "effect": "sunbeam",
+      "palette": [
+        "#BCD5C7",
+        "#A6D7E3",
+        "#F0E2B7"
+      ],
+      "density": 0.7,
+      "backgroundSHA256": "1c853da8433e9bae9887b80983756fab38df17fa7b788c892467e6fb9c80d88a",
+      "imageModel": "qwen-image-3.0-pro"
+    },
+    {
+      "id": "anime-nozomi",
+      "title": "星图里的晚风",
+      "background": "Atmospheres/anime-nozomi/background",
+      "effect": "stardust",
+      "palette": [
+        "#AAC9EA",
+        "#D9D0F2",
+        "#FFE8BC"
+      ],
+      "density": 0.65,
+      "backgroundSHA256": "44b46f37dc7a2a6f0b17beb572805e99f578ce467eafb5dbd7e3cb778e312c67",
+      "imageModel": "qwen-image-3.0-pro"
+    },
+    {
+      "id": "anime-siska",
+      "title": "纸页收藏室",
+      "background": "Atmospheres/anime-siska/background",
+      "effect": "firefly",
+      "palette": [
+        "#B8AFCB",
+        "#A7C0C9",
+        "#F2D7AF"
+      ],
+      "density": 0.5,
+      "backgroundSHA256": "2ade2d7b199a700a4c816320aecb416ee0dfc27602a0a47f8e5e8f521ee293d3",
+      "imageModel": "qwen-image-3.0-pro"
+    },
+    {
+      "id": "anime-plum",
+      "title": "梅巷茶香",
+      "background": "Atmospheres/anime-plum/background",
+      "effect": "petal",
+      "palette": [
+        "#D79FCA",
+        "#DCD4F1",
+        "#F4D8B7"
+      ],
+      "density": 0.6,
+      "backgroundSHA256": "97104367710703cf09195a5bb931e821ff25a7fb77f060b640dcf64a3c2d2486",
+      "imageModel": "qwen-image-3.0-pro"
     }
   ]
 }

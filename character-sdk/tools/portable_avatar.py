@@ -75,10 +75,10 @@ def validate(root, manifest, read, path, inspect):
     masks=index(data['masks'],'id',64,'masks')
     for mask in masks.values():
         need(bool(re.fullmatch('[a-fA-F0-9]{104}',mask['body'])),'invalid humanoid mask bitset')
-    # A known SDK hand-neutral proxy may use the source prefab neutral fingers.
-    # The converter records this explicit adaptation; other missing clips fail.
+    # SDK neutral hand/standing proxies use the declared host rest baseline.
+    # Movement/emote clips are never replaced by an empty or standing clip.
     fallbacks=set(data.get('baselineFallbackMotions',[]))
-    need(fallbacks<={'14980fc5fe40191418954549174fe63e'},'unreviewed motion fallback')
+    need(fallbacks<={'14980fc5fe40191418954549174fe63e','91e5518865a04934b82b8aba11398609','61a99b5de5e4b6d4c8ed51d9dfd9ddc7'},'unreviewed motion fallback')
     for graph in items(data['controllers'],8,'controllers'):
         states=index(graph['states'],'id',4096,'states');machines=index(graph['machines'],'id',512,'machines')
         blends=index(graph['blends'],'id',512,'blend trees');transitions=index(graph['transitions'],'id',8192,'transitions')

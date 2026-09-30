@@ -59,7 +59,10 @@ def generate_asset_credits(root: Path) -> dict[str, str]:
     package_notices.append((resources / 'LilToonCredits.txt').read_text(encoding='utf-8'))
     if (resources / 'MusicCredits.txt').exists():
         package_notices.append('角色配乐来源与处理说明\n'+(resources / 'MusicCredits.txt').read_text(encoding='utf-8'))
-    (resources / 'CharacterPackageCredits.txt').write_text('\n\n'.join(package_notices) + '\n', encoding='utf-8')
+    # Imported notices retain their text; trailing Markdown layout whitespace is
+    # immaterial in this plain-text view and should not pollute source diffs.
+    plain_notices='\n'.join(line.rstrip() for line in '\n\n'.join(package_notices).splitlines())
+    (resources / 'CharacterPackageCredits.txt').write_text(plain_notices + '\n', encoding='utf-8')
     (resources / 'CharacterSourceCredits.json').write_text(json.dumps(credits, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
     return credits
 

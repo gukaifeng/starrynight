@@ -11,7 +11,7 @@ from pathlib import Path
 import re
 import zipfile
 from vrchat_controls import build
-from package_vrchat_library import control_dependencies,missing_motion_dependencies,NEUTRAL_HAND_PROXY,require_selected_inspection
+from package_vrchat_library import control_dependencies,missing_motion_dependencies,NEUTRAL_BASELINE_PROXIES,require_selected_inspection
 from prepare_vrc_reference_data import SHA256 as SDK_SHA256
 from vrchat_conversion_signature import digest
 
@@ -56,7 +56,7 @@ def main():
             result.update(controls=len(controls['controls']),externalBlends=sum(':' in b['id'] for g in controls['controllers'] for b in g['blends']),
                 sourceRequirements=controls['limitations'])
             motions=json.loads((snapshot/'motions.json').read_text())
-            missing=missing_motion_dependencies(controls,motions)-{NEUTRAL_HAND_PROXY}
+            missing=missing_motion_dependencies(controls,motions)-NEUTRAL_BASELINE_PROXIES
             result['unavailableMotions']=dict(officialSDK=[dict(guid=g,path=sdk[g]) for g in sorted(missing) if g in sdk],
                 unresolved=[g for g in sorted(missing) if g not in sdk],sdkIndexAvailable=bool(sdk))
             control_dependencies(controls,motions)

@@ -9,13 +9,28 @@ import unittest
 import zipfile
 
 sys.path.insert(0,str(pathlib.Path(__file__).resolve().parents[1]))
-from vrchat_controls import documents,prune_graph,BlendReader,prefab_build_requirements
-from package_vrchat_library import control_dependencies,require_selected_inspection,ROOT
-from vrchat_conversion_signature import require_reusable
+from vrchat_controls import documents,prune_graph,BlendReader,prefab_build_requirements,referenced_motion_ids
+from package_vrchat_library import control_dependencies,require_selected_inspection,blink_binding_name,ROOT
+from vrchat_conversion_signature import require_reusable,inspection_signature
 from preflight_vrchat_library import official_reference_paths
 
 
 class UnityDataTests(unittest.TestCase):
+    def test_blink_uses_existing_morph_without_duplicating_author_blink(self):
+        controls=dict(controllers=[dict(layers=[dict(name='Face')])])
+        descriptor=dict(customEyeLookSettings=dict(eyelidsBlendshapes='ffffffff0000000000000000'))
+        self.assertEqual(blink_binding_name(descriptor,['vrc.Blink'],controls),'vrc.Blink')
+        self.assertIsNone(blink_binding_name(descriptor,['eye_close'],controls))
+        controls['controllers'][0]['layers'].append(dict(name='Blink'))
+        self.assertIsNone(blink_binding_name(descriptor,['vrc.Blink'],controls))
+
+    def test_material_dependencies_follow_reachable_nested_motions_only(self):
+        graph=dict(states=[dict(motion='tree'),dict(motion='unknown')],blends=[
+            dict(id='tree',children=[dict(motion='child'),dict(motion='a')]),
+            dict(id='child',children=[dict(motion='b:42'),dict(motion='tree')]),
+            dict(id='orphan',children=[dict(motion='unused-material-edition')])])
+        self.assertEqual(referenced_motion_ids(dict(controllers=[graph])),{'a','b:42','unknown'})
+
     def test_official_reference_audit_is_hash_pinned_and_does_not_extract_assets(self):
         with tempfile.TemporaryDirectory() as folder:
             root=pathlib.Path(folder);archive=root/'sdk.zip';identity='1234567890abcdef1234567890abcdef'
@@ -29,7 +44,7 @@ class UnityDataTests(unittest.TestCase):
 
     def test_changed_prefab_or_source_cannot_reuse_an_old_inspection(self):
         row=dict(sourceSHA256='archive-one',prefab='Complete.prefab')
-        stamp=dict(row,toolSHA256=hashlib.sha256((ROOT/'scripts/vrchat/VrcPortableGeometry.cs').read_bytes()).hexdigest())
+        stamp=dict(row,toolSHA256=inspection_signature())
         with tempfile.TemporaryDirectory() as folder:
             root=pathlib.Path(folder)
             (root/'geometry.json').write_text(json.dumps(dict(prefab=row['prefab'])))
@@ -74,6 +89,14 @@ class UnityDataTests(unittest.TestCase):
         graph={'blends':[]};reader=BlendReader('controller',lambda g:data if g=='a' else {},graph)
         self.assertEqual(reader.motion({'guid':'a','fileID':20600000}),'a:20600000')
         self.assertEqual(graph['blends'][0]['children'][0]['motion'],'a:20600000')
+
+    def test_embedded_clips_preserve_file_id_in_shared_fbx(self):
+        reader=BlendReader('controller',lambda g:{},{'blends':[]},
+            lambda guid,fileid:guid+':'+fileid if guid=='fbx' else guid)
+        self.assertEqual(reader.motion({'guid':'fbx','fileID':7400000}),'fbx:7400000')
+        self.assertEqual(reader.motion({'guid':'fbx','fileID':7400001}),'fbx:7400001')
+        self.assertEqual(reader.motion({'guid':'anim','fileID':7400000}),'anim')
+        self.assertEqual(reader.motion({'fileID':0}),'0')
 
     def test_names_and_packed_hex_are_not_yaml_booleans_or_octal(self):
         text='%YAML 1.1\n%TAG !u! tag:unity3d.com,2011:\n--- !u!319 &31900000\nAvatarMask:\n  m_Name: ON\n  m_Mask: 0000000001000000\n  eyelidsBlendshapes: 00000000ffffffffffffffff\n'

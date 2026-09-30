@@ -32,6 +32,93 @@
       ],
       "deviceFrameRate": "not-measured",
       "report": "docs/verification/vrchat-batch-import/README.md"
+    },
+    {
+      "id": "vrchat-20261001-02",
+      "status": "installed-awaiting-unlock",
+      "characters": [
+        "anime-torao",
+        "anime-ichigo",
+        "anime-lime",
+        "anime-mafuyu",
+        "anime-nozomi",
+        "anime-siska"
+      ],
+      "retainedCharacters": [
+        "anime-kipfel",
+        "anime-mamehinata",
+        "anime-chiffon",
+        "anime-karin"
+      ],
+      "report": "docs/verification/vrchat-batch-import/batch-02.md",
+      "appVersion": "0.68.0",
+      "buildNumber": 94,
+      "deviceInstall": "passed",
+      "deviceLaunch": "locked",
+      "deviceFrameRate": "not-measured",
+      "devices": [
+        {
+          "device": "iPhone 17",
+          "install": "passed",
+          "launch": "locked"
+        },
+        {
+          "device": "iPad Pro 11-inch M4",
+          "install": "passed",
+          "launch": "locked"
+        }
+      ],
+      "simulatorChecks": [
+        "Mixed original four character eviction/reload: passed",
+        "Six new characters: profile, dialogue, scoped music, drag, expression, reset: passed",
+        "iPad Pro 11 M4: six new characters media/controls/gestures passed"
+      ]
+    },
+    {
+      "id": "vrchat-20261001-03",
+      "status": "delivered",
+      "characters": [
+        "anime-plum",
+        "anime-mafuyu"
+      ],
+      "retainedCharacters": [
+        "anime-kipfel",
+        "anime-mamehinata",
+        "anime-chiffon",
+        "anime-karin",
+        "anime-torao",
+        "anime-ichigo",
+        "anime-lime",
+        "anime-nozomi",
+        "anime-siska"
+      ],
+      "report": "docs/verification/vrchat-batch-import/batch-03.md",
+      "upgradedCharacters": [
+        "anime-mafuyu"
+      ],
+      "appVersion": "0.68.1",
+      "buildNumber": 95,
+      "deviceInstall": "passed",
+      "deviceLaunch": "passed",
+      "deviceFrameRate": "not-measured",
+      "devices": [
+        {
+          "device": "iPhone 17",
+          "install": "passed",
+          "launch": "passed"
+        },
+        {
+          "device": "iPad Pro 11-inch M4",
+          "install": "passed",
+          "launch": "locked"
+        }
+      ],
+      "simulatorChecks": [
+        "iPhone 17: original four characters mixed eviction/reload passed",
+        "iPhone 17: seven new characters profile/dialogue/music/rotation/expression/reset passed",
+        "iPhone 17: Mafuyu and Plum autonomous blink passed"
+      ],
+      "deliveredAt": "2026-10-01T03:43:49+08:00"
     }
   ]
 }

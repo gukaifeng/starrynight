@@ -51,11 +51,12 @@ unity run "$PWD/unity/CharacterRuntime" --timeout 900 -- \
 
 它复制私有包、原封面、更新名册与集合；替换旧生成包前移到 `.local/vrchat-batch/previous/`，不删除源文件。它**不会自动完成** AI 人设、音乐、音色、后端目录种子或安装。新来源缺少这些产品数据时按当前已授权范围补齐，不能拿另一角色声音/选项充数。
 
-- 每位新角色在 `profiles.py` 注册经审核的人设与公开资料；schemas 从注册表接受角色 ID，不恢复只允许两位角色的 Literal。
+- 每位新角色在 `services/character_ai/character_profiles.json` 注册人设、公开介绍、音色说明；`profiles.py` 合并公共规则。worker 安装器必须同时复制 JSON，不能只复制 Python 文件。schemas 从注册表接受角色 ID，不恢复固定数量的 Literal。
 - AI 自动表现仅开放核对过的原作表情/手势。不要把衣服、体型、任意 shader 开关自动暴露给 LLM。
 - 表情可能绑定 `GestureLeft/Right` 或任意作者参数。核对 FX 实际动画再设置 `ai.kind=expression`，不能用菜单组名判断表情，也不能假设不同模型同一手势值的表情相同。共享枚举参数复位后只重放原选中项，不能遍历未选中项逐个写 0。
-- 在 soundscape 生成器登记独立曲目，`--only ROLE` 增量生成，不改旧曲目。集合与 CAF 哈希通过 `check_character_collections.py`。
-- 原图封面记录 `source=author-supplied` 与 SHA。`CharacterCoverBuilder.Export` 原样保留来源图，只有非来源封面走模型渲染；不调用 AI 重绘来冒充作者图。
+- 在 `media-recipes.json` 登记角色场景、配色和特效，`generate_character_media.py --only anime-ROLE --generate` 生成三张图（真实计费）。只向生图提示传自然视觉描述，完整 JSON 人设会诱发图中渲染英文表格。每张都查看，成功回执保留，不无理由重跑。
+- `prepare_character_media.py` 安装三类图并记录 `bailian-generated`/哈希。保留 `source.*` 原图用作溯源；不要把 AI 重绘冒充作者图。
+- Fun-Music 尚未开放时，沿用用户授权的 CC0 临时曲目，在 `music-sources.json` 登记来源。`prepare_character_music.py --only anime-ROLE` 增量编码；ZIP 音乐包用精确 `archiveMember`，不展开无关成员。激活后可 `--apply-existing` 绑定已验证音轨，不重复转码。集合与 CAF 哈希通过 `check_character_collections.py`。
 - `provision_character_voices.py --characters ROLE... --allow-paid` 是真实计费，单次最多三位，持久化 job 防止不明重试。遵守本会话已给预算；不要因自动测试而批量创建音色。
 - 真实 AI smoke 可 `--characters ... --skip-asr` 控制本批；常规 XCTest 使用禁用付费调用的测试参数。
 - 后端新增目录采用独立 migration，角色稳定 ID 不换；不能清空账号/对话表来刷新目录。
@@ -75,3 +76,8 @@ unity run "$PWD/unity/CharacterRuntime" --timeout 900 -- \
 7. 生成场景、Prefab、GLB、贴图、原图封面与原始采样保持私有；Git 只提交工具、约束、名册、来源哈希和文字证据。场景可从 `BuildIos.Setup` 恢复。
 8. BlendTree 可独立保存在 `.asset`，并有嵌套子资产。用 GUID + fileID 保留身份，不把外部树当作动画 GUID，也不让两个相同 fileID 的外部树互相覆盖；内联图 ID 保持兼容。
 9. 原包的 Modular Avatar Merge Animator 在构建时才合成控制器。解析器会记录 `unsupported-build-merge-animator`；缺少对应组装适配时不能以“菜单为零”通过，更不能运行来源脚本来消除 Missing Script。Ramune 的完整根正是此类来源。详细证据见 `docs/verification/vrchat-batch-import/preflight-02.md`。
+10. Material Variant 继承父纹理、数值、颜色，显式空纹理会清除父值；shader 仍以子材质自身为准。Shizuku 的 opaque 父 / cutout 子已用 Unity API 验证；不能因 GUID 不同拒绝所有材质继承。循环、缺父和未知 shader 仍报错。
+11. `.fbx`、`.asset`、`.controller` 可以包含 AnimationClip 子资产，按 `GUID:fileID` 采样，排除 Editor preview clip。Standalone `.anim` 保留旧 GUID。只打包活控制图可达 motion 和明确的 body baseline；旧版未使用动画不能拉入其他 shader 版本的材质。
+12. 同档案分包用 `additionalPackages`；跨档案仅用已审计 `dependencyAssets` 的精确 GUID + 内容哈希，并绑定 inspection stamp。例：Kumaly 引用的共享 `dummy.anim` 实际在用户的 Ichigo 档案中。找到一个空动画不能推广为任意缺 motion 的替代。
+13. 蒙皮只删除未被权重使用的骨索引并重映射，不能裁掉有权重骨骼。可移植 profile 的 primitive 总预算为 64，旧 profile 仍为 32。紧凑 JSON 只移除空白，不删帧或降低采样精度。
+14. 表情锁/表情组切换须在手势生效、释放的组合上下文检查。源站椅限定选项在普通对话可能无效果，应注明条件，不能把参数改变当成画面改变。控件复位、曲线支持范围、设备帧率是不同证据。

@@ -18,7 +18,7 @@ PREFERRED = {
     'nemesis': 'Assets/Nemesis/Nemesis_Full.prefab',
     'ramune': 'Assets/EMOLab Avatars/Ramune/Ramune.prefab',
     'shiratsume': 'Assets/HARUNOPUPU/Shiratsume/Prefab/Shiratsume_All.prefab',
-    'shizuku': 'Assets/kuromaru9/shizuku/Prefabs/shizuku.prefab',
+    'shizuku': 'Assets/kuromaru9/shizuku/Prefabs_lil/shizuku_lil.prefab',
     'nozomi': 'Assets/Nozomi/Nozomi_1.00.prefab',
     'lasyusha': 'Assets/KeenooSHOP/Lasyusha/Prefabs/Co1/Lasyusha_C1_Ver1.1.prefab',
 }
@@ -109,6 +109,12 @@ def build(index_path, output):
         key = role_key(folder)
         packages = report.get('inventory', {}).get('packages', [])
         candidates = [(i,a) for i,p in enumerate(packages) for a in avatar_prefabs(p)]
+        # The author's lilToon edition deliberately ships separately from the
+        # body it references. Inspect that union, never fabricate a new variant.
+        combined={'assets':[a for p in packages for a in p['assets']]}
+        if key=='shizuku':
+            reachable={a['guid'] for a in avatar_prefabs(combined)}
+            candidates=[(i,a) for i,p in enumerate(packages) for a in p['assets'] if a['guid'] in reachable]
         selected = next(((i,a) for i,a in candidates if a['path'] == PREFERRED.get(key)), None)
         if selected is None and candidates:
             selected = max(candidates, key=lambda pair:prefab_score(pair[1], key))
@@ -124,6 +130,10 @@ def build(index_path, output):
             i, prefab = selected
             row.update(package=i, packageLocation=packages[i]['location'][1:], prefab=prefab['path'],
                        fbx=select_fbx(packages[i],prefab))
+            if key=='shizuku' and prefab['path']==PREFERRED[key]:
+                row['fbx']=select_fbx(combined,prefab)
+                row['additionalPackages']=[j for j,p in enumerate(packages) if j!=i and any(a['path']==row['fbx'] for a in p['assets'])]
+                row['selectionReason']='Author-supplied lilToon edition composed with its original body package'
         # Scenes remain evidence for which variant the author presents. The
         # full Ramune prefab nests its descriptor inside the base body; the
         # separately supplied Gomenne prefab must not stand in for that root.
@@ -132,6 +142,20 @@ def build(index_path, output):
         if key == 'kipfel':
             row['upgrade'] = dict(previousVersion='1.0.3', preserveCharacterID=True)
         models.append(row)
+    # Kumaly's controller references the same author's shared neutral clip.
+    # Recover the exact GUID from the supplied library; never synthesize a clip
+    # just because the missing asset's name sounds neutral.
+    dependency='36102e3c16390604c99a172cd1c85d6b'
+    matches=[]
+    for row in models:
+        report=json.loads(Path(row['sourceReport']).read_text())
+        for i,package in enumerate(report['inventory']['packages']):
+            for asset in package['assets']:
+                if asset['guid']==dependency:
+                    matches.append(dict(report=row['sourceReport'],package=i,guid=dependency,sha256=asset['sha256']))
+    if len({m['sha256'] for m in matches})==1:
+        for row in models:
+            if row['role']=='kumaly':row['dependencyAssets']=[matches[0]]
     dump(output, dict(schemaVersion=1, sourceRoot=index['sourceRoot'], localOnly=True, models=models))
     return models
 

@@ -14,13 +14,28 @@ import subprocess
 import sys
 import shutil
 from vrchat_portable_convert import write_json
-from vrchat_conversion_signature import signature,require_reusable
+from vrchat_conversion_signature import signature,require_reusable,inspection_signature
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'character-sdk/tools'))
 from character_tool import seal, validate
 
 NEUTRAL_HAND_PROXY='14980fc5fe40191418954549174fe63e'
+# These platform references represent the source's neutral body/finger baseline,
+# already supplied by the explicitly labeled host standing adapter. No movement
+# or emote proxy may be included in this allowlist.
+NEUTRAL_BASELINE_PROXIES={NEUTRAL_HAND_PROXY,'91e5518865a04934b82b8aba11398609','61a99b5de5e4b6d4c8ed51d9dfd9ddc7'}
+
+def blink_binding_name(descriptor,names,controls):
+    eyelids=descriptor.get('customEyeLookSettings',{}).get('eyelidsBlendshapes','')
+    if isinstance(eyelids,str) and re.fullmatch('[0-9a-fA-F]{8,}',eyelids):
+        index=int.from_bytes(bytes.fromhex(eyelids[:8]),'little',signed=True)
+        if 0<=index<len(names):return names[index]
+    # Preserve author-controlled blinking. For avatars with no such layer, use
+    # only an existing canonical VRChat eyelid morph, never a guessed bone pose.
+    if any(re.search(r'blink|まばたき|瞬き',l['name'],re.I) for g in controls['controllers'] for l in g['layers']):return None
+    canonical=[n for n in names if re.fullmatch(r'vrc[._]blink',n,re.I)]
+    return canonical[0] if len(canonical)==1 else None
 
 
 def missing_motion_dependencies(controls,motions):
@@ -39,12 +54,12 @@ def control_dependencies(controls,motions):
         if any(l['synced']!=-1 for l in graph['layers']):raise ValueError('Synced Animator layer needs a reviewed adapter')
         if any(m['behaviors'] for m in graph['machines']):raise ValueError('Machine-level behavior needs a reviewed adapter')
     missing=missing_motion_dependencies(controls,motions)
-    fallback=missing & {NEUTRAL_HAND_PROXY}
+    fallback=missing & NEUTRAL_BASELINE_PROXIES
     if missing-fallback:raise ValueError('Missing reachable motion dependencies: '+str(sorted(missing-fallback)))
     controls['baselineFallbackMotions']=sorted(fallback)
     if fallback:
         controls['limitations']=[x for x in controls['limitations'] if x['kind']!='host-neutral-hand-adaptation']
-        controls['limitations'].append(dict(kind='host-neutral-hand-adaptation',detail='SDK proxy_hands_idle is not distributed. Reset uses this source prefab neutral fingers.'))
+        controls['limitations'].append(dict(kind='host-neutral-hand-adaptation',detail='SDK neutral hand/standing proxy assets are not distributed. Reset uses this source prefab neutral fingers and the declared host standing baseline.'))
 
 
 def require_selected_inspection(row, snapshot):
@@ -54,7 +69,9 @@ def require_selected_inspection(row, snapshot):
     geometry=json.loads((snapshot/'geometry.json').read_text())
     if (stamp.get('sourceSHA256')!=row['sourceSHA256'] or stamp.get('prefab')!=row['prefab'] or
         geometry.get('prefab')!=row['prefab'] or
-        stamp.get('toolSHA256')!=hashlib.sha256((ROOT/'scripts/vrchat/VrcPortableGeometry.cs').read_bytes()).hexdigest()):
+        stamp.get('additionalPackages',[])!=row.get('additionalPackages',[]) or
+        stamp.get('dependencyAssets',[])!=row.get('dependencyAssets',[]) or
+        stamp.get('toolSHA256')!=inspection_signature()):
         raise ValueError('Selected source/Prefab/Inspector changed; rerun inspect_vrchat_library.py')
 
 
@@ -83,6 +100,8 @@ def assemble(row,folder,stage,order):
     if speech['visemes']:
         speech['mode']='amplitude';speech['amplitude']=speech['visemes'][0]['bindings']
     groups=[];group_ids={};options=[]
+    from vrchat_ai_semantics import hints
+    semantic_hints,semantic_evidence=hints(controls,json.loads((folder/'avatar-motions.json').read_text()))
     group_labels={'Costume':'原作服装','Kemono':'耳朵与尾巴','Breasts Size':'原作体型','Option':'表情点缀','原作手势':'表情与手势'}
     labels={'Kemono_ear':'兽耳','Kemono_tail':'尾巴','Sailor-Jersey':'水手服外套','Bottoms':'短裤','Legwarmer':'腿套','Socks':'袜子','Sneaker':'鞋子','Breasts Big':'体型增加','Breasts Small':'体型减小','heart':'爱心眼','shiitake':'星星眼','guruguru':'转圈眼','shy':'害羞','hoppe':'腮红','pale_blue':'脸色发白'}
     for c in controls['controls']:
@@ -106,14 +125,16 @@ def assemble(row,folder,stage,order):
         if row['role'] in ('chiffon','karin') and c['parameter'] in ('GestureLeft','GestureRight') and c['value'] in face:
             intent,effect,moods=face[c['value']]
             option['ai']=dict(kind='expression',intent=intent,effects=[effect],moods=moods,automatic=True,speechCompatible=True,cooldownSeconds=5,conflicts=[])
+        elif c['id'] in semantic_hints:option['ai']=semantic_hints[c['id']]
         options.append(option)
+    write_json(folder/'ai-expression-evidence.json',dict(schemaVersion=1,controls=semantic_evidence))
     if len(groups)>32 or len(options)>256:raise ValueError('Menu exceeds current verified UI control budget: '+str((len(groups),len(options))))
     optional=['core.secondary-motion@2']
     if speech['amplitude']:optional+=['core.speech.amplitude@1','core.speech.viseme@1']
     required=['core.animation@1','core.avatar-controls@1']
     if options:required.append('core.performance@2')
     original=row['role'].capitalize()+' '+str(row['version'] or '')
-    m=dict(schemaVersion=1,id=row['id'],packageId='app.starry.characters.'+row['id'],packageVersion='3.0.1',
+    m=dict(schemaVersion=1,id=row['id'],packageId='app.starry.characters.'+row['id'],packageVersion='3.1.0',
         display=dict(name=row['name'],originalName=original.strip(),description='在星夜遇见'+row['name']+'，保留原作造型和角色表现。',invitation='一起聊聊此刻的心情。',tagline='让每一次相遇，都有新的故事',symbol='sparkles',thumbnail='Anime_'+row['role'],cardIdentifier='card-'+row['id'],openIdentifier='open-'+row['id'],style='anime',thumbnailScale=1,order=order),
         compatibility=dict(apiMajor=1,minApiMinor=1,required=required,optional=optional),source=dict(format='glb',model='model.glb',scale=1,yaw=0),
         rig=dict(head=human['Head'],neck=human.get('Neck',''),leftEye=human.get('LeftEye',''),rightEye=human.get('RightEye',''),headRenderer=renderer,conversationStart=.49,portraitWidthScale=1),
@@ -125,15 +146,16 @@ def assemble(row,folder,stage,order):
         'app.starry.secondary-motion':dict(version=2,file='secondary-motion.json'),
         'app.starry.private-preview':dict(version=1,redistributionAllowed=False,appearanceEditingAllowed=False,metadata='source-meta.json')})
     if options:m['performance']=dict(schemaVersion=2,groups=groups,options=options,defaults=[dict(path='Avatar/'+s['path'],visible=s['active'] and s['enabled']) for s in geometry['skins']])
-    eyelids=desc.get('customEyeLookSettings',{}).get('eyelidsBlendshapes','')
-    blink=None
-    if isinstance(eyelids,str) and re.fullmatch('[0-9a-fA-F]{8,}',eyelids):
-        index=int.from_bytes(bytes.fromhex(eyelids[:8]),'little',signed=True)
-        if 0<=index<len(names):blink=names[index]
+    blink=blink_binding_name(desc,names,controls)
     if blink:
         optional.append('core.autonomy@1')
         m['autonomy']=dict(schemaVersion=1,blink=dict(bindings=[binding(blink)],intervals=[3.2,4.7,5.8,3.9,4.4],closeSeconds=.16,closedSeconds=.035,openSeconds=.26,firstDelay=1.8,suppressGroups=[],suppressOptions=[]))
     if 'performance' in m and len(m['performance']['defaults'])>64:raise ValueError('Renderer visibility budget requires review')
+    authored=ROOT/'services/character_ai/character_profiles.json'
+    profile=json.loads(authored.read_text())['characters'].get(row['id']) if authored.exists() else None
+    if profile:
+        m['display'].update(name=profile['name'],description=profile['presentation']['story'],
+            invitation=profile['presentation']['invitation'],tagline=profile['occupation'])
     terms=[]
     audit=json.loads(Path(row['sourceReport']).read_text())
     for package in audit['inventory']['packages']:
@@ -141,7 +163,8 @@ def assemble(row,folder,stage,order):
             if asset.get('metadataPath') and asset['extension'] in ('.txt','.md') and re.search(r'license|terms|利用規約|規約|readme',asset['path'],re.I):
                 terms.append(asset['path']+'\n'+Path(asset['metadataPath']).read_text(errors='replace'))
     (folder/'LICENSE.txt').write_text('Private user-supplied avatar conversion. No public redistribution permission is implied.\nSource SHA256: '+row['sourceSHA256']+'\n\n'+'\n\n'.join(terms))
-    write_json(folder/'source-meta.json',dict(schemaVersion=1,sourceVersion=row['version'],sourceSHA256=row['sourceSHA256'],sourceArchive=row['archive'],prefab=row['prefab'],variants=row['variants'],baseline=report['baseline'],localOnly=True))
+    write_json(folder/'source-meta.json',dict(schemaVersion=1,sourceVersion=row['version'],sourceSHA256=row['sourceSHA256'],sourceArchive=row['archive'],prefab=row['prefab'],variants=row['variants'],baseline=report['baseline'],localOnly=True,
+        blinkAdaptation=dict(sourceMorph=blink,timing='host-controlled') if blink else None))
     (folder/'NOTICE.md').write_text('# Private avatar candidate\n\nOriginal geometry, textures and character controls remain subject to their authors’ terms. '+
         'The host uses the MIT-licensed lilToon renderer. VRChat scripts, SDK binaries, platform animations and arbitrary callbacks are not bundled.\n\n'+
         'See portable-conversion.json and physics-source.json for explicit adaptation limits. This package has not passed device performance testing merely because it is sealed.\n')

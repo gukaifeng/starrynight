@@ -89,7 +89,7 @@ python3 scripts/export_unity_ios.py --platform simulator
 bash scripts/build_host.sh
 ```
 
-生成角色目录后要同步 `CharacterCollections.json`、`CharacterCoverCatalog.json`，头像用 Unity 渲染；来源有合适封面时保留作者原图与哈希，缺封面才渲染生成；`scripts/generate_asset_credits.py` 将包署名带入 iOS。新角色音乐必须独立创作/获得授权，在 soundscape 生成器登记后用 `--only ROLE` 增量生成，别覆盖旧角色的 CAF。现有 `VrchatImportReview` 是这两角色的回归入口，新增角色时扩展测试集合。
+生成角色目录后同步 `CharacterCollections.json`、`CharacterCoverCatalog.json`。当前用户已授权按人设和原封面调用百炼生成封面、头像、场景，走批次参考中的媒体流程；保留作者原图与哈希，不把 AI 图标成作者原图。`scripts/generate_asset_credits.py` 将包署名带入 iOS。新角色音乐必须独立创作/获得授权，用 `--only ROLE` 增量准备，别覆盖旧角色 CAF。现有 `VrchatImportReview` 是旧两角色的回归入口，新增角色扩充 `VrchatBatchTests`。
 
 运行完整会话 UI 验证使用 `scripts/test_companion.sh`；现行两角色会话回归为 `ConversationControlsTests`，原作动作数据用 `VrchatOriginalMotionReview` 与 `CharacterPerformanceReview`；旧版 `VrchatCharacterTests` 的入口假设需按当前默认角色核对，方法筛选需带 `()`，必须核验实际执行不为零。手机只尝试一次安装，失败继续 iPhone 模拟器；不为等待手机中断开发。导出器的 catalog stamp 不能代替 GLB/贴图/sidecar 变更后的真正 Setup 和重新导出。
 

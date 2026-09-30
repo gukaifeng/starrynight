@@ -2,7 +2,7 @@
 """One role-owned track, from reviewed CC0 sources or completed Bailian receipts.
 Sources remain intact; derivatives are gain-normalized, crossfaded and ALAC coded.
 """
-import argparse,hashlib,json,subprocess,urllib.request,wave
+import argparse,hashlib,json,subprocess,urllib.request,wave,zipfile
 from pathlib import Path
 import numpy as np
 from generate_soundscapes import decoded_pcm
@@ -13,13 +13,22 @@ def digest(data):return hashlib.sha256(data).hexdigest()
 
 def main():
     parser=argparse.ArgumentParser();parser.add_argument('--ai',action='store_true',help='Require completed Fun-Music outputs instead of CC0 interim tracks')
+    parser.add_argument('--only',nargs='+',help='Prepare a new batch while preserving reviewed existing tracks')
+    parser.add_argument('--apply-existing',action='store_true',help='Attach the already verified audio audit to the active roster, without re-encoding')
     args=parser.parse_args()
     catalog=json.loads((ROOT/'assets/characters/music-sources.json').read_text())
     recipes={r['id']:r for r in json.loads((ROOT/'assets/characters/media-recipes.json').read_text())['characters']}
     work=ROOT/'.local/character-media/music';work.mkdir(parents=True,exist_ok=True)
-    resources=ROOT/'ios/CharacterHost/Resources';tracks=[];credits=[]
+    resources=ROOT/'ios/CharacterHost/Resources'
+    audit=ROOT/'docs/verification/character-music/audio-audit.json'
+    tracks=json.loads(audit.read_text())['tracks'] if (args.only or args.apply_existing) and audit.exists() else []
+    if args.only and set(args.only)-{e['role'] for e in catalog['tracks']}:parser.error('Unknown music role')
     for entry in catalog['tracks']:
+        if args.apply_existing:continue
+        if args.only and entry['role'] not in args.only:continue
         role=entry['role'];target=work/(role+Path(entry['download']).suffix)
+        archive=entry.get('archiveMember')
+        if archive:target=work/(digest(entry['download'].encode())+'.zip')
         if args.ai:
             target=ROOT/'.local/character-media'/role/'music.wav'
             receipt=json.loads(target.with_suffix('.json').read_text())
@@ -32,6 +41,13 @@ def main():
                     assert len(payload)<120_000_000,'Audio exceeds download limit'
                     target.write_bytes(payload)
             provenance={k:entry[k] for k in ('originalTitle','author','license','licenseURL','source')};provenance['kind']='licensed-interim'
+            if archive:
+                provenance.update(archiveMember=archive,archiveSHA256=digest(target.read_bytes()))
+                with zipfile.ZipFile(target) as package:
+                    member=package.getinfo(archive)
+                    if member.file_size>120_000_000:raise ValueError('Audio archive member exceeds limit')
+                    extracted=work/(role+Path(archive).suffix)
+                    extracted.write_bytes(package.read(member));target=extracted
         # 120s cap controls bundled size; preserve the original source locally.
         raw=subprocess.check_output(['ffmpeg','-v','error','-i',str(target),'-t','120','-f','f32le','-ar',str(RATE),'-ac','2','-'])
         pcm=np.frombuffer(raw,dtype='<f4').reshape(-1,2).astype(np.float64)
@@ -62,15 +78,17 @@ def main():
             pcmSha256=digest(data),scoreSha256=digest(target.read_bytes()),sourceSHA256=digest(target.read_bytes()),provenance=provenance,
             peak=float(np.abs(signal).max()),rms=float(np.sqrt(np.mean(signal**2))),dc=float(np.abs(signal.mean(axis=0)).max()),
             seamStep=float(np.abs(signal[-1]-signal[0]).max()),seamSlopeStep=float(np.abs((signal[1]-signal[0])-(signal[0]-signal[-1])).max()),roundtripPCMIdentical=True)
-        tracks.append(track)
-        credits.append(role+' · '+track['title']+'\n'+json.dumps(provenance,ensure_ascii=False,indent=2)+'\n处理：选段、循环交叉淡化、响度调整、转码。')
+        tracks=[t for t in tracks if t['sourceModelID']!=role];tracks.append(track)
         print(role,round(track['duration'],2),'seconds',round(track['rms'],4),'rms',round(track['seamStep'],6),'seam',flush=True)
     report=dict(schemaVersion=2,authorship='Bailian AI music' if args.ai else 'Reviewed third-party CC0 recordings; temporary user-approved selection, not project AI output.',tracks=tracks)
-    audit=ROOT/'docs/verification/character-music/audio-audit.json';audit.parent.mkdir(parents=True,exist_ok=True);audit.write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n')
+    audit.parent.mkdir(parents=True,exist_ok=True);audit.write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n')
     path=resources/'CharacterCollections.json';collections=json.loads(path.read_text());by_role={t['sourceModelID']:t for t in tracks}
     fields=['id','asset','assetExtension','sourceModelID','sha256','duration','title','detail','symbol']
     for collection in collections['collections']:
-        track=by_role[collection['modelID']];collection['music']=[{k:track[k] for k in fields}];collection['defaultMusic']=track['id'];collection['version']='1.2.0'
+        track=by_role[collection['modelID']]
+        if digest((resources/(track['asset']+'.'+track['assetExtension'])).read_bytes())!=track['sha256']:raise ValueError('Music asset changed: '+collection['modelID'])
+        collection['music']=[{k:track[k] for k in fields}];collection['defaultMusic']=track['id'];collection['version']='1.2.0'
     path.write_text(json.dumps(collections,ensure_ascii=False,indent=2)+'\n')
+    credits=[t['sourceModelID']+' · '+t['title']+'\n'+json.dumps(t['provenance'],ensure_ascii=False,indent=2)+'\n处理：选段、循环交叉淡化、响度调整、转码。' for t in tracks]
     (resources/'MusicCredits.txt').write_text('\n\n'.join(credits)+'\n')
 if __name__=='__main__':main()

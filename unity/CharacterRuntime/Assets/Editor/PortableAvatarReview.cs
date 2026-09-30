@@ -13,7 +13,7 @@ public static class PortableAvatarReview
     [Serializable] class Node { public string path;public bool active; }
     [Serializable] class Skin { public string path;public bool active,enabled; }
     [Serializable] class Geometry { public Node[] nodes;public Skin[] skins; }
-    [Serializable] class Check {public string id,label,kind;public bool changed,resetRestored;public float parameter;}
+    [Serializable] class Check {public string id,label,kind,context;public bool changed,resetRestored;public float parameter;}
     [Serializable] class Checks {public int schemaVersion=1;public string role,manifestSHA256;public Check[] controls;}
     public static void Run()
     {
@@ -55,6 +55,19 @@ public static class PortableAvatarReview
                         parts.Add(s.name+":"+s.enabled+":"+string.Join(",",s.sharedMaterials.Select(m=>m?m.name:"null")));
                         for(int i=0;i<s.sharedMesh.blendShapeCount;i++)parts.Add(s.GetBlendShapeWeight(i).ToString("F3"));
                     }
+                    foreach(var r in model.GetComponentsInChildren<Renderer>(true)) {
+                        var block=new MaterialPropertyBlock();r.GetPropertyBlock(block);
+                        foreach(var m in r.sharedMaterials.Where(m=>m && m.shader))
+                            for(int p=0;p<m.shader.GetPropertyCount();p++) {
+                                int id=m.shader.GetPropertyNameId(p);var type=m.shader.GetPropertyType(p);
+                                if(type==UnityEngine.Rendering.ShaderPropertyType.Float || type==UnityEngine.Rendering.ShaderPropertyType.Range)
+                                    parts.Add(m.GetFloat(id).ToString("F4")+":"+block.GetFloat(id).ToString("F4"));
+                                else if(type==UnityEngine.Rendering.ShaderPropertyType.Color || type==UnityEngine.Rendering.ShaderPropertyType.Vector)
+                                    parts.Add(m.GetVector(id).ToString("F4")+":"+block.GetVector(id).ToString("F4"));
+                            }
+                    }
+                    for(int layer=0;layer<driver.animator.layerCount;layer++)parts.Add("weight:"+driver.animator.GetLayerWeight(layer).ToString("F4"));
+                    parts.Add("tracking:"+driver.AllowBlink+":"+driver.AllowSpeech);
                     return string.Join("|",parts);
                 }
                 var checks=new System.Collections.Generic.List<Check>();
@@ -63,8 +76,37 @@ public static class PortableAvatarReview
                     driver.Reset();for(int i=0;i<60;i++)driver.animator.Update(1f/60);
                     string before=Snapshot();float value=control.kind=="slider"?.8f:Mathf.Abs(driver.Get(control.parameter)-control.value)<.001f?0:1;
                     if(driver.Select(control.id,value)!=null)throw new Exception("PORTABLE_CONTROL_REJECTED: "+control.id);
-                    for(int i=0;i<120;i++)driver.animator.Update(1f/60);
-                    var check=new Check {id=control.id,label=control.label,kind=control.kind,changed=before!=Snapshot(),parameter=driver.Get(control.parameter)};
+                    bool changed=false;
+                    for(int i=0;i<120;i++) {
+                        driver.AdvanceWeights(1f/60);driver.animator.Update(1f/60);
+                        if(i%20==0 || i==119)changed|=before!=Snapshot();
+                    }
+                    var check=new Check {id=control.id,label=control.label,kind=control.kind,changed=changed,parameter=driver.Get(control.parameter)};
+                    // Expression-bank and expression-lock controls can have no
+                    // visual effect in neutral. Exercise them while author hand
+                    // expressions are active; a neutral-only sample is insufficient.
+                    if(!changed && Math.Abs(control.value-control.initial)>.001f && control.kind!="slider")
+                    {
+                        foreach(var gesture in driver.profile.controls.Where(c=>c.parameter.StartsWith("Gesture",StringComparison.Ordinal) && c.value>0)) {
+                            driver.Reset();driver.Select(gesture.id,1);
+                            for(int i=0;i<60;i++){driver.AdvanceWeights(1f/60);driver.animator.Update(1f/60);}
+                            string contextual=Snapshot();driver.Select(control.id,1);
+                            for(int i=0;i<60;i++){driver.AdvanceWeights(1f/60);driver.animator.Update(1f/60);}
+                            // A lock acts on the next change, not on the current pose.
+                            driver.Select(gesture.id,0);
+                            for(int i=0;i<60;i++){driver.AdvanceWeights(1f/60);driver.animator.Update(1f/60);}
+                            string actual=Snapshot();
+                            driver.Reset();driver.Select(gesture.id,1);
+                            for(int i=0;i<60;i++){driver.AdvanceWeights(1f/60);driver.animator.Update(1f/60);}
+                            driver.Select(gesture.id,0);
+                            for(int i=0;i<60;i++){driver.AdvanceWeights(1f/60);driver.animator.Update(1f/60);}
+                            if(actual!=Snapshot()) {check.changed=true;check.context=gesture.id+" followed by release";break;}
+                            // A bank switch is visible before releasing the hand.
+                            driver.Reset();driver.Select(gesture.id,1);driver.Select(control.id,1);
+                            for(int i=0;i<60;i++){driver.AdvanceWeights(1f/60);driver.animator.Update(1f/60);}
+                            if(contextual!=Snapshot()){check.changed=true;check.context=gesture.id;break;}
+                        }
+                    }
                     driver.Reset();for(int i=0;i<60;i++)driver.animator.Update(1f/60);
                     check.resetRestored=before==Snapshot();checks.Add(check);
                     if(!check.resetRestored)throw new Exception("PORTABLE_RESET_FAILED: "+control.id);
@@ -83,6 +125,24 @@ public static class PortableAvatarReview
             camera.transform.position=focus+Vector3.forward*Mathf.Max(bounds.size.y*1.3f,bounds.size.x*1.4f);camera.transform.LookAt(focus);
             string output=root+"/.local/vrchat-batch/render/"+role+".png";Directory.CreateDirectory(Path.GetDirectoryName(output));
             PortraitRefinementReview.Render(camera,output,720,960);PortraitRefinementReview.Render(camera,output,720,960);
+            var manifest=JsonUtility.FromJson<CharacterManifest>(File.ReadAllText(source+"/character.json"));
+            if(manifest.autonomy?.blink?.bindings?.Length>0) {
+                var snapshots=new System.Collections.Generic.List<GameObject>();
+                foreach(var binding in manifest.autonomy.blink.bindings) {
+                    var skin=model.transform.Find(binding.renderer).GetComponent<SkinnedMeshRenderer>();
+                    int shape=skin.sharedMesh.GetBlendShapeIndex(binding.shape);
+                    if(shape<0)throw new Exception("REVIEW_BLINK_BINDING_MISSING");
+                    skin.SetBlendShapeWeight(shape,CharacterContract.MorphScale(skin,shape)*binding.weight);
+                    // Editor Camera.Render can reuse the GPU skin buffer within
+                    // the same frame. Bake the current explicit weight so this
+                    // evidence actually shows the requested closed-eyelid pose.
+                    var snapshot=new GameObject("Eyelid review snapshot");snapshot.transform.SetParent(skin.transform,false);
+                    var mesh=new Mesh();skin.BakeMesh(mesh);snapshot.AddComponent<MeshFilter>().sharedMesh=mesh;
+                    snapshot.AddComponent<MeshRenderer>().sharedMaterials=skin.sharedMaterials;skin.enabled=false;snapshots.Add(snapshot);
+                }
+                PortraitRefinementReview.Render(camera,root+"/.local/vrchat-batch/render/"+role+"-eyelids.png",720,960);
+                foreach(var snapshot in snapshots){UnityEngine.Object.DestroyImmediate(snapshot.GetComponent<MeshFilter>().sharedMesh);UnityEngine.Object.DestroyImmediate(snapshot);}
+            }
             Debug.Log("PORTABLE_AVATAR_RENDERED "+role+" bounds="+bounds+" renderers="+renderers.Length);
         }
         AssetDatabase.SaveAssets();

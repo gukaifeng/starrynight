@@ -103,7 +103,13 @@ if live:
             time.sleep(3)
         else: raise SystemExit('Unity export timed out; inspect the running job before retrying')
 else:
-    subprocess.run(['unity','run',str(PROJECT),'--','-buildTarget','iOS','-executeMethod',method,'-logFile',str(log)],check=True)
+    # Unity 6000.3 can crash in URP's build callback after thumbnail rendering
+    # in the same process. A clean second Editor avoids that native state while
+    # preserving all Setup/Validate/thumbnail checks and the saved source scene.
+    prepare_log=log.with_name('prepare-'+args.platform+'.log')
+    subprocess.run(['unity','run',str(PROJECT),'--timeout','1200','--','-buildTarget','iOS','-executeMethod','BuildIos.PrepareExport','-logFile',str(prepare_log)],check=True)
+    prepared='BuildIos.ExportPreparedSimulator' if args.platform=='simulator' else 'BuildIos.ExportPreparedDevice'
+    subprocess.run(['unity','run',str(PROJECT),'--timeout','1200','--','-buildTarget','iOS','-executeMethod',prepared,'-logFile',str(log)],check=True)
 stamp=ROOT/'build'/f'unity-{args.platform}'/'modelspace-export.json'
 if not stamp.exists(): raise SystemExit('Export completed without required postprocessing')
 subprocess.run(['python3',str(ROOT/'scripts/check_export_content.py'),'--platform',args.platform],check=True)

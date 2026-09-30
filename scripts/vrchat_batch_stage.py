@@ -94,7 +94,7 @@ def stage_package(report, package, stage):
             for a in wanted.values()]
 
 
-def prepare(report_path, package_index, stage, specs):
+def prepare(report_path, package_index, stage, specs, extra_packages=(), dependency_assets=()):
     if not stage.resolve().is_relative_to(ROOT / '.local'):
         raise ValueError('Isolated stages must be inside project .local')
     stage.mkdir(parents=True, exist_ok=True)
@@ -102,8 +102,8 @@ def prepare(report_path, package_index, stage, specs):
         if p.suffix.lower() in {'.cs', '.dll', '.shader', '.compute', '.dylib'} and p.name not in TRUSTED:
             raise ValueError('Unexpected executable code in data-only stage: ' + str(p))
     report = json.loads(report_path.read_text())
-    package = report['inventory']['packages'][package_index]
-    assets = stage_package(report, package, stage)
+    packages=[report['inventory']['packages'][i] for i in dict.fromkeys([package_index,*extra_packages])]
+    package_assets=[(p,stage_package(report,p,stage)) for p in packages]
     editor = stage / 'Assets/Editor'
     editor.mkdir(parents=True, exist_ok=True)
     for name in TRUSTED:
@@ -119,11 +119,21 @@ def prepare(report_path, package_index, stage, specs):
     # Compatibility view for existing material and physics analyzers. Binary
     # contents remain one copy in the isolated stage, referenced by digest.
     audit = dict(archives=[dict(slug=specs[0]['role'], extractionRoot=str(stage),
-                archiveSHA256=report['sha256'], unityPackages=[dict(file='/'.join(package['location']), assets=assets)])])
+                archiveSHA256=report['sha256'], unityPackages=[dict(file='/'.join(package['location']), assets=assets) for package,assets in package_assets])])
+    for dependency in dependency_assets:
+        external=json.loads(Path(dependency['report']).read_text())
+        package=external['inventory']['packages'][dependency['package']]
+        matches=[a for a in package['assets'] if a['guid']==dependency['guid'] and a['sha256']==dependency['sha256']]
+        if len(matches)!=1 or matches[0]['extension'] not in {'.anim','.png','.jpg','.jpeg','.tga'}:
+            raise ValueError('Dependency must match one audited data asset by GUID and digest')
+        assets=stage_package(external,dict(package,assets=matches),stage)
+        audit['archives'].append(dict(slug='verified-dependency',extractionRoot=str(stage),archiveSHA256=external['sha256'],
+            unityPackages=[dict(file='/'.join(package['location']),assets=assets)]))
     from audit_vrchat_archives import enrich_package
-    enrich_package(audit['archives'][0]['unityPackages'][0])
+    for archive in audit['archives']:
+        for package in archive['unityPackages']:enrich_package(package)
     (stage / 'source-audit.json').write_text(json.dumps(audit, ensure_ascii=False, indent=2)+'\n')
-    print('STAGED', specs[0]['role'], len(assets), 'data assets', flush=True)
+    print('STAGED', specs[0]['role'], sum(len(assets) for _,assets in package_assets), 'data assets', flush=True)
 
 
 def main():

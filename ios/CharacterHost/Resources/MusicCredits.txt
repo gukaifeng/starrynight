@@ -41,3 +41,88 @@ anime-karin · 窗边的小发现
   "kind": "licensed-interim"
 }
 处理：选段、循环交叉淡化、响度调整、转码。
+
+anime-torao · 街角修理铺
+{
+  "originalTitle": "Synthwave 15k",
+  "author": "The Cynic Project / cynicmusic.com / pixelsphere.org",
+  "license": "CC0-1.0",
+  "licenseURL": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "source": "https://opengameart.org/content/calm-ambient-2-synthwave-15k",
+  "kind": "licensed-interim"
+}
+处理：选段、循环交叉淡化、响度调整、转码。
+
+anime-ichigo · 糖霜午后
+{
+  "originalTitle": "Childhood Friends",
+  "author": "Juhani Junkala / SubspaceAudio",
+  "license": "CC0-1.0",
+  "licenseURL": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "source": "https://opengameart.org/content/jrpg-pack-4-calm",
+  "kind": "licensed-interim",
+  "archiveMember": "Calm2 - Childhood Friends.ogg",
+  "archiveSHA256": "cfec70dd7ead4f5a4ebc6a1da5ad12906410ad69c43f79ec6e78c6664d6dddac"
+}
+处理：选段、循环交叉淡化、响度调整、转码。
+
+anime-mafuyu · 雪后的灯
+{
+  "originalTitle": "A Place I Call Home",
+  "author": "Juhani Junkala / SubspaceAudio",
+  "license": "CC0-1.0",
+  "licenseURL": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "source": "https://opengameart.org/content/jrpg-pack-4-calm",
+  "kind": "licensed-interim",
+  "archiveMember": "Calm1 - A Place I Call Home.ogg",
+  "archiveSHA256": "cfec70dd7ead4f5a4ebc6a1da5ad12906410ad69c43f79ec6e78c6664d6dddac"
+}
+处理：选段、循环交叉淡化、响度调整、转码。
+
+anime-lime · 新叶手记
+{
+  "originalTitle": "calm theme",
+  "author": "pebonius",
+  "license": "CC0-1.0",
+  "licenseURL": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "source": "https://opengameart.org/content/calm-theme",
+  "kind": "licensed-interim"
+}
+处理：选段、循环交叉淡化、响度调整、转码。
+
+anime-nozomi · 望见星光
+{
+  "originalTitle": "Starfield Romance",
+  "author": "Yoiyami",
+  "license": "CC0-1.0",
+  "licenseURL": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "source": "https://opengameart.org/content/starfield-romance-%E2%80%93-cc0-ambient-emotional-space-theme-yoiyami-blue-series-%E2%80%93-no3",
+  "kind": "licensed-interim"
+}
+处理：选段、循环交叉淡化、响度调整、转码。
+
+anime-siska · 旧物与晚霞
+{
+  "originalTitle": "Peaceful Days",
+  "author": "Juhani Junkala / SubspaceAudio",
+  "license": "CC0-1.0",
+  "licenseURL": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "source": "https://opengameart.org/content/jrpg-pack-4-calm",
+  "kind": "licensed-interim",
+  "archiveMember": "Calm3 - Peaceful Days.ogg",
+  "archiveSHA256": "cfec70dd7ead4f5a4ebc6a1da5ad12906410ad69c43f79ec6e78c6664d6dddac"
+}
+处理：选段、循环交叉淡化、响度调整、转码。
+
+anime-plum · 梅巷的晚茶
+{
+  "originalTitle": "Summer Memories",
+  "author": "Juhani Junkala / SubspaceAudio",
+  "license": "CC0-1.0",
+  "licenseURL": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "source": "https://opengameart.org/content/jrpg-pack-4-calm",
+  "kind": "licensed-interim",
+  "archiveMember": "Calm5 - Summer Memories.ogg",
+  "archiveSHA256": "cfec70dd7ead4f5a4ebc6a1da5ad12906410ad69c43f79ec6e78c6664d6dddac"
+}
+处理：选段、循环交叉淡化、响度调整、转码。

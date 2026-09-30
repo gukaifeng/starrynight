@@ -48,6 +48,90 @@
       "source": "bailian-generated",
       "sourceSHA256": "86ffae33e9f5c502396fa14aa4e0929608294dc1f7d9f963e47befb6227d8d6e",
       "avatar": "Avatar_anime_karin"
+    },
+    {
+      "runtimeID": "anime-torao",
+      "asset": "Cover_anime_torao",
+      "environmentID": "sunroom",
+      "focusX": 0.5,
+      "focusY": 0.36,
+      "frameBottom": 0.46,
+      "cameraYaw": 0,
+      "source": "bailian-generated",
+      "sourceSHA256": "d73909e39c5eedbc564c5568705d6f8701861606c0bfaf6775f493a6fa2b3779",
+      "avatar": "Avatar_anime_torao"
+    },
+    {
+      "runtimeID": "anime-ichigo",
+      "asset": "Cover_anime_ichigo",
+      "environmentID": "sunroom",
+      "focusX": 0.5,
+      "focusY": 0.34,
+      "frameBottom": 0.46,
+      "cameraYaw": 0,
+      "source": "bailian-generated",
+      "sourceSHA256": "53359da918d4f5638c21a85b048c3335be2dbbc64412b4af0b53ac1748bd42cf",
+      "avatar": "Avatar_anime_ichigo"
+    },
+    {
+      "runtimeID": "anime-lime",
+      "asset": "Cover_anime_lime",
+      "environmentID": "sunroom",
+      "focusX": 0.5,
+      "focusY": 0.35,
+      "frameBottom": 0.46,
+      "cameraYaw": 0,
+      "source": "bailian-generated",
+      "sourceSHA256": "05d70f19e25760f8e95b85e46289039a9a1f614b627f72424d3b57c6aff467e5",
+      "avatar": "Avatar_anime_lime"
+    },
+    {
+      "runtimeID": "anime-nozomi",
+      "asset": "Cover_anime_nozomi",
+      "environmentID": "sunroom",
+      "focusX": 0.5,
+      "focusY": 0.35,
+      "frameBottom": 0.46,
+      "cameraYaw": 0,
+      "source": "bailian-generated",
+      "sourceSHA256": "fe9340fa0a55302017647df617da73a1a480866c275a7d56de90fd2605ff2fe0",
+      "avatar": "Avatar_anime_nozomi"
+    },
+    {
+      "runtimeID": "anime-siska",
+      "asset": "Cover_anime_siska",
+      "environmentID": "sunroom",
+      "focusX": 0.5,
+      "focusY": 0.35,
+      "frameBottom": 0.46,
+      "cameraYaw": 0,
+      "source": "bailian-generated",
+      "sourceSHA256": "23196e99260df1af9b1942b7296190c3f51c712174c502f0153ab96e19d99a24",
+      "avatar": "Avatar_anime_siska"
+    },
+    {
+      "runtimeID": "anime-plum",
+      "asset": "Cover_anime_plum",
+      "environmentID": "sunroom",
+      "focusX": 0.5,
+      "focusY": 0.35,
+      "frameBottom": 0.46,
+      "cameraYaw": 0,
+      "source": "bailian-generated",
+      "sourceSHA256": "3921499261871259c98f39cb02fad5d0debff04d6b8cd32bd38a32ab636bae83",
+      "avatar": "Avatar_anime_plum"
+    },
+    {
+      "runtimeID": "anime-mafuyu",
+      "asset": "Cover_anime_mafuyu",
+      "environmentID": "sunroom",
+      "focusX": 0.5,
+      "focusY": 0.35,
+      "frameBottom": 0.46,
+      "cameraYaw": 0,
+      "source": "bailian-generated",
+      "sourceSHA256": "94eddf8762c69e0a9f826a658cdd32038f49d3f9b58eab7343faed1f28b335d3",
+      "avatar": "Avatar_anime_mafuyu"
     }
   ]
 }

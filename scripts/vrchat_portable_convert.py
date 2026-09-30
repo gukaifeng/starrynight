@@ -20,14 +20,27 @@ from audit_vrchat_archives import material_inventory
 from vrchat_materials import vector
 from vrchat_controls import build as build_controls
 from vrchat_conversion_signature import signature
+from vrchat_material_variants import effective_material
 
 MIRROR_P=np.array([-1.,1.,1.],np.float32)
 MIRROR_Q=np.array([1.,-1.,-1.,1.],np.float32)
 
 
-def write_json(path,value):
+def write_json(path,value,compact=False):
     path.parent.mkdir(parents=True,exist_ok=True)
-    path.write_text(json.dumps(value,ensure_ascii=False,indent=2,allow_nan=False)+'\n')
+    path.write_text(json.dumps(value,ensure_ascii=False,indent=None if compact else 2,
+                               separators=(',',':') if compact else None,allow_nan=False)+'\n')
+
+
+def compact_skin(joints,weights,bone_count):
+    """Remove only joints with no nonzero influence; keep every actual weight."""
+    if joints.shape!=weights.shape or not np.isfinite(weights).all() or np.any(weights<0):
+        raise ValueError('Invalid source skin weights')
+    used=np.unique(joints[weights>0])
+    if not len(used) or used[0]<0 or used[-1]>=bone_count:raise ValueError('Invalid source skin joint')
+    remap=np.zeros(bone_count,dtype=np.int32);remap[used]=np.arange(len(used))
+    safe=np.where(weights>0,joints,0)
+    return remap[safe],used
 
 
 class PortableGLB(GLB):
@@ -53,7 +66,7 @@ def convert_geometry(folder):
     geometry=json.loads((folder/'geometry.json').read_text())
     binary=np.memmap(folder/'geometry.bin',mode='r',dtype=np.uint8)
     b=PortableGLB();g=b.doc;index={n['path']:i for i,n in enumerate(geometry['nodes'])}
-    notes=list(geometry['limitations']);shape_frames=[]
+    notes=list(geometry['limitations']);shape_frames=[];skin_counts=[]
     def array(slice):
         return np.ndarray((slice['count'],slice['width']),dtype='<f4' if slice['type']=='f32' else '<i4',buffer=binary,offset=slice['offset']).copy()
     def values(value,axes):return np.array([value[a] for a in axes],np.float32)
@@ -70,16 +83,18 @@ def convert_geometry(folder):
             uv=array(s['uv']);uv[:,1]=1-uv[:,1];attr['TEXCOORD_0']=b.add(uv,'VEC2')
         if s['bones']:
             joints=array(s['joints']);weights=array(s['weights'])
+            joints,used=compact_skin(joints,weights,len(s['bones']))
+            skin_counts.append(dict(renderer=s['path'],source=len(s['bones']),weighted=len(used)))
             for part in range(joints.shape[1]//4):
                 attr['JOINTS_'+str(part)]=b.add(joints[:,part*4:(part+1)*4],'VEC4',5123)
                 attr['WEIGHTS_'+str(part)]=b.add(weights[:,part*4:(part+1)*4],'VEC4')
-            matrices=array(s['bindposes']).reshape(-1,4,4)
+            matrices=array(s['bindposes']).reshape(-1,4,4)[used]
             # Source is column-major; conjugation by X reflection has the same
             # element-wise signs in both column/row-major storage.
             signs=np.array([-1,1,1,1],np.float32)
             matrices*=signs[None,:,None]*signs[None,None,:]
             node['skin']=len(g['skins'])
-            g['skins'].append(dict(joints=[index[path] for path in s['bones']],inverseBindMatrices=b.add(matrices.reshape(-1,16),'MAT4')))
+            g['skins'].append(dict(joints=[index[s['bones'][int(i)]] for i in used],inverseBindMatrices=b.add(matrices.reshape(-1,16),'MAT4')))
         targets=[];names=[];defaults=[]
         for shape in s['shapes']:
             if len(shape['frames'])!=1 or abs(shape['frames'][0]['weight']-100)>.001:
@@ -101,7 +116,7 @@ def convert_geometry(folder):
         node['mesh']=len(g['meshes']);mesh=dict(name=s['path'].split('/')[-1],primitives=primitives)
         if targets:mesh.update(weights=defaults,extras=dict(targetNames=names))
         g['meshes'].append(mesh)
-    return b,geometry,index,dict(limitations=notes,nonlinearMorphFrames=shape_frames,materialGUIDs=list(materials))
+    return b,geometry,index,dict(limitations=notes,nonlinearMorphFrames=shape_frames,materialGUIDs=list(materials),skinJointCounts=skin_counts)
 
 
 def curve_value(keys,time):
@@ -117,8 +132,20 @@ def curve_value(keys,time):
     return keys[-1]['value']
 
 
-def append_motions(b,geometry,index,folder):
+def append_motions(b,geometry,index,folder,controls=None):
     source=json.loads((folder/'motions.json').read_text())
+    if controls is not None:
+        from vrchat_controls import referenced_motion_ids
+        required=referenced_motion_ids(controls)
+        # Keep authored neutral-body candidates for baseline selection as well.
+        # Orphan clips in an author's archive are not live avatar capabilities;
+        # their material swaps must not pull a different shader edition in.
+        required.update(m['guid'] for m in source['motions'] if re.search(r'(stand[_ ]?still|idle)',m['name'],re.I)
+            and not re.search(r'(hand|finger|afk|sleep|face|eye|ear|tail|chest|breast|foot)',m['name']+' '+m['path'],re.I)
+            and any(t['path']==next((h['path'] for h in geometry['human'] if h['human']=='Hips'),None) for t in m['tracks']))
+        selected=[m for m in source['motions'] if m['guid'] in required]
+        source['selection']=dict(kind='reachable-controller-and-body-baseline',omittedOrphanClips=len(source['motions'])-len(selected))
+        source['motions']=selected
     g=b.doc;result={};glb_paths=paths(g)
     for motion in source['motions']:
         animation=dict(name='VRC_'+motion['guid'],samplers=[],channels=[])
@@ -166,10 +193,26 @@ def append_motions(b,geometry,index,folder):
     return source,result
 
 
-def export_materials(stage,geometry,output,shader_root):
+def export_materials(stage,geometry,output,shader_root,motions=None):
     audit=json.loads((stage/'source-audit.json').read_text())
     assets={a['guid']:a for ar in audit['archives'] for package in ar['unityPackages'] for a in package['assets']}
-    shaders={};properties={}
+    shaders={};properties={};upstream_textures={}
+    # Official lilToon utility maps are dependencies, not author omissions.
+    # Verify both the pinned archive and each installed file before resolving a
+    # GUID. Never replace an unknown author mask with a generic white texture.
+    from prepare_liltoon import VERSION,SHA256
+    import zipfile
+    archive=Path(str(shader_root)+'.zip')
+    if archive.exists():
+        if hashlib.sha256(archive.read_bytes()).hexdigest()!=SHA256:raise ValueError('Unverified lilToon texture archive')
+        with zipfile.ZipFile(archive) as package:
+            prefix='lilToon-'+VERSION+'/Assets/lilToon/'
+            for meta in (shader_root/'Texture').glob('*.png.meta'):
+                path=Path(str(meta)[:-5]);relative=path.relative_to(shader_root).as_posix()
+                if path.read_bytes()!=package.read(prefix+relative) or meta.read_bytes()!=package.read(prefix+relative+'.meta'):
+                    raise ValueError('Installed lilToon texture differs from pinned source')
+                identity=re.search(r'^guid: ([0-9a-f]{32})$',meta.read_text(),re.M)
+                if identity:upstream_textures[identity[1]]=dict(extractedPath=str(path),metaPath=str(meta),provenance='lilToon '+VERSION)
     for path in shader_root.rglob('*.shader'):
         meta=Path(str(path)+'.meta')
         if not meta.exists():continue
@@ -180,7 +223,7 @@ def export_materials(stage,geometry,output,shader_root):
             properties[name[1]]=set(re.findall(r'^\s*(?:\[[^\]]+\]\s*)*([_A-Za-z][_A-Za-z0-9]*)\s*\(',shader_text,re.M))
     materials=[];notes=[];seen=set()
     primitives=[p for skin in geometry['skins'] for p in skin['primitives']]
-    motions=json.loads((stage/'Inspection/Portable'/geometry['role']/'motions.json').read_text())
+    if motions is None:motions=json.loads((stage/'Inspection/Portable'/geometry['role']/'motions.json').read_text())
     for m in motions['motions']:
         for c in m['objects']:
             for key in c['keys']:
@@ -192,9 +235,7 @@ def export_materials(stage,geometry,output,shader_root):
             seen.add(guid)
             asset=assets.get(guid)
             if not asset:raise ValueError('Missing author material: '+guid)
-            material_text=Path(asset['extractedPath']).read_text();source=material_inventory(material_text,assets)
-            ints=re.search(r'^    m_Ints:\n([\s\S]*?)(?=^    \w|\Z)',material_text,re.M)
-            if ints:source['floats'].update({m[1]:float(m[2]) for m in re.finditer(r'^    - (\S+): ([-+\d.eE]+)$',ints[1],re.M)})
+            source=effective_material(guid,assets)
             shader=shaders.get(source['shader'].get('guid',''))
             if not shader:
                 shader='lilToon'
@@ -202,14 +243,25 @@ def export_materials(stage,geometry,output,shader_root):
             row=dict(name='mat_'+guid,sourceName=primitive['material'],shader=shader,renderQueue=source['customRenderQueue'],
                      floats=[dict(name=k,value=v) for k,v in source['floats'].items()],
                      colors=[dict(name=k,value=v) for k,v in source['colors'].items()],textures=[])
+            render_paths={s['path'] for s in geometry['skins'] if any(p['guid']==guid for p in s['primitives'])}
+            render_paths.update(c['path'] for m in motions['motions'] for c in m['objects'] if any(k['guid']==guid for k in c['keys']))
+            animated_properties={c['property'].partition('material.')[2] for m in motions['motions'] for c in m['curves']
+                if c['path'] in render_paths and 'material.' in c['property']}
             for binding in source['textureBindings']:
                 prop=binding['property']
                 if prop not in properties.get(shader,set()):continue
-                feature=next((flag for prefix,flag in [('_MatCap2nd','_UseMatCap2nd'),('_MatCap','_UseMatCap'),('_Emission2nd','_UseEmission2nd'),('_Emission','_UseEmission'),('_Glitter','_UseGlitter'),('_Reflection','_UseReflection'),('_Rim','_UseRim'),('_Shadow','_UseShadow'),('_Bump2nd','_UseBump2ndMap'),('_Bump','_UseBumpMap'),('_Main2nd','_UseMain2ndTex'),('_Main3rd','_UseMain3rdTex'),('_AudioLink','_UseAudioLink')] if prop.startswith(prefix)),None)
-                animated=bool(feature and any(c['property'].endswith('.'+feature) and any(k['value']>0 for k in c['keys']) for m in motions['motions'] for c in m['curves']))
+                feature=next((flag for prefix,flag in [('_MatCap2nd','_UseMatCap2nd'),('_MatCap','_UseMatCap'),('_Emission2nd','_UseEmission2nd'),('_Emission','_UseEmission'),('_Glitter','_UseGlitter'),('_Reflection','_UseReflection'),('_MetallicGlossMap','_UseReflection'),('_SmoothnessTex','_UseReflection'),('_Anisotropy','_UseAnisotropy'),('_Dither','_UseDither'),('_Rim','_UseRim'),('_Shadow','_UseShadow'),('_Bump2nd','_UseBump2ndMap'),('_Bump','_UseBumpMap'),('_Main2nd','_UseMain2ndTex'),('_Main3rd','_UseMain3rdTex'),('_AudioLink','_UseAudioLink')] if prop.startswith(prefix)),None)
+                animated=bool(feature and feature in animated_properties)
                 inactive=(feature and source['floats'].get(feature,0)<=0 and not animated) or (prop.startswith('_Outline') and 'Outline' not in shader) or (prop.startswith('_Fur') and 'Fur' not in shader) or (prop=='_AlphaMask' and source['floats'].get('_AlphaMaskMode',0)==0)
+                if prop=='_MainColorAdjustMask':
+                    hsvg=source['colors'].get('_MainTexHSVG',dict(r=0,g=1,b=1,a=1))
+                    inactive=(list(hsvg.values())==[0,1,1,1] and source['floats'].get('_MainGradationStrength',0)==0 and
+                        not any(p.startswith(('_MainTexHSVG','_MainGradationStrength')) for p in animated_properties))
+                # Opaque lilToon passes do not evaluate the alpha-mask branch.
+                if prop=='_AlphaMask' and shader in ('lilToon','Hidden/lilToonOutline'):inactive=True
                 if inactive:continue
-                tex=assets.get(binding['texture'].get('guid'))
+                identity=binding['texture'].get('guid')
+                tex=assets.get(identity) or upstream_textures.get(identity)
                 if not tex:
                     if binding['texture'].get('guid','').startswith('0000000000000000'):continue
                     notes.append(dict(material=guid,property=binding['property'],reason='Unresolved source texture',reference=binding['texture']));continue
@@ -273,11 +325,11 @@ def main():
     a=p.parse_args();a.output.mkdir(parents=True,exist_ok=True)
     snapshot=a.stage/'Inspection/Portable'/a.role
     b,geometry,index,report=convert_geometry(snapshot)
-    source,motions=append_motions(b,geometry,index,snapshot)
     controls,descriptor=build_controls(a.stage,geometry)
+    source,motions=append_motions(b,geometry,index,snapshot,controls)
     secondary,physics=portable_secondary(a.stage,a.role,b,geometry)
     b.write(a.output/'model.glb')
-    report['materialLimitations']=export_materials(a.stage,geometry,a.output,a.shaders)
+    report['materialLimitations']=export_materials(a.stage,geometry,a.output,a.shaders,source)
     report.update(role=a.role,meshBytes=(a.output/'model.glb').stat().st_size,nodes=len(index),morphs=sum(len(s['shapes']) for s in geometry['skins']),clips=len(motions),baseline=source['baseline'],controls=len(controls['controls']),controllerLimitations=controls['limitations'],conversionSignature=signature(a.stage,a.role))
     write_json(a.output/'portable-conversion.json',report)
     write_json(a.output/'motion-map.json',motions)
@@ -290,7 +342,9 @@ def main():
                 key['steppedIn']=not np.isfinite(key['inTangent']);key['steppedOut']=not np.isfinite(key['outTangent'])
                 if key['steppedIn']:key['inTangent']=0
                 if key['steppedOut']:key['outTangent']=0
-    write_json(a.output/'avatar-motions.json',source)
+    # Dense sampled curves are data, not a human-authored document. Remove JSON
+    # whitespace without rounding values or dropping any frame/channel.
+    write_json(a.output/'avatar-motions.json',source,compact=True)
     write_json(a.output/'avatar-geometry.json',dict(nodes=geometry['nodes'],human=geometry['human'],skins=[dict(path=s['path'],enabled=s['enabled']) for s in geometry['skins']]))
     write_json(a.output/'avatar-descriptor.json',descriptor)
     write_json(a.output/'secondary-motion.json',secondary)

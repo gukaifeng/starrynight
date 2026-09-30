@@ -9,13 +9,18 @@ extension XCUIApplication {
         action.tap()
     }
     @MainActor var characterRuntime: [String:Any] {
+        guard buttons["customizationButton"].exists else { return [:] }
         guard let raw = buttons["customizationButton"].value as? String,
               let json = try? JSONSerialization.jsonObject(with:Data(raw.utf8)) as? [String:Any] else { return [:] }
         return json
     }
     @MainActor func waitForCharacter(_ condition:@escaping ([String:Any]) -> Bool,timeout:TimeInterval = 12,file:StaticString = #filePath,line:UInt = #line) {
         let predicate = NSPredicate { _,_ in MainActor.assumeIsolated { condition(self.characterRuntime) } }
-        XCTAssertEqual(XCTWaiter.wait(for:[XCTNSPredicateExpectation(predicate:predicate,object:nil)],timeout:timeout),.completed,file:file,line:line)
+        let result=XCTWaiter.wait(for:[XCTNSPredicateExpectation(predicate:predicate,object:nil)],timeout:timeout)
+        // Keep the actual runtime state when a device/simulator check times out.
+        // This distinguishes loading, suppressed source controls and no updates.
+        let detail=result == .completed ? "" : String(describing:characterRuntime)
+        XCTAssertEqual(result,.completed,detail,file:file,line:line)
     }
     @MainActor func selectHomeModel(_ id:String,file:StaticString = #filePath,line:UInt = #line) {
         let cardID = ["real-woman":"humanModelCard","studio-robot":"modelCard","hatsune-miku":"mikuModelCard"][id] ?? "card-"+id

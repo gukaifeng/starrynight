@@ -39,6 +39,51 @@ See portable-conversion.json and physics-source.json for explicit adaptation lim
 }
 
 
+草莓 · 3.0.1
+草莓 / Ichigo 1.03
+素材原作者：Ichigo 1.03 原作者（见来源包条款）
+许可：Original author avatar terms — private local conversion
+固定来源：file:///Users/gukaifeng/Downloads/VRchat%E6%A8%A1%E5%9E%8B%E6%95%B4%E7%90%86_%E6%9C%80%E6%96%B0%E7%89%88%E6%9C%AC/Ichigo%E8%8D%89%E8%8E%93_v1.03/7328789ICHIGO.zip
+本机个人预览素材：不得随公开版本或公开源码再分发；具体改作与分发权限见下方原模型许可。
+
+Private user-supplied avatar conversion. No public redistribution permission is implied.
+Source SHA256: dc9d3037c7f34012c3a34adf184b9420ac620901153ff122cc94e1bbc69f718e
+
+
+
+上游附加署名（原文，包含上游完整素材库说明）：
+# Private avatar candidate
+
+Original geometry, textures and character controls remain subject to their authors’ terms. The host uses the MIT-licensed lilToon renderer. VRChat scripts, SDK binaries, platform animations and arbitrary callbacks are not bundled.
+
+See portable-conversion.json and physics-source.json for explicit adaptation limits. This package has not passed device performance testing merely because it is sealed.
+
+
+原文件许可设置（保留原文）：
+{
+  "schemaVersion": 1,
+  "sourceVersion": "1.03",
+  "sourceSHA256": "dc9d3037c7f34012c3a34adf184b9420ac620901153ff122cc94e1bbc69f718e",
+  "sourceArchive": "7328789ICHIGO.zip",
+  "prefab": "Assets/Hamini3Dbox/ICHIGO/ICHIGO_v1.03.prefab",
+  "variants": [
+    {
+      "package": 0,
+      "prefab": "Assets/Hamini3Dbox/ICHIGO/ICHIGO_v1.03_Kisekae.prefab"
+    },
+    {
+      "package": 0,
+      "prefab": "Assets/Hamini3Dbox/ICHIGO/ICHIGO_v1.03.prefab"
+    }
+  ],
+  "baseline": {
+    "kind": "host-standing-adaptation",
+    "reason": "Source delegates its body baseline to the VRChat platform; no matching authored standing clip is present"
+  },
+  "localOnly": true
+}
+
+
 卡琳 · 3.0.1
 卡琳 / Karin 1.11
 素材原作者：こまど / komado（あまとうさぎ）
@@ -213,6 +258,225 @@ Original facial, hand, ear, tail and appearance options are retained. No SDK cod
 }
 
 
+青柠 · 3.0.1
+青柠 / Lime 1.00
+素材原作者：Lime 1.00 原作者（见来源包条款）
+许可：Original author avatar terms — private local conversion
+固定来源：file:///Users/gukaifeng/Downloads/VRchat%E6%A8%A1%E5%9E%8B%E6%95%B4%E7%90%86_%E6%9C%80%E6%96%B0%E7%89%88%E6%9C%AC/Lime%E9%9D%92%E6%9F%A0_v1.00/4876459%20Lime_v1.00.zip
+本机个人预览素材：不得随公开版本或公开源码再分发；具体改作与分发权限见下方原模型许可。
+
+Private user-supplied avatar conversion. No public redistribution permission is implied.
+Source SHA256: 762ebc4eadf2a0cb933ac51aa29551a7a5ef14e78dad6dd0ce3967a0b140347d
+
+
+
+上游附加署名（原文，包含上游完整素材库说明）：
+# Private avatar candidate
+
+Original geometry, textures and character controls remain subject to their authors’ terms. The host uses the MIT-licensed lilToon renderer. VRChat scripts, SDK binaries, platform animations and arbitrary callbacks are not bundled.
+
+See portable-conversion.json and physics-source.json for explicit adaptation limits. This package has not passed device performance testing merely because it is sealed.
+
+
+原文件许可设置（保留原文）：
+{
+  "schemaVersion": 1,
+  "sourceVersion": "1.00",
+  "sourceSHA256": "762ebc4eadf2a0cb933ac51aa29551a7a5ef14e78dad6dd0ce3967a0b140347d",
+  "sourceArchive": "4876459 Lime_v1.00.zip",
+  "prefab": "Assets/Amatousagi/Lime/Lime.prefab",
+  "variants": [
+    {
+      "package": 0,
+      "prefab": "Assets/Amatousagi/Lime/Lime_kisekae Variant.prefab"
+    },
+    {
+      "package": 0,
+      "prefab": "Assets/Amatousagi/Lime/Lime.prefab"
+    }
+  ],
+  "baseline": {
+    "kind": "host-standing-adaptation",
+    "reason": "Source delegates its body baseline to the VRChat platform; no matching authored standing clip is present"
+  },
+  "localOnly": true
+}
+
+
+真冬 · 3.1.0
+真冬 / Mafuyu 1.0.6
+素材原作者：Mafuyu 1.0.6 原作者（见来源包条款）
+许可：Original author avatar terms — private local conversion
+固定来源：file:///Users/gukaifeng/Downloads/VRchat%E6%A8%A1%E5%9E%8B%E6%95%B4%E7%90%86_%E6%9C%80%E6%96%B0%E7%89%88%E6%9C%AC/Mafuyu%E7%9C%9F%E5%86%AC_v1.0.6/Mafuyu_v1.0.6.zip
+本机个人预览素材：不得随公开版本或公开源码再分发；具体改作与分发权限见下方原模型许可。
+
+Private user-supplied avatar conversion. No public redistribution permission is implied.
+Source SHA256: b7aa0b7e678fbda4f2b7ccce9854a24ce64003cc4ce0690f8261f500a39a7e5b
+
+Assets/lilToon/README.md
+# lilToon
+Version 1.7.1
+
+# Overview
+This shader is developed for services using avatars (VRChat, etc.) and has the following features.
+- Easy to use (One-click settings from presets, Saving your own presets, Color correction and exporting textures)
+- Beautiful (Prevent overexposure, Anti-aliased shading)
+- Lightweight (Automatically rewrites shaders and turns features on / off)
+- Available in various versions (Unity 2018-2023, BRP/LWRP/URP/HDRP)
+- Compatible with all lighting and similar in brightness to StandardShader
+
+# Support
+Supported Unity versions
+- Unity 2018.1 - Unity 2023.2
+
+Tested version
+- Unity 2018.1.0f2 (Built-in RP)
+- Unity 2018.4.20f1 (Built-in RP / LWRP 4.10.0 / HDRP 4.10.0)
+- Unity 2019.2.21f1 (Built-in RP / LWRP 6.9.2 / HDRP 6.9.2)
+- Unity 2019.3.0f6 (Built-in RP / URP 7.1.8 / HDRP 7.1.8)
+- Unity 2019.4.31f1 (Built-in RP / URP 7.7.1 / HDRP 7.7.1)
+- Unity 2020.3.47f1 (Built-in RP / URP 10.10.1 / HDRP 10.10.1)
+- Unity 2021.3.23f1 (Built-in RP / URP 12.1.11 / HDRP 12.1.11)
+- Unity 2022.3.15f1 (Built-in RP / URP 14.0.8 / HDRP 14.0.8)
+- Unity 2023.2.0a11 (Built-in RP / URP 16.0.1 / HDRP 16.0.1)
+
+Some older versions of Unity 2021 and 2022 have problems such as not applying transforms or not rendering materials on URP/HDRP. If you have this issue, please update to the Unity version where the bug has been fixed. ( [GameObjects doesn't get rendered when using "Unlit.Unlit_UsePass" Shader](https://issuetracker.unity3d.com/issues/sphere-gameobject-doesnt-get-rendered-when-using-unlit-dot-unlit-usepass-shader) )
+
+Some older versions of Unity 2022 and 2023 may crash when updating shaders. If you have this issue, please update to the Unity version where the bug has been fixed. ( [Crash on malloc_internal when recompiling a ShaderGraph used by another shader via UsePass](https://issuetracker.unity3d.com/issues/crash-on-malloc-internal-when-recompiling-a-shadergraph-used-by-another-shader-via-usepass) )
+
+Supported Shader Models
+- Normal: SM4.0 / ES3.0 or later
+- Lite: SM3.0 / ES2.0 or later
+- Fur: SM4.0 / ES3.1+AEP / ES3.2 or later
+- Tessellation: SM5.0 / ES3.1+AEP / ES3.2 or later
+
+Supported Rendering Pipelines
+- Built-in Render Pipeline
+- Lightweight Render Pipeline 4.0.0 - 6.9.2
+- Universal Render Pipeline 7.0.0 - 16.0.1
+- High Definition Render Pipeline 4.0.0 - 16.0.1
+
+# Features
+- Main color x3 layers (Decal, Layer mask, Gif animation, Normal / Additive / Multiplicative / Screen blending)
+- Color correction, UV Scrolling & Rotation
+- Flexible shadows (3 shadows, SSS, Environment light compositing, AO mask to adjust the ease of shadowing)
+- Emission x2 layers (Animation, Mask, Blinking, Color change over time, Parallax)
+- Normal map x2 layers
+- Anisotropic reflection
+- Specular reflection
+- MatCap x2 (Z-axis rotation cancellation, Normal / Additive / Multiplicative / Screen blending)
+- Rim light
+- Backlight
+- Outline (Color specification by texture, Mask, Thickness based on vertex color and distance)
+- Fur, Refraction, Gem
+- Distance Clipping Canceler
+- Distance Fade (Changes color according to distance)
+- AudioLink (Animate materials in sync with sound in supported VRChat worlds)
+- Tessellation (For video production due to high load)
+- Mesh Encryption ([AvatarEncryption](https://github.com/lilxyzw/AvaterEncryption) is required)
+
+# License
+lilToon is available under the MIT License. Please refer to the `LICENSE` included in the package. For more information about third party licenses, please see [Third Party Notices.md](https://github.com/lilxyzw/lilToon/blob/master/Assets/lilToon/Third%20Party%20Notices.md).
+
+# Usage - Material Setup
+1. Import lilToon into Unity using one of the following methods.
+    i. Drag and drop unitypackage to the Unity window to import it.
+    ii. Import `https://github.com/lilxyzw/lilToon.git?path=Assets/lilToon#master` from UPM.
+2. Select a material from Project.
+3. Select `lilToon` from `Shader` at the top of Inspector.
+4. If no texture has been applied, set the texture to `Main Color`.
+5. To make the material transparent, change `Rendering Mode` to `Cutout` or `Transparent`.
+
+Please refer to the [manual](https://github.com/lilxyzw/lilToon/blob/master/Assets/lilToon/MANUAL.md) for more detailed settings.
+
+# Usage - Update
+0. If you are updating from 1.1.8 or earlier to 1.2.0 or later, delete the lilToon folder before importing
+1. Import lilToon into Unity using one of the following methods.
+    i. Drag and drop unitypackage to the Unity window to import it.
+    ii. Import `https://github.com/lilxyzw/lilToon.git?path=Assets/lilToon#master` from UPM.
+
+# How to distribute your works that use lilToon
+- If you want to include shaders, it is recommended to include a shortcut to the [BOOTH](https://booth.pm/ja/items/3087170) or [GitHub](https://github.com/lilxyzw/lilToon/releases) download page, or to include the shader unitypackage as a separate file.
+- The method of combining shaders and creations into a single unitypackage has been deprecated. (due to problems such as overwriting with an older version during import)
+
+# Common Problems
+- Material error has occurred.
+  → Clicking `Assets/lilToon/Refresh Shaders` in the top menu bar may help.
+- Editor error has occurred.
+  → Right-clicking the` lilToon` folder and `Reimport` may help.
+- Cannot use alpha mask
+  → Please check the following
+  - Set rendering mode to `Cutout` or `Transparent`
+  - Assign a texture to `Alpha Mask` in the Main Color menu
+- UI is not displayed when selecting a material / There is an error in the editor
+  → You may have a mix of older versions of lilToon. Delete the `lilToon` folder and then import unitypackage again.
+- Different meshes have different lighting.
+  → Right click on your avatar and select `[lilToon] Fix Lighting` to automatically fix this.
+- The shadows on face are dirty.
+  → You can specify a mask texture in `Mask & Strength` to partially remove shadows.
+- Outline becomes dirty.
+  → You can specify a mask texture in `Mask & Width` to partially remove outline or adjust the thickness.
+- Shadows are weak in bright places.
+  → `Environment Strength` value affects the strength of shadows in bright places.
+
+If you have any other problems and suspect a bug, please contact me on [Twitter](https://twitter.com/lil_xyzw), [GitHub](https://github.com/lilxyzw/lilToon), or [BOOTH](https://lilxyzw.booth.pm/). Please refer to the following template when reporting a bug.
+```
+Bug:
+Reproduction method:
+
+# Optional
+Unity version:
+VRChat World:
+Screenshots:
+Console logs:
+```
+
+上游附加署名（原文，包含上游完整素材库说明）：
+# Private avatar candidate
+
+Original geometry, textures and character controls remain subject to their authors’ terms. The host uses the MIT-licensed lilToon renderer. VRChat scripts, SDK binaries, platform animations and arbitrary callbacks are not bundled.
+
+See portable-conversion.json and physics-source.json for explicit adaptation limits. This package has not passed device performance testing merely because it is sealed.
+
+
+原文件许可设置（保留原文）：
+{
+  "schemaVersion": 1,
+  "sourceVersion": "1.0.6",
+  "sourceSHA256": "b7aa0b7e678fbda4f2b7ccce9854a24ce64003cc4ce0690f8261f500a39a7e5b",
+  "sourceArchive": "Mafuyu_v1.0.6.zip",
+  "prefab": "Assets/PLUSONE/Mafuyu/Prefab/Mafuyu.prefab",
+  "variants": [
+    {
+      "package": 1,
+      "prefab": "Assets/PLUSONE/Mafuyu/Prefab/Mafuyu.prefab"
+    },
+    {
+      "package": 1,
+      "prefab": "Assets/PLUSONE/Mafuyu/Prefab/Mafuyu_Kisekae.prefab"
+    },
+    {
+      "package": 1,
+      "prefab": "Assets/PLUSONE/Mafuyu/Prefab/Another/Mafuyu_Another_Kisekae.prefab"
+    },
+    {
+      "package": 1,
+      "prefab": "Assets/PLUSONE/Mafuyu/Prefab/Another/Mafuyu_Another.prefab"
+    }
+  ],
+  "baseline": {
+    "kind": "author-clip",
+    "guid": "324ea56fb25315d46913eca20df9abb1",
+    "name": "Idle_standing"
+  },
+  "localOnly": true,
+  "blinkAdaptation": {
+    "sourceMorph": "vrc_blink",
+    "timing": "host-controlled"
+  }
+}
+
+
 豆日向 · 2.2.0
 豆日向 / まめひなた 1.53 · もち山金魚
 素材原作者：もち山金魚 / MOCHIYAMA
@@ -342,6 +606,437 @@ Original facial, hand, ear, tail and appearance options are retained. No SDK cod
 }
 
 
+望 · 3.0.1
+望 / Nozomi 1.00
+素材原作者：Nozomi 1.00 原作者（见来源包条款）
+许可：Original author avatar terms — private local conversion
+固定来源：file:///Users/gukaifeng/Downloads/VRchat%E6%A8%A1%E5%9E%8B%E6%95%B4%E7%90%86_%E6%9C%80%E6%96%B0%E7%89%88%E6%9C%AC/Nozomi_v1.00/Nozomi_1.00.zip
+本机个人预览素材：不得随公开版本或公开源码再分发；具体改作与分发权限见下方原模型许可。
+
+Private user-supplied avatar conversion. No public redistribution permission is implied.
+Source SHA256: 446bf08d22830f8ac8878de1219ac85d33006da32f4fcdab25d9d702638b14e6
+
+Assets/lilToon/README_JP.md
+# lilToon
+Version 1.3.8
+
+# 概要
+アバターを用いたサービス（VRChat等）向けに開発したシェーダーで以下のような特徴があります。
+- 簡単（プリセットからワンクリック設定＆自作プリセットの保存、色調補正機能による色替え＆テクスチャ書き出し）
+- 美麗（白飛び防止、水中などでの透け防止、アンチエイリアスシェーディング）
+- 軽量（エディタが自動でシェーダーを書き換えて機能をオンオフ）
+- 長期間、様々な環境で利用可能（Unity2018～2022、BRP/LWRP/URP/HDRP）
+- Unityの全ライティングに対応しStandardShaderに近い明るさに
+
+# 対応状況
+Unityバージョン
+- Unity 2018.1 - Unity 2023.2
+
+動作確認環境
+- Unity 2018.1.0f2 (Built-in RP)
+- Unity 2018.4.20f1 (Built-in RP / LWRP 4.10.0 / HDRP 4.10.0)
+- Unity 2019.2.21f1 (Built-in RP / LWRP 6.9.2 / HDRP 6.9.2)
+- Unity 2019.3.0f6 (Built-in RP / URP 7.1.8 / HDRP 7.1.8)
+- Unity 2019.4.31f1 (Built-in RP / URP 7.7.1 / HDRP 7.7.1)
+- Unity 2020.3.47f1 (Built-in RP / URP 10.10.1 / HDRP 10.10.1)
+- Unity 2021.3.23f1 (Built-in RP / URP 12.1.11 / HDRP 12.1.11)
+- Unity 2022.2.15f1 (Built-in RP / URP 14.0.7 / HDRP 14.0.7)
+- Unity 2023.2.0a11 (Built-in RP / URP 16.0.1 / HDRP 16.0.1)
+
+Unity 2021や2022の一部の古いバージョンではURP・HDRPでトランスフォームが適用されなかったりレンダリングされなかったりする等の不具合があります。問題が発生する場合は不具合が修正されたバージョンに更新してください。（ [GameObjects doesn't get rendered when using "Unlit.Unlit_UsePass" Shader](https://issuetracker.unity3d.com/issues/sphere-gameobject-doesnt-get-rendered-when-using-unlit-dot-unlit-usepass-shader) ）
+
+シェーダーモデル
+- 通常版: SM4.0・ES3.0以降
+- 軽量版: SM3.0・ES2.0以降
+- ファーシェーダー: SM4.0・ES3.1+AEP・ES3.2以降
+- テッセレーション: SM5.0・ES3.1+AEP・ES3.2以降
+
+レンダリングパイプライン
+- Built-in Render Pipeline
+- Lightweight Render Pipeline 4.0.0 - 6.9.2
+- Universal Render Pipeline 7.0.0 - 16.0.1
+- High Definition Render Pipeline 4.0.0 - 16.0.1
+
+# 主な機能
+- メインカラーx3レイヤー（デカール、レイヤーマスク、Gifアニメーション、通常・加算・乗算・スクリーン合成対応）
+- 色調補正、UVスクロール＆回転
+- 自由度の高い影（3影、SSS、環境光の合成、AOマスクで影の付きやすさの調整可能）
+- 発光x2レイヤー（アニメーション、マスク、点滅、色の時間変化、視差対応）
+- ノーマルマップx2レイヤー
+- 異方性反射
+- 鏡面反射
+- マットキャップx2（Z軸回転キャンセル、通常・加算・乗算・スクリーン合成対応）
+- リムライト
+- 逆光ライト
+- アウトライン（テクスチャによる色指定、マスク、頂点カラー・距離に応じた太さ補正）
+- ファー、屈折、宝石
+- 距離クリッピングキャンセラー（近づきすぎても消えない）
+- 距離フェード（距離に応じて色を変える）
+- AudioLink（対応VRChatワールドで音に同期してマテリアルをアニメーション）
+- テッセレーション（自動ハイポリ化、高負荷なので映像制作向け）
+- メッシュの暗号化 (別途[AvatarEncryption](https://github.com/lilxyzw/AvaterEncryption)の導入が必要です)
+
+# ライセンス
+MIT Licenseで公開しています。同梱の`LICENSE`をご確認ください。サードパーティーのライセンスについては[Third Party Notices.md](https://github.com/lilxyzw/lilToon/blob/master/Assets/lilToon/Third%20Party%20Notices.md)をご確認ください。
+
+# 使い方 - 新規セットアップ
+1. 下記いずれかの方法でUnityにlilToonをインポート
+    i. unitypackageをUnityウィンドウにドラッグ＆ドロップでインポート
+    ii. UPMから`https://github.com/lilxyzw/lilToon.git?path=Assets/lilToon#master`をインポート
+2. Projectからマテリアルを選択
+3. Inspector上部の`Shader`から`lilToon`を選択
+4. (エディタの言語が異なる場合のみ) `Language`を`Japanese`に変更
+5. テクスチャが反映されていない場合は`メインカラー`にテクスチャを設定
+6. テクスチャを透過する場合は`Rendering Mode(透過モード)`を`カットアウト`または`半透明`に変更
+
+より詳しい設定については[マニュアル](https://lilxyzw.github.io/lilToon/)を参照してください。
+
+# 使い方 - アップデート
+0. 1.1.8以前から1.2.0以降にアップデートする場合はインポート前にlilToonフォルダを削除
+1. 下記いずれかの方法でUnityにlilToonをインポート
+    i. unitypackageをUnityウィンドウにドラッグ＆ドロップでインポート
+    ii. UPMから`https://github.com/lilxyzw/lilToon.git?path=Assets/lilToon#master`をインポート
+
+# lilToonを用いた制作物の配布手順について
+- シェーダーを同梱する場合は、[BOOTH](https://booth.pm/ja/items/3087170)や[GitHub](https://github.com/lilxyzw/lilToon/releases)のダウンロードページへのショートカットを同梱する方法か、ダウンロードしてきたそのままのシェーダーのunitypackageを同梱する方法がオススメです
+- シェーダー本体と制作物を1つのunitypackageにまとめる方法は非推奨となりました（インポート時に古いバージョンで上書きしてしまう問題が発生する可能性があるため）
+
+# よくあるトラブル
+- マテリアルエラーが発生した
+  → 上部メニューバーの`Assets/lilToon/Refresh Shaders`をクリックすると改善される場合があります
+- エディタのエラーが発生した
+  → `lilToon`フォルダを右クリックし`Reimport`すると改善される場合があります
+- アルファマスクが使えない
+  → 以下をご確認ください
+  - 透過モードが`カットアウト`もしくは`半透明`になっているか
+  - 基本色設定内のアルファマスクでテクスチャを割り当てているか
+- マテリアルを選択してもUIが表示されない・エディタにエラーがある
+  → 古いバージョンのlilToonが混在している可能性があります。`lilToon`フォルダを削除してから再度インポートし直して下さい。
+- 部位によって明るさが変わる
+  → アバターを右クリックし`[lilToon] Fix Lighting`を選択することで自動で修正されます。
+- 明るい場所で影が薄くなる
+  → `環境光の強さ`の数値を下げると明るい場所でも影が強く出ます。
+- 顔にかかる影が気になる
+  → `マスクと強度`にマスクテクスチャを指定することで部分的に影を消すことができます。
+- 輪郭線が汚くなる
+  → `マスクと太さ`にマスクテクスチャを指定することで部分的に輪郭線を消したり太さを調整したりすることができます。
+
+これ以外でトラブルが発生し不具合であることが疑われる場合は[Twitter](https://twitter.com/lil_xyzw)、[GitHub](https://github.com/lilxyzw/lilToon)、[BOOTH](https://lilxyzw.booth.pm/)のいずれかにご連絡いただければ幸いです。以下にテンプレートも用意させていただきましたのでバグ報告の際の参考にご活用下さい。
+```
+バグ:
+再現方法:
+
+# 可能であれば
+Unityバージョン:
+VRChatのワールド:
+スクリーンショット:
+コンソールログ:
+```
+
+Assets/lilToon/README.md
+# lilToon
+Version 1.3.8
+
+# Overview
+This shader is developed for services using avatars (VRChat, etc.) and has the following features.
+- Easy to use (One-click settings from presets, Saving your own presets, Color correction and exporting textures)
+- Beautiful (Prevent overexposure, Anti-aliased shading)
+- Lightweight (Automatically rewrites shaders and turns features on / off)
+- Available in various versions (Unity 2018-2022, BRP/LWRP/URP/HDRP)
+- Compatible with all lighting and similar in brightness to StandardShader
+
+# Support
+Supported Unity versions
+- Unity 2018.1 - Unity 2023.2
+
+Tested version
+- Unity 2018.1.0f2 (Built-in RP)
+- Unity 2018.4.20f1 (Built-in RP / LWRP 4.10.0 / HDRP 4.10.0)
+- Unity 2019.2.21f1 (Built-in RP / LWRP 6.9.2 / HDRP 6.9.2)
+- Unity 2019.3.0f6 (Built-in RP / URP 7.1.8 / HDRP 7.1.8)
+- Unity 2019.4.31f1 (Built-in RP / URP 7.7.1 / HDRP 7.7.1)
+- Unity 2020.3.47f1 (Built-in RP / URP 10.10.1 / HDRP 10.10.1)
+- Unity 2021.3.23f1 (Built-in RP / URP 12.1.11 / HDRP 12.1.11)
+- Unity 2022.2.15f1 (Built-in RP / URP 14.0.7 / HDRP 14.0.7)
+- Unity 2023.2.0a11 (Built-in RP / URP 16.0.1 / HDRP 16.0.1)
+
+Some older versions of Unity 2021 and 2022 have problems such as not applying transforms or not rendering materials on URP/HDRP. If you have this issue, please update to the Unity version where the bug has been fixed. ( [GameObjects doesn't get rendered when using "Unlit.Unlit_UsePass" Shader](https://issuetracker.unity3d.com/issues/sphere-gameobject-doesnt-get-rendered-when-using-unlit-dot-unlit-usepass-shader) )
+
+Supported Shader Models
+- Normal: SM4.0 / ES3.0 or later
+- Lite: SM3.0 / ES2.0 or later
+- Fur: SM4.0 / ES3.1+AEP / ES3.2 or later
+- Tessellation: SM5.0 / ES3.1+AEP / ES3.2 or later
+
+Supported Rendering Pipelines
+- Built-in Render Pipeline
+- Lightweight Render Pipeline 4.0.0 - 6.9.2
+- Universal Render Pipeline 7.0.0 - 16.0.1
+- High Definition Render Pipeline 4.0.0 - 16.0.1
+
+# Features
+- Main color x3 layers (Decal, Layer mask, Gif animation, Normal / Additive / Multiplicative / Screen blending)
+- Color correction, UV Scrolling & Rotation
+- Flexible shadows (3 shadows, SSS, Environment light compositing, AO mask to adjust the ease of shadowing)
+- Emission x2 layers (Animation, Mask, Blinking, Color change over time, Parallax)
+- Normal map x2 layers
+- Anisotropic reflection
+- Specular reflection
+- MatCap x2 (Z-axis rotation cancellation, Normal / Additive / Multiplicative / Screen blending)
+- Rim light
+- Backlight
+- Outline (Color specification by texture, Mask, Thickness based on vertex color and distance)
+- Fur, Refraction, Gem
+- Distance Clipping Canceler
+- Distance Fade (Changes color according to distance)
+- AudioLink (Animate materials in sync with sound in supported VRChat worlds)
+- Tessellation (For video production due to high load)
+- Mesh Encryption ([AvatarEncryption](https://github.com/lilxyzw/AvaterEncryption) is required)
+
+# License
+lilToon is available under the MIT License. Please refer to the `LICENSE` included in the package. For more information about third party licenses, please see [Third Party Notices.md](https://github.com/lilxyzw/lilToon/blob/master/Assets/lilToon/Third%20Party%20Notices.md).
+
+# Usage - Material Setup
+1. Import lilToon into Unity using one of the following methods.
+    i. Drag and drop unitypackage to the Unity window to import it.
+    ii. Import `https://github.com/lilxyzw/lilToon.git?path=Assets/lilToon#master` from UPM.
+2. Select a material from Project.
+3. Select `lilToon` from `Shader` at the top of Inspector.
+4. If no texture has been applied, set the texture to `Main Color`.
+5. To make the material transparent, change `Rendering Mode` to `Cutout` or `Transparent`.
+
+Please refer to the [manual](https://github.com/lilxyzw/lilToon/blob/master/Assets/lilToon/MANUAL.md) for more detailed settings.
+
+# Usage - Update
+0. If you are updating from 1.1.8 or earlier to 1.2.0 or later, delete the lilToon folder before importing
+1. Import lilToon into Unity using one of the following methods.
+    i. Drag and drop unitypackage to the Unity window to import it.
+    ii. Import `https://github.com/lilxyzw/lilToon.git?path=Assets/lilToon#master` from UPM.
+
+# How to distribute your works that use lilToon
+- If you want to include shaders, it is recommended to include a shortcut to the [BOOTH](https://booth.pm/ja/items/3087170) or [GitHub](https://github.com/lilxyzw/lilToon/releases) download page, or to include the shader unitypackage as a separate file.
+- The method of combining shaders and creations into a single unitypackage has been deprecated. (due to problems such as overwriting with an older version during import)
+
+# Common Problems
+- Material error has occurred.
+  → Clicking `Assets/lilToon/Refresh Shaders` in the top menu bar may help.
+- Editor error has occurred.
+  → Right-clicking the` lilToon` folder and `Reimport` may help.
+- Cannot use alpha mask
+  → Please check the following
+  - Set rendering mode to `Cutout` or `Transparent`
+  - Assign a texture to `Alpha Mask` in the Main Color menu
+- UI is not displayed when selecting a material / There is an error in the editor
+  → You may have a mix of older versions of lilToon. Delete the `lilToon` folder and then import unitypackage again.
+- Different meshes have different lighting.
+  → Right click on your avatar and select `[lilToon] Fix Lighting` to automatically fix this.
+- The shadows on face are dirty.
+  → You can specify a mask texture in `Mask & Strength` to partially remove shadows.
+- Outline becomes dirty.
+  → You can specify a mask texture in `Mask & Width` to partially remove outline or adjust the thickness.
+- Shadows are weak in bright places.
+  → `Environment Strength` value affects the strength of shadows in bright places.
+
+If you have any other problems and suspect a bug, please contact me on [Twitter](https://twitter.com/lil_xyzw), [GitHub](https://github.com/lilxyzw/lilToon), or [BOOTH](https://lilxyzw.booth.pm/). Please refer to the following template when reporting a bug.
+```
+Bug:
+Reproduction method:
+
+# Optional
+Unity version:
+VRChat World:
+Screenshots:
+Console logs:
+```
+
+上游附加署名（原文，包含上游完整素材库说明）：
+# Private avatar candidate
+
+Original geometry, textures and character controls remain subject to their authors’ terms. The host uses the MIT-licensed lilToon renderer. VRChat scripts, SDK binaries, platform animations and arbitrary callbacks are not bundled.
+
+See portable-conversion.json and physics-source.json for explicit adaptation limits. This package has not passed device performance testing merely because it is sealed.
+
+
+原文件许可设置（保留原文）：
+{
+  "schemaVersion": 1,
+  "sourceVersion": "1.00",
+  "sourceSHA256": "446bf08d22830f8ac8878de1219ac85d33006da32f4fcdab25d9d702638b14e6",
+  "sourceArchive": "Nozomi_1.00.zip",
+  "prefab": "Assets/Nozomi/Nozomi_1.00.prefab",
+  "variants": [
+    {
+      "package": 0,
+      "prefab": "Assets/Nozomi/Nozomi_1.00 (for dress-up).prefab"
+    },
+    {
+      "package": 0,
+      "prefab": "Assets/Nozomi/Nozomi_1.00.prefab"
+    }
+  ],
+  "baseline": {
+    "kind": "host-standing-adaptation",
+    "reason": "Source delegates its body baseline to the VRChat platform; no matching authored standing clip is present"
+  },
+  "localOnly": true
+}
+
+
+小梅 · 3.1.0
+小梅 / Plum 1.0.1
+素材原作者：Plum 1.0.1 原作者（见来源包条款）
+许可：Original author avatar terms — private local conversion
+固定来源：file:///Users/gukaifeng/Downloads/VRchat%E6%A8%A1%E5%9E%8B%E6%95%B4%E7%90%86_%E6%9C%80%E6%96%B0%E7%89%88%E6%9C%AC/Plum_v1.0.1/Plum_v1.0.1.rar
+本机个人预览素材：不得随公开版本或公开源码再分发；具体改作与分发权限见下方原模型许可。
+
+Private user-supplied avatar conversion. No public redistribution permission is implied.
+Source SHA256: d229b96cfb33c92d8013a325f57aa41e3bc4cfab827976ac35b99335fcf364d0
+
+
+
+上游附加署名（原文，包含上游完整素材库说明）：
+# Private avatar candidate
+
+Original geometry, textures and character controls remain subject to their authors’ terms. The host uses the MIT-licensed lilToon renderer. VRChat scripts, SDK binaries, platform animations and arbitrary callbacks are not bundled.
+
+See portable-conversion.json and physics-source.json for explicit adaptation limits. This package has not passed device performance testing merely because it is sealed.
+
+
+原文件许可设置（保留原文）：
+{
+  "schemaVersion": 1,
+  "sourceVersion": "1.0.1",
+  "sourceSHA256": "d229b96cfb33c92d8013a325f57aa41e3bc4cfab827976ac35b99335fcf364d0",
+  "sourceArchive": "Plum_v1.0.1.rar",
+  "prefab": "Assets/Amatousagi/Plum/Plum.prefab",
+  "variants": [
+    {
+      "package": 0,
+      "prefab": "Assets/Amatousagi/Plum/Kaihen_prefab/Plum_kaihen.prefab"
+    },
+    {
+      "package": 0,
+      "prefab": "Assets/Amatousagi/Plum/Kaihen_prefab/Plum_kaihen_kisekae.prefab"
+    },
+    {
+      "package": 0,
+      "prefab": "Assets/Amatousagi/Plum/Plum_kisekae.prefab"
+    },
+    {
+      "package": 0,
+      "prefab": "Assets/Amatousagi/Plum/Plum.prefab"
+    }
+  ],
+  "baseline": {
+    "kind": "host-standing-adaptation",
+    "reason": "Source delegates its body baseline to the VRChat platform; no matching authored standing clip is present"
+  },
+  "localOnly": true,
+  "blinkAdaptation": {
+    "sourceMorph": "vrc.Blink",
+    "timing": "host-controlled"
+  }
+}
+
+
+西卡 · 3.0.1
+西卡 / Siska 1.03
+素材原作者：Siska 1.03 原作者（见来源包条款）
+许可：Original author avatar terms — private local conversion
+固定来源：file:///Users/gukaifeng/Downloads/VRchat%E6%A8%A1%E5%9E%8B%E6%95%B4%E7%90%86_%E6%9C%80%E6%96%B0%E7%89%88%E6%9C%AC/Siska_v1.03/7543853Siska_v1.03.zip
+本机个人预览素材：不得随公开版本或公开源码再分发；具体改作与分发权限见下方原模型许可。
+
+Private user-supplied avatar conversion. No public redistribution permission is implied.
+Source SHA256: afd6353a407f28649833a59fa7484e76d1efb728e3c15a9bbb159ca8f3b24fae
+
+
+
+上游附加署名（原文，包含上游完整素材库说明）：
+# Private avatar candidate
+
+Original geometry, textures and character controls remain subject to their authors’ terms. The host uses the MIT-licensed lilToon renderer. VRChat scripts, SDK binaries, platform animations and arbitrary callbacks are not bundled.
+
+See portable-conversion.json and physics-source.json for explicit adaptation limits. This package has not passed device performance testing merely because it is sealed.
+
+
+原文件许可设置（保留原文）：
+{
+  "schemaVersion": 1,
+  "sourceVersion": "1.03",
+  "sourceSHA256": "afd6353a407f28649833a59fa7484e76d1efb728e3c15a9bbb159ca8f3b24fae",
+  "sourceArchive": "7543853Siska_v1.03.zip",
+  "prefab": "Assets/Siska/Prefab/Siska_v1.prefab",
+  "variants": [
+    {
+      "package": 0,
+      "prefab": "Assets/Siska/Prefab/Siska_v1.prefab"
+    }
+  ],
+  "baseline": {
+    "kind": "host-standing-adaptation",
+    "reason": "Source delegates its body baseline to the VRChat platform; no matching authored standing clip is present"
+  },
+  "localOnly": true
+}
+
+
+小虎 · 3.0.1
+小虎 / Torao 1.00
+素材原作者：Torao 1.00 原作者（见来源包条款）
+许可：Original author avatar terms — private local conversion
+固定来源：file:///Users/gukaifeng/Downloads/VRchat%E6%A8%A1%E5%9E%8B%E6%95%B4%E7%90%86_%E6%9C%80%E6%96%B0%E7%89%88%E6%9C%AC/-Torao-_v1.00/Torao_1.00.zip
+本机个人预览素材：不得随公开版本或公开源码再分发；具体改作与分发权限见下方原模型许可。
+
+Private user-supplied avatar conversion. No public redistribution permission is implied.
+Source SHA256: 2a8d0e13154b8852b1b83be57d8c4ca08bb324bda3404614f8c3810d034634e1
+
+
+
+上游附加署名（原文，包含上游完整素材库说明）：
+# Private avatar candidate
+
+Original geometry, textures and character controls remain subject to their authors’ terms. The host uses the MIT-licensed lilToon renderer. VRChat scripts, SDK binaries, platform animations and arbitrary callbacks are not bundled.
+
+See portable-conversion.json and physics-source.json for explicit adaptation limits. This package has not passed device performance testing merely because it is sealed.
+
+
+原文件许可设置（保留原文）：
+{
+  "schemaVersion": 1,
+  "sourceVersion": "1.00",
+  "sourceSHA256": "2a8d0e13154b8852b1b83be57d8c4ca08bb324bda3404614f8c3810d034634e1",
+  "sourceArchive": "Torao_1.00.zip",
+  "prefab": "Assets/TeraiCountry/Torao/Torao Black.prefab",
+  "variants": [
+    {
+      "package": 0,
+      "prefab": "Assets/TeraiCountry/Torao/Torao Black (for dress-up).prefab"
+    },
+    {
+      "package": 0,
+      "prefab": "Assets/TeraiCountry/Torao/Torao Black.prefab"
+    },
+    {
+      "package": 0,
+      "prefab": "Assets/TeraiCountry/Torao/Parent/Torao Parent.prefab"
+    },
+    {
+      "package": 0,
+      "prefab": "Assets/TeraiCountry/Torao/Torao White.prefab"
+    },
+    {
+      "package": 0,
+      "prefab": "Assets/TeraiCountry/Torao/Torao White (for dress-up).prefab"
+    }
+  ],
+  "baseline": {
+    "kind": "host-standing-adaptation",
+    "reason": "Source delegates its body baseline to the VRChat platform; no matching authored standing clip is present"
+  },
+  "localOnly": true
+}
+
+
 场景：清风小院 · 1.1.0
 Original geometry authored for the Xiaoban XEP integration example. Dedicated to the public domain under CC0 1.0: https://creativecommons.org/publicdomain/zero/1.0/
 
@@ -361,7 +1056,7 @@ Unless expressly provided otherwise, the Software under this license is made ava
 com.unity.film-internal-utilities 0.20.0-preview
 Film Internal Utilities copyright © 2021 Unity Technologies ApS
 
-Licensed under the Unity Companion License for Unity-dependent projects--see [Unity Companion License](http://www.unity3d.com/legal/licenses/Unity_Companion_License). 
+Licensed under the Unity Companion License for Unity-dependent projects--see [Unity Companion License](http://www.unity3d.com/legal/licenses/Unity_Companion_License).
 
 Unless expressly provided otherwise, the Software under this license is made available strictly on an “AS IS” BASIS WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED. Please review the license for details on these and other terms and conditions.
 
@@ -654,3 +1349,87 @@ anime-karin · 窗边的小发现
 }
 处理：选段、循环交叉淡化、响度调整、转码。
 
+anime-torao · 街角修理铺
+{
+  "originalTitle": "Synthwave 15k",
+  "author": "The Cynic Project / cynicmusic.com / pixelsphere.org",
+  "license": "CC0-1.0",
+  "licenseURL": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "source": "https://opengameart.org/content/calm-ambient-2-synthwave-15k",
+  "kind": "licensed-interim"
+}
+处理：选段、循环交叉淡化、响度调整、转码。
+
+anime-ichigo · 糖霜午后
+{
+  "originalTitle": "Childhood Friends",
+  "author": "Juhani Junkala / SubspaceAudio",
+  "license": "CC0-1.0",
+  "licenseURL": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "source": "https://opengameart.org/content/jrpg-pack-4-calm",
+  "kind": "licensed-interim",
+  "archiveMember": "Calm2 - Childhood Friends.ogg",
+  "archiveSHA256": "cfec70dd7ead4f5a4ebc6a1da5ad12906410ad69c43f79ec6e78c6664d6dddac"
+}
+处理：选段、循环交叉淡化、响度调整、转码。
+
+anime-mafuyu · 雪后的灯
+{
+  "originalTitle": "A Place I Call Home",
+  "author": "Juhani Junkala / SubspaceAudio",
+  "license": "CC0-1.0",
+  "licenseURL": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "source": "https://opengameart.org/content/jrpg-pack-4-calm",
+  "kind": "licensed-interim",
+  "archiveMember": "Calm1 - A Place I Call Home.ogg",
+  "archiveSHA256": "cfec70dd7ead4f5a4ebc6a1da5ad12906410ad69c43f79ec6e78c6664d6dddac"
+}
+处理：选段、循环交叉淡化、响度调整、转码。
+
+anime-lime · 新叶手记
+{
+  "originalTitle": "calm theme",
+  "author": "pebonius",
+  "license": "CC0-1.0",
+  "licenseURL": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "source": "https://opengameart.org/content/calm-theme",
+  "kind": "licensed-interim"
+}
+处理：选段、循环交叉淡化、响度调整、转码。
+
+anime-nozomi · 望见星光
+{
+  "originalTitle": "Starfield Romance",
+  "author": "Yoiyami",
+  "license": "CC0-1.0",
+  "licenseURL": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "source": "https://opengameart.org/content/starfield-romance-%E2%80%93-cc0-ambient-emotional-space-theme-yoiyami-blue-series-%E2%80%93-no3",
+  "kind": "licensed-interim"
+}
+处理：选段、循环交叉淡化、响度调整、转码。
+
+anime-siska · 旧物与晚霞
+{
+  "originalTitle": "Peaceful Days",
+  "author": "Juhani Junkala / SubspaceAudio",
+  "license": "CC0-1.0",
+  "licenseURL": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "source": "https://opengameart.org/content/jrpg-pack-4-calm",
+  "kind": "licensed-interim",
+  "archiveMember": "Calm3 - Peaceful Days.ogg",
+  "archiveSHA256": "cfec70dd7ead4f5a4ebc6a1da5ad12906410ad69c43f79ec6e78c6664d6dddac"
+}
+处理：选段、循环交叉淡化、响度调整、转码。
+
+anime-plum · 梅巷的晚茶
+{
+  "originalTitle": "Summer Memories",
+  "author": "Juhani Junkala / SubspaceAudio",
+  "license": "CC0-1.0",
+  "licenseURL": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "source": "https://opengameart.org/content/jrpg-pack-4-calm",
+  "kind": "licensed-interim",
+  "archiveMember": "Calm5 - Summer Memories.ogg",
+  "archiveSHA256": "cfec70dd7ead4f5a4ebc6a1da5ad12906410ad69c43f79ec6e78c6664d6dddac"
+}
+处理：选段、循环交叉淡化、响度调整、转码。

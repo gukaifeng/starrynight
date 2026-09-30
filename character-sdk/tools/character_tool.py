@@ -170,7 +170,11 @@ def validate(folder, builtin=False):
     validate_avatar(root,m,read_json,safe_path,inspect_glb)
     vertices=sum(doc['accessors'][p['attributes']['POSITION']]['count'] for mesh in doc.get('meshes',[]) for p in mesh['primitives'])
     primitives=sum(len(mesh['primitives']) for mesh in doc.get('meshes',[]))
-    if vertices>300000 or primitives>32: raise ValueError('mobile source budget exceeded (300k vertices / 32 primitives)')
+    # Portable author avatars retain alternate clothes/accessories. Count all
+    # primitives for the storage ceiling; runtime active draws/FPS are reviewed
+    # separately. 33 stored primitives must not reject a 30-draw default outfit.
+    primitive_limit=64 if 'core.avatar-controls@1' in m['compatibility']['required'] else 32
+    if vertices>300000 or primitives>primitive_limit: raise ValueError(f'mobile source budget exceeded (300k vertices / {primitive_limit} primitives)')
     if any(len(s.get('joints',[]))>256 for s in doc.get('skins',[])): raise ValueError('skin exceeds 256 joints')
     warnings.append(f'geometry preflight: {vertices} vertices, {primitives} primitives; device FPS still needs measurement')
     return m,warnings

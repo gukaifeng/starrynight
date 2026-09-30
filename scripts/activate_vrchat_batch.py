@@ -51,7 +51,7 @@ def main():
             collections['collections'].append(dict(schemaVersion=1,id='app.starry.collections.'+identity,version='1.1.0',modelID=identity,
                 modelPackageID=manifest['packageId'],modelPackageVersion=manifest['packageVersion'],actions=[],environments=[scene],
                 voices=[dict(id=identity+'/natural',title='自然聊',detail='角色专属音色',engine='aliyun-character-v1',speed=1)],
-                music=[dict(id=identity+'/moon'),dict(id=identity+'/breeze')],defaultEnvironment=scene,defaultVoice=identity+'/natural',defaultMusic=identity+'/moon'))
+                music=[dict(id=identity+'/theme')],defaultEnvironment=scene,defaultVoice=identity+'/natural',defaultMusic=identity+'/theme'))
         collection=next(c for c in collections['collections'] if c['modelID']==identity)
         collection['modelPackageVersion']=manifest['packageVersion']
         asset='Cover_'+identity.replace('-','_');folder=ROOT/'ios/CharacterHost/Assets.xcassets'/(asset+'.imageset');folder.mkdir(exist_ok=True)

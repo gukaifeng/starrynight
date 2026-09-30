@@ -138,6 +138,9 @@ public static class BuildIos
     // in the App after a graphics-free export, never regenerate thumbnails there.
     public static void ExportPreparedSimulator() => Export(true,true);
     public static void ExportPreparedDevice() => Export(false,true);
+    // Headless exports isolate scene/thumbnail rendering from the subsequent
+    // URP build callback initialization. Both phases still validate the scene.
+    public static void PrepareExport() { Setup();Validate();Thumbnail(); }
 
     [MenuItem("Model Space/Validate viewer")]
     public static void Validate()
@@ -193,7 +196,11 @@ public static class BuildIos
             }
             if (character.GetComponentsInChildren<Renderer>(true).Any(r=>r.sharedMaterials.Any(m=>!m || !m.shader)))
                 throw new Exception("Character material invalid: " + character.modelId);
-            if (character.RestBounds().size.y < 1) throw new Exception("Character bounds invalid");
+            // Source avatars include intentionally small bodies. Portrait
+            // calibration uses each body's measured bounds, not a 1 m minimum.
+            var restSize=character.RestBounds().size;
+            if (!float.IsFinite(restSize.sqrMagnitude) || restSize.y<.05f || restSize.y>20f || restSize.x<=0 || restSize.z<=0)
+                throw new Exception("Character bounds invalid: "+character.modelId+" "+restSize);
         }
         var renderers = viewers[0].model.GetComponentsInChildren<Renderer>();
         if (renderers.Length == 0 || renderers.Any(r=>r.sharedMaterials.Any(m=>!m || !m.shader))) throw new Exception("Model/material invalid");

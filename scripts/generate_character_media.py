@@ -34,13 +34,24 @@ def save(path, data):
 def reference(role):
     folder = ROOT / 'ios/CharacterHost/Assets.xcassets' / ('Cover_' + role.replace('-', '_') + '.imageset')
     files = sorted(folder.glob('source.*'))
+    if not files:
+        plan=json.loads((ROOT/'.local/vrchat-batch/plan.json').read_text())
+        row=next((r for r in plan['models'] if r['id']==role),None)
+        if row and row.get('cover'):
+            source=Path(plan['sourceRoot'])/row['sourceFolder']/row['cover']
+            if source.is_file():return source
     if len(files) != 1: raise ValueError('Missing unique author reference: ' + role)
     return files[0]
 
 def prompt(recipe, kind):
     profile = PROFILES[recipe['id']]
     persona = json.dumps({k:v for k,v in profile.items() if k in ('name','personality','background','interests','occupation')}, ensure_ascii=False)
-    identity = '参考图只用于角色身份、造型和配色。重新创作一张独立的精致二次元插画，细腻的3D立绘质感，柔软但清晰的发丝、布料、眼睛高光，可信柔光和环境反射。保持角色年龄观感、原服饰及辨识度，亲切自然、适合全年龄。' + recipe['appearance'] + '。角色设定：' + persona
+    # Structured biographies make image models render a character-sheet table.
+    # Translate only useful visual context into prose; keep the full biography
+    # for dialogue/music. Names and profile field labels must not become text.
+    traits = profile.get('personality', {}).get('traits', [])
+    visual_mood = '、'.join(traits) if isinstance(traits,list) else str(traits)
+    identity = '绘制纯插画，画面中不出现任何文字、字母、说明栏、表格、标题或人物设定卡。参考图只用于角色身份、造型和配色，不复制参考图的文字或排版。重新创作一张独立的精致二次元插画，细腻的3D立绘质感，柔软但清晰的发丝、布料、眼睛高光，可信柔光和环境反射。保持角色年龄观感、原服饰及辨识度，亲切自然、适合全年龄。' + recipe['appearance'] + '。神态氛围：' + visual_mood
     if kind == 'cover':
         return identity + '。竖版沉浸式角色封面。上半身特写，头顶与耳朵完整，脸在画面水平中心、垂直约32%处，人物占画面70%，目光自然看向观者，轻微微笑，松弛而灵动。场景：' + recipe['setting'] + '。背景略虚化但保留丰富细节，用光突出脸部。无文字、无标志、无边框、无分栏。'
     if kind == 'avatar':
@@ -61,6 +72,7 @@ def request_payload(recipe, kind, model, ref):
         content.insert(0, {'image':encoded})
     parameters = {'size':SIZES[kind], 'n':1,'prompt_extend':False,'watermark':False}
     if kind == 'background': parameters['negative_prompt'] = '人物，人形，女孩，男孩，动物，脸，肖像，照片，雕像，文字，水印，标志'
+    else: parameters['negative_prompt'] = '文字，英文，标题，水印，标志，表格，人物设定表，分栏，排版，信息卡'
     return {'model':model,'input':{'messages':[{'role':'user','content':content}]}, 'parameters':parameters}
 
 def download(client, url):
@@ -93,6 +105,7 @@ def generate(recipe, kind, catalog, settings, client, retry=False):
         # Retain previous successful outputs when the recipe changes.
         backup = folder / 'revisions' / (old['fingerprint'] + path.suffix)
         save(backup, path.read_bytes())
+        save(backup.with_suffix('.json'), receipt.read_bytes())
     record.update(fingerprint=fingerprint,status='submitted',created=time.time())
     save(receipt, json.dumps(record,ensure_ascii=False,indent=2).encode())
     endpoint = '/api/v1/services/audio/music/generation' if kind == 'music' else '/api/v1/services/aigc/multimodal-generation/generation'
