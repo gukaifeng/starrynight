@@ -37,6 +37,8 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
     @ObservationIgnored private var retainedReady = false
     @ObservationIgnored private var prediction = CharacterPrediction()
     @ObservationIgnored private var prewarmTask: Task<Void,Never>?
+    @ObservationIgnored private var entryPreparationTask:Task<Void,Never>?
+    @ObservationIgnored private var entryPreparation:(api:CharacterAI,body:[String:Any])?
     @ObservationIgnored private var warmedKeys = Set<String>()
     @ObservationIgnored private var prewarmRequest: (id:String,key:String)?
     private var predictionDefaults: UserDefaults {
@@ -51,14 +53,47 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
         companion?.stop(); overlay?.setCompanion(nil); companion = nil; retainedAccount = nil
         retainedReady = false
     }
-    private func cancelPrewarm() {
+    private func cancelPrewarm(preservingEntryFor character:String? = nil) {
         prewarmTask?.cancel(); prewarmTask = nil; prewarmRequest = nil
+        cancelEntryPreparation(preserveGeneration:character != nil && entryPreparation?.api.characterID==character && entryPreparation?.api.accountID==companionStore.accountID)
+    }
+    private func cancelEntryPreparation(preserveGeneration:Bool = false) {
+        entryPreparationTask?.cancel();entryPreparationTask=nil
+        if let pending=entryPreparation {
+            entryPreparation=nil
+            if !preserveGeneration {Task {await pending.api.pauseReactions(pending.body)}}
+        }
+    }
+    private func prepareEntry(_ model:ModelDescriptor,trigger:String,delay:Double) {
+        cancelEntryPreparation()
+        guard CharacterAI.reactionPreparationEnabled,
+              !(companionStore.accountID=="guest" && companionStore.guestLimitReached) else {return}
+        let owner=companionStore.accountID
+        entryPreparationTask=Task { @MainActor [weak self] in
+            do {
+                try await Task.sleep(for:.seconds(delay))
+                guard let self,self.active,self.companionStore.accountID==owner else {return}
+                let api=CharacterAI(accountID:owner,characterID:model.id)
+                var body=CompanionSession.requestBody(store:self.companionStore,model:model,text:"",trigger:trigger)
+                body["preparation_scope"]="entry"
+                self.entryPreparation=(api,body)
+                _ = try await api.prepareReactions(body)
+            } catch { /* A cold/missing draft uses the foreground AI path. */ }
+        }
     }
     private func schedulePrewarm() {
         cancelPrewarm()
-        guard ready, active, !desiredVisible, !ProcessInfo.processInfo.isLowPowerModeEnabled,
+        guard active, !desiredVisible, !ProcessInfo.processInfo.isLowPowerModeEnabled,
               ProcessInfo.processInfo.thermalState == .nominal else { return }
         let records = companionStore.currentRecords
+        // Reuse the existing recency/frequency/transition predictor; prepare only
+        // one likely next role's entry greeting, never the entire marketplace.
+        if let id=prediction.next(after:library.lastCharacter,candidates:library.discover.filter {$0.id != selectedModel.id}.map(\.id),
+            dialogueCounts:records.mapValues {$0.messages.filter {$0.role=="user"}.count},
+            recent:records.mapValues {$0.messages.last?.date ?? .distantPast}),let model=library.model(id) {
+            prepareEntry(model,trigger:"characterSwitch",delay:1.5)
+        }
+        guard ready else {return}
         let candidates = library.discover.filter { model in
             model.id != selectedModel.id && !warmedKeys.contains(CharacterPortraitStore.key(model:model,profile:profile(for:model)))
         }
@@ -283,7 +318,7 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
     }
     func openCompanion(_ model: ModelDescriptor, greetingReason:ConversationEntryReason = .characterSelection) {
         guard page == .home else { return }
-        cancelPrewarm()
+        cancelPrewarm(preservingEntryFor:model.id)
         pendingGreeting = ConversationEntry(reason:greetingReason,characterID:model.id,accountID:companionStore.accountID)
         conversationVisible = false
         if let session = companion, session.model.id == model.id, retainedAccount == companionStore.accountID, ready, retainedReady {
@@ -303,6 +338,8 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
             return await self.applyPosture(value)
         }
         companion = session
+        // Network preparation overlaps the 3D load, but never delays showing it.
+        prepareEntry(model,trigger:greetingReason == .appLaunch ? "appLaunch" : "characterSwitch",delay:0)
         applyPendingMessage()
         openViewer(model,asCompanion:true)
     }
@@ -687,6 +724,10 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
               let entry = pendingGreeting, let companion,
               entry.characterID == companion.model.id, entry.accountID == companionStore.accountID else { return }
         pendingGreeting = nil
+        if let preparation=entryPreparation,preparation.api.characterID==companion.model.id {
+            companion.adoptPreparationLease(preparation.body["request_id"] as? String)
+        }
+        cancelEntryPreparation(preserveGeneration:true)
         companion.enterConversation(entry)
     }
     private func preparePresentation() {

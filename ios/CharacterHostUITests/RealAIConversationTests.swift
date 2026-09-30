@@ -101,6 +101,69 @@ final class RealAIConversationTests: XCTestCase {
         XCTAssertTrue(app.buttons["customizationButton"].waitForExistence(timeout:65))
         XCTAssertTrue(app.staticTexts["自动测试已关闭付费 AI 调用。"].waitForExistence(timeout:10))
         XCTAssertEqual(app.staticTexts.matching(identifier:"assistantMessage").count,0)
+        capture("compact-error-in-tools-row",app)
+        let inputY=app.textViews["chatInput"].frame.minY
+        let chatHeight=app.scrollViews["chatMessages"].frame.height
+        app.buttons["关闭提示"].tap()
+        XCTAssertTrue(app.staticTexts["自动测试已关闭付费 AI 调用。"].waitForNonExistence(timeout:3))
+        XCTAssertEqual(app.textViews["chatInput"].frame.minY,inputY,accuracy:1)
+        XCTAssertEqual(app.scrollViews["chatMessages"].frame.height,chatHeight,accuracy:1)
+        app.terminate()
+    }
+    @MainActor func testSmartRepliesStayAboveInputAndTabBar() {
+        continueAfterFailure=false
+        let app=XCUIApplication()
+        app.launchArguments=["--ui-testing","--companion-testing","--auth-testing","--smart-reply-layout-fixture"]
+        app.launch()
+        XCTAssertTrue(app.buttons["smartReplyButton"].waitForExistence(timeout:65))
+        XCTAssertTrue(app.staticTexts["自动测试已关闭付费 AI 调用。"].waitForExistence(timeout:10))
+        app.buttons["smartReplyButton"].tap()
+        let input=app.textViews["chatInput"]
+        for index in 0..<3 {
+            let choice=app.buttons["smartReplyOption-\(index)"]
+            XCTAssertTrue(choice.waitForExistence(timeout:5))
+            XCTAssertTrue(choice.isHittable)
+            XCTAssertLessThan(choice.frame.maxY,input.frame.minY-4,"Every choice must remain above the input and tab bar")
+            XCTAssertGreaterThan(choice.frame.minY,app.buttons["customizationButton"].frame.maxY)
+        }
+        capture("smart-replies-fully-visible-above-input",app)
+        app.buttons["关闭智能回复"].tap()
+        XCTAssertTrue(app.buttons["smartReplyOption-0"].waitForNonExistence(timeout:3))
+        XCTAssertTrue(input.isHittable)
+    }
+    @MainActor func testPreparedPinchUsesRealAIAndReadyAudio() throws {
+        guard ProcessInfo.processInfo.environment["STARRY_LIVE_AI_TESTS"]=="1" else {
+            throw XCTSkip("Paid reaction preparation is explicitly opt-in.")
+        }
+        continueAfterFailure=false
+        let app=XCUIApplication()
+        app.launchArguments=["--ui-testing","--companion-testing","--auth-testing","--live-ai","--live-reaction-prewarm"]
+        app.launch();dismissLocalNetworkAlert()
+        XCTAssertTrue(app.buttons["customizationButton"].waitForExistence(timeout:65))
+        waitForRealVoice(app)
+        app.waitForCharacter({state in
+            let ready=state["preparedReactionReady"] as? [String:Int] ?? [:]
+            return ["shake","pinch_in","pinch_out","idle","app_launch","return"].allSatisfy {ready[$0,default:0]==1}
+        },timeout:120)
+        capture("prepared-real-ai-all-gesture-pools",app)
+        let before=app.characterRuntime
+        let center=CGPoint(x:(before["headX"] as? Double ?? 0.5)*app.frame.width,
+                           y:(before["headY"] as? Double ?? 0.3)*app.frame.height)
+        let done=expectation(description:"outward pinch from current portrait")
+        SNSynthesizePreviewPinch(center,1.8) {error in XCTAssertNil(error);done.fulfill()}
+        wait(for:[done],timeout:8)
+        app.waitForCharacter({($0["preparedReactionHits"] as? Int ?? 0)>(before["preparedReactionHits"] as? Int ?? 0)},timeout:5)
+        XCTAssertEqual(app.characterRuntime["lastModelInteraction"] as? String,"pinch_out")
+        XCTAssertEqual(app.characterRuntime["userMessageCount"] as? Int,0,"A physical gesture must not invent a user message")
+        waitForRealVoice(app)
+        capture("prepared-pinch-consumed-with-real-pcm",app)
+        let greetings=app.characterRuntime["greetingCount"] as? Int ?? 0
+        app.terminate()
+        app.launchArguments.append("--keep-companion-data");app.launch()
+        XCTAssertTrue(app.buttons["customizationButton"].waitForExistence(timeout:65))
+        app.waitForCharacter({($0["greetingCount"] as? Int ?? 0)>greetings && ($0["preparedReactionHits"] as? Int ?? 0)>0},timeout:10)
+        waitForRealVoice(app)
+        capture("prepared-app-return-with-real-pcm",app)
         app.terminate()
     }
     @MainActor private func waitForRealVoice(_ app:XCUIApplication) {
@@ -111,6 +174,28 @@ final class RealAIConversationTests: XCTestCase {
         XCTAssertEqual(XCTWaiter.wait(for:[XCTNSPredicateExpectation(predicate:ready,object:nil)],timeout:85),.completed,
             "A completed native PCM playback must report measured duration")
         XCTAssertGreaterThan(controls.count,0)
+    }
+    @MainActor func testSmartReplyChoiceUsesPreparedRealAnswer() throws {
+        guard ProcessInfo.processInfo.environment["STARRY_LIVE_AI_TESTS"]=="1" else {throw XCTSkip("Paid AI is opt-in.")}
+        continueAfterFailure=false
+        let app=XCUIApplication()
+        app.launchArguments=["--ui-testing","--companion-testing","--auth-testing","--live-ai","--live-smart-replies","--live-reaction-prewarm","--keep-companion-data"]
+        app.launch();dismissLocalNetworkAlert()
+        XCTAssertTrue(app.buttons["customizationButton"].waitForExistence(timeout:65))
+        app.waitForCharacter({($0["quickReplyCount"] as? Int ?? 0)==3},timeout:50)
+        waitForRealVoice(app)
+        app.buttons["smartReplyButton"].tap()
+        for index in 0..<3 {XCTAssertTrue(app.buttons["smartReplyOption-\(index)"].waitForExistence(timeout:5))}
+        capture("smart-replies-ranked-options",app)
+        let choice=app.buttons["smartReplyOption-0"].label
+        let before=app.characterRuntime
+        app.buttons["smartReplyOption-0"].tap()
+        app.waitForCharacter({($0["preparedReactionHits"] as? Int ?? 0)>(before["preparedReactionHits"] as? Int ?? 0)},timeout:25)
+        XCTAssertEqual(app.characterRuntime["userMessageCount"] as? Int,(before["userMessageCount"] as? Int ?? 0)+1)
+        XCTAssertTrue(app.staticTexts.matching(identifier:"userMessage").allElementsBoundByIndex.contains {$0.label==choice})
+        waitForRealVoice(app)
+        capture("smart-reply-selected-pair-and-pcm",app)
+        app.terminate()
     }
     @MainActor private func dismissLocalNetworkAlert() {
         let springboard=XCUIApplication(bundleIdentifier:"com.apple.springboard")

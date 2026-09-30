@@ -33,6 +33,7 @@ struct CompanionChatView: View {
     @State private var bottomScrollTask: Task<Void,Never>?
     @Namespace private var chatViewport
     @State private var editing = false
+    @State private var smartRepliesPresented=false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     private var interfaceAnimation: Animation { reduceMotion ? .easeInOut(duration:0.18) : .spring(response:0.42,dampingFraction:0.9) }
@@ -41,24 +42,28 @@ struct CompanionChatView: View {
         GeometryReader { geometry in
           VStack(spacing:0) {
             messages.simultaneousGesture(TapGesture().onEnded { editing = false }).zIndex(2)
-            if let text = session.notice ?? session.store.error ?? session.speech.error {
-                HStack(spacing:10) {
-                    Text(text).font(.caption).lineLimit(geometry.size.height < 240 ? 2 : nil).fixedSize(horizontal:false,vertical:true)
-                    Spacer(minLength:0)
-                    Button { session.notice = nil; session.speech.error = nil; session.store.error = nil } label: { Image(systemName:"xmark").frame(width:32,height:32) }
-                        .accessibilityLabel("关闭提示")
-                }.padding(12).background(Theme.peach.opacity(0.3),in:RoundedRectangle(cornerRadius:16)).padding(.horizontal,20).accessibilityIdentifier("chatNotice")
-            }
             if geometry.size.height >= 360 && session.record.messages.isEmpty && !editing && !session.generating && !session.speech.isRecording { topics.transition(.opacity.combined(with:.move(edge:.bottom))) }
             HStack(spacing:2) {
+                if let text = session.notice ?? session.store.error ?? session.speech.error {
+                    HStack(spacing:5) {
+                        Text(text).font(.system(size:11)).lineLimit(2)
+                            .accessibilityLabel(text)
+                        Button { session.notice = nil; session.speech.error = nil; session.store.error = nil } label: {
+                            Image(systemName:"xmark").font(.system(size:9,weight:.medium)).frame(width:30,height:30)
+                        }.accessibilityLabel("关闭提示")
+                    }.padding(.leading,9).foregroundStyle(Theme.peach.opacity(0.9))
+                        .frame(maxHeight:32).background(Theme.peach.opacity(0.1),in:RoundedRectangle(cornerRadius:10))
+                        .accessibilityIdentifier("chatNotice").conversationHitRegion(.control,id:"chatNotice")
+                        .transition(.opacity)
+                }
                 Spacer()
                 Button { editing = false; onPerformance?() } label: {
                     Image(systemName:"sparkles").font(.system(size:14,weight:.regular))
                         .frame(width:36,height:36).contentShape(Rectangle())
                 }.buttonStyle(.plain).accessibilityLabel("角色表现").accessibilityIdentifier("conversationPerformanceButton")
                 ConversationSoundButton(session:session,onSettings:{ editing = false; onSoundSettings?() })
-            }.foregroundStyle(Theme.ink.opacity(0.56)).padding(.trailing,23).frame(height:34)
-            composer(compact:geometry.size.height < 220)
+            }.foregroundStyle(Theme.ink.opacity(0.56)).padding(.leading,22).padding(.trailing,23).frame(height:34)
+            composer(compact:geometry.size.height < 220).zIndex(smartRepliesPresented ? 4 : 0)
 
           }
         }
@@ -75,6 +80,7 @@ struct CompanionChatView: View {
         .onChange(of:session.store.chatDisplay) { onDisplayChanged?() }
         .onChange(of:session.dismissKeyboardRequest) { editing = false }
         .onChange(of:editing) {
+            if editing {smartRepliesPresented=false}
             if editing && session.characterEditorPresented { editing = false }
             onEditingChanged?(editing)
         }
@@ -183,6 +189,18 @@ struct CompanionChatView: View {
     }
     private func composer(compact:Bool) -> some View {
         HStack(alignment:.bottom,spacing:2) {
+            Button {
+                editing=false
+                withAnimation(interfaceAnimation) {smartRepliesPresented.toggle()}
+                if smartRepliesPresented && session.quickReplies.isEmpty && !session.quickRepliesLoading {session.requestQuickReplies()}
+            } label: {
+                Image(systemName:"sparkles").font(.system(size:16,weight:.light))
+                    .foregroundStyle(Theme.gradient.opacity(smartRepliesPresented ? 1 : 0.7))
+                    .frame(width:30,height:32)
+                    .background(Theme.ink.opacity(smartRepliesPresented ? 0.10 : 0.035),in:RoundedRectangle(cornerRadius:11))
+                    .frame(width:39,height:44).contentShape(Rectangle())
+            }.buttonStyle(.plain).padding(.leading,5)
+                .accessibilityLabel("智能回复").accessibilityIdentifier("smartReplyButton")
             ChatComposerInput(text:$session.input,isFocused:$editing,fontSize:chatFontSize,
                               foreground:UIColor(Theme.ink),accent:UIColor(Theme.accent),
                               maxLines:compact ? 1 : 3,isEnabled:!session.characterEditorPresented,onSend:send)
@@ -193,7 +211,7 @@ struct CompanionChatView: View {
                             .allowsHitTesting(false).accessibilityHidden(true)
                     }
                 }
-                .padding(.leading,16).padding(.trailing,4).padding(.vertical,12)
+                .padding(.leading,3).padding(.trailing,4).padding(.vertical,12)
             Button {
                 editing = false
                 if !session.speech.isRecording { session.stop() }
@@ -228,7 +246,54 @@ struct CompanionChatView: View {
                 }
             }
             .padding(.horizontal,20)
+            .overlay {
+                GeometryReader { composer in
+                    if smartRepliesPresented {
+                        Color.clear.overlay(alignment:.bottom) {
+                            smartRepliesPanel.padding(.horizontal,22)
+                                .fixedSize(horizontal:false,vertical:true)
+                                .offset(y:-composer.size.height-8)
+                                .transition(.opacity.combined(with:.offset(y:8)))
+                        }
+                    }
+                }
+            }
+            .onChange(of:session.quickReplySource) {if session.quickReplySource==nil {smartRepliesPresented=false}}
 
+    }
+    private var smartRepliesPanel:some View {
+        VStack(alignment:.leading,spacing:5) {
+            HStack {
+                Text("接着聊").font(.system(size:12,weight:.medium)).foregroundStyle(Theme.secondary)
+                Spacer()
+                Button {withAnimation(interfaceAnimation) {smartRepliesPresented=false}} label: {
+                    Image(systemName:"xmark").font(.system(size:10,weight:.medium)).frame(width:28,height:28)
+                }.buttonStyle(.plain).accessibilityLabel("关闭智能回复")
+            }.padding(.leading,8)
+            if session.quickReplies.isEmpty {
+                HStack(spacing:9) {
+                    if session.quickRepliesLoading {ProgressView().controlSize(.small)}
+                    Text(session.quickRepliesLoading ? "想几个适合你的回答…" : "聊起来后，这里会有适合你的接话。")
+                        .font(.system(size:12)).foregroundStyle(Theme.secondary)
+                }.padding(10)
+            }
+            ForEach(Array(session.quickReplies.enumerated()),id:\.element.id) {index,option in
+                Button {
+                    withAnimation(interfaceAnimation) {smartRepliesPresented=false}
+                    editing=false;session.clearMessageFocus();scrollState.returnToLatest();session.sendSuggested(option)
+                } label: {
+                    HStack(spacing:10) {
+                        Text(option.text).font(.system(size:14)).lineLimit(2).multilineTextAlignment(.leading)
+                        Spacer(minLength:4)
+                        Image(systemName:"arrow.up.right").font(.system(size:10,weight:.medium)).foregroundStyle(Theme.secondary.opacity(0.7))
+                    }.padding(.horizontal,12).padding(.vertical,10).frame(maxWidth:.infinity,alignment:.leading)
+                        .background(Theme.ink.opacity(index==0 ? 0.075 : 0.035),in:RoundedRectangle(cornerRadius:12))
+                }.buttonStyle(.plain).accessibilityLabel(option.text).accessibilityIdentifier("smartReplyOption-\(index)")
+            }
+        }.padding(9).background(Theme.surface.opacity(reduceTransparency ? 1 : 0.96),in:RoundedRectangle(cornerRadius:20))
+            .overlay(RoundedRectangle(cornerRadius:20).stroke(Theme.gradient.opacity(0.24),lineWidth:0.65))
+            .shadow(color:.black.opacity(0.18),radius:16,y:5)
+            .conversationHitRegion(.control,id:"smartRepliesPanel")
     }
     private var canSend: Bool { !session.input.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty }
 

@@ -14,10 +14,13 @@ from .streams import TurnStreams
 from .speech_text import audio_key
 from .public_profiles import public_profile
 from .inspection import report as inspection_report
+from .reaction_pool import ReactionPool
+from .schemas import PreparationRequest,QuickReplyRequest
 
 def create_app(settings=None,provider=None):
     settings=settings or Settings.load();store=Store(settings.data_dir/'state.sqlite3')
     provider=provider or Provider(settings,store);engine=Orchestrator(settings,store,provider)
+    reactions=ReactionPool(engine);engine.reactions=reactions
     busy=set(); turns=TurnStreams()
     @asynccontextmanager
     async def lifespan(app):
@@ -30,9 +33,10 @@ def create_app(settings=None,provider=None):
         finally:
             warming.cancel()
             await asyncio.gather(warming,return_exceptions=True)
-            await turns.close();await provider.close();store.db.close()
+            await reactions.close();await turns.close();await provider.close();store.db.close()
     app=FastAPI(title='StarryNight Character Gateway',version='1.2',lifespan=lifespan,docs_url=None,redoc_url=None)
     app.state.store=store;app.state.engine=engine;app.state.turns=turns
+    app.state.reactions=reactions
     def owner(headers):
         token=headers.get('authorization','').removeprefix('Bearer ')
         if not settings.client_token or not hmac.compare_digest(token,settings.client_token):raise HTTPException(401,'UNAUTHORIZED')
@@ -76,21 +80,48 @@ def create_app(settings=None,provider=None):
         if mode=='timeline-v2':body.timeline_reply=True
         body.parallel_performance=body.timeline_reply and request.headers.get('x-starry-performance-mode')=='parallel-v1'
         return await turns.start(who+':'+character,str(body.request_id),lambda: engine.reply(who,body),replace=body.trigger!='idle')
+    @app.post('/v1/conversations/{character}/reactions/prepare')
+    async def prepare_reactions(character:str,body:PreparationRequest,request:HTTPRequest):
+        who=owner(request.headers)
+        if character!=body.character_id:raise HTTPException(400,'CHARACTER_MISMATCH')
+        return reactions.prepare(who,body)
+    @app.post('/v1/conversations/{character}/reactions/pause')
+    async def pause_reactions(character:str,body:PreparationRequest,request:HTTPRequest):
+        who=owner(request.headers)
+        if character!=body.character_id:raise HTTPException(400,'CHARACTER_MISMATCH')
+        await reactions.pause(who,character,lease=str(body.request_id))
+        return dict(paused=True)
+    @app.post('/v1/conversations/{character}/reactions/status')
+    async def reaction_status(character:str,body:PreparationRequest,request:HTTPRequest):
+        who=owner(request.headers)
+        if character!=body.character_id:raise HTTPException(400,'CHARACTER_MISMATCH')
+        return reactions.status(who,body)
     @app.post('/v1/conversations/{character}/messages/{message_id}/audio')
     async def replay(character:str,message_id:UUID,request:HTTPRequest):
         who=owner(request.headers)
         row=store.db.execute("SELECT data FROM messages WHERE id=? AND owner=? AND character=? AND role='assistant'",(str(message_id),who,character)).fetchone()
         if not row:raise HTTPException(404,'MESSAGE_NOT_FOUND')
         return await turns.start(who+':'+character,'audio:'+str(message_id),lambda: engine.audio(who,character,json.loads(row[0]),True))
+    @app.post('/v1/conversations/{character}/suggestions/{operation}')
+    async def suggestions(character:str,operation:str,body:QuickReplyRequest,request:HTTPRequest):
+        who=owner(request.headers)
+        if character!=body.character_id:raise HTTPException(400,'CHARACTER_MISMATCH')
+        if operation=='prepare':return reactions.quick.prepare(who,body)
+        if operation=='status':return reactions.quick.status(who,body)
+        raise HTTPException(404)
     @app.delete('/v1/conversations/{character}/messages')
     async def clear_messages(character:str,request:HTTPRequest):
         who=owner(request.headers)
         if character not in PROFILES:raise HTTPException(404)
         await turns.cancel(who+':'+character)
+        await reactions.pause(who,character)
+        reactions.quick.discard(who,character)
         voice=store.get('voice','system',character,{})
         rows=store.db.execute("SELECT data FROM messages WHERE owner=? AND character=? AND role='assistant'",(who,character)).fetchall()
+        drafts=store.db.execute('SELECT data FROM reaction_drafts WHERE owner=? AND character=?',(who,character)).fetchall()
+        rows=list(rows)+[dict(data=json.dumps(json.loads(row['data'])['script'])) for row in drafts]
         for row in rows:
-            script=json.loads(row[0])
+            script=json.loads(row['data'])
             for beat in script.get('beats',[]):
                 for revision in ('', 'spoken-v2'):
                     key=audio_key(who,character,voice.get('voice_id',''),script['message_id'],beat['beat_id'],revision=revision)
@@ -99,6 +130,7 @@ def create_app(settings=None,provider=None):
             store.clear_novelty(who,character)
             store.db.execute('DELETE FROM messages WHERE owner=? AND character=?',(who,character))
             store.db.execute('DELETE FROM requests WHERE owner=? AND character=?',(who,character))
+            store.db.execute('DELETE FROM reaction_drafts WHERE owner=? AND character=?',(who,character))
             store.db.execute("DELETE FROM records WHERE kind='greetings' AND owner=? AND character=?",(who,character))
             store.db.execute("DELETE FROM records WHERE kind='inspection_requests' AND owner=? AND character=?",(who,character))
             store.db.execute("DELETE FROM records WHERE kind='reply_flow_review' AND owner=? AND character=?",(who,character))

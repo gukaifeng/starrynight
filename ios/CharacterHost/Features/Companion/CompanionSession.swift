@@ -49,6 +49,16 @@ final class CompanionSession {
     @ObservationIgnored private var silentVisualTask: Task<Void,Never>?
     @ObservationIgnored private var shakeTask: Task<Void,Never>?
     @ObservationIgnored private var revealTask: Task<Void,Never>?
+    @ObservationIgnored private var reactionPreparationTask: Task<Void,Never>?
+    @ObservationIgnored private var reactionPreparationLease:String?
+    @ObservationIgnored private var quickReplyTask:Task<Void,Never>?
+    private(set) var quickReplies:[AIQuickReply]=[]
+    private(set) var quickRepliesLoading=false
+    private(set) var quickReplySource:String?
+    private(set) var preparedInflightHits=0 {didSet {onPreparationChanged?()}}
+    @ObservationIgnored var onPreparationChanged:(() -> Void)?
+    private(set) var preparedReactionHits=0 {didSet {onPreparationChanged?()}}
+    private(set) var preparedReactionReady:[String:Int]=[:] {didSet {onPreparationChanged?()}}
     private(set) var shakeReactions=0
     private(set) var pinchReactions=0
     private(set) var lastModelInteraction=""
@@ -125,10 +135,13 @@ final class CompanionSession {
         speech.onBeatProgress = { [weak self] id,fraction in self?.replyReveal.advance(id,fraction:fraction) }
     }
     func enterConversation(_ entry: ConversationEntry) {
-        guard entry.characterID == model.id, entry.accountID == ownerID, store.accountID == ownerID,
-              ConversationGreetingPolicy.shouldGreet(record,entry:entry) else { return }
+        guard entry.characterID == model.id, entry.accountID == ownerID, store.accountID == ownerID else { return }
+        guard ConversationGreetingPolicy.shouldGreet(record,entry:entry) else {
+            scheduleReactionPreparation();scheduleIdle();return
+        }
         pendingGreeting = entry; deliverPendingGreeting()
     }
+    func adoptPreparationLease(_ value:String?) {reactionPreparationLease=value}
     private func deliverPendingGreeting() {
         guard let entry = pendingGreeting, !characterEditorPresented, store.accountID == ownerID else { return }
         pendingGreeting = nil
@@ -137,15 +150,21 @@ final class CompanionSession {
             hasMetAnyone:store.currentRecords.values.contains { $0.greeting != nil || !$0.messages.isEmpty })
         generate("",trigger:context.scene,entry:entry)
     }
-    func send() {
+    func send(quickReplyID:String? = nil) {
         let text = String(input.trimmingCharacters(in:.whitespacesAndNewlines).prefix(500))
         guard !text.isEmpty, allowReply() else { return }
-        stop(); input = ""; notice = nil
+        stop(preservePreparation:true); input = ""; notice = nil
         store.update(model.id,countGuestTurn:true) { record in
             record.messages.append(CompanionMessage(role:"user",text:text,source:"cloud-v1"))
         }
         guard store.error == nil else { input = text; return }
-        generate(text,trigger:record.together.activeStoryID == nil ? "user_message" : "story")
+        generate(text,trigger:record.together.activeStoryID == nil ? "user_message" : "story",quickReplyID:quickReplyID)
+    }
+    func sendSuggested(_ option:AIQuickReply) {
+        guard quickReplies.contains(where:{$0.id==option.id}),
+              record.messages.last?.aiScript?.messageId==quickReplySource else {return}
+        let draft=input;input=option.text;send(quickReplyID:option.id)
+        if !draft.isEmpty {input=draft}
     }
     func beginStory(_ story: CompanionStory,replay: Bool = false) {
         guard store.accountID == ownerID, allowReply() else { return }
@@ -160,6 +179,10 @@ final class CompanionSession {
     private func emit(_ name: String) { onIntent?(CharacterIntent(eventName:name,turnId:activeTurn ? token.uuidString : "")) }
     private func beginTurn() { activeTurn = true; emit("turn.begin") }
     func requestBody(_ text:String,trigger:String)->[String:Any] {
+        Self.requestBody(store:store,model:model,text:text,trigger:trigger)
+    }
+    static func requestBody(store:CompanionStore,model:ModelDescriptor,text:String,trigger:String)->[String:Any] {
+        let record=store.record(model.id)
         let p = record.together.preferences.normalized
         var recent = record.messages.filter { $0.source == "cloud-v1" }
         if recent.last?.role == "user", recent.last?.text == text { recent.removeLast() }
@@ -168,7 +191,8 @@ final class CompanionSession {
             "memories":record.memories.suffix(100).map { ["id":$0.id.uuidString,"text":$0.text] },
             "recent_messages":recent.suffix(12).map { ["role":$0.role,"text":String($0.text.prefix(700))] },
             "scene":["time":Date().formatted(date:.omitted,time:.shortened),"environment":model.display.description],
-            "available_assets":model.performance?.options.map(\.id) ?? [],"wants_audio":!muted]
+            "available_assets":model.performance?.options.map(\.id) ?? [],
+            "wants_audio":(record.profile.audio?.speechVolume ?? 1)>0]
     }
     func reactToShake(intensity:Double) {
         reactToModelInteraction(kind:"shake",intensity:intensity)
@@ -179,24 +203,18 @@ final class CompanionSession {
               !(isGuest && store.guestLimitReached),!speech.isRecording,shakeTask==nil else {return}
         if kind=="shake" {shakeReactions+=1} else {pinchReactions+=1}
         lastModelInteraction=kind
-        shakeTask=Task { @MainActor [weak self] in
-            defer {self?.shakeTask=nil}
-            for _ in 0..<60 {
-                guard !Task.isCancelled,let self,!self.inspectionActive,!self.characterEditorPresented,
-                      self.store.accountID==self.ownerID else {return}
-                if !self.generating && !self.speech.isSpeaking && !self.speech.isBusy && !self.speech.isRecording {
-                    self.generate("",trigger:kind=="shake" ? "model_shaken" : "model_pinched",
-                        interaction:["kind":kind,"intensity":min(1,max(0,intensity))]);return
-                }
-                try? await Task.sleep(for:.milliseconds(250))
-            }
-        }
+        // Physical play interrupts current playback instead of waiting up to
+        // fifteen seconds. The shared Unity/server cooldown still applies.
+        generate("",trigger:kind=="shake" ? "model_shaken" : "model_pinched",
+            interaction:["kind":kind,"intensity":min(1,max(0,intensity))])
     }
-    private func generate(_ text: String,trigger: String,entry: ConversationEntry? = nil,interaction:[String:Any]? = nil) {
-        stop(); let current = token; generating = true; beginTurn(); emit("state.thinking")
+    private func generate(_ text: String,trigger: String,entry: ConversationEntry? = nil,interaction:[String:Any]? = nil,quickReplyID:String? = nil) {
+        stop(preservePreparation:true);quickReplies=[];quickReplySource=nil
+        let current = token; generating = true; beginTurn(); emit("state.thinking")
         var body=requestBody(text,trigger:trigger)
         if let entry { body["entry_id"] = entry.id.uuidString }
         if let interaction {body["interaction"]=interaction}
+        if let quickReplyID {body["quick_reply_id"]=quickReplyID}
         task = Task { @MainActor [weak self] in
             guard let self else { return }
             var received = false
@@ -216,6 +234,8 @@ final class CompanionSession {
                     switch event.type {
                     case "reply.narration.ready":
                         guard let script = event.script, !script.beats.isEmpty else { return }
+                        if event.prepared==true {self.preparedReactionHits+=1}
+                        if event.preparationInflight==true {self.preparedInflightHits+=1}
                         received = true; self.activeScript = script; self.generating = false
                         let message = CompanionMessage(id:UUID(uuidString:script.messageId) ?? UUID(),role:"assistant",text:script.text,
                             proactiveScene:trigger == "user_message" ? nil : trigger,aiScript:script,source:"cloud-v1")
@@ -233,6 +253,8 @@ final class CompanionSession {
                                 record.greeting = ConversationGreetingHistory(count:(record.greeting?.count ?? 0)+1,lastDate:Date(),lastText:script.text,lastEntryID:entry.id)
                             }
                         }
+                        self.scheduleReactionPreparation(delay:0.2)
+                        self.scheduleQuickReplies(script)
                         if !self.muted {
                             self.speech.prepare(message.id,script:script)
                             // React when the text arrives, even while voice is
@@ -279,7 +301,8 @@ final class CompanionSession {
                 // Each group has its own bounded restore timer. Finishing a
                 // short utterance must not immediately erase its expression.
                 emit("state.idle")
-                if trigger == "user_message" { scheduleIdle() }
+                if reactionPreparationTask==nil {scheduleReactionPreparation(delay:0.2)}
+                scheduleIdle()
             } catch {
                 guard current == token, !Task.isCancelled else { return }
                 generating = false; speech.stop()
@@ -296,11 +319,71 @@ final class CompanionSession {
     }
     private func scheduleIdle() {
         idleTask?.cancel()
+        guard record.messages.contains(where:{$0.role=="user"}),!(isGuest && store.guestLimitReached) else {return}
         idleTask = Task { @MainActor [weak self] in
             try? await Task.sleep(for:.seconds(Int.random(in:150...240)))
             guard !Task.isCancelled, let self, !self.generating, !self.speech.isRecording, !self.speech.isBusy,
                   !self.speech.isSpeaking, self.input.isEmpty, !self.characterEditorPresented else { return }
             self.generate("",trigger:"idle")
+        }
+    }
+    private func scheduleReactionPreparation(delay:Double = 0.2) {
+        reactionPreparationTask?.cancel()
+        guard CharacterAI.reactionPreparationEnabled,!(isGuest && store.guestLimitReached) else {return}
+        let current=token
+        reactionPreparationTask=Task { @MainActor [weak self] in
+            do {
+                // Start while the current voice is playing, not three seconds
+                // after it ends. Foreground events can adopt in-flight work.
+                try await Task.sleep(for:.seconds(delay))
+                guard let self,self.token==current,self.store.accountID==self.ownerID,
+                      !self.generating,!self.speech.isRecording,self.input.isEmpty else {return}
+                let body=self.requestBody("",trigger:"idle")
+                self.reactionPreparationLease=body["request_id"] as? String
+                var status=try await self.api.prepareReactions(body)
+                for _ in 0..<60 {
+                    guard self.token==current,!Task.isCancelled else {return}
+                    self.preparedReactionReady=status.ready
+                    if !status.preparing {break}
+                    try await Task.sleep(for:.seconds(2))
+                    status=try await self.api.reactionStatus(body)
+                }
+            } catch { /* Optional warming never adds an error bubble. */ }
+        }
+    }
+    func requestQuickReplies() {
+#if DEBUG && targetEnvironment(simulator)
+        // Layout-only fixture. Never available in device builds or live AI tests.
+        if ProcessInfo.processInfo.arguments.contains("--ui-testing"),
+           ProcessInfo.processInfo.arguments.contains("--smart-reply-layout-fixture"),
+           !ProcessInfo.processInfo.arguments.contains("--live-ai") {
+            quickReplies=["可以再和我多说一点吗？","你最喜欢刚才的哪个发现？","我也想和你分享今天的小事。"].enumerated().map {
+                AIQuickReply(id:"layout-\($0.offset)",text:$0.element,likelihood:1-Double($0.offset)*0.2)
+            };return
+        }
+#endif
+        guard let script=record.messages.last?.aiScript else {return}
+        scheduleQuickReplies(script)
+    }
+    private func scheduleQuickReplies(_ script:AIScript) {
+        quickReplyTask?.cancel()
+        guard CharacterAI.smartReplyPreparationEnabled,!(isGuest && store.guestLimitReached) else {return}
+        let current=token;quickReplySource=script.messageId;quickRepliesLoading=true
+        quickReplyTask=Task { @MainActor [weak self] in
+            guard let self else {return}
+            defer {if self.token==current {self.quickRepliesLoading=false}}
+            do {
+                var body=self.requestBody("",trigger:"idle");body["source_message_id"]=script.messageId
+                var response=try await self.api.quickReplies(body,prepare:true)
+                for _ in 0..<30 {
+                    guard !Task.isCancelled,self.token==current,self.store.accountID==self.ownerID,
+                          self.quickReplySource==response.sourceMessageId else {return}
+                    if !response.options.isEmpty {self.quickReplies=response.options;self.onPreparationChanged?();return}
+                    if !response.preparing {return}
+                    try await Task.sleep(for:.milliseconds(500))
+                    response=try await self.api.quickReplies(body,prepare:false)
+                }
+            } catch { /* Suggestions are optional; ordinary input stays usable. */ }
         }
     }
     private func revealSilently(_ script:AIScript) {
@@ -356,7 +439,16 @@ final class CompanionSession {
             }
         }
     }
-    func stop() {
+    func stop(preservePreparation:Bool = false) {
+        preparedReactionReady=[:]
+        quickReplyTask?.cancel();quickReplyTask=nil;quickRepliesLoading=false
+        reactionPreparationTask?.cancel();reactionPreparationTask=nil
+        if !preservePreparation,let lease=reactionPreparationLease {
+            reactionPreparationLease=nil
+            var body=requestBody("",trigger:"idle");body["request_id"]=lease
+            let api=self.api
+            Task {await api.pauseReactions(body)}
+        }
         pendingGreeting = nil; task?.cancel(); task = nil; idleTask?.cancel(); idleTask = nil
         silentVisualTask?.cancel(); silentVisualTask = nil
         revealTask?.cancel();revealTask=nil;replyReveal.finish()

@@ -49,7 +49,7 @@ def planner_data(context):
     draft as a fake assistant turn. Both taught the model to repeat that draft.
     The full archive remains available to the internal novelty checks.
     """
-    data={k:v for k,v in context.items() if k not in ('recent_messages','user_message','novelty_context','novelty_correction')}
+    data={k:v for k,v in context.items() if k not in ('recent_messages','user_message','novelty_context','novelty_correction','reserved_reactions')}
     if data.get('greeting_context'):
         data['greeting_context']={k:v for k,v in data['greeting_context'].items() if k!='previous_lines_to_avoid'}
     capability=context.get('avatar_capability',{})
@@ -113,7 +113,7 @@ def structured_messages(purpose,system,context,schema):
     if context.get('user_message'):
         messages.append(dict(role='user',content=context['user_message']))
     else:
-        task=(context.get('interaction_context') or context.get('greeting_context') or {}).get('task',
+        task=(context.get('interaction_context') or context.get('prepared_event_context') or context.get('greeting_context') or {}).get('task',
             '用户暂时没有说话。接续相处状态，决定是否安静陪伴；若开口，带来一个尚未说过的新想法，不催用户回答旧问题。')
         messages.append(dict(role='user',content='<app_event>'+dump(dict(event=context.get('trigger'),task=task))+'</app_event>'))
     return messages
@@ -148,7 +148,7 @@ class Provider:
         shape = (SPOKEN_SHAPE if transport_schema is SpokenPlan else WIRE_SHAPE if transport_schema is CompactPlan else PLAN_SHAPE) if purpose == 'plan' else ''
         messages=structured_messages(purpose,system,context,schema)
         # Exactly one schema correction; network/timeouts are never blindly retried.
-        attempts=1 if purpose=='performance' else 2
+        attempts=1 if purpose in ('performance','suggestions') else 2
         for attempt in range(attempts):
             usage = self.store.reserve(purpose, owner, character, 1, self.settings)
             started = time.monotonic()

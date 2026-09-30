@@ -59,12 +59,13 @@ def merge_visuals(base,extra,elapsed_ms):
         result.append({**v,'offset_ms':offset});last[v['group']]=offset
     return sorted(result,key=lambda v:v['offset_ms'])
 
-def late_patch(engine,owner,request,context,plan,extra,script,elapsed_ms):
+def late_patch(engine,owner,request,context,plan,extra,script,elapsed_ms,draft=False):
     if not extra or not extra.cues or not plan.beats:return None
+    if draft:elapsed_ms=0  # Preparation time is not elapsed performance time.
     beat=plan.beats[0].model_copy(deep=True)
     beat.performance=Performance(intensity=beat.performance.intensity,cues=extra.cues)
     resolved=engine.director.beat(owner,request.character_id,beat,context['relationship'],context['state'],
-        request.available_assets,plan.state_interpretation.dominant_emotion,request.trigger,automatic_fill=False)
+        request.available_assets,plan.state_interpretation.dominant_emotion,request.trigger,automatic_fill=False,record_usage=not draft)
     base=script['beats'][0]['visuals']
     # Preserve the spoken mood and reject conflicts with still-running groups.
     mood=beat.dialogue.speech.emotion if beat.dialogue else 'neutral'
@@ -78,11 +79,11 @@ def late_patch(engine,owner,request,context,plan,extra,script,elapsed_ms):
     groups={v['group'] for v in visuals}
     merged=merge_visuals(base,visuals,elapsed_ms)
     enriched={**script,'beats':[{**b,'visuals':merged} if i==0 else b for i,b in enumerate(script['beats'])]}
-    engine.store.enrich_reply(owner,request.character_id,str(request.request_id),enriched)
+    if not draft:engine.store.enrich_reply(owner,request.character_id,str(request.request_id),enriched)
     return dict(type='reply.visuals.updated',message_id=script['message_id'],beat_id=beat.beat_id,script=enriched,
                 visuals=current_visuals([v for v in merged if v['group'] in groups],elapsed_ms))
 
-async def deliver(engine,owner,request,context,plan,script,visual_task):
+async def deliver(engine,owner,request,context,plan,script,visual_task,draft=False):
     """Merge completed tasks, always yielding ready audio before decoration."""
     audio=engine.audio(owner,request.character_id,script,True) if request.wants_audio else None
     next_audio=asyncio.create_task(anext(audio)) if audio else None
@@ -102,7 +103,7 @@ async def deliver(engine,owner,request,context,plan,script,visual_task):
             if visual_task is not None and visual_task in done:
                 extra=visual_task.result();visual_task=None
                 try:
-                    patch=late_patch(engine,owner,request,context,plan,extra,script,round((time.monotonic()-start)*1000))
+                    patch=late_patch(engine,owner,request,context,plan,extra,script,round((time.monotonic()-start)*1000),draft=draft)
                 except Exception as error:
                     # Optional resolution/storage must not tear down an already
                     # valid, actively streaming voice response either.

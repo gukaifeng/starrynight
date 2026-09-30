@@ -40,7 +40,7 @@ def report(settings,engine,owner,request):
         dict(active_voice={k:voice[k] for k in ('voice_id','revision','approved','model') if k in voice},
              emotion_tags=EMOTIONS,delivery_instructions=DELIVERY,vocal_tags=VOCALS,
              recognition_hotwords=PROFILES[char]['hotwords']+([request.preferences['nickname']] if request.preferences.get('nickname') else [])))
-    fields=('character_model','tts_model','asr_model','narration_timeout_seconds','performance_timeout_seconds','paid_enabled','enforce_conversation_limits',
+    fields=('character_model','tts_model','asr_model','narration_timeout_seconds','performance_timeout_seconds','reaction_pool_size','reaction_pool_ttl_seconds','entry_pool_ttl_seconds','paid_enabled','enforce_conversation_limits',
             'max_daily_calls','max_daily_tts_characters','max_daily_asr_seconds','max_voice_designs','enable_test_inspector','semantic_novelty')
     add('models','模型与运行参数','凭证、认证头和本机文件路径不属于角色调教，不在报告中返回。',{k:getattr(settings,k) for k in fields})
     add('requests','最近实际请求','本账号、本角色最近 12 次 provider 请求正文，含格式修正；升级前未记录的请求不会伪造。',
@@ -49,10 +49,19 @@ def report(settings,engine,owner,request):
     add('novelty','最近内部生成复核','本账号、本角色最近候选的原文检查、语义相关提示和最多两次内部修订；不向聊天展示。仅测试部署记录。',store.get('novelty_review',owner,char,{}))
     add('latency','最近回复耗时','收到请求至完成规划、文字交付、首段音频及结束的毫秒数；服务端时间，不是手机扬声器时延。',store.get('reply_latency',owner,char,{}))
     add('performance-review','最近并发表演','独立任务的耗时、实际计划或降级原因。',store.get('performance_review',owner,char,{}))
+    add('reaction-pool','未说出的场景候选','当前账号／角色未消费的手势、待机、初见、启动与回访候选，含台词、心声、表演及生成／过期时间；不是聊天历史。',
+        [dict(id=r['id'],kind=r['kind'],created=r['created'],expires=r['expires'],draft=json.loads(r['data']))
+         for r in store.db.execute("SELECT * FROM reaction_drafts WHERE owner=? AND character=? AND status='ready' ORDER BY created",(owner,char))])
+    add('reaction-pool-review','预备反应命中记录','只在真实场景触发时消费，空池走实时 AI；不会为查看此页生成候选。',store.get('reaction_pool_review',owner,char,{}))
+    add('latency-history','最近二十轮耗时','区分完整缓存、接管正在生成与实时生成；不包含手机扬声器测量。',store.get('reply_latency_history',owner,char,[]))
+    from .quick_replies import SUGGESTIONS
+    add('quick-reply-prompt','智能回复完整设定','三条用户候选及相对倾向排序；只有用户选中的分支进入聊天。',SUGGESTIONS)
+    row=store.db.execute('SELECT source,data,expires FROM quick_reply_sets WHERE owner=? AND character=?',(owner,char)).fetchone()
+    add('quick-replies','未选择的接话分支','包含三条用户候选；预演回答在场景候选中。未选择内容不是历史。',dict(source=row['source'],options=json.loads(row['data']),expires=row['expires']) if row else {})
     # Runtime rules live in executable code as well as prompts. Include the full
     # deployed modules so a tester can inspect thresholds/filters without a
     # hand-maintained summary becoming a second, misleading source of truth.
-    for name in ('prompts','schemas','planner_wire','parallel_performance','ordered_audio','greetings','novelty','semantic_novelty','reply_flow','director','performance_library','speech_text','orchestrator','provider','asr','storage'):
+    for name in ('prompts','schemas','planner_wire','parallel_performance','ordered_audio','reaction_pool','prepared_draft','quick_replies','greetings','novelty','semantic_novelty','reply_flow','director','performance_library','speech_text','orchestrator','provider','asr','storage'):
         module=importlib.import_module('.'+name,__package__)
         add('rules-'+name,'执行规则 · '+name,'当前服务实际加载版本的完整规则源码。',Path(module.__file__).read_text())
     return dict(version=1,character_id=char,captured_at=datetime.now(timezone.utc).isoformat(),sections=sections)

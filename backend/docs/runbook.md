@@ -68,6 +68,13 @@ make build
 
 健康检查：`/health/live` 只检查进程；`/health/ready` 检查 PG/Redis。`/metrics` 在私网采集。不要向公网暴露 metrics、Redis、PostgreSQL 或 AI 管理路由。入口代理需支持 SSE 无缓冲与 WebSocket 升级；常规 JSON 请求 15s，AI 路由最长 180s，客户端取消会传到 worker。
 
+0.66 增量 AI 路由（均为 POST）：
+
+- `/v1/ai/conversations/{character}/reactions/prepare|pause|status`：prepare 在原角色 Request 上增加可选 `preparation_scope=active|entry`，立即返回就绪／进行中计数，每个适用场景最多一组。后台调用付费角色模型及 TTS，未触发的草稿不是聊天记录。status 只读不调用模型；pause 使用 prepare 的 request_id 作为租约，保留已完成候选。触发时支持直接接管正在生成的候选，不再取消它并重复生成。
+- `/v1/ai/conversations/{character}/suggestions/prepare|status`：原 Request 加必填 `source_message_id`，必须是该角色最新 AI 消息。返回三条 `options[{id,text,likelihood}]`，按相对选择倾向排序；每个选项只准备一组 AI 回应，按顺序执行。用户选择通过原 messages 路由传原文和可选 `quick_reply_id`。已选分支在真实会话中发布，其他两条丢弃；准备期间没有虚假聊天记录。
+
+身份继续由 Go 网关根据真实 session 注入，不能信任客户端账号头；这五种操作均加入路径／方法白名单和生成的 OpenAPI，普通聊天仍兼容省略新增字段的客户端。生成、消费事务和音频属于独立 AI worker；此版本是单 worker 调度，未来多实例要使用共享任务租约及音频存储。不得将这里的 SQLite 候选队列误认为 Go 账户服务的持久层；账户数据仍使用 PostgreSQL，session/限流仍使用 Redis。见[场景预备池设计](../../docs/design/2026-09-30-prepared-ai-events.md)。
+
 会话存在 Redis，配置 AOF 与 `noeviction`。Redis 丢失后用户需重新登录，账户资料仍在 PG；Redis 不可用时 API 返回 503，不降级成不验证会话。PG 备份应使用受控的 `pg_dump`/托管快照与恢复演练，异地备份和保留周期由正式环境决定。
 
 ## 合约、验证与排错

@@ -458,6 +458,10 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
         values["confirmedPerformanceCounts"] = characterPerformance?.confirmedCounts ?? [:]
         values["lateVisualUpdates"] = chatSession?.lateVisualUpdates ?? 0
         values["lateVisualsDuringSpeech"] = chatSession?.lateVisualsDuringSpeech ?? 0
+        values["preparedReactionHits"] = chatSession?.preparedReactionHits ?? 0
+        values["preparedInflightHits"] = chatSession?.preparedInflightHits ?? 0
+        values["quickReplyCount"] = chatSession?.quickReplies.count ?? 0
+        values["preparedReactionReady"] = chatSession?.preparedReactionReady ?? [:]
         values["shakeReactions"] = chatSession?.shakeReactions ?? 0
         values["pinchReactions"] = chatSession?.pinchReactions ?? 0
         values["lastModelInteraction"] = chatSession?.lastModelInteraction ?? ""
@@ -466,6 +470,22 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
         if ProcessInfo.processInfo.arguments.contains("--ui-testing"),
            let data = try? JSONSerialization.data(withJSONObject:values,options:.sortedKeys) {
             customizationButton.accessibilityValue = String(data:data,encoding:.utf8)
+        }
+#endif
+    }
+    private func updatePreparationDiagnostics() {
+#if DEBUG
+        // Preparation finishes without a Unity event. Refresh its QA evidence
+        // directly rather than waiting for a gesture to publish another frame.
+        guard ProcessInfo.processInfo.arguments.contains("--ui-testing"),
+              let data=customizationButton.accessibilityValue?.data(using:.utf8),
+              var values=(try? JSONSerialization.jsonObject(with:data)) as? [String:Any] else {return}
+        values["preparedReactionHits"]=chatSession?.preparedReactionHits ?? 0
+        values["preparedInflightHits"]=chatSession?.preparedInflightHits ?? 0
+        values["quickReplyCount"]=chatSession?.quickReplies.count ?? 0
+        values["preparedReactionReady"]=chatSession?.preparedReactionReady ?? [:]
+        if let updated=try? JSONSerialization.data(withJSONObject:values,options:.sortedKeys) {
+            customizationButton.accessibilityValue=String(data:updated,encoding:.utf8)
         }
 #endif
     }
@@ -527,6 +547,7 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
         performance.isHidden = session != nil; actionsScroll.isHidden = session != nil
         previousViewport = .zero
         if let session {
+            session.onPreparationChanged = { [weak self] in self?.updatePreparationDiagnostics() }
             let host = UIHostingController(rootView:CompanionChatView(session:session,onPerformance:{ [weak self] in self?.openConversationPerformance() },onSoundSettings:{ [weak self] in self?.openConversationSound() },onEditingChanged:{ [weak self] focused in
                 guard let self else { return }; self.chatEditing = focused
                 if !focused { self.view.endEditing(true) }; self.animateLayout()

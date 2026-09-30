@@ -67,7 +67,7 @@ class Director:
                 return chosen,match
             match='approximate'
         return None,'none'
-    def beat(self,owner,character,beat,relationship,state,available,dominant_emotion='neutral',trigger='user_message',automatic_fill=True):
+    def beat(self,owner,character,beat,relationship,state,available,dominant_emotion='neutral',trigger='user_message',automatic_fill=True,record_usage=True):
         performance=beat.performance.model_copy()
         performance.expression_intent=ALIASES.get(performance.expression_intent,performance.expression_intent)
         performance.action_intent=ALIASES.get(performance.action_intent,performance.action_intent)
@@ -110,7 +110,8 @@ class Director:
                 weighted.append((a,weight))
             if not weighted:return
             a=self.rng.choices([a for a,_ in weighted],weights=[w for _,w in weighted],k=1)[0]
-            with self.store.db:self.store.db.execute('INSERT INTO asset_usage(owner,character,asset,kind,created) VALUES(?,?,?,?,?)',(owner,character,a['asset_id'],a['kind'],now))
+            if record_usage:
+                with self.store.db:self.store.db.execute('INSERT INTO asset_usage(owner,character,asset,kind,created) VALUES(?,?,?,?,?)',(owner,character,a['asset_id'],a['kind'],now))
             selected.add(a['asset_id']);occupied.setdefault(group,[]).append(offset)
             duration=min(8000,a['duration_ms']) if automatic else a['duration_ms']
             cues.append(dict(asset=a,offset_ms=offset,duration_ms=duration,active=active))

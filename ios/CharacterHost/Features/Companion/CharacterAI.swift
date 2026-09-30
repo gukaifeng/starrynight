@@ -1,4 +1,14 @@
 import Foundation
+struct AIQuickReply:Decodable,Identifiable {
+    let id:String
+    let text:String
+    let likelihood:Double
+}
+struct AIQuickReplySet:Decodable {
+    let sourceMessageId:String
+    let options:[AIQuickReply]
+    let preparing:Bool
+}
 
 struct AIScript: Codable, Sendable {
     var messageId: String
@@ -72,7 +82,16 @@ struct AIEvent: Decodable, Sendable {
     var message: String?
     var text: String?
     var visuals: [AIVisual]?
+    var prepared: Bool?
+    var preparationInflight:Bool?
 }
+struct AIReactionPoolStatus:Decodable,Sendable {
+    var capacity:Int
+    var ready:[String:Int]
+    var preparing:Bool
+    var kinds:[String:String]
+}
+private struct AIReactionPause:Decodable,Sendable {var paused:Bool}
 enum AIConnectionError: LocalizedError {
     case unconfigured, unavailable, server(Int), remote(String), testingDisabled
     var errorDescription: String? {
@@ -153,6 +172,30 @@ private final class AINoRedirect: NSObject, URLSessionTaskDelegate, Sendable {
         let args = ProcessInfo.processInfo.arguments
         let automation = args.contains { $0.hasPrefix("--") && ($0.contains("testing") || $0.hasSuffix("-check") || $0.contains("fixture")) }
         return !automation || args.contains("--live-ai")
+    }
+    static var reactionPreparationEnabled:Bool {
+        let args=ProcessInfo.processInfo.arguments
+        let automation=args.contains { $0.hasPrefix("--") && ($0.contains("testing") || $0.hasSuffix("-check") || $0.contains("fixture")) }
+        return !automation || (args.contains("--live-ai") && args.contains("--live-reaction-prewarm"))
+    }
+    static var smartReplyPreparationEnabled:Bool {
+        let args=ProcessInfo.processInfo.arguments
+        let automation=args.contains {$0.hasPrefix("--") && ($0.contains("testing") || $0.hasSuffix("-check") || $0.contains("fixture"))}
+        return !automation || (args.contains("--live-ai") && args.contains("--live-smart-replies"))
+    }
+    func quickReplies(_ body:[String:Any],prepare:Bool) async throws -> AIQuickReplySet {
+        guard Self.smartReplyPreparationEnabled else {throw AIConnectionError.testingDisabled}
+        return try await configuration("/v1/conversations/"+characterID+"/suggestions/"+(prepare ? "prepare" : "status"),body:body)
+    }
+    func prepareReactions(_ body:[String:Any]) async throws -> AIReactionPoolStatus {
+        guard Self.reactionPreparationEnabled else {throw AIConnectionError.testingDisabled}
+        return try await configuration("/v1/conversations/"+characterID+"/reactions/prepare",body:body)
+    }
+    func reactionStatus(_ body:[String:Any]) async throws -> AIReactionPoolStatus {
+        try await configuration("/v1/conversations/"+characterID+"/reactions/status",body:body)
+    }
+    func pauseReactions(_ body:[String:Any]) async {
+        let _:AIReactionPause? = try? await configuration("/v1/conversations/"+characterID+"/reactions/pause",body:body)
     }
     func request(_ path: String, paid: Bool = true) throws -> URLRequest {
         if paid && !Self.paidTestsEnabled { throw AIConnectionError.testingDisabled }

@@ -177,7 +177,7 @@ def test_reported_smile_as_speech_emotion_and_long_shake_output_are_normalized()
 async def test_old_static_appearance_hidden_without_changing_archive(tmp_path):
     store=Store(tmp_path/'state.db');provider=ShakeProvider();engine=Orchestrator(Settings(data_dir=tmp_path),store,provider)
     req=Request(request_id=uuid.uuid4(),character_id=ROLES[0],text='你好',wants_audio=False)
-    body=req.model_dump(mode='json',exclude={'progressive_reply','timeline_reply','parallel_performance','interaction'})
+    body=req.model_dump(mode='json',exclude={'progressive_reply','timeline_reply','parallel_performance','interaction','quick_reply_id'})
     store.request('u',req.character_id,str(req.request_id),body)
     script=dict(message_id='old',text='你好呀',beats=[dict(beat_id='b',thought=None,narrations=[
         dict(mode='literary',text='她有一双圆圆的眼睛。'),dict(mode='performed',text='单眼轻轻眨眼。')])])

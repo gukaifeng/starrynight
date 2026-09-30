@@ -17,6 +17,8 @@ var aiConversation = regexp.MustCompile(`^/v1/ai/conversations/([a-zA-Z0-9_-]{1,
 var aiASR = regexp.MustCompile(`^/v1/ai/asr/([a-zA-Z0-9_-]{1,120})$`)
 var aiProfile = regexp.MustCompile(`^/v1/ai/characters/([a-zA-Z0-9_-]{1,120})/profile$`)
 var aiInspector = regexp.MustCompile(`^/v1/ai/testing/characters/([a-zA-Z0-9_-]{1,120})/inspector$`)
+var aiReactions = regexp.MustCompile(`^/v1/ai/conversations/([a-zA-Z0-9_-]{1,120})/reactions/(?:prepare|pause|status)$`)
+var aiSuggestions = regexp.MustCompile(`^/v1/ai/conversations/([a-zA-Z0-9_-]{1,120})/suggestions/(?:prepare|status)$`)
 
 func aiRoute(method, path, environment string) (character string, allowed bool) {
 	if path == "/v1/ai/status" {
@@ -27,6 +29,12 @@ func aiRoute(method, path, environment string) (character string, allowed bool) 
 	}
 	if match := aiASR.FindStringSubmatch(path); match != nil {
 		return match[1], method == http.MethodGet
+	}
+	if match := aiReactions.FindStringSubmatch(path); match != nil {
+		return match[1], method == http.MethodPost
+	}
+	if match := aiSuggestions.FindStringSubmatch(path); match != nil {
+		return match[1], method == http.MethodPost
 	}
 	if match := aiProfile.FindStringSubmatch(path); match != nil {
 		return match[1], method == http.MethodGet
@@ -43,6 +51,11 @@ func (s *Server) documentAIRoutes() {
 		{"GET", "/v1/ai/characters/{character}/profile", "ai-public-profile", "Explicit public persona fields only."},
 		{"POST", "/v1/ai/testing/characters/{character}/inspector", "ai-test-inspector", "Read-only owner-scoped configuration inspection. Available only in development/test environments with worker inspection explicitly enabled; otherwise 404. Never invokes a paid provider."},
 		{"POST", "/v1/ai/conversations/{character}/messages", "ai-reply", "SSE reply/audio events. Existing worker request schema; account identity is supplied by this gateway."},
+		{"POST", "/v1/ai/conversations/{character}/reactions/prepare", "ai-prepare-reactions", "Prepare one real AI draft per eligible gesture, idle or entry scenario. preparation_scope=entry warms only the upcoming introduction/return; active warms the current role. Unused drafts are not conversation history."},
+		{"POST", "/v1/ai/conversations/{character}/suggestions/prepare", "ai-prepare-suggestions", "Generate three ranked user replies to source_message_id, then prepare one answer per option in rank order. Nothing is published until the exact option is chosen with quick_reply_id."},
+		{"POST", "/v1/ai/conversations/{character}/suggestions/status", "ai-suggestion-status", "Read the ranked choices for the latest AI turn. No paid generation."},
+		{"POST", "/v1/ai/conversations/{character}/reactions/pause", "ai-pause-reactions", "Cancel preparation for this session lease; retains completed, unexpired drafts."},
+		{"POST", "/v1/ai/conversations/{character}/reactions/status", "ai-reaction-status", "Read-only availability for the current context; does not start generation."},
 		{"POST", "/v1/ai/conversations/{character}/messages/{message}/audio", "ai-audio", "SSE audio replay for an existing worker message."},
 		{"DELETE", "/v1/ai/conversations/{character}/messages", "ai-clear-context", "Clear worker context. Account archive has its own clear endpoint."},
 		{"GET", "/v1/ai/asr/{character}", "ai-asr", "WebSocket upgrade for ASR; stream protocol remains owned by the AI worker."},

@@ -1207,6 +1207,181 @@
         ]
       }
     },
+    "/v1/ai/conversations/{character}/reactions/pause": {
+      "post": {
+        "description": "Cancel preparation for this session lease; retains completed, unexpired drafts.",
+        "operationId": "ai-pause-reactions",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "character",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Worker response; SSE where documented"
+          },
+          "401": {
+            "description": "Session required"
+          },
+          "503": {
+            "description": "Worker unconfigured or unavailable"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "tags": [
+          "AI worker"
+        ]
+      }
+    },
+    "/v1/ai/conversations/{character}/reactions/prepare": {
+      "post": {
+        "description": "Prepare one real AI draft per eligible gesture, idle or entry scenario. preparation_scope=entry warms only the upcoming introduction/return; active warms the current role. Unused drafts are not conversation history.",
+        "operationId": "ai-prepare-reactions",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "character",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Worker response; SSE where documented"
+          },
+          "401": {
+            "description": "Session required"
+          },
+          "503": {
+            "description": "Worker unconfigured or unavailable"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "tags": [
+          "AI worker"
+        ]
+      }
+    },
+    "/v1/ai/conversations/{character}/reactions/status": {
+      "post": {
+        "description": "Read-only availability for the current context; does not start generation.",
+        "operationId": "ai-reaction-status",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "character",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Worker response; SSE where documented"
+          },
+          "401": {
+            "description": "Session required"
+          },
+          "503": {
+            "description": "Worker unconfigured or unavailable"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "tags": [
+          "AI worker"
+        ]
+      }
+    },
+    "/v1/ai/conversations/{character}/suggestions/prepare": {
+      "post": {
+        "description": "Generate three ranked user replies to source_message_id, then prepare one answer per option in rank order. Nothing is published until the exact option is chosen with quick_reply_id.",
+        "operationId": "ai-prepare-suggestions",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "character",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Worker response; SSE where documented"
+          },
+          "401": {
+            "description": "Session required"
+          },
+          "503": {
+            "description": "Worker unconfigured or unavailable"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "tags": [
+          "AI worker"
+        ]
+      }
+    },
+    "/v1/ai/conversations/{character}/suggestions/status": {
+      "post": {
+        "description": "Read the ranked choices for the latest AI turn. No paid generation.",
+        "operationId": "ai-suggestion-status",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "character",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Worker response; SSE where documented"
+          },
+          "401": {
+            "description": "Session required"
+          },
+          "503": {
+            "description": "Worker unconfigured or unavailable"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "tags": [
+          "AI worker"
+        ]
+      }
+    },
     "/v1/ai/status": {
       "get": {
         "description": "Private worker readiness; does not invoke a paid provider.",

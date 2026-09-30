@@ -24,6 +24,9 @@ class Settings:
     # Runs beside audio, never before the first progressive text response.
     narration_timeout_seconds: float = 8.0
     performance_timeout_seconds: float = 8.0
+    reaction_pool_size: int = 1
+    reaction_pool_ttl_seconds: float = 900
+    entry_pool_ttl_seconds: float = 86400
     paid_enabled: bool = True
     # Testing deployments explicitly opt in; public deployments expose no
     # authored prompts, private persona, memory or provider request inspector.

@@ -61,6 +61,7 @@ class Orchestrator:
         self.settings,self.store,self.provider=settings,store,provider
         self.director=Director(store)
         self.semantic=SemanticNovelty(settings,store)
+        self.reactions=None
     def context(self,owner,request,*,persist=True):
         char=request.character_id
         if persist:self.store.sync_memories(owner,char,request.memories)
@@ -125,6 +126,8 @@ class Orchestrator:
                             if item['type'] in ('reply.plan.ready','reply.narration.ready','segment.audio.chunk','reply.completed'):
                                 timing.setdefault(item['type']+'_ms',round((time.monotonic()-started)*1000))
                             if item.get('cached'):timing['cached']=True
+                            if item.get('prepared'):timing['prepared']=True
+                            if item.get('preparation_inflight'):timing['preparation_inflight']=True
                             yield item
                     return
                 except ValueError as error:
@@ -140,9 +143,12 @@ class Orchestrator:
             timing['total_ms']=round((time.monotonic()-started)*1000)
             timing['plan_attempts']=3-budget[0]
             self.store.put('reply_latency',owner,request.character_id,timing)
+            previous=self.store.get('reply_latency_history',owner,request.character_id,[])
+            self.store.put('reply_latency_history',owner,request.character_id,(previous+[{**timing,'captured_at':time.time()}])[-20:])
     async def fresh_plan(self,owner,request,context,schema,budget):
         char=request.character_id;reviews=[];correction=None
         extra=[m for m in context['recent_messages'] if m['role']=='assistant']
+        extra.extend(dict(role='assistant',text=t) for t in context.get('reserved_reactions',[]))
         while budget[0]:
             budget[0]-=1
             started=time.monotonic()
@@ -175,7 +181,7 @@ class Orchestrator:
         char=request.character_id; rid=str(request.request_id)
         # Delivery negotiation isn't conversation content. Preserve hashes for
         # pre-upgrade requests and never re-bill a retry with a different mode.
-        cached=None if resume else self.store.request(owner,char,rid,request.model_dump(mode='json',exclude={'progressive_reply','timeline_reply','parallel_performance'}|({'interaction'} if request.interaction is None else set())))
+        cached=None if resume else self.store.request(owner,char,rid,request.model_dump(mode='json',exclude={'progressive_reply','timeline_reply','parallel_performance'}|({key for key in ('interaction','quick_reply_id') if getattr(request,key) is None})))
         if cached:
             # Revalidate pre-upgrade cached thoughts without rewriting archives
             # or generating/charging for the same message again.
@@ -207,24 +213,37 @@ class Orchestrator:
                 empty=dict(message_id=str(uuid.uuid4()),character_id=char,beats=[],text='',idle_decision='do_nothing')
                 self.store.complete(owner,char,rid,empty)
                 yield event('reply.completed',message_id=empty['message_id']); return
+        # Real event eligibility/cooldowns are checked before consuming a draft.
+        # Entry identity and transcript position belong to now, not preparation.
+        if self.reactions:
+            claim=self.reactions.claim(owner,request) if request.timeline_reply and not resume else None
+            await self.reactions.yield_to_reply(owner,keep=claim.get('job') if claim else None)
+            if claim:
+                async with aclosing(self.reactions.deliver(owner,request,context,claim)) as output:
+                    async for item in output:yield item
+                return
+        async with aclosing(self.compose_reply(owner,request,context,budget)) as source:
+            async for item in source:yield item
+
+    async def compose_reply(self,owner,request,context,budget=None,*,draft=False):
         visuals=None
         try:
             if request.parallel_performance and request.timeline_reply and request.available_assets:
                 visuals=asyncio.create_task(parallel_performance.plan_performance(self,owner,request,context))
-            async with aclosing(self._planned_reply(owner,request,context,budget,visuals)) as source:
+            async with aclosing(self._planned_reply(owner,request,context,budget,visuals,draft=draft)) as source:
                 async for item in source:yield item
         finally:
             if visuals is not None:
                 visuals.cancel()
                 await asyncio.gather(visuals,return_exceptions=True)
 
-    async def _planned_reply(self,owner,request,context,budget,visuals):
+    async def _planned_reply(self,owner,request,context,budget,visuals,*,draft=False):
         char=request.character_id;rid=str(request.request_id)
         schema=CoreTimelinePlan if request.parallel_performance else (ShakeTimelinePlan if request.trigger in INTERACTION_TRIGGERS else TimelinePlan) if request.timeline_reply else Plan
         plan=await self.fresh_plan(owner,request,context,schema,budget if budget is not None else [3])
         if plan is None:
             empty=dict(message_id=str(uuid.uuid4()),character_id=char,beats=[],text='',idle_decision='do_nothing')
-            self.store.complete(owner,char,rid,empty)
+            if not draft:self.store.complete(owner,char,rid,empty)
             yield event('reply.completed',message_id=empty['message_id']);return
         # Silence is a first-class outcome; no TTS or narration expense.
         if request.trigger=='idle' and plan.idle_decision=='do_nothing': plan.beats=[]
@@ -247,10 +266,10 @@ class Orchestrator:
             b.vocal_events=filtered
             if request.trigger=='idle' and plan.idle_decision in ('visual_only','thought_only'):
                 b.dialogue=None; b.vocal_events=[]
-        self.store.put('vocals',owner,char,used)
+        if not draft:self.store.put('vocals',owner,char,used)
         yield event('reply.plan.ready',beat_count=len(plan.beats))
         resolved=[self.director.beat(owner,char,b,context['relationship'],context['state'],request.available_assets,
-                  plan.state_interpretation.dominant_emotion,request.trigger) for b in plan.beats]
+                  plan.state_interpretation.dominant_emotion,request.trigger,record_usage=not draft) for b in plan.beats]
         yield event('segment.visual.resolved',count=len(resolved))
         narrations=[]; warning=None
         if plan.beats and not request.progressive_reply and not request.timeline_reply:
@@ -274,7 +293,28 @@ class Orchestrator:
                 for b,wire in zip(plan.beats,beats)]))
         script=dict(message_id=str(uuid.uuid4()),character_id=char,beats=beats,text=text,trigger=request.trigger,idle_decision=plan.idle_decision,
             memory_suggestions=[m.content for m in plan.memory_updates] if request.trigger=='user_message' else [])
-        self.store.publish_reply(owner,char,rid,request.text,script)
+        if draft:
+            yield event('reaction.draft',plan=plan.model_dump())
+        else:
+            self.store.publish_reply(owner,char,rid,request.text,script)
+            self.commit_context(owner,request,context,script,plan)
+        yield event('reply.narration.ready',script=script,cached=False)
+        if warning:yield event('reply.warning',message=warning)
+        if request.timeline_reply:
+            # Complete ordered content was published once. Never append a late
+            # Narrator result above words the user has already heard/read.
+            if request.parallel_performance:
+                async with aclosing(parallel_performance.deliver(self,owner,request,context,plan,script,visuals,draft=draft)) as output:
+                    async for item in output:yield item
+            elif request.wants_audio:
+                async with aclosing(self.audio(owner,char,script,create=True)) as audio:
+                    async for e in audio:yield e
+            yield event('reply.completed',message_id=script['message_id']);return
+        async with aclosing(self.legacy_delivery(owner,request,context,plan,resolved,beats,script)) as output:
+            async for item in output:yield item
+
+    def commit_context(self,owner,request,context,script,plan):
+        char=request.character_id;rid=str(request.request_id);text=script['text']
         if plan.response_focus and text:
             self.store.put('response_focus',owner,char,(context['recent_response_focus']+[plan.response_focus])[-12:])
         if request.trigger in ENTRY_TRIGGERS:
@@ -291,18 +331,9 @@ class Orchestrator:
         self.store.put('proactive',owner,char,dict(last=time.time(),unanswered=timing.get('unanswered',0)+1 if request.trigger=='idle' else 0))
         # Commit the text BEFORE audio so interruption never repeats the two brain calls.
         self.store.complete(owner,char,rid,script)
-        yield event('reply.narration.ready',script=script,cached=False)
-        if warning:yield event('reply.warning',message=warning)
-        if request.timeline_reply:
-            # Complete ordered content was published once. Never append a late
-            # Narrator result above words the user has already heard/read.
-            if request.parallel_performance:
-                async with aclosing(parallel_performance.deliver(self,owner,request,context,plan,script,visuals)) as output:
-                    async for item in output:yield item
-            elif request.wants_audio:
-                async with aclosing(self.audio(owner,char,script,create=True)) as audio:
-                    async for e in audio:yield e
-            yield event('reply.completed',message_id=script['message_id']);return
+
+    async def legacy_delivery(self,owner,request,context,plan,resolved,beats,script):
+        char=request.character_id;rid=str(request.request_id)
         narration_task=None;audio_task=None
         audio=self.audio(owner,char,script,create=True) if request.wants_audio else None
         try:

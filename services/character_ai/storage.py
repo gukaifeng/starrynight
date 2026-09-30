@@ -30,6 +30,9 @@ class Store:
         CREATE INDEX IF NOT EXISTS reply_novelty_role ON reply_novelty(owner,character,created DESC);
         CREATE VIRTUAL TABLE IF NOT EXISTS reply_novelty_search USING fts5(grams);
         CREATE TABLE IF NOT EXISTS reply_embeddings(message TEXT,model TEXT,vector BLOB,PRIMARY KEY(message,model));
+        CREATE TABLE IF NOT EXISTS reaction_drafts(id TEXT PRIMARY KEY,owner TEXT,character TEXT,kind TEXT,context_key TEXT,status TEXT,data TEXT,created REAL,expires REAL);
+        CREATE INDEX IF NOT EXISTS reaction_drafts_pool ON reaction_drafts(owner,character,context_key,kind,status,expires);
+        CREATE TABLE IF NOT EXISTS quick_reply_sets(owner TEXT,character TEXT,source TEXT,context_key TEXT,data TEXT,expires REAL,PRIMARY KEY(owner,character));
         ''')
         self.db.commit()
         if not self.get('migration','system','reply-novelty-v1'):
@@ -76,18 +79,24 @@ class Store:
         self.db.execute('DELETE FROM reply_embeddings WHERE message IN (SELECT message FROM reply_novelty WHERE owner=? AND character=?)',(owner,character))
         self.db.execute('DELETE FROM reply_novelty_search WHERE rowid IN (SELECT rowid FROM reply_novelty WHERE owner=? AND character=?)',(owner,character))
         self.db.execute('DELETE FROM reply_novelty WHERE owner=? AND character=?',(owner,character))
-    def publish_reply(self,owner,character,request,user_text,script):
+    def publish_reply(self,owner,character,request,user_text,script,*,prepared_id=None,allow_preparing=False):
         # Serialize the final check and publication even if another worker/role
         # finishes while this one is awaiting its model. Index and transcript
         # commit together; a rejected candidate never becomes replayable.
         import uuid
         with self.db:
             self.db.execute('BEGIN IMMEDIATE')
+            if prepared_id:
+                statuses=('ready','preparing') if allow_preparing else ('ready','ready')
+                changed=self.db.execute("UPDATE reaction_drafts SET status='used' WHERE id=? AND owner=? AND character=? AND status IN (?,?) AND expires>?",(prepared_id,owner,character,*statuses,time.time())).rowcount
+                if changed!=1:raise ValueError('REACTION_ALREADY_USED')
             if novelty.match(self,owner,script['text']):raise ValueError('REPLY_REPEATED')
             now=time.time()
             if user_text:self.db.execute('INSERT INTO messages VALUES(?,?,?,?,?,?,?)',(str(uuid.uuid4()),owner,character,request,'user',dump(dict(text=user_text)),now))
             self.db.execute('INSERT INTO messages VALUES(?,?,?,?,?,?,?)',(script['message_id'],owner,character,request,'assistant',dump(script),now+.000001))
             self.index_reply(script['message_id'],owner,character,script['text'],now)
+            if prepared_id:
+                self.db.execute("UPDATE requests SET status='completed',result=? WHERE owner=? AND character=? AND id=?",(dump(script),owner,character,request))
     def request(self,owner,character,id,payload):
         digest=hashlib.sha256(dump(payload).encode()).hexdigest()
         row=self.db.execute('SELECT * FROM requests WHERE owner=? AND character=? AND id=?',(owner,character,id)).fetchone()

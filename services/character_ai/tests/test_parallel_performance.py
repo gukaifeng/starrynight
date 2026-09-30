@@ -146,7 +146,7 @@ def test_late_ear_update_preserves_its_next_automatic_phase_and_other_groups():
 async def test_optional_patch_failure_does_not_interrupt_active_voice(tmp_path,monkeypatch):
     from services.character_ai import parallel_performance
     store,provider,engine,request=setup(tmp_path)
-    def broken(*args):raise RuntimeError('optional resolver failed')
+    def broken(*args,**kwargs):raise RuntimeError('optional resolver failed')
     monkeypatch.setattr(parallel_performance,'late_patch',broken)
     events=[]
     async for event in engine.reply('u',request):

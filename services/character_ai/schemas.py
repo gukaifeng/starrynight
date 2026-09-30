@@ -184,6 +184,7 @@ class Request(Strict):
     trigger: Literal['user_message','appLaunch','firstLaunch','firstMeeting','characterSwitch','idle','story','model_shaken','model_pinched'] = 'user_message'
     interaction: ModelInteraction | None = None
     entry_id: UUID | None = None
+    quick_reply_id: UUID | None = None
     preferences: dict[str,str] = Field(default_factory=dict)
     memories: list[ClientMemory] = Field(default_factory=list,max_length=100)
     recent_messages: list[ContextMessage] = Field(default_factory=list,max_length=12)
@@ -207,6 +208,19 @@ class Request(Strict):
         if len(value)>12 or any(len(k)>40 or len(v)>500 for k,v in value.items()):
             raise ValueError('context too large')
         return value
+
+class PreparationRequest(Request):
+    preparation_scope: Literal['active','entry'] = 'active'
+
+class QuickReplyRequest(Request):
+    source_message_id: UUID
+
+class QuickReplyOption(Strict):
+    text:str=Field(min_length=2,max_length=45)
+    likelihood:float=Field(ge=0,le=1)
+
+class QuickReplyPlan(Strict):
+    options:list[QuickReplyOption]=Field(min_length=3,max_length=3)
 
 def visible_text(text: str) -> str:
     # Provider markup and asset control strings never reach the conversation UI.
