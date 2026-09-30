@@ -78,8 +78,12 @@ def quick_setup(tmp_path):
     return store,provider,engine,pool,request,body
 
 @pytest.mark.asyncio
-async def test_choices_rank_then_prepare_sequentially_publish_only_selected_pair(tmp_path):
+@pytest.mark.parametrize('story',[False,True])
+async def test_choices_rank_then_prepare_sequentially_publish_only_selected_pair(tmp_path,story):
     store,provider,engine,pool,request,body=quick_setup(tmp_path)
+    if story:
+        request.scene={'story_id':'rain-letter','story_revision':'1'}
+        body.scene=dict(request.scene)
     pool.quick.prepare('u',body);await pool.quick.tasks[('u',request.character_id)]
     result=pool.quick.status('u',body);options=result['options']
     assert [o['likelihood'] for o in options]==[.9,.6,.3]
@@ -88,7 +92,7 @@ async def test_choices_rank_then_prepare_sequentially_publish_only_selected_pair
     assert not store.get('relationship','u',request.character_id)
     assert store.db.execute('SELECT count(*) FROM asset_usage').fetchone()[0]==0
     choice=options[1];before=len(provider.calls)
-    actual=request.model_copy(update=dict(request_id=uuid.uuid4(),trigger='user_message',text=choice['text'],quick_reply_id=uuid.UUID(choice['id']),timeline_reply=True))
+    actual=request.model_copy(update=dict(request_id=uuid.uuid4(),trigger='story' if story else 'user_message',text=choice['text'],quick_reply_id=uuid.UUID(choice['id']),timeline_reply=True))
     events=[e async for e in engine.reply('u',actual)]
     assert events[0]['prepared'] and len(provider.calls)==before
     history=store.history('u',request.character_id)

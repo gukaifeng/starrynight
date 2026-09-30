@@ -16,7 +16,7 @@ from services.character_ai.storage import Store
 
 def test_public_cards_are_a_separate_explicit_allowlist():
     for p in public_catalog()['characters']:
-        assert set(p)=={'id','name','invitation','story','occupation','world','traits','likes','tone'}
+        assert set(p)=={'id','name','invitation','story','occupation','world','traits','likes','tone','dialogueLanguage','scenarios','profileRevision'}
         assert p['traits']==PROFILES[p['id']]['personality']['traits']
         assert p['story'] and p['likes']
         assert all(secret not in json.dumps(p,ensure_ascii=False) for secret in PROFILES[p['id']]['secrets'])

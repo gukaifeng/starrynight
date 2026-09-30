@@ -71,7 +71,14 @@ struct TogetherPanel: View {
     }
     private var storyShelf:some View {
         VStack(alignment:.leading,spacing:14) {
-            Text("一起写故事 · AI 即兴").font(.system(size:11,weight:.medium)).foregroundStyle(Theme.secondary)
+            HStack(spacing:8) {
+                Text("和\(session.record.profile.name)，换一种相遇").font(.system(size:16,weight:.medium,design:.serif))
+                Spacer(minLength:0)
+                if CharacterPublicProfile.find(model.id)?.englishOnly == true {
+                    Text("ENGLISH ONLY").font(.system(size:9,weight:.semibold,design:.monospaced))
+                        .foregroundStyle(Theme.peach).accessibilityIdentifier("englishOnlyBadge")
+                }
+            }
             ForEach(stories) { story in storyCard(story) }
             Text("故事进度只属于你和这个角色。随时暂停，回来接着聊；聊天和共同记忆不会被重置。")
                 .font(.system(size:12)).lineSpacing(4).foregroundStyle(Theme.secondary)
@@ -95,8 +102,8 @@ struct TogetherPanel: View {
                 Text("故事由你和角色共同创作，回到会话就可以接着聊。").font(.system(size:13)).foregroundStyle(Theme.secondary)
                 Button("接着讲下去") { session.continueStory() }
                     .font(.system(size:13,weight:.medium)).disabled(session.generating)
-                Button("先暂停") { store.pauseStory(id:model.id) }
-                    .font(.system(size:11)).foregroundStyle(Theme.secondary)
+                Button("回到日常") { session.pauseStory() }
+                    .font(.system(size:11)).foregroundStyle(Theme.secondary).accessibilityIdentifier("pause-story-"+story.id)
             } else {
                 Text(story.subtitle).font(.system(size:13)).lineSpacing(4).foregroundStyle(Theme.secondary)
                 Button {

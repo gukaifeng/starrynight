@@ -12,6 +12,7 @@ from .reply_flow import compile_parts, duration_hint
 from .semantic_novelty import SemanticNovelty
 from . import parallel_performance
 from .ordered_audio import ordered_audio
+from .roleplay import language, language_instruction, scenario_context, wrong_language
 
 def event(kind, **data): return dict(type=kind,**data)
 
@@ -29,7 +30,7 @@ def interaction_mismatch(request,text):
     if re.search(opposite,text):
         return '把捏与扯说反了。pinch_in只代表捏，pinch_out只代表扯；按本次kind重新回应。'
     return None
-def brief_shake_plan(plan,mood):
+def brief_shake_plan(plan,mood,language='zh'):
     """Keep one AI-authored reaction; never manufacture a local complaint.
 
     Character models sometimes append unrelated invitation beats. Keep the
@@ -43,7 +44,7 @@ def brief_shake_plan(plan,mood):
     kept=''
     for line in lines:
         if not line:continue
-        if kept and len(kept+line)>70:break
+        if kept and len(kept+line)>(220 if language=='en' else 70):break
         kept+=line
     first.dialogue.text=kept or first.dialogue.text
     plan.state_interpretation.dominant_emotion=mood
@@ -65,7 +66,7 @@ class Orchestrator:
     def context(self,owner,request,*,persist=True):
         char=request.character_id
         if persist:self.store.sync_memories(owner,char,request.memories)
-        context = dict(character_profile={k:v for k,v in PROFILES[char].items() if k not in ('voice_prompt','preview_text','voice_revision','voice_delivery','appearance_facts')},
+        context = dict(character_profile={k:v for k,v in PROFILES[char].items() if k not in ('voice_prompt','preview_text','voice_revision','voice_delivery','appearance_facts','scenarios')},
             user_message=request.text,trigger=request.trigger,preferences=request.preferences,scene=request.scene,
             recent_messages=self.store.history(owner,char) or [m.model_dump() for m in request.recent_messages],memories=self.store.recall(owner,char,request.text,incoming=None if persist else request.memories,touch=persist),
             relationship=self.store.get('relationship',owner,char,dict(closeness=.05,trust=.1,conflict=0)),
@@ -73,6 +74,8 @@ class Orchestrator:
             speech_capability=dict(emotions=Speech.model_json_schema()['properties']['emotion']['enum'],
                                    deliveries=Speech.model_json_schema()['properties']['delivery']['enum'],
                                    vocal_events=Vocal.model_json_schema()['properties']['event']['enum']))
+        context['roleplay_context']=scenario_context(char,request.scene)
+        context['language_contract']=language_instruction(char)
         # Retain original archives, but don't feed historical broken control JSON
         # back to the model as a demonstration of how to speak.
         context['recent_messages']=[m for m in context['recent_messages'] if m['role']!='assistant' or not CONTROL_TEXT.search(m['text'])]
@@ -95,6 +98,9 @@ class Orchestrator:
                 task=gesture+'用角色的个性做一次新的撒娇回应或轻微生气的小抱怨，1个beat、短短1至2句，附真实表演。推进这次玩闹，不能换词复述旧抱怨。显示的弹性反馈会自动恢复，台词不谈显示、缩放、大小或远近；不编造身体变形、衣服变化或现实伤害，不重答过去的问题。')
         return context
     async def narration(self,owner,char,plan,resolved,scene):
+        # Source effect labels are Chinese. English roles retain actual
+        # animations and English asides instead of mixed-language subtitles.
+        if language(char)=='en':return [],None
         facts=[]
         try:
             async with asyncio.timeout(self.settings.narration_timeout_seconds):
@@ -155,22 +161,24 @@ class Orchestrator:
             plan=await self.provider.structured(owner,char,'plan',CORE_PLANNER if request.parallel_performance else PLANNER,
                 {**context,**({'novelty_correction':correction} if correction else {})},schema)
             generated=time.monotonic()
-            if request.trigger in INTERACTION_TRIGGERS:brief_shake_plan(plan,context['interaction_context']['mood'])
+            if request.trigger in INTERACTION_TRIGGERS:brief_shake_plan(plan,context['interaction_context']['mood'],language(char))
             text=plan_text(plan)
             wrong_gesture=interaction_mismatch(request,text)
+            language_problem=('English-only character: rewrite all dialogue and visible asides in English. Do not translate or quote Chinese. Keep the same new content and role.' if wrong_language(char,plan) else None)
+            content_problem=wrong_gesture or language_problem
             duplicate=novelty.match(self.store,owner,text,extra)
-            related=await self.semantic.match(owner,text,request.trigger) if not duplicate and not wrong_gesture else None
+            related=await self.semantic.match(owner,text,request.trigger) if not duplicate and not content_problem else None
             # BGE is a retrieval model, not an equivalence judge. One semantic
             # suggestion may steer a new draft; it cannot reject a succession
             # of otherwise distinct answers merely sharing a topic or event.
-            revise=bool(wrong_gesture or duplicate or (related and (related['score']>=.86 or (correction is None and budget[0]>0))))
-            reviews.append(dict(text=text,duplicate=duplicate,semantic_hint=related,interaction_mismatch=wrong_gesture,revised=revise,
+            revise=bool(content_problem or duplicate or (related and (related['score']>=.86 or (correction is None and budget[0]>0))))
+            reviews.append(dict(text=text,duplicate=duplicate,semantic_hint=related,interaction_mismatch=wrong_gesture,language_mismatch=language_problem,revised=revise,
                 generation_ms=round((generated-started)*1000),review_ms=round((time.monotonic()-generated)*1000)))
             if self.settings.enable_test_inspector:
                 self.store.put('novelty_review',owner,char,dict(attempts=reviews,accepted=not revise,remaining=budget[0]))
             if not revise:return plan
-            correction=dict(rejected_text=text,reason=wrong_gesture or (duplicate or related)['reason'],
-                instruction=(wrong_gesture+' ' if wrong_gesture else '')+'本轮需要一个实质不同的新回应。舍弃草稿的核心观点、请求和比喻，结合当前这条输入换一个具体切入点；不要仅更换同义词，不复述旧问题，不向用户解释修订。保留角色身份、正确事实、真实可执行表演和简短心声。')
+            correction=dict(rejected_text=text,reason=content_problem or (duplicate or related)['reason'],
+                instruction=(content_problem+' ' if content_problem else '')+'本轮需要一个实质不同的新回应。舍弃草稿的核心观点、请求和比喻，结合当前这条输入换一个具体切入点；不要仅更换同义词，不复述旧问题，不向用户解释修订。保留角色身份、正确事实、真实可执行表演和简短心声。')
         # No canned answer, repeated speech or unbounded paid retry. Optional
         # proactive turns stay quiet; a failed direct question uses the normal
         # availability error, never a moderation/repetition message.
@@ -284,7 +292,7 @@ class Orchestrator:
                 visuals=[dict(asset_id=c['asset']['asset_id'],group=c['asset']['group'],duration_ms=c['duration_ms'],
                     offset_ms=c['offset_ms'],active=c['active'],grounding=r['grounding']) for c in r['performances']]))
             if request.timeline_reply:
-                beats[-1]['parts']=compile_parts(b,r)
+                beats[-1]['parts']=compile_parts(b,r,language=language(char))
                 beats[-1]['reading_duration']=duration_hint(beats[-1]['dialogue']['text'] if beats[-1]['dialogue'] else '')
         text='\n'.join(b['dialogue']['text'] for b in beats if b['dialogue'])
         if request.timeline_reply and self.settings.enable_test_inspector:

@@ -156,7 +156,9 @@ final class CompanionSession {
         guard !text.isEmpty, allowReply() else { return }
         stop(preservePreparation:true); input = ""; notice = nil
         store.update(model.id,countGuestTurn:true) { record in
-            record.messages.append(CompanionMessage(role:"user",text:text,source:"cloud-v1"))
+            var message=CompanionMessage(role:"user",text:text,source:"cloud-v1")
+            message.storyID=record.together.activeStoryID
+            record.messages.append(message)
         }
         guard store.error == nil else { input = text; return }
         generate(text,trigger:record.together.activeStoryID == nil ? "user_message" : "story",quickReplyID:quickReplyID)
@@ -181,15 +183,37 @@ final class CompanionSession {
         if !draft.isEmpty {input=draft}
     }
     func beginStory(_ story: CompanionStory,replay: Bool = false) {
-        guard store.accountID == ownerID, allowReply() else { return }
+        guard store.accountID == ownerID,CompanionStory.available(for:model).contains(where:{$0.id==story.id}),allowReply() else { return }
+        let draft=input
+        let resuming = !replay && record.together.stories[story.id] != nil
         store.update(model.id) { record in
             var experience = record.together; experience.activeStoryID = story.id
-            experience.stories[story.id] = StoryProgress(storyID:story.id); record.experiences = experience
+            if replay || experience.stories[story.id] == nil {
+                var progress=StoryProgress(storyID:story.id)
+                progress.revision=(experience.stories[story.id]?.revision ?? 0)+1
+                experience.stories[story.id]=progress
+            }
+            record.experiences = experience
         }
-        input = "我们来共同创作一个虚构故事："+story.title+"。"+story.subtitle+" 请以讲故事的方式开场，不能把故事中的行动说成模型实际做出的动作。"
+        guard store.error == nil else {return}
+        input = CharacterPublicProfile.find(model.id)?.englishOnly == true
+            ? (resuming ? "Let's pick up this scene where we left off. Leave the next choice to me." : "Let's begin this scene together. Give me a small opening I can respond to.")
+            : (resuming ? "我们接着「"+story.title+"」的情境聊吧，不用重新开场。" : "我们来玩「"+story.title+"」。先从一个小小的开场开始，接下来由我们一起决定。")
         send()
+        if !draft.isEmpty {input=draft}
     }
-    func continueStory() { input = "请接着讲我们的故事，留一点空间让我决定接下来发生什么。"; send() }
+    func continueStory() {
+        let draft=input
+        input = CharacterPublicProfile.find(model.id)?.englishOnly == true
+            ? "Let's pick up our scene where we left off. Leave the next choice to me."
+            : "我们接着刚才的情境聊吧，留一点空间让我决定接下来发生什么。"
+        send();if !draft.isEmpty {input=draft}
+    }
+    func pauseStory() {
+        stop();quickReplies=[];quickReplySource=nil
+        store.pauseStory(id:model.id)
+        scheduleReactionPreparation()
+    }
     private func emit(_ name: String) { onIntent?(CharacterIntent(eventName:name,turnId:activeTurn ? token.uuidString : "")) }
     private func beginTurn() { activeTurn = true; emit("turn.begin") }
     func requestBody(_ text:String,trigger:String)->[String:Any] {
@@ -204,7 +228,9 @@ final class CompanionSession {
             "preferences":["nickname":p.nickname,"aboutMe":p.aboutMe,"relationship":p.relationship,"responseStyle":p.responseStyle,"avoidedTopics":p.avoidedTopics],
             "memories":record.memories.suffix(100).map { ["id":$0.id.uuidString,"text":$0.text] },
             "recent_messages":recent.suffix(12).map { ["role":$0.role,"text":String($0.text.prefix(700))] },
-            "scene":["time":Date().formatted(date:.omitted,time:.shortened),"environment":model.display.description],
+            "scene":["time":Date().formatted(date:.omitted,time:.shortened),"environment":model.display.description,
+                "story_id":record.together.activeStoryID ?? "",
+                "story_revision":String(record.together.activeStoryID.flatMap {record.together.stories[$0]?.revision} ?? 1)],
             "available_assets":model.performance?.options.map(\.id) ?? [],
             "wants_audio":(record.profile.audio?.speechVolume ?? 1)>0]
     }
@@ -251,8 +277,9 @@ final class CompanionSession {
                         if event.prepared==true {self.preparedReactionHits+=1}
                         if event.preparationInflight==true {self.preparedInflightHits+=1}
                         received = true; self.activeScript = script; self.generating = false
-                        let message = CompanionMessage(id:UUID(uuidString:script.messageId) ?? UUID(),role:"assistant",text:script.text,
+                        var message = CompanionMessage(id:UUID(uuidString:script.messageId) ?? UUID(),role:"assistant",text:script.text,
                             proactiveScene:trigger == "user_message" ? nil : trigger,aiScript:script,source:"cloud-v1")
+                        message.storyID=self.record.together.activeStoryID
                         if !self.record.messages.contains(where:{$0.id==message.id}) {self.replyReveal.begin(message.id,script:script)}
                         self.store.update(self.model.id) { record in
                             if !record.messages.contains(where:{ $0.id == message.id }) { record.messages.append(message) }

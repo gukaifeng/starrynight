@@ -57,14 +57,17 @@ extension CharacterRecord {
 }
 
 /// Story cards are prompts, never prewritten assistant replies or branch tables.
-struct CompanionStory: Identifiable, Sendable {
+struct CompanionStory: Codable, Identifiable, Sendable {
     let id, title, subtitle, category, symbol: String
     static let all: [Self] = [
         .init(id:"rain-letter",title:"雨夜来信",subtitle:"一封没有署名的信，等我们一起发现来处。",category:"日常",symbol:"envelope.open"),
         .init(id:"after-class",title:"放学后的天台",subtitle:"风翻开画册，一起想象晚霞里的小小冒险。",category:"校园",symbol:"sun.horizon"),
         .init(id:"star-signal",title:"星海来客",subtitle:"一段遥远的信号，两个人共同书写的旅程。",category:"幻想",symbol:"sparkle")
     ]
-    static func available(for model:ModelDescriptor) -> [Self] { all }
+    static func available(for model:ModelDescriptor) -> [Self] {
+        let authored=CharacterPublicProfile.find(model.id)?.scenarios ?? []
+        return authored.isEmpty ? all : authored
+    }
 }
 
 enum MemoryCandidates {

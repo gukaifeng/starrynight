@@ -234,7 +234,11 @@ def visible_thought(text: str) -> str | None:
     # planning. Require an explicit first-person short aside, not only absence
     # of a few forbidden words. The 40-codepoint ceiling allows older genuine
     # asides; new generation targets 20. Keep the native replay guard in sync.
-    if not text or len(text)>40 or not any(word in text for word in ('我','咱')):
+    english=bool(re.search(r'\b(?:I|my|we|our)\b',text,re.I)) and not re.search(r'[\u3400-\u9fff\u3040-\u30ff]',text)
+    if english:
+        if len(text)>96 or len(text.split())>12:return None
+        if re.search(r'\b(?:user|prompt|dialogue|response strategy|as a character|should respond|need to reply|must answer|system|instruction)\b',text,re.I):return None
+    elif not text or len(text)>40 or not any(word in text for word in ('我','咱')):
         return None
     metadata=('用户','让对方','对方感受','需传递','正式问候','边界清晰','回应策略',
               '准备回复','作为角色','符合人设','需要表现','应当表达','台词','情绪状态','遵守',

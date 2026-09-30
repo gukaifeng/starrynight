@@ -148,7 +148,8 @@ struct CharacterDetailsPanel: View {
             .onDisappear { close?.beforeClose = nil }
             .task(id:model.id) {
                 let api=CharacterAI(accountID:store.accountID,characterID:model.id)
-                if let value:CharacterPublicProfile=try? await api.configuration("/v1/characters/"+model.id+"/profile"),!Task.isCancelled {
+                if let value:CharacterPublicProfile=try? await api.configuration("/v1/characters/"+model.id+"/profile"),!Task.isCancelled,
+                   value.supersedes(CharacterPublicProfile.find(model.id)) {
                     loadedPublicProfile=value
                 }
             }
@@ -225,8 +226,9 @@ struct CharacterDetailsPanel: View {
                             HStack(spacing:12) {
                                 Image(systemName:"sparkle").font(.system(size:21,weight:.light)).foregroundStyle(Theme.peach)
                                 VStack(alignment:.leading,spacing:4) {
-                                    Text("一起").font(.system(size:15,weight:.semibold))
-                                    Text(session.record.together.suggestions.isEmpty ? "故事 · 相处 · 时光手记" : "有新的记忆，等你确认")
+                                    Text("相处与剧情").font(.system(size:15,weight:.semibold))
+                                    Text(session.record.together.suggestions.isEmpty ? (publicProfile?.scenarios?.map(\.title).joined(separator:" · ") ?? "故事 · 相处 · 时光手记") : "有新的记忆，等你确认")
+                                        .lineLimit(1)
                                         .font(.system(size:11)).foregroundStyle(Theme.secondary)
                                 }
                                 Spacer();Image(systemName:"chevron.right").font(.system(size:11)).foregroundStyle(Theme.secondary)

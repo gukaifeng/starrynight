@@ -63,6 +63,21 @@ def _load_authored_library():
 
 _load_authored_library()
 
+def _load_scenarios():
+    import json
+    from pathlib import Path
+    library=json.loads(Path(__file__).with_name('character_scenarios.json').read_text())
+    if library['schemaVersion']!=1:raise ValueError('UNKNOWN_SCENARIO_LIBRARY_VERSION')
+    for identity,entry in library['characters'].items():
+        if identity not in PROFILES:raise ValueError('SCENARIO_CHARACTER_NOT_INSTALLED')
+        PROFILES[identity].update(entry['profile'])
+        PROFILES[identity]['profile_revision']=library['revision']
+        PROFILES[identity]['scenarios']=entry['scenarios']
+    for profile in PROFILES.values():
+        profile.setdefault('dialogue_language','zh')
+
+_load_scenarios()
+
 def reviewed_assets(character):
     if character not in PROFILES: raise ValueError('UNKNOWN_CHARACTER')
     if character not in ('anime-kipfel','anime-mamehinata'):return [] # portable packages carry reviewed option.ai hints

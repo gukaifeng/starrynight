@@ -39,8 +39,14 @@ struct AIBeat: Codable, Sendable, Identifiable {
         let text=thought.trimmingCharacters(in:.whitespacesAndNewlines)
         // Same contract as schemas.visible_thought, including old local records.
         // Omitting an invalid optional aside never changes dialogue or audio.
-        guard !text.isEmpty, text.unicodeScalars.count<=40,
-              text.contains("我") || text.contains("咱") else { return nil }
+        let english=text.range(of:#"\b(?:I|my|we|our)\b"#,options:[.regularExpression,.caseInsensitive]) != nil
+            && text.range(of:#"[\u3400-\u9fff\u3040-\u30ff]"#,options:.regularExpression) == nil
+        if english {
+            guard text.unicodeScalars.count<=96,text.split(whereSeparator:{$0.isWhitespace}).count<=12,
+                  text.range(of:#"\b(?:user|prompt|dialogue|response strategy|as a character|should respond|need to reply|must answer|system|instruction)\b"#,options:[.regularExpression,.caseInsensitive]) == nil else {return nil}
+        } else {
+            guard !text.isEmpty,text.unicodeScalars.count<=40,text.contains("我") || text.contains("咱") else {return nil}
+        }
         let metadata = ["用户","让对方","对方感受","需传递","正式问候","边界清晰","回应策略",
                         "准备回复","作为角色","符合人设","需要表现","应当表达","台词","情绪状态","遵守",
                         "编排","提示词","分享邀请","回复意图"]

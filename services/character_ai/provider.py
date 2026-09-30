@@ -7,6 +7,7 @@ from .storage import dump
 from .speech_text import spoken_text
 from .prompts import PLAN_SHAPE, REPLY_LENGTH
 from .profiles import PROFILES
+from .roleplay import language
 from .diagnostics import record_request
 from .greetings import normalized
 from .planner_wire import CompactPlan, SpokenPlan, wire_schema, wire_system, WIRE_SHAPE, SPOKEN_SHAPE
@@ -85,7 +86,7 @@ def session_cache_key(owner,character,purpose,model,system):
 
 def structured_messages(purpose,system,context,schema):
     if purpose!='plan':
-        return [dict(role='system',content=system+'\nJSON Schema:\n'+prompt_schema(schema)),dict(role='user',content=dump(context))]
+        return [dict(role='system',content=system+'\nJSON Schema:\n'+prompt_schema(schema)+'\n'+context.get('language_contract','')),dict(role='user',content=dump(context))]
     # Keep the large reusable prefix ahead of state/timestamps/history, so
     # automatic prefix caching can reuse it even on the first conversation.
     transport=wire_schema(purpose,schema)
@@ -107,6 +108,7 @@ def structured_messages(purpose,system,context,schema):
     repeats=sum(m['role']=='user' and normalized(m['text'])==normalized(current) for m in context.get('recent_messages',[])) if current else 0
     if repeats:
         instruction+=f'\n此刻的用户问题已经问过{repeats}次。本轮是在继续探索，请只讲前面答案完全没有提及的新内容，不能再列举已说过的偏好、感受或请求。哪怕人设中有这些词，也不要再照着念；选择一个新的具体细节或观点深入聊。'
+    instruction+='\n'+context.get('language_contract','')
     messages=[dict(role='system',content=instruction)]
     messages.extend(dict(role=m['role'],content=m['text']) for m in context.get('recent_messages',[])
                     if m.get('text') and m['role'] in ('user','assistant'))
@@ -128,7 +130,7 @@ def structured_payload(settings,purpose,messages,attempt=0):
 def speech_payload(settings,character,beat,voice):
     text,instruction=speech_input(beat)
     return dict(model=settings.tts_model,input=dict(text=text,voice=voice,format='pcm',sample_rate=24000,
-                instruction=PROFILES.get(character,{}).get('voice_delivery','')+instruction,language_hints=['zh']))
+                instruction=PROFILES.get(character,{}).get('voice_delivery','')+instruction,language_hints=[language(character)]))
 
 class Provider:
     def __init__(self, settings, store, client=None):

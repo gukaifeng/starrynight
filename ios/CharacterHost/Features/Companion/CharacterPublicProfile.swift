@@ -3,6 +3,14 @@ import Foundation
 struct CharacterPublicProfile: Codable, Sendable, Identifiable {
     let id,name,invitation,story,occupation,world,tone:String
     let traits,likes:[String]
+    var dialogueLanguage:String? = nil
+    var scenarios:[CompanionStory]? = nil
+    var profileRevision:String? = nil
+    var englishOnly:Bool {dialogueLanguage == "en"}
+    func supersedes(_ bundled:Self?)->Bool {
+        guard let revision=bundled?.profileRevision else {return true}
+        return (profileRevision ?? "") >= revision
+    }
     private struct Catalog:Decodable {let characters:[CharacterPublicProfile]}
     private static let catalog:[CharacterPublicProfile] = {
         guard let url=Bundle.main.url(forResource:"CharacterPublicProfiles",withExtension:"json"),

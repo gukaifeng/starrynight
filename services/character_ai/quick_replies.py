@@ -1,9 +1,12 @@
 """AI-ranked user choices with sequential, private speculative answer branches."""
-import asyncio,json,time,uuid
+import asyncio,json,re,time,uuid
 from .schemas import QuickReplyPlan
 from .storage import dump
+from .roleplay import language
 
 SUGGESTIONS='''根据真实聊天，为用户提供恰好三条可以直接发送给角色的自然接话。只输出JSON，不替角色说话，不输出括号动作或心理描写。每条优先6至18字，最多45字，具体接住最新AI发言，三条在意思与走向上不同，不机械重复“继续说”。不要编造用户经历、感受或隐私事实，不引导承诺、花钱或危险行为。可以表达好奇、接话、邀请展开或温和转向。likelihood是你根据上下文估计用户会选择的相对倾向，0至1，按高到低排序；这是启发式排序，不是校准概率。参考用户过往说话习惯，但不要照抄历史发言。未被选择前，这三条都不是用户已说的话。'''
+
+SUGGESTIONS+='''\n用户没有明确说过的职业、住处、经历和身份不能由建议凭空补全。无这些依据时用询问、兴趣选择、邀请展开或中性的礼貌接话。English suggestions must not invent a job, home, biography or relationship: do not offer "I am a [job]" or "I work nearby" without supporting user history. Ground all three options in the actual last reply, not invented user facts.'''
 
 class QuickReplies:
     def __init__(self,pool):self.pool=pool;self.tasks={};self.targets={}
@@ -22,7 +25,7 @@ class QuickReplies:
 
     def valid_choice(self,owner,request):
         saved=self.saved(owner,request)
-        return bool(request.trigger=='user_message' and saved and any(o['id']==str(request.quick_reply_id) and o['text']==request.text for o in saved['options']))
+        return bool(request.trigger in ('user_message','story') and saved and any(o['id']==str(request.quick_reply_id) and o['text']==request.text for o in saved['options']))
 
     def status(self,owner,request):
         saved=self.saved(owner,request)
@@ -51,10 +54,13 @@ class QuickReplies:
                 # Bounded recent conversational text, not the full performance/persona
                 # catalogue. The selected answer still uses the complete role context.
                 recent=[dict(role=m['role'],text=m['text'][-600:]) for m in context['recent_messages'][-8:] if m.get('text')]
-                data=dict(recent_messages=recent,preferences=context['preferences'],character_name=context['character_profile'].get('name',''))
+                data=dict(recent_messages=recent,preferences=context['preferences'],character_name=context['character_profile'].get('english_name',context['character_profile'].get('name','')),
+                    language_contract=context['language_contract'],roleplay_context=context['roleplay_context'])
+                if language(char)=='en':data['suggestion_length']='Exactly three distinct English replies, normally 3–8 words each and at most 45 characters. Preserve natural English; do not translate Chinese examples.'
                 async with asyncio.timeout(12):
                     plan=await self.pool.engine.provider.structured(owner,char,'suggestions',SUGGESTIONS,data,QuickReplyPlan)
                 choices=sorted(plan.options,key=lambda o:o.likelihood,reverse=True)
+                if language(char)=='en' and any(re.search(r'[\u3400-\u9fff\u3040-\u30ff]',o.text) for o in choices):raise ValueError('SUGGESTION_LANGUAGE_INVALID')
                 if len({o.text.strip() for o in choices})!=3:raise ValueError('DUPLICATE_SUGGESTIONS')
                 options=[dict(id=str(uuid.uuid4()),text=o.text.strip(),likelihood=o.likelihood) for o in choices]
                 if self.latest(owner,char)!=source or self.pool.context_key(owner,request)!=key:return
@@ -67,7 +73,7 @@ class QuickReplies:
                 if self.latest(owner,char)!=source or self.pool.context_key(owner,request)!=key:return
                 kind='quick:'+option['id']
                 if self.pool.rows(owner,char,key,kind):continue
-                branch=request.model_copy(update=dict(text=option['text'],trigger='user_message',quick_reply_id=None))
+                branch=request.model_copy(update=dict(text=option['text'],trigger='story' if request.scene.get('story_id') else 'user_message',quick_reply_id=None))
                 job=self.pool.ensure_job(owner,branch,key,kind,source=source)
                 await asyncio.shield(job.task)
         except asyncio.CancelledError:raise

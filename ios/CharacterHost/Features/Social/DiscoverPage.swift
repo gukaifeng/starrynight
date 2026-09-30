@@ -32,7 +32,7 @@ struct DiscoverPage: View {
     var body:some View {
         VStack(spacing:0) {
             NightHeader(title:"发现",subtitle:"探索角色，找到想聊下去的伙伴")
-            CatalogSearchField(placeholder:"搜角色、作者或性格",text:$query.text,
+            CatalogSearchField(placeholder:"搜角色、剧情或英语陪练",text:$query.text,
                 identifier:"discoverSearch",clearIdentifier:"clearDiscoverSearch")
                 .padding(.horizontal,24).padding(.bottom,10)
             shelfBar.padding(.horizontal,24).padding(.bottom,5)

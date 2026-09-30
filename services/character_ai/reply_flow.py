@@ -7,18 +7,21 @@ import re
 from .schemas import visible_text, visible_thought
 
 def duration_hint(text):
+    cjk=len(re.findall(r'[\u3400-\u9fff]',text))
+    if not cjk and re.search(r'[a-zA-Z]',text):return max(1.8,min(45,len(text.split())/2.6))
     return max(1.8,min(45,len(text)/5.5))
 
 def boundary(text,fraction):
     if fraction<=0:return 0
     if len(text)<8:return len(text)
-    points=[m.end() for m in re.finditer(r'[，。！？；、…～,!?:;]',text)]
+    points=[m.end() for m in re.finditer(r'[，。！？；、…～,.!?:;]',text)]
     # Keep a final thought after the last word; otherwise prefer phrase edges.
     internal=[p for p in points if 0<p<len(text)]
     target=round(len(text)*fraction)
+    if not internal and re.search(r'[a-zA-Z]',text):internal=[m.end() for m in re.finditer(r'\s+',text)]
     return min(internal,key=lambda p:abs(p-target)) if internal else min(len(text),max(1,target))
 
-def compile_parts(beat,resolved):
+def compile_parts(beat,resolved,language='zh'):
     text=visible_text(beat.dialogue.text) if beat.dialogue else ''
     size=max(1,len(text));markers=[];seen=set()
     thoughts=list(beat.asides)
@@ -38,7 +41,7 @@ def compile_parts(beat,resolved):
         markers.append((index,'thought',value));seen.add(value)
     # Select one genuine observation at onset and one at the later phase.
     # Do not duplicate every simultaneous hand/ear/tail cue in the transcript.
-    cues=[c for c in resolved['performances'] if c['active'] and c['asset'].get('observable_effects')]
+    cues=[c for c in resolved['performances'] if c['active'] and c['asset'].get('observable_effects')] if language!='en' else []
     phases=[sorted([c for c in cues if c['offset_ms']<1200],key=lambda c:(c['asset']['group']!='expression',c['offset_ms'])),
             sorted([c for c in cues if c['offset_ms']>=1200],key=lambda c:c['offset_ms'])]
     for phase in phases:

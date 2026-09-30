@@ -53,15 +53,18 @@ struct CharacterMarketItem: Identifiable {
             // Owned private drafts belong in My creations, never the marketplace.
             guard creation == nil || creation?.published == true else { return nil }
             let metadata = creation == nil ? curation[model.id] : nil
+            let persona=creation == nil ? CharacterPublicProfile.find(model.id) : nil
+            let routes=persona?.scenarios ?? []
+            let categories=(metadata?.categories ?? ["日常"])+(persona?.englishOnly == true ? ["英语"] : routes.contains(where:{$0.category.contains("恋爱") || $0.category.contains("约会")}) ? ["恋爱"] : routes.isEmpty ? [] : ["剧情"])
             return CharacterMarketItem(model:model,profile:model.conversationProfile(preserving:nil),
-                author:library.author(for:model.id),categories:metadata?.categories ?? ["日常"],
+                author:library.author(for:model.id),categories:Array(Set(categories)).sorted(),
                 featured:metadata?.featured ?? false,rank:metadata?.rank ?? 1000,
                 updatedAt:library.updatedAt(model.id),isCreatorWork:creation != nil)
         }
     }
     static func categories(_ items:[CharacterMarketItem]) -> [String] {
         let available = Set(items.flatMap(\.categories))
-        let preferred = ["日常","治愈","元气","校园","幻想"]
+        let preferred = ["恋爱","英语","剧情","日常","治愈","元气","校园","幻想"]
         return ["全部"] + preferred.filter(available.contains) + available.subtracting(preferred).sorted()
     }
     static func results(_ items:[CharacterMarketItem],query:MarketQuery,
@@ -72,7 +75,7 @@ struct CharacterMarketItem: Identifiable {
             (!query.subscribedOnly || subscriptions.contains(item.id)) &&
             (!query.followedAuthorsOnly || item.author.map { followedAuthors.contains($0.id) } == true) &&
             CharacterSearch.matches(query.text,model:item.model,profile:item.profile,
-                authorName:([item.authorName]+item.categories).joined(separator:" "))
+                authorName:([item.authorName]+item.categories+[CharacterPublicProfile.find(item.model.runtimeID)?.occupation ?? ""]+(CharacterPublicProfile.find(item.model.runtimeID)?.scenarios?.map(\.title) ?? [])).joined(separator:" "))
         }.sorted { a,b in
             if query.sort == .name {
                 let order = a.profile.name.localizedStandardCompare(b.profile.name)

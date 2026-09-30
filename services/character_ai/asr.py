@@ -2,6 +2,7 @@ import asyncio, json, uuid
 import websockets
 from .profiles import PROFILES
 from .storage import dump
+from .roleplay import language
 
 class Transcript:
     def __init__(self):self.finals={}
@@ -27,7 +28,7 @@ async def recognize(socket,settings,store,owner,character,nickname=''):
             usage=store.reserve('asr',owner,character,30,settings)
             payload={'header':{'action':'run-task','task_id':task,'streaming':'duplex'},
                 'payload':{'task_group':'audio','task':'asr','function':'recognition','model':settings.asr_model,
-                    'parameters':{'format':'pcm','sample_rate':16000,'language_hints':['zh'],'max_sentence_silence':800},'input':{'context':context}}}
+                    'parameters':{'format':'pcm','sample_rate':16000,'language_hints':[language(character)],'max_sentence_silence':800},'input':{'context':context}}}
             record_request(settings,store,owner,character,'asr',payload)
             await upstream.send(dump(payload))
             first=json.loads(await asyncio.wait_for(upstream.recv(),15))

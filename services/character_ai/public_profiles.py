@@ -1,5 +1,6 @@
 """Explicit public character cards. Never serialize the full authored persona."""
 from .profiles import PROFILES
+from .roleplay import public_scenarios
 
 INTRODUCTIONS = {
     'anime-chiffon':('今天的心事，慢慢说也没关系。','戚风在小镇花店学习花艺，喜欢手账和雨后的空气。她温柔、慢热，也藏着一点俏皮，愿意陪你把平常的一天聊出小小的光亮。'),
@@ -16,7 +17,9 @@ def public_profile(character):
     else:invitation,story=p['presentation']['invitation'],p['presentation']['story']
     return dict(id=character,name=p['name'],invitation=invitation,story=story,
                 occupation=p['occupation'],world=p['world'],traits=p['personality']['traits'],
-                likes=p['personality']['likes'],tone=p['speaking_style']['tone'])
+                likes=p['personality']['likes'],tone=p['speaking_style']['tone'],
+                dialogueLanguage=p['dialogue_language'],scenarios=public_scenarios(character),
+                profileRevision=p.get('profile_revision','2026-09-30-base-v1'))
 
 def public_catalog():
     return dict(version=1,characters=[public_profile(c) for c in PROFILES])

@@ -27,6 +27,15 @@ struct CompanionExperienceTests {
         precondition(reopened.record("anime-kipfel").messages.isEmpty)
         precondition(store.record("anime-mamehinata").memories.isEmpty)
         precondition(CompanionStory.all.count == 3)
+        let lime=CharacterPublicProfile.find("anime-lime")
+        precondition(lime?.englishOnly == true && lime?.scenarios?.count == 3)
+        precondition(lime?.scenarios?.allSatisfy {$0.id.hasPrefix("lime-")} == true)
+        var oldLime=lime!;oldLime.profileRevision=nil
+        precondition(!oldLime.supersedes(lime) && lime!.supersedes(oldLime))
+        precondition(CharacterPublicProfile.find("anime-mafuyu")?.scenarios?.count == 3)
+        precondition(CharacterPublicProfile.find("anime-kipfel")?.scenarios?.isEmpty == true)
+        precondition(AIBeat.visibleThought("I feel a little more confident now.") != nil)
+        precondition(AIBeat.visibleThought("I should respond to the user warmly.") == nil)
         return "PASS: real-AI migration, backup, retained memories, account/role isolation and restart persistence"
     }
 }
