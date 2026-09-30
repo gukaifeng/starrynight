@@ -46,7 +46,7 @@ class SemanticNovelty:
                     (id,MODEL_REVISION,vector.astype('<f4').tobytes(),id))
         query=vectors[0];best=None
         for row in rows:
-            threshold=SHAKE_SIMILARITY_THRESHOLD if trigger=='model_shaken' and row['trigger']=='model_shaken' else SIMILARITY_THRESHOLD
+            threshold=SHAKE_SIMILARITY_THRESHOLD if trigger in ('model_shaken','model_pinched') and row['trigger'] in ('model_shaken','model_pinched') else SIMILARITY_THRESHOLD
             vector=generated[row['message']] if row['vector'] is None else np.frombuffer(row['vector'],dtype='<f4')
             score=float(np.dot(query,vector)/(np.linalg.norm(query)*np.linalg.norm(vector)))
             if score>=threshold and (best is None or score>best['score']):

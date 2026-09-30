@@ -19,6 +19,29 @@ public static class CharacterViewEditorReview
         for(int i=0;i<frames;i++){edit.RestoreFrame();edit.Step(1f/60);edit.ApplyFrame();}
     }
     static bool Near(CharacterViewPose a,CharacterViewPose b) => Mathf.Abs(a.yaw-b.yaw)<.1f && Mathf.Abs(a.pitch-b.pitch)<.1f && Mathf.Abs(a.scale-b.scale)<.002f && Mathf.Abs(a.x-b.x)<.002f && Mathf.Abs(a.y-b.y)<.002f;
+    static void ReviewPinch(CharacterInspectionRotation edit,Transform root,Camera camera,string context)
+    {
+        var saved=edit.Target;var displayed=edit.Current;var cameraPosition=camera.transform.position;
+        var beforePosition=root.position;var beforeScale=root.localScale;var beforeRotation=root.rotation;
+        foreach(float ratio in new[]{2f,.5f}) {
+            edit.Preview.BeginPinch();edit.Preview.Pinch(ratio);
+            for(int frame=0;frame<60;frame++) {
+                edit.RestoreFrame();edit.Step(1f/60);edit.ApplyFrame();
+                Check(Near(edit.Target,saved) && Near(edit.Current,displayed),"pinch cannot translate or persist: "+context);
+                Check(edit.Preview.ScaleRatio>=.89999f && edit.Preview.ScaleRatio<=1.10001f,"pinch stays in its small relative range");
+                Check(camera.transform.position==cameraPosition,"pinch never reframes camera");
+            }
+            if(ratio<1)Check(edit.Preview.ScaleRatio<.91f,"inward pinch is visible: "+context);
+            Debug.Log("PREVIEW_PINCH_GEOMETRY "+context+" ratio="+ratio+" applied="+edit.Preview.ScaleRatio);
+            float held=edit.Preview.ScaleRatio;edit.Preview.EndPinch(true);
+            Check(edit.Preview.ScaleRatio==held,"pinch release stays continuous");Tick(edit,180);
+            Check(edit.Preview.ScaleRatio==1 && Near(edit.Target,saved) && Near(edit.Current,displayed),"release restores the original view");
+            Check(Vector3.Distance(root.position,beforePosition)<.00001f && root.localScale==beforeScale && Quaternion.Angle(root.rotation,beforeRotation)<.05f,"pinch does not alter authored root");
+        }
+        edit.Preview.BeginPinch();edit.Preview.Pinch(.5f);Tick(edit,15);Check(edit.Begin(),"enter editor during pinch");
+        Check(!edit.Preview.Pinching,"position editor cancels temporary pinch");Tick(edit,180);edit.Close();Tick(edit);
+        Check(edit.Preview.ScaleRatio==1 && Near(edit.Target,saved),"temporary scale never commits into the position editor");
+    }
     static void ReviewPreview(CharacterInspectionRotation edit,Transform root)
     {
         var before=edit.Current;var target=edit.Target;
@@ -70,6 +93,7 @@ public static class CharacterViewEditorReview
                     camera.transform.SetPositionAndRotation(focus-cameraRotation*Vector3.forward*distance,cameraRotation);
                     var cameraPosition=camera.transform.position;
                     edit.SetProjection(camera,region,safe);
+                    ReviewPinch(edit,root,camera,source.modelId+" "+size);
                     Debug.Log("POSITION_GEOMETRY "+source.modelId+" "+size+" region="+region+" default="+edit.Project(CharacterViewPose.Default)+" turn30="+edit.Project(new CharacterViewPose{yaw=-30,scale=1})+" safe="+safe);
                     Check(edit.Begin(camera.transform.right),"open edit");
                     edit.BeginAdjustment();edit.Move(.075f,0);Tick(edit);

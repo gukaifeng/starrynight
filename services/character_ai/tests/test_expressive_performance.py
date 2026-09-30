@@ -105,6 +105,43 @@ class ShakeProvider:
         assert 'appearance_facts' not in context['character_profile']
         return Plan(beats=[Beat(beat_id='b',dialogue=dict(text='呜，快把我晃迷糊啦！轻一点嘛，陪我好好说话好不好？' if char==ROLES[0] else '哼，现在轮到我提要求了，夸我一句好不好嘛？'))])
 
+class PinchProvider:
+    def __init__(self,kind,wrong_first=False):self.kind=kind;self.calls=[];self.wrong_first=wrong_first
+    async def structured(self,owner,char,purpose,system,context,schema):
+        self.calls.append(purpose)
+        if purpose=='narration':return NarrationResult()
+        assert context['trigger']=='model_pinched' and context['user_message']==''
+        assert context['interaction_context']['kind']==self.kind
+        assert ('向外拉开' if self.kind=='pinch_out' else '向内收拢') in context['interaction_context']['task']
+        if self.wrong_first and self.calls.count('plan')==1:
+            text='呜，你把我晃得头晕啦！'
+        else:
+            if self.wrong_first:assert '不是旋转' in context['novelty_correction']['reason']
+            text='忽然拉我这么近，我都不知道先看哪里啦。' if self.kind=='pinch_out' else '偷偷捏我一下，这下可被我抓到了。'
+        return Plan(beats=[Beat(beat_id='b',dialogue=dict(text=text))])
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('kind',['pinch_out','pinch_in'])
+async def test_pinch_uses_ai_specific_direction_and_revises_wrong_motion_before_publication(tmp_path,kind):
+    store=Store(tmp_path/'state.db');provider=PinchProvider(kind,wrong_first=True)
+    engine=Orchestrator(Settings(data_dir=tmp_path,paid_enabled=False),store,provider)
+    req=Request(request_id=uuid.uuid4(),character_id=ROLES[0],trigger='model_pinched',
+        interaction=dict(kind=kind,intensity=.8),available_assets=[a['asset_id'] for a in assets(ROLES[0])],wants_audio=False)
+    events=[e async for e in engine.reply('u',req)]
+    script=next(e['script'] for e in events if e['type']=='reply.narration.ready')
+    assert script['trigger']=='model_pinched' and '头晕' not in script['text']
+    assert len(script['beats'][0]['visuals'])>=5
+    assert provider.calls==['plan','plan','narration']
+    replay=[e async for e in engine.reply('u',req)]
+    assert replay[0]['cached'] and len(provider.calls)==3
+    rotated=req.model_copy(update=dict(request_id=uuid.uuid4(),trigger='model_shaken',interaction=req.interaction.model_copy(update={'kind':'shake'})))
+    assert len([e async for e in engine.reply('u',rotated)])==1
+    opposite=req.model_copy(update=dict(request_id=uuid.uuid4(),interaction=req.interaction.model_copy(update={'kind':'pinch_in' if kind=='pinch_out' else 'pinch_out'})))
+    assert len([e async for e in engine.reply('u',opposite)])==1
+    assert len(provider.calls)==3, 'Rotation and both pinch directions share one cooldown before billing'
+    assert len(store.history('u',req.character_id))==1
+    store.db.close()
+
 @pytest.mark.asyncio
 async def test_shake_reaction_is_real_ai_owned_cooled_down_and_replay_is_free(tmp_path):
     store=Store(tmp_path/'state.db');provider=ShakeProvider()

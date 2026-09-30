@@ -17,11 +17,31 @@ public static class CharacterPreviewRotationTests
             rotation.Step(1f/hz);
             Check(float.IsFinite(rotation.Offset.x) && float.IsFinite(rotation.Offset.y),"finite output");
             Check(Math.Abs(rotation.Offset.x)<=18.0001f && Math.Abs(rotation.Offset.y)<=8.0001f,"hard small-angle envelope");
+            Check(float.IsFinite(rotation.ScaleRatio) && rotation.ScaleRatio>=.89999f && rotation.ScaleRatio<=1.10001f,"bounded transient pinch");
         }
     }
     public static void Main()
     {
         foreach(int hz in new[]{30,60,120}) {
+            var pinch=new CharacterPreviewRotation();
+            pinch.BeginPinch();pinch.Pinch(10);Tick(pinch,hz,hz/2);
+            Check(pinch.Pinching && pinch.ScaleRatio>1.09f && pinch.ReactionCount==1 && pinch.ReactionKind=="pinch_out","enlarge reacts before release");
+            float enlarged=pinch.ScaleRatio;
+            Check(!pinch.EndPinch(true) && pinch.ScaleRatio==enlarged,"release does not snap or emit twice");
+            Tick(pinch,hz,hz*2);
+            Check(pinch.ScaleRatio==1 && pinch.PinchReturnCount==1,"pinch returns exactly once");
+            pinch.BeginPinch();pinch.Pinch(.01f);Tick(pinch,hz,hz/2);
+            Check(pinch.ScaleRatio<.91f && pinch.ReactionCount==1,"opposite pinch uses same cooldown");
+            pinch.EndPinch();Tick(pinch,hz,hz*21);
+            pinch.BeginPinch();pinch.Pinch(.5f);Tick(pinch,hz,hz/2);
+            Check(pinch.Pinching && pinch.ReactionCount==2 && pinch.ReactionKind=="pinch_in","shrink has its own semantics");
+            pinch.Begin();
+            for(int i=0;i<hz*2;i++) {pinch.Move(.12f*(float)Math.Sin(i*12f/hz),0);pinch.Step(1f/hz);}
+            Check(!pinch.Pinching && pinch.ScaleRatio==1 && pinch.ShakeCount==0,"pinch-to-turn returns scale and shares cooldown");
+            pinch.Reset();pinch.BeginPinch();pinch.Pinch(2);Tick(pinch,hz,hz/10);pinch.EndPinch();Tick(pinch,hz,hz*2);
+            Check(pinch.ReactionCount==0 && pinch.ScaleRatio==1,"early system cancellation never speaks later");
+            pinch.BeginPinch();pinch.Pinch(float.NaN);pinch.Pinch(float.PositiveInfinity);pinch.Pinch(0);Tick(pinch,hz,hz);
+            Check(pinch.ScaleRatio==1 && pinch.ReactionCount==0,"invalid scale cannot affect the actor");
             var rotation=new CharacterPreviewRotation();
             rotation.Begin();rotation.Move(4,-4);Tick(rotation,hz,hz);
             Check(rotation.Offset.x<-17.9f && rotation.Offset.y>7.9f,"visible, bounded response");

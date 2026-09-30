@@ -171,14 +171,14 @@ class ContextMessage(Strict):
     text: str = Field(max_length=700)
 
 class ModelInteraction(Strict):
-    kind: Literal['shake']
+    kind: Literal['shake','pinch_out','pinch_in']
     intensity: float = Field(ge=0,le=1)
 
 class Request(Strict):
     request_id: UUID
     character_id: str = Field(min_length=1,max_length=128,pattern=r'^[a-z][a-z0-9_.-]+$')
     text: str = Field(default='',max_length=500)
-    trigger: Literal['user_message','appLaunch','firstLaunch','firstMeeting','characterSwitch','idle','story','model_shaken'] = 'user_message'
+    trigger: Literal['user_message','appLaunch','firstLaunch','firstMeeting','characterSwitch','idle','story','model_shaken','model_pinched'] = 'user_message'
     interaction: ModelInteraction | None = None
     entry_id: UUID | None = None
     preferences: dict[str,str] = Field(default_factory=dict)

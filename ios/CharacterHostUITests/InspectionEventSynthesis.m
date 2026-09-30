@@ -115,3 +115,28 @@ void SNSynthesizePreviewCancellation(CGPoint start, CGSize viewport, void (^comp
         dispatch_async(dispatch_get_main_queue(),^{completion(error ?: (success ? nil : [NSError errorWithDomain:@"PreviewRotationTest" code:2 userInfo:nil]));});
     }];
 }
+
+void SNSynthesizePreviewPinch(CGPoint center, CGFloat ratio, void (^completion)(NSError *)) {
+    Class paths=NSClassFromString(@"XCPointerEventPath"),records=NSClassFromString(@"XCSynthesizedEventRecord");
+    id device=[XCUIDevice sharedDevice];
+    if(!paths || !records || ![device respondsToSelector:NSSelectorFromString(@"eventSynthesizer")]) {
+        completion([NSError errorWithDomain:@"PreviewPinchTest" code:1 userInfo:nil]);return;
+    }
+    id record=[[records alloc] initWithName:@"temporary-pinch-with-ignored-centroid-drift" interfaceOrientation:1];
+    CGPoint a=CGPointMake(center.x-38,center.y),b=CGPointMake(center.x+38,center.y);
+    // Xcode 26.4's synthesized nonzero second-contact offset injected an extra
+    // end/re-begin sequence. Start this scale/centroid test simultaneously;
+    // retain staggered lifts to verify the remaining finger cannot rotate.
+    id one=[[paths alloc] initForTouchAtPoint:a offset:0],two=[[paths alloc] initForTouchAtPoint:b offset:0];
+    [one moveToPoint:a atOffset:.28];[two moveToPoint:b atOffset:.28];
+    // Translate both fingers as well: outside the editor this must only scale.
+    CGPoint endA=CGPointMake(center.x+25-38*ratio,center.y+32),endB=CGPointMake(center.x+25+38*ratio,center.y+32);
+    [one moveToPoint:endA atOffset:.95];[two moveToPoint:endB atOffset:.95];
+    [one moveToPoint:endA atOffset:1.65];[two moveToPoint:endB atOffset:1.65];
+    [two liftUpAtOffset:1.8];
+    [one moveToPoint:CGPointMake(endA.x-30,endA.y+15) atOffset:2.1];[one liftUpAtOffset:2.25];
+    [record addPointerEventPath:one];[record addPointerEventPath:two];
+    [[device valueForKey:@"eventSynthesizer"] synthesizeEvent:record completion:^(BOOL success,NSError *error) {
+        dispatch_async(dispatch_get_main_queue(),^{completion(error ?: (success ? nil : [NSError errorWithDomain:@"PreviewPinchTest" code:2 userInfo:nil]));});
+    }];
+}

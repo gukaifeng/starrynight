@@ -6,12 +6,26 @@ namespace ModelSpace
     public sealed class CharacterPreviewRotation
     {
         public const float MaximumYaw=18,MaximumPitch=8;
+        public const float MinimumRatio=.90f,MaximumRatio=1.10f,PinchThreshold=.055f;
         public const float ShakeTravel=1.5f,ShakeWindow=5,ShakeCooldown=20;
         Vector2 offset,target,velocity,origin;
         bool returning;
         float clock,windowStart,travel,lastReaction=-100,lastMove=-100;
         int reversals;
         Vector2 previousTarget,lastDirection;
+        float scale=1,scaleTarget=1,scaleOrigin=1,scaleVelocity,pinchStart;
+        float scaleMinimum=MinimumRatio,scaleMaximum=MaximumRatio;
+        bool scaleReturning;
+        public bool Pinching {get;private set;}
+        public float ScaleRatio => scale;
+        public float MinimumObservedRatio {get;private set;}=1;
+        public float MaximumObservedRatio {get;private set;}=1;
+        public int PinchCount {get;private set;}
+        public int PinchReturnCount {get;private set;}
+        public int PinchReactionCount {get;private set;}
+        public int ReactionCount {get;private set;}
+        public string ReactionKind {get;private set;}="shake";
+        public float ReactionIntensity {get;private set;}
         public int ShakeCount {get;private set;}
         public float ShakeIntensity {get;private set;}
         public bool Active {get;private set;}
@@ -21,8 +35,32 @@ namespace ModelSpace
         public int Count {get;private set;}
         public int ReturnCount {get;private set;}
         public void Begin() {
+            EndPinch();
             if(clock-lastMove>.8f || clock-windowStart>ShakeWindow) {windowStart=clock;travel=0;reversals=0;lastDirection=Vector2.zero;}
             Active=true;returning=false;origin=offset;target=offset;previousTarget=offset;Count++;
+        }
+        public void BeginPinch() {
+            End();Pinching=true;scaleReturning=false;scaleOrigin=scale;scaleTarget=scale;pinchStart=clock;PinchCount++;
+        }
+        public void SetScaleLimits(float minimum,float maximum) {
+            if(!float.IsFinite(minimum) || !float.IsFinite(maximum))return;
+            scaleMinimum=Mathf.Clamp(minimum,MinimumRatio,1);scaleMaximum=Mathf.Clamp(maximum,1,MaximumRatio);
+            scaleTarget=Mathf.Clamp(scaleTarget,scaleMinimum,scaleMaximum);
+        }
+        public void Pinch(float ratio) {
+            if(!Pinching || !float.IsFinite(ratio) || ratio<=0)return;
+            scaleTarget=Mathf.Clamp(scaleOrigin*ratio,scaleMinimum,scaleMaximum);
+        }
+        public bool EndPinch(bool react=false) {
+            if(!Pinching)return false;
+            bool reacted=react && TryReactToPinch();
+            Pinching=false;scaleReturning=true;scaleTarget=1;return reacted;
+        }
+        bool TryReactToPinch() {
+            float delta=scaleTarget-scaleOrigin;
+            if(clock-lastReaction<ShakeCooldown || clock-pinchStart<.22f || Mathf.Abs(delta)<PinchThreshold)return false;
+            PinchReactionCount++;ReactionCount++;ReactionKind=delta>0 ? "pinch_out" : "pinch_in";
+            ReactionIntensity=Mathf.Clamp01(.5f+Mathf.Abs(delta)*3);lastReaction=clock;return true;
         }
         public void Move(float horizontal,float vertical)
         {
@@ -48,6 +86,7 @@ namespace ModelSpace
         {
             if(clock-lastReaction>=ShakeCooldown && clock-windowStart>=.35f && clock-windowStart<=ShakeWindow && travel>=ShakeTravel && reversals>=2) {
                 ShakeCount++;ShakeIntensity=Mathf.Clamp01(.5f+travel/20);lastReaction=clock;
+                ReactionCount++;ReactionKind="shake";ReactionIntensity=ShakeIntensity;
                 travel=0;reversals=0;lastDirection=Vector2.zero;return true;
             }
             return false;
@@ -57,6 +96,13 @@ namespace ModelSpace
             if(!float.IsFinite(deltaTime) || deltaTime<=0)return;
             clock+=deltaTime;
             if(Active)TryReact(); // Threshold is observed while the finger is still down.
+            if(Pinching)TryReactToPinch();
+            scale=Mathf.SmoothDamp(scale,scaleTarget,ref scaleVelocity,Pinching ? .08f : .22f,Mathf.Infinity,Mathf.Min(deltaTime,.05f));
+            scale=Mathf.Clamp(scale,scaleMinimum,scaleMaximum);
+            MinimumObservedRatio=Mathf.Min(MinimumObservedRatio,scale);MaximumObservedRatio=Mathf.Max(MaximumObservedRatio,scale);
+            if(scaleReturning && Mathf.Abs(scale-1)<.00005f && Mathf.Abs(scaleVelocity)<.0001f) {
+                scale=scaleTarget=1;scaleVelocity=0;scaleReturning=false;PinchReturnCount++;
+            }
             offset=Vector2.SmoothDamp(offset,target,ref velocity,Active ? .08f : .20f,Mathf.Infinity,Mathf.Min(deltaTime,.05f));
             // A quick reversal must not overshoot the hard gesture envelope.
             offset=new Vector2(Mathf.Clamp(offset.x,-MaximumYaw,MaximumYaw),Mathf.Clamp(offset.y,-MaximumPitch,MaximumPitch));
@@ -70,6 +116,9 @@ namespace ModelSpace
             Active=returning=false;offset=target=velocity=origin=Vector2.zero;
             PeakYaw=PeakPitch=0;Count=ReturnCount=0;
             clock=windowStart=travel=0;reversals=ShakeCount=0;ShakeIntensity=0;lastReaction=lastMove=-100;previousTarget=lastDirection=Vector2.zero;
+            Pinching=scaleReturning=false;scale=scaleTarget=scaleOrigin=1;scaleVelocity=pinchStart=0;
+            scaleMinimum=MinimumRatio;scaleMaximum=MaximumRatio;MinimumObservedRatio=MaximumObservedRatio=1;
+            PinchCount=PinchReturnCount=PinchReactionCount=ReactionCount=0;ReactionKind="shake";ReactionIntensity=0;
         }
     }
 }

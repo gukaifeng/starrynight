@@ -44,7 +44,7 @@ def test_first_generation_uses_official_chat_roles_and_no_fake_opening_or_duplic
     context['user_message']='我喜欢画花'
     assert '已经问过1次' in structured_messages('plan',PLANNER,context,TimelinePlan)[0]['content']
 
-@pytest.mark.parametrize('trigger',['appLaunch','firstLaunch','firstMeeting','characterSwitch','idle','model_shaken'])
+@pytest.mark.parametrize('trigger',['appLaunch','firstLaunch','firstMeeting','characterSwitch','idle','model_shaken','model_pinched'])
 def test_proactive_event_is_new_input_not_replayed_user_question(trigger):
     context=dict(trigger=trigger,user_message='',recent_messages=[dict(role='user',text='过去的问题'),dict(role='assistant',text='过去的回答')])
     messages=structured_messages('plan',PLANNER,context,TimelinePlan)

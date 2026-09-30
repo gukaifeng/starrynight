@@ -50,6 +50,10 @@ namespace ModelSpace
         public int inspectionGestureRevision=CharacterInspectionRotation.Revision,inspectionCount,inspectionRejectedCount,inspectionReturnCount;
         public bool inspectionActive,inspectionPreparing,inspectionMoving;
         public bool previewRotationActive;
+        public bool previewScaleActive;
+        public float previewScaleRatio,previewScaleMinimum,previewScaleMaximum,previewReactionIntensity;
+        public int previewPinchCount,previewPinchReturnCount,previewPinchReactionCount;
+        public string previewReactionKind;
         public int previewToken,previewRotationCount,previewRotationReturnCount;
         public int previewShakeCount;
         public float previewShakeIntensity;
@@ -310,14 +314,17 @@ namespace ModelSpace
             inspection.RestoreFrame();
             HandleInput();
             int previewReturns=inspection.Preview.ReturnCount;
-            int previewReactions=inspection.Preview.ShakeCount;
+            int pinchReturns=inspection.Preview.PinchReturnCount;
+            int previewReactions=inspection.Preview.ReactionCount;
             if(inspection.Step(Time.unscaledDeltaTime))Emit("inspectionReturned");
-            if(previewReactions!=inspection.Preview.ShakeCount)Emit("characterShaken");
+            if(previewReactions!=inspection.Preview.ReactionCount)Emit(inspection.Preview.ReactionKind=="shake" ? "characterShaken" : "characterPinched");
             inspection.Ambient.Step(Time.unscaledDeltaTime,
-                ready && immersive && gesturesEnabled && !inspection.Active && !inspection.Preparing && !inspection.Preview.Active &&
+                ready && immersive && gesturesEnabled && !inspection.Active && !inspection.Preparing && !inspection.Preview.Active && !inspection.Preview.Pinching &&
+                Mathf.Abs(inspection.Preview.ScaleRatio-1)<.0001f &&
                 inspection.Preview.Offset.sqrMagnitude<.001f && string.IsNullOrEmpty(actions.CurrentAction) && (!posture || posture.State.id=="stand"),
                 companion && companion.IsSpeaking);
             if(previewReturns!=inspection.Preview.ReturnCount)Emit("previewRotationReturned");
+            if(pinchReturns!=inspection.Preview.PinchReturnCount)Emit("previewPinchReturned");
             float t = 1 - Mathf.Exp(-18f * Time.unscaledDeltaTime);
             currentSize = Mathf.Lerp(currentSize, size, t);
             currentAngle = Mathf.Lerp(currentAngle, angle, t);
@@ -452,27 +459,33 @@ namespace ModelSpace
         void HandleNativeGesture(BridgePayload value)
         {
             if (!nativeGestures || !gesturesEnabled || value == null || !viewCamera) return;
-            if(value.action=="previewRotate")
+            if(value.action=="previewRotate" || value.action=="previewPinch")
             {
+                bool pinching=value.action=="previewPinch";
                 if(value.state=="began") {
                     // Native chat routing already chose blank space or a
                     // horizontal message drag. It acts as a character trackpad;
                     // direct scene touches still must hit the displayed mesh.
                     if(value.previewToken<=previewToken)return;
-                    inspection.Preview.End();previewToken=value.previewToken;
+                    inspection.Preview.End();inspection.Preview.EndPinch();previewToken=value.previewToken;
                     if(!inspection.Active && !inspection.Preparing && actions &&
                        float.IsFinite(value.viewportX) && float.IsFinite(value.viewportY) &&
                        value.viewportX>=0 && value.viewportX<=1 && value.viewportY>=0 && value.viewportY<=1 &&
                        (value.previewFromConversation || HitDisplayedModel(new Vector2(value.viewportX*Screen.width,(1-value.viewportY)*Screen.height)))) {
-                        inspection.Preview.Begin();inspection.Preview.Move(value.deltaX,value.deltaY);Emit("previewRotationBegan");
+                        if(pinching) {inspection.Preview.BeginPinch();inspection.Preview.Pinch(value.scale);Emit("previewPinchBegan");}
+                        else {inspection.Preview.Begin();inspection.Preview.Move(value.deltaX,value.deltaY);Emit("previewRotationBegan");}
                     }
-                    else Emit("previewRotationRejected");
+                    else Emit(pinching ? "previewPinchRejected" : "previewRotationRejected");
                 }
                 else if(value.previewToken==previewToken) {
-                    if(value.state=="changed") {inspection.Preview.Move(value.deltaX,value.deltaY);ScheduleState();}
+                    if(value.state=="changed") {
+                        if(pinching)inspection.Preview.Pinch(value.scale);else inspection.Preview.Move(value.deltaX,value.deltaY);
+                        ScheduleState();
+                    }
                     else if(value.state=="ended" || value.state=="cancelled") {
-                        bool shaken=inspection.Preview.End(value.state=="ended");Emit("previewRotationEnded");
-                        if(shaken)Emit("characterShaken");ScheduleState();
+                        bool reacted=pinching ? inspection.Preview.EndPinch(value.state=="ended") : inspection.Preview.End(value.state=="ended");
+                        Emit(pinching ? "previewPinchEnded" : "previewRotationEnded");
+                        if(reacted)Emit(pinching ? "characterPinched" : "characterShaken");ScheduleState();
                     }
                 }
                 return;
@@ -535,7 +548,7 @@ namespace ModelSpace
         }
         void InterruptInput()
         {
-            inspection.Preview.End();FinishGesture(); ClearInput(); suppressUntilRelease = Input.touchCount > 0;
+            inspection.Preview.End();inspection.Preview.EndPinch();FinishGesture(); ClearInput(); suppressUntilRelease = Input.touchCount > 0;
         }
         bool HitDisplayedModel(Vector2 point)
         {
@@ -787,6 +800,11 @@ namespace ModelSpace
                 gesturesEnabled = gesturesEnabled, framingGesturesEnabled = framingGesturesEnabled, nativeGestures = nativeGestures,
                 inspectionActive=inspection.Active,inspectionPreparing=inspection.Preparing,inspectionToken=inspectionToken,
                 previewToken=previewToken,previewRotationActive=inspection.Preview.Active,
+                previewScaleActive=inspection.Preview.Pinching,previewScaleRatio=inspection.Preview.ScaleRatio,
+                previewScaleMinimum=inspection.Preview.MinimumObservedRatio,previewScaleMaximum=inspection.Preview.MaximumObservedRatio,
+                previewPinchCount=inspection.Preview.PinchCount,previewPinchReturnCount=inspection.Preview.PinchReturnCount,
+                previewPinchReactionCount=inspection.Preview.PinchReactionCount,previewReactionKind=inspection.Preview.ReactionKind,
+                previewReactionIntensity=inspection.Preview.ReactionIntensity,
                 previewRotationYaw=inspection.Preview.Offset.x,previewRotationPitch=inspection.Preview.Offset.y,
                 ambientTurnYaw=inspection.Ambient.Offset.x,ambientTurnPitch=inspection.Ambient.Offset.y,
                 ambientTurnTravel=inspection.Ambient.Travel,ambientTurnWaypoints=inspection.Ambient.Waypoints,

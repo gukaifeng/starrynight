@@ -13,6 +13,14 @@ from .semantic_novelty import SemanticNovelty
 
 def event(kind, **data): return dict(type=kind,**data)
 
+INTERACTION_TRIGGERS={'model_shaken','model_pinched'}
+PINCH_ROTATION_LANGUAGE=re.compile(r'转圈|转来转去|摇晃|晃动|晃[得晕]|摇头|头晕')
+
+def interaction_mismatch(request,text):
+    if request.trigger!='model_pinched' or not request.interaction:return None
+    if PINCH_ROTATION_LANGUAGE.search(text):
+        return '本次是双指缩放，不是旋转或摇晃；台词把互动说错了。按interaction_context.kind重新回应，不要复述错误动作或头晕。'
+    return None
 def brief_shake_plan(plan,mood):
     """Keep one AI-authored reaction; never manufacture a local complaint.
 
@@ -66,10 +74,16 @@ class Orchestrator:
             last = self.store.db.execute('SELECT max(created) FROM messages WHERE owner=? AND character=?',(owner,char)).fetchone()[0]
             context['greeting_context'] = greeting_context(context['recent_messages'],
                 self.store.get('greetings',owner,char,[]),max(0,int(time.time()-last)) if last else None)
-        if request.trigger=='model_shaken':
-            context['interaction_context']=dict(kind='shake',intensity=request.interaction.intensity if request.interaction else 0,
+        if request.trigger in INTERACTION_TRIGGERS:
+            kind=request.interaction.kind if request.interaction else 'shake'
+            gesture={
+                'shake':'用户刚刚连续晃动虚拟角色，这是单指转动，不是捏或拉扯。',
+                'pinch_out':'用户刚刚双指向外拉开，临时放大了角色，如同轻扯着拉近一点。围绕这次拉近、轻扯的玩闹回应；绝不能误说转、摇晃或头晕。',
+                'pinch_in':'用户刚刚双指向内收拢，临时缩小了角色，如同轻轻捏了一下。围绕这次轻捏、缩小的玩闹回应；绝不能误说转、摇晃或头晕。',
+            }[kind]
+            context['interaction_context']=dict(kind=kind,intensity=request.interaction.intensity if request.interaction else 0,
                 mood=random.choice(['playful','serious']) if persist else 'playful',
-                task='用户刚刚连续晃动虚拟角色。用角色的个性做一次新的俏皮回应或小抱怨，1个beat、短短1至2句，附多组真实表演。注意与之前的反应不同：推进这次玩闹，而非再次复述同一种不适或同一句请求。不编造现实伤害，不重答过去的问题。')
+                task=gesture+'用角色的个性做一次新的撒娇回应或轻微生气的小抱怨，1个beat、短短1至2句，附多组真实表演。注意与之前的反应不同：推进这次玩闹，而非再次复述同一种不适或同一句请求。只是显示变换，不编造身体变形、衣服变化或现实伤害，不重答过去的问题。')
         return context
     async def narration(self,owner,char,plan,resolved,scene):
         facts=[]
@@ -117,20 +131,21 @@ class Orchestrator:
             budget[0]-=1
             plan=await self.provider.structured(owner,char,'plan',PLANNER,
                 {**context,**({'novelty_correction':correction} if correction else {})},schema)
-            if request.trigger=='model_shaken':brief_shake_plan(plan,context['interaction_context']['mood'])
+            if request.trigger in INTERACTION_TRIGGERS:brief_shake_plan(plan,context['interaction_context']['mood'])
             text=plan_text(plan)
+            wrong_gesture=interaction_mismatch(request,text)
             duplicate=novelty.match(self.store,owner,text,extra)
-            related=await self.semantic.match(owner,text,request.trigger) if not duplicate else None
+            related=await self.semantic.match(owner,text,request.trigger) if not duplicate and not wrong_gesture else None
             # BGE is a retrieval model, not an equivalence judge. One semantic
             # suggestion may steer a new draft; it cannot reject a succession
             # of otherwise distinct answers merely sharing a topic or event.
-            revise=bool(duplicate or (related and (related['score']>=.86 or (correction is None and budget[0]>0))))
-            reviews.append(dict(text=text,duplicate=duplicate,semantic_hint=related,revised=revise))
+            revise=bool(wrong_gesture or duplicate or (related and (related['score']>=.86 or (correction is None and budget[0]>0))))
+            reviews.append(dict(text=text,duplicate=duplicate,semantic_hint=related,interaction_mismatch=wrong_gesture,revised=revise))
             if self.settings.enable_test_inspector:
                 self.store.put('novelty_review',owner,char,dict(attempts=reviews,accepted=not revise,remaining=budget[0]))
             if not revise:return plan
-            correction=dict(rejected_text=text,reason=(duplicate or related)['reason'],
-                instruction='本轮需要一个实质不同的新回应。舍弃草稿的核心观点、请求和比喻，结合当前这条输入换一个具体切入点；不要仅更换同义词，不复述旧问题，不向用户解释修订。保留角色身份、正确事实、真实可执行表演和简短心声。')
+            correction=dict(rejected_text=text,reason=wrong_gesture or (duplicate or related)['reason'],
+                instruction=(wrong_gesture+' ' if wrong_gesture else '')+'本轮需要一个实质不同的新回应。舍弃草稿的核心观点、请求和比喻，结合当前这条输入换一个具体切入点；不要仅更换同义词，不复述旧问题，不向用户解释修订。保留角色身份、正确事实、真实可执行表演和简短心声。')
         # No canned answer, repeated speech or unbounded paid retry. Optional
         # proactive turns stay quiet; a failed direct question uses the normal
         # availability error, never a moderation/repetition message.
@@ -154,9 +169,12 @@ class Orchestrator:
                     async for e in audio:yield e
             yield event('reply.completed',message_id=cached['message_id']); return
         context=self.context(owner,request)
-        if request.trigger=='model_shaken' and not resume:
+        if request.trigger in INTERACTION_TRIGGERS and not resume:
+            # Keep the historical key so an older app's rotation cooldown also
+            # covers pinches after upgrading. All physical play shares one lane.
             previous=self.store.get('shake_reaction',owner,char,{})
-            if request.interaction is None or request.interaction.kind!='shake' or request.interaction.intensity<.4 or time.time()-previous.get('last',0)<20:
+            kinds={'shake'} if request.trigger=='model_shaken' else {'pinch_out','pinch_in'}
+            if request.interaction is None or request.interaction.kind not in kinds or request.interaction.intensity<.4 or time.time()-previous.get('last',0)<20:
                 empty=dict(message_id=str(uuid.uuid4()),character_id=char,beats=[],text='')
                 self.store.complete(owner,char,rid,empty)
                 yield event('reply.completed',message_id=empty['message_id']);return
@@ -170,7 +188,7 @@ class Orchestrator:
                 empty=dict(message_id=str(uuid.uuid4()),character_id=char,beats=[],text='',idle_decision='do_nothing')
                 self.store.complete(owner,char,rid,empty)
                 yield event('reply.completed',message_id=empty['message_id']); return
-        schema=(ShakeTimelinePlan if request.trigger=='model_shaken' else TimelinePlan) if request.timeline_reply else Plan
+        schema=(ShakeTimelinePlan if request.trigger in INTERACTION_TRIGGERS else TimelinePlan) if request.timeline_reply else Plan
         plan=await self.fresh_plan(owner,request,context,schema,budget if budget is not None else [3])
         if plan is None:
             empty=dict(message_id=str(uuid.uuid4()),character_id=char,beats=[],text='',idle_decision='do_nothing')

@@ -457,6 +457,8 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
         values["greetingCount"] = chatSession?.record.greeting?.count ?? 0
         values["confirmedPerformanceCounts"] = characterPerformance?.confirmedCounts ?? [:]
         values["shakeReactions"] = chatSession?.shakeReactions ?? 0
+        values["pinchReactions"] = chatSession?.pinchReactions ?? 0
+        values["lastModelInteraction"] = chatSession?.lastModelInteraction ?? ""
         values["guestTurns"] = chatSession?.store.guestTurns ?? 0
         values["userMessageCount"] = chatSession?.record.messages.filter { $0.role == "user" }.count ?? 0
         if ProcessInfo.processInfo.arguments.contains("--ui-testing"),
@@ -666,7 +668,7 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
         NotificationCenter.default.addObserver(self,selector:#selector(keyboardChanged),name:UIResponder.keyboardDidHideNotification,object:nil)
         stageProbe.backgroundColor = .clear; stageProbe.isUserInteractionEnabled = false
         stageProbe.isAccessibilityElement = true; stageProbe.accessibilityIdentifier = "characterStage"
-        stageProbe.accessibilityLabel = "角色互动区域，单指小范围旋转，松手恢复；右上角修改位置"
+        stageProbe.accessibilityLabel = "角色互动区域，单指轻转、双指轻捏缩放，松手恢复；右上角修改位置"
         stageProbe.accessibilityTraits = .image; view.addSubview(stageProbe)
         updatePositionButton()
 #if DEBUG

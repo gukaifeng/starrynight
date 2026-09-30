@@ -33,26 +33,57 @@ final class CharacterViewEditorTests:XCTestCase {
         // Message-vs-whitespace routing is covered by ConversationGestureTests.
         capture("temporary-single-finger-rotation",app)
     }
-    @MainActor func testNormalTwoFingerGestureIsRejectedAndCancelsAnActiveDrag() {
+    @MainActor func testNormalPinchReturnsToCustomPoseWithRemainingFinger() {
         continueAfterFailure=false
         let app=XCUIApplication();app.launchArguments=["--ui-testing","--companion-testing","--auth-testing"]
-        app.launch();ready(app)
-        app.waitForCharacter {self.number($0,"inspectionGestureRevision")>=8}
+        app.launch();ready(app);open(app);drag(app,dx:0.06,dy:-0.02)
+        app.buttons["closeCharacterViewEditor"].tap()
+        app.waitForCharacter {$0["viewEditorOpen"] as? Bool == false && self.number($0,"inspectionMoving")==0}
         let before=app.characterRuntime,saved=pose(before)
-        let start=CGPoint(x:number(before,"headX")*app.frame.width,y:number(before,"headY")*app.frame.height)
-        let two=expectation(description:"two fingers on closed editor")
-        SNSynthesizeViewEdit(start,app.frame.size) {error in XCTAssertNil(error);two.fulfill()}
-        wait(for:[two],timeout:8)
-        XCTAssertEqual(number(app.characterRuntime,"previewRotationCount"),number(before,"previewRotationCount"),"Two fingers must not start a temporary turn")
-        let cancellation=expectation(description:"second finger cancels active temporary drag")
-        SNSynthesizePreviewCancellation(start,app.frame.size) {error in XCTAssertNil(error);cancellation.fulfill()}
-        wait(for:[cancellation],timeout:8)
-        app.waitForCharacter {self.number($0,"previewRotationReturnCount")>self.number(before,"previewRotationReturnCount")}
-        XCTAssertEqual(number(app.characterRuntime,"previewRotationCount"),number(before,"previewRotationCount")+1,"The remaining finger must not restart rotation")
-        for key in ["yaw","pitch","scale","x","y"] {XCTAssertEqual(pose(app.characterRuntime)[key] ?? -1,saved[key] ?? -2,accuracy:0.001)}
-        XCTAssertEqual(app.characterRuntime["viewPoseSaved"] as? [String:Double],before["viewPoseSaved"] as? [String:Double])
-        capture("temporary-rotation-two-finger-cancel",app)
+        let center=CGPoint(x:number(before,"headX")*app.frame.width,y:number(before,"headY")*app.frame.height)
+        let done=expectation(description:"pinch then move the remaining finger")
+        SNSynthesizePreviewPinch(center,0.65) {error in XCTAssertNil(error);done.fulfill()}
+        wait(for:[done],timeout:8)
+        app.waitForCharacter {self.number($0,"previewPinchReturnCount")>self.number(before,"previewPinchReturnCount")}
+        let after=app.characterRuntime
+        XCTAssertLessThan(number(after,"previewScaleMinimum"),0.94)
+        XCTAssertEqual(number(after,"previewPinchCount"),number(before,"previewPinchCount")+1)
+        XCTAssertEqual(number(after,"previewRotationCount"),number(before,"previewRotationCount"),"The remaining finger must not start rotation")
+        XCTAssertEqual(number(after,"previewScaleRatio"),1)
+        for key in ["yaw","pitch","scale","x","y"] {XCTAssertEqual(pose(after)[key] ?? -1,saved[key] ?? -2,accuracy:0.001)}
+        XCTAssertEqual(after["viewPoseSaved"] as? [String:Double],before["viewPoseSaved"] as? [String:Double])
+        capture("temporary-pinch-restores-custom-pose",app)
     }
+    @MainActor private func previewPinch(ratio:CGFloat,kind:String) {
+        continueAfterFailure=false
+        let app=XCUIApplication();app.launchArguments=["--ui-testing","--companion-testing","--auth-testing"]
+        app.launch();ready(app);app.waitForCharacter {self.number($0,"inspectionGestureRevision")>=12}
+        let before=app.characterRuntime,saved=pose(before)
+        let center=CGPoint(x:number(before,"headX")*app.frame.width,y:number(before,"headY")*app.frame.height)
+        if ratio>1 {
+            let done=expectation(description:"two-finger pinch with centroid drift")
+            SNSynthesizePreviewPinch(center,ratio) {error in XCTAssertNil(error);done.fulfill()}
+            wait(for:[done],timeout:8)
+        } else {app.scrollViews["chatMessages"].pinch(withScale:ratio,velocity:-1)}
+        app.waitForCharacter {self.number($0,"previewPinchReturnCount")>self.number(before,"previewPinchReturnCount")}
+        let after=app.characterRuntime
+        XCTAssertEqual(number(after,"previewPinchCount"),number(before,"previewPinchCount")+1)
+        XCTAssertEqual(number(after,"previewRotationCount"),number(before,"previewRotationCount"),"The remaining finger cannot become a rotation")
+        XCTAssertEqual(number(after,"previewScaleRatio"),1)
+        XCTAssertGreaterThanOrEqual(number(after,"previewScaleMinimum"),0.8999)
+        XCTAssertLessThanOrEqual(number(after,"previewScaleMaximum"),1.1001)
+        if ratio>1 {XCTAssertGreaterThan(number(after,"previewScaleMaximum"),1.06)}
+        else {XCTAssertLessThan(number(after,"previewScaleMinimum"),0.94)}
+        XCTAssertEqual(after["lastModelInteraction"] as? String,kind)
+        XCTAssertEqual(number(after,"pinchReactions"),number(before,"pinchReactions")+1)
+        XCTAssertEqual(number(after,"shakeReactions"),number(before,"shakeReactions"))
+        XCTAssertEqual(after["viewEditorOpen"] as? Bool,false)
+        XCTAssertEqual(after["viewPoseSaved"] as? [String:Double],before["viewPoseSaved"] as? [String:Double])
+        for key in ["yaw","pitch","scale","x","y"] {XCTAssertEqual(pose(after)[key] ?? -1,saved[key] ?? -2,accuracy:0.001)}
+        capture("ordinary-"+kind,app)
+    }
+    @MainActor func testNormalPinchOutReactsWithoutSavingOrMoving() {previewPinch(ratio:1.8,kind:"pinch_out")}
+    @MainActor func testNormalPinchInReactsWithoutSavingOrMoving() {previewPinch(ratio:0.45,kind:"pinch_in")}
     @MainActor func testPresetPersistenceAndIsolation() {
         let app=XCUIApplication();app.launchArguments=["--view-presets-check"]
         app.launch()

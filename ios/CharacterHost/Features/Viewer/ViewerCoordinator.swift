@@ -886,15 +886,22 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
         // The overlay correlates token + character to the owning session. Final
         // auto-save replies must survive a tab change/background transition.
         overlay?.receiveInspectionEvent(event)
+        if event["presentationId"] as? Int == presentation,event["modelId"] as? String == selectedModel.runtimeID,
+           ["previewPinchBegan","previewPinchEnded","previewPinchReturned","previewPinchRejected"].contains(name) {
+            overlay?.setRuntimeFraming(event)
+        }
         if event["presentationId"] as? Int == presentation, event["modelId"] as? String == selectedModel.runtimeID,
            ["state","studioConfigured","environmentConfigured","framingConfigured","companionViewport","actionStarted","actionCompleted","headTapped","characterReceipt","parametersConfigured","postureConfigured","postureSettled","performanceConfigured","inspectionPrepared","inspectionBegan","inspectionEnded","inspectionReturned","inspectionRejected","inspectionAdjusting","inspectionChanged","inspectionCaptured","inspectionClosed","inspectionLoaded","previewRotationBegan","previewRotationEnded","previewRotationReturned","previewRotationRejected"].contains(name) {
             overlay?.setRuntimeFraming(event)
         }
         switch name {
-        case "characterShaken":
+        case "characterShaken","characterPinched":
             guard page == .viewer,desiredVisible,event["presentationId"] as? Int==presentation,
                   event["modelId"] as? String==selectedModel.runtimeID else {return}
-            companion?.reactToShake(intensity:event["previewShakeIntensity"] as? Double ?? 0.7)
+            if name=="characterShaken" {companion?.reactToShake(intensity:event["previewShakeIntensity"] as? Double ?? 0.7)}
+            else if let kind=event["previewReactionKind"] as? String,["pinch_out","pinch_in"].contains(kind) {
+                companion?.reactToModelInteraction(kind:kind,intensity:event["previewReactionIntensity"] as? Double ?? 0.7)
+            }
             overlay?.setRuntimeFraming(event)
         case "framingGestureEnded":
             guard companion == nil else { return }

@@ -15,7 +15,7 @@ namespace ModelSpace
     // latest view per account/character; rotation never silently pans or zooms.
     public sealed class CharacterInspectionRotation
     {
-        public const int Revision=11;
+        public const int Revision=12;
         public const float TurnFramingReserve=1.10f;
         public const float HoldSeconds=1, MaximumPitch=80;
         public const float MinimumScale=.78f,MaximumScale=1.28f,MaximumTranslation=.45f;
@@ -92,6 +92,7 @@ namespace ModelSpace
             if(horizontal.sqrMagnitude<.0001f)return false;
             pitchAxis=horizontal.normalized;
             Preview.End();
+            Preview.EndPinch();
             if(Preparing)Assign(chargeBase);
             Active=true;Preparing=false;Moving=false;returning=false;Count++;return true;
         }
@@ -219,7 +220,7 @@ namespace ModelSpace
         public void Load(CharacterViewPose pose,bool immediate=false)
         {
             if(!pose.Valid)return;
-            if(immediate)Preview.Reset();else Preview.End();
+            if(immediate)Preview.Reset();else {Preview.End();Preview.EndPinch();}
             rotationOnly=false;committed=Normalize(pose);Assign(committed);Preparing=false;Moving=false;returning=true;
             if(immediate) {Yaw=TargetYaw;Pitch=TargetPitch;Scale=TargetScale;Translation=TargetTranslation;ClearVelocity();}
         }
@@ -245,7 +246,7 @@ namespace ModelSpace
         public bool Step(float deltaTime)
         {
             if(!float.IsFinite(deltaTime) || deltaTime<=0)return false;
-            Preview.Step(deltaTime);
+            SetPreviewScaleLimits();Preview.Step(deltaTime);
             float dt=Mathf.Min(deltaTime,.05f),response=Moving ? .10f : .32f;
             if(Preparing)
             {
@@ -271,6 +272,27 @@ namespace ModelSpace
         public void ConstrainTarget() {
             var normalized=Normalize(requested);
             ApplyTarget(hasProjection && !rotationOnly && !normalized.IsDefault ? Constrain(normalized) : normalized);
+        }
+        void SetPreviewScaleLimits() {
+            float maximum=CharacterPreviewRotation.MaximumRatio;
+            if(hasProjection && (Preview.Pinching || Mathf.Abs(Preview.ScaleRatio-1)>.00001f)) {
+                var basis=Current;basis.yaw=basis.pitch=0;
+                var original=Project(basis);
+                // Never translate the saved pose to accommodate a pinch. Fit
+                // about the existing portrait anchor, allowing any pre-existing
+                // authored crop but no new overflow beyond it/the safe viewport.
+                var permitted=Rect.MinMaxRect(Mathf.Min(safe.xMin,original.xMin),Mathf.Min(safe.yMin,original.yMin),
+                    Mathf.Max(safe.xMax,original.xMax),Mathf.Max(safe.yMax,original.yMax));
+                float low=1,high=maximum;
+                for(int i=0;i<12;i++) {
+                    float candidate=(low+high)*.5f;var pose=basis;pose.scale*=candidate;var projected=Project(pose);
+                    if(projected.xMin>=permitted.xMin-.00001f && projected.yMin>=permitted.yMin-.00001f &&
+                       projected.xMax<=permitted.xMax+.00001f && projected.yMax<=permitted.yMax+.00001f)low=candidate;
+                    else high=candidate;
+                }
+                maximum=low;
+            }
+            Preview.SetScaleLimits(CharacterPreviewRotation.MinimumRatio,maximum);
         }
         // Translation/scale limits use the authored portrait as a stable reference.
         // Yaw remains unrestricted; pitch stays near eye level. Neither axis may
@@ -359,13 +381,14 @@ namespace ModelSpace
             p.pitch=Mathf.Clamp(p.pitch+Preview.Offset.y,-MaximumPitch,MaximumPitch);
             p.yaw+=Ambient.Offset.x;
             p.pitch=Mathf.Clamp(p.pitch+Ambient.Offset.y,-MaximumPitch,MaximumPitch);
+            p.scale*=Preview.ScaleRatio;
             ProjectedEnvelope=Project(p);
             if(p.IsDefault)return;
             authoredRotation=model.rotation;authoredPosition=model.position;authoredScale=model.localScale;
             var q=Quaternion.AngleAxis(p.pitch%360,pitchAxis)*Quaternion.AngleAxis(p.yaw%360,Vector3.up);
             var pivot=hasProjection ? bodyPivot : authoredPosition;
-            model.rotation=q*authoredRotation;model.localScale=authoredScale*Scale;
-            model.position=(hasProjection ? region.center+(pivot-region.center)*Scale : pivot)+q*(authoredPosition-pivot)*Scale+pitchAxis*Translation.x*worldSpan.x-screenUp*Translation.y*worldSpan.y;
+            model.rotation=q*authoredRotation;model.localScale=authoredScale*p.scale;
+            model.position=(hasProjection ? region.center+(pivot-region.center)*p.scale : pivot)+q*(authoredPosition-pivot)*p.scale+pitchAxis*Translation.x*worldSpan.x-screenUp*Translation.y*worldSpan.y;
             applied=true;
         }
     }

@@ -85,7 +85,7 @@ class Director:
         library=[a for a in assets(character) if a['enabled'] and a['asset_id'] in available and a.get('speech_compatible',True)]
         mood=dominant_emotion
         if mood=='neutral' and beat.dialogue:mood=beat.dialogue.speech.emotion
-        if trigger=='model_shaken':mood='playful' if performance.expression_intent in ('pout','teasing_smile') else 'serious'
+        if trigger in ('model_shaken','model_pinched'):mood='playful' if performance.expression_intent in ('pout','teasing_smile') else 'serious'
         cues=[];selected=set();occupied={};now=time.time()
         def add(group,intent=None,offset=0,active=True,automatic=False):
             if len(cues)>=24 or any(abs(offset-t)<1200 for t in occupied.get(group,[])):return

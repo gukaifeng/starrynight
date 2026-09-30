@@ -6,9 +6,13 @@ enum CharacterPreviewOrigin { case character, conversationBlank, conversationMes
 /// Direction is decided once after a small movement threshold. On a message,
 /// diagonal/vertical movement fails early so native scrolling keeps its momentum.
 private final class CharacterPreviewGesture: UIGestureRecognizer {
-    private var finger:UITouch?
+    private var fingers:[UITouch] = []
+    private var distance:CGFloat = 1
     var source = CharacterPreviewOrigin.character
-    var hasFinger:Bool { finger != nil }
+    var rejectsAdditionalTouch=false
+    var hasFinger:Bool { !fingers.isEmpty }
+    private(set) var isPinching=false
+    private(set) var zoom:CGFloat=1
     private(set) var origin = CGPoint.zero
     private(set) var rotation = CGPoint.zero
     private func activeFingers(in event:UIEvent)->Int {
@@ -19,14 +23,28 @@ private final class CharacterPreviewGesture: UIGestureRecognizer {
         // UIKit can reset a failed ancestor recognizer and offer the next finger
         // while the previous finger is still down. Inspect the whole event,
         // not only this recognizer's newly delivered touches.
-        guard activeFingers(in:event)==1,finger == nil,touches.count == 1,let touch=touches.first else {
+        guard !rejectsAdditionalTouch,activeFingers(in:event)==fingers.count+touches.count,
+              fingers.count+touches.count<=2 else {
             state = state == .possible ? .failed : .cancelled;return
         }
-        finger=touch;origin=touch.location(in:view)
+        fingers.append(contentsOf:touches)
+        if fingers.count==1 {origin=fingers[0].location(in:view);return}
+        let a=fingers[0].location(in:view),b=fingers[1].location(in:view)
+        origin=CGPoint(x:(a.x+b.x)/2,y:(a.y+b.y)/2)
+        distance=max(12,hypot(a.x-b.x,a.y-b.y));rotation = .zero;zoom=1;isPinching=true
+        // One recognizer owns both modes, so a second finger can take over an
+        // already recognized turn without fighting the conversation scroll.
+        if state != .possible {state = .changed}
     }
     override func touchesMoved(_ touches:Set<UITouch>,with event:UIEvent) {
-        guard state == .possible || state == .began || state == .changed,let finger,let view else {return}
-        guard activeFingers(in:event)==1 else {state = state == .possible ? .failed : .cancelled;return}
+        guard state == .possible || state == .began || state == .changed,let finger=fingers.first,let view else {return}
+        guard activeFingers(in:event)==fingers.count else {state = state == .possible ? .failed : .cancelled;return}
+        if isPinching {
+            guard fingers.count==2 else {state = .cancelled;return}
+            let a=finger.location(in:view),b=fingers[1].location(in:view)
+            zoom=min(2,max(0.5,hypot(a.x-b.x,a.y-b.y)/distance))
+            state = state == .possible ? .began : .changed;return // Centroid movement and two-finger twist are ignored.
+        }
         let point=finger.location(in:view),dx=point.x-origin.x,dy=point.y-origin.y
         guard state != .possible || hypot(dx,dy)>=7 else {return}
         if state == .possible,source == .conversationMessage,abs(dx)<=abs(dy)*1.2 {
@@ -43,7 +61,7 @@ private final class CharacterPreviewGesture: UIGestureRecognizer {
         guard state == .possible || state == .began || state == .changed else {return}
         state = state == .possible ? .failed : .cancelled
     }
-    override func reset() {finger=nil;origin = .zero;rotation = .zero;super.reset()}
+    override func reset() {fingers.removeAll();origin = .zero;rotation = .zero;zoom=1;isPinching=false;rejectsAdditionalTouch=false;super.reset()}
 }
 
 /// Enabled only by the position button. Finger-count changes start a new basis,
@@ -105,6 +123,7 @@ final class CharacterTouchSurface:UIView,UIGestureRecognizerDelegate {
     private(set) var inspectionToken=0
     private var previewToken=0
     private var previewInProgress=false
+    private var previewAction="previewRotate"
     private lazy var tap=UITapGestureRecognizer(target:self,action:#selector(tapped(_:)))
     private lazy var preview=CharacterPreviewGesture(target:self,action:#selector(previewed(_:)))
     private lazy var inspect=CharacterEditGesture(target:self,action:#selector(inspected(_:)))
@@ -127,9 +146,14 @@ final class CharacterTouchSurface:UIView,UIGestureRecognizerDelegate {
     func gestureRecognizer(_ gestureRecognizer:UIGestureRecognizer,shouldReceive touch:UITouch)->Bool {
         if gestureRecognizer === preview {
             guard !editing,isUserInteractionEnabled else {return false}
-            // Observe a second finger even if it lands on a control; it cancels
-            // the whole preview instead of becoming a pinch or a new single pan.
-            if preview.hasFinger {return true}
+            // An eligible second finger switches to a scale-only gesture. A
+            // finger on a button cancels rather than stealing that control.
+            if preview.hasFinger {
+                if let source=previewOrigin?(touch.location(in:gestureRecognizer.view),touch.view) {
+                    if source != .character {preview.source=source}
+                } else {preview.rejectsAdditionalTouch=true}
+                return true
+            }
             guard let source=previewOrigin?(touch.location(in:gestureRecognizer.view),touch.view) else {return false}
             preview.source=source;return true
         }
@@ -168,21 +192,28 @@ final class CharacterTouchSurface:UIView,UIGestureRecognizerDelegate {
     }
     @objc private func previewed(_ recognizer:CharacterPreviewGesture) {
         guard bounds.width>0,bounds.height>0 else {return}
+        let action=recognizer.isPinching ? "previewPinch" : "previewRotate"
         let state:String
         switch recognizer.state {
         case .began:
             guard !editing else {return}
-            Self.nextToken+=1;previewToken=Self.nextToken;previewInProgress=true;recognizedGestures+=1;state="began"
-        case .changed:guard previewInProgress else {return};state="changed"
+            Self.nextToken+=1;previewToken=Self.nextToken;previewInProgress=true;previewAction=action;recognizedGestures+=1;state="began"
+        case .changed:
+            guard previewInProgress else {return}
+            if previewAction != action {
+                onGesture?(["action":previewAction,"state":"cancelled","previewToken":previewToken])
+                Self.nextToken+=1;previewToken=Self.nextToken;previewAction=action;recognizedGestures+=1;state="began"
+            } else {state="changed"}
         case .ended,.cancelled,.failed:
             guard previewInProgress else {return}
             previewInProgress=false;state=recognizer.state == .ended ? "ended" : "cancelled"
         default:return
         }
-        onGesture?(["action":"previewRotate","state":state,"previewToken":previewToken,
+        let payload:[String:Any]=["action":previewAction,"state":state,"previewToken":previewToken,
             "viewportX":recognizer.origin.x/bounds.width,"viewportY":recognizer.origin.y/bounds.height,
-            "deltaX":recognizer.rotation.x,"deltaY":recognizer.rotation.y,
-            "previewFromConversation":recognizer.source != .character])
+            "deltaX":recognizer.rotation.x,"deltaY":recognizer.rotation.y,"scale":recognizer.zoom,
+            "previewFromConversation":recognizer.source != .character]
+        onGesture?(payload)
     }
     @objc private func inspected(_ recognizer:CharacterEditGesture) {
         guard editing else {return}

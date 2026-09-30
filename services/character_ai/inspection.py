@@ -25,7 +25,7 @@ def report(settings,engine,owner,request):
     add('client','本机发送内容','当前草稿及偏好、候选记忆、可用表现等请求正文。',request.model_dump(mode='json'))
     add('payload','完整规划请求预览','与实际 provider 共用构造函数；JSON Schema、system/user 消息及采样参数全部展开。',
         structured_payload(settings,'plan',structured_messages('plan',prompts.PLANNER,context,
-            (schemas.ShakeTimelinePlan if request.trigger=='model_shaken' else schemas.TimelinePlan) if request.timeline_reply else schemas.Plan)))
+            (schemas.ShakeTimelinePlan if request.trigger in ('model_shaken','model_pinched') else schemas.TimelinePlan) if request.timeline_reply else schemas.Plan)))
     add('schemas','全部生成结构约束','规划、旁白及客户端请求的完整 JSON Schema。',
         dict(plan=schemas.Plan.model_json_schema(),timeline_plan=schemas.TimelinePlan.model_json_schema(),shake_plan=schemas.ShakeTimelinePlan.model_json_schema(),narration=schemas.NarrationResult.model_json_schema(),request=schemas.Request.model_json_schema()))
     add('performances','完整表演目录','实际可选资源、情绪映射所需意图、持续时间、冷却及可见效果。',assets(char))

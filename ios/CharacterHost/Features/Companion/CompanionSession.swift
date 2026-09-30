@@ -49,6 +49,8 @@ final class CompanionSession {
     @ObservationIgnored private var shakeTask: Task<Void,Never>?
     @ObservationIgnored private var revealTask: Task<Void,Never>?
     private(set) var shakeReactions=0
+    private(set) var pinchReactions=0
+    private(set) var lastModelInteraction=""
     @ObservationIgnored private var token = UUID()
     @ObservationIgnored private var activeTurn = false
     @ObservationIgnored private var pendingGreeting: ConversationEntry?
@@ -166,16 +168,22 @@ final class CompanionSession {
             "available_assets":model.performance?.options.map(\.id) ?? [],"wants_audio":!muted]
     }
     func reactToShake(intensity:Double) {
+        reactToModelInteraction(kind:"shake",intensity:intensity)
+    }
+    func reactToModelInteraction(kind:String,intensity:Double) {
+        guard ["shake","pinch_out","pinch_in"].contains(kind),intensity.isFinite else {return}
         guard !inspectionActive,!characterEditorPresented,store.accountID==ownerID,
               !(isGuest && store.guestLimitReached),!speech.isRecording,shakeTask==nil else {return}
-        shakeReactions+=1
+        if kind=="shake" {shakeReactions+=1} else {pinchReactions+=1}
+        lastModelInteraction=kind
         shakeTask=Task { @MainActor [weak self] in
             defer {self?.shakeTask=nil}
             for _ in 0..<60 {
                 guard !Task.isCancelled,let self,!self.inspectionActive,!self.characterEditorPresented,
                       self.store.accountID==self.ownerID else {return}
                 if !self.generating && !self.speech.isSpeaking && !self.speech.isBusy && !self.speech.isRecording {
-                    self.generate("",trigger:"model_shaken",interaction:["kind":"shake","intensity":min(1,max(0,intensity))]);return
+                    self.generate("",trigger:kind=="shake" ? "model_shaken" : "model_pinched",
+                        interaction:["kind":kind,"intensity":min(1,max(0,intensity))]);return
                 }
                 try? await Task.sleep(for:.milliseconds(250))
             }

@@ -110,14 +110,14 @@ def test_same_subject_with_new_content_is_allowed():
     assert not novelty.similar('你画的小花很漂亮，花瓣上的颜色也很温柔。','画画时你通常先勾轮廓，还是先挑颜色？我想听听你的习惯。')
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize('trigger',['user_message','appLaunch','firstLaunch','firstMeeting','characterSwitch','story','model_shaken','idle'])
+@pytest.mark.parametrize('trigger',['user_message','appLaunch','firstLaunch','firstMeeting','characterSwitch','story','model_shaken','model_pinched','idle'])
 async def test_every_new_trigger_rewrites_duplicate_before_publication(tmp_path,trigger):
     store=Store(tmp_path/'test.db');char='anime-kipfel';old='刚才晃得我有点迷糊啦，轻一点好不好嘛？';new='哼，轮到我出题了，你能说出我的一个优点吗？'
     store.message('prior','u',char,'old','assistant',dict(text=old))
     if trigger=='idle':store.message('user','u',char,'old','user',dict(text='你好'))
     provider=Provider([old,new]);engine=Orchestrator(Settings(data_dir=tmp_path,paid_enabled=False),store,provider)
     req=Request(request_id=uuid.uuid4(),character_id=char,text='再来',trigger=trigger,
-        interaction=dict(kind='shake',intensity=.7) if trigger=='model_shaken' else None,timeline_reply=True,wants_audio=False)
+        interaction=dict(kind='shake' if trigger=='model_shaken' else 'pinch_in',intensity=.7) if trigger in ('model_shaken','model_pinched') else None,timeline_reply=True,wants_audio=False)
     events=[e async for e in engine.reply('u',req)]
     script=next(e['script'] for e in events if e['type']=='reply.narration.ready')
     assert len(provider.calls)==2 and script['text']==new
