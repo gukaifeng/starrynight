@@ -43,8 +43,9 @@ def structured_messages(purpose,system,context,schema):
     shape=PLAN_SHAPE if purpose=='plan' else ''
     content=dump(context)
     if purpose=='plan':
-        current=dict(trigger=context.get('trigger'),user_message=context.get('user_message',''),reply_length=REPLY_LENGTH)
-        current['task']=context['greeting_context']['task'] if context.get('greeting_context') else '只回应user_message这条新消息。历史回复不是本轮台词，不要照搬。明确的表演请求放进performance，台词不自述动作。'
+        current=dict(trigger=context.get('trigger'),user_message=context.get('user_message',''),reply_length=REPLY_LENGTH,
+            performance_rule='本轮明确要求的姿势、手势、耳尾等，必须从groups选择对应语义写入cues；例如坐下用pose，不用手势替代。其余按情绪组合多组表现。')
+        current['task']=(context.get('interaction_context') or context.get('greeting_context') or {}).get('task','只回应user_message这条新消息。历史回复不是本轮台词，不要照搬。明确的表演请求放进performance，台词不自述动作。')
         if context.get('greeting_correction'):current['correction']=context['greeting_correction']
         content+='\n\n当前这一轮（历史仅供参考）：\n'+dump(current)
     return [dict(role='system',content=system+'\nJSON Schema:\n'+dump(schema.model_json_schema())+'\n'+shape),dict(role='user',content=content)]

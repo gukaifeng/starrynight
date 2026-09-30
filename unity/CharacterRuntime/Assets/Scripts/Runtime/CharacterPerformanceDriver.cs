@@ -6,6 +6,12 @@ using UnityEngine;
 namespace ModelSpace
 {
     [Serializable] public sealed class CharacterPerformanceGroup { public string id,label,symbol; }
+    [Serializable] public sealed class CharacterAIPerformanceHint {
+        public string intent;
+        public string[] effects,moods,conflicts;
+        public bool automatic,speechCompatible;
+        public float cooldownSeconds=3;
+    }
     [Serializable] public sealed class CharacterVisibility { public string path; public bool visible; }
     [Serializable] public sealed class CharacterMorphKey { public float time,value; }
     [Serializable] public sealed class CharacterMorphTrack
@@ -22,6 +28,7 @@ namespace ModelSpace
         public ShapeBinding[] morphs=Array.Empty<ShapeBinding>(),offMorphs=Array.Empty<ShapeBinding>();
         public CharacterMorphTrack[] morphTracks=Array.Empty<CharacterMorphTrack>();
         public CharacterVisibility[] visibility=Array.Empty<CharacterVisibility>(),offVisibility=Array.Empty<CharacterVisibility>();
+        public CharacterAIPerformanceHint ai;
     }
     [Serializable] public sealed class CharacterPerformanceProfile
     {
@@ -43,9 +50,9 @@ namespace ModelSpace
         public static void Validate(CharacterPerformanceProfile p)
         {
             if(p==null)return;
-            if(p.schemaVersion!=1 || p.groups==null || p.groups.Length>6 || p.options==null || p.options.Length>256 || p.defaults==null || p.defaults.Length>64)
+            if((p.schemaVersion!=1 && p.schemaVersion!=2) || p.groups==null || p.groups.Length>(p.schemaVersion==1 ? 6 : 32) || p.options==null || p.options.Length>256 || p.defaults==null || p.defaults.Length>64)
                 throw new ArgumentException("PERFORMANCE_SCHEMA_INVALID");
-            if(p.groups.Any(g=>g==null || !Groups.Contains(g.id) || !Name(g.label)) || p.groups.Select(g=>g.id).Distinct().Count()!=p.groups.Length)
+            if(p.groups.Any(g=>g==null || !Name(g.id) || (p.schemaVersion==1 ? !Groups.Contains(g.id) : !System.Text.RegularExpressions.Regex.IsMatch(g.id,@"^[a-z][a-z0-9_.-]{0,63}$")) || !Name(g.label)) || p.groups.Select(g=>g.id).Distinct().Count()!=p.groups.Length)
                 throw new ArgumentException("PERFORMANCE_GROUP_INVALID");
             if(p.options.Any(o=>o==null || !Name(o.id)) || p.options.Select(o=>o.id).Distinct().Count()!=p.options.Length)
                 throw new ArgumentException("PERFORMANCE_OPTION_ID_INVALID");
@@ -64,6 +71,15 @@ namespace ModelSpace
             int trackCount=0;
             foreach(var o in p.options)
             {
+                // Missing optional objects can deserialize as empty in JsonUtility.
+                if(o.ai!=null && !string.IsNullOrEmpty(o.ai.intent)) {
+                    var hint=o.ai;
+                    if(!Name(hint.intent) || hint.effects==null || hint.effects.Length==0 || hint.effects.Length>8 || hint.effects.Any(e=>!Name(e)) ||
+                       (hint.moods!=null && (hint.moods.Length>16 || hint.moods.Any(m=>!Name(m)))) ||
+                       (hint.conflicts!=null && (hint.conflicts.Length>32 || hint.conflicts.Any(g=>g==o.group || !p.groups.Any(group=>group.id==g)))) ||
+                       !float.IsFinite(hint.cooldownSeconds) || hint.cooldownSeconds<0 || hint.cooldownSeconds>300)
+                        throw new ArgumentException("PERFORMANCE_AI_HINT_INVALID: "+o.id);
+                }
                 if(!p.groups.Any(g=>g.id==o.group) || !Name(o.label) || !new[]{"preset","motion","toggle"}.Contains(o.kind) ||
                     !float.IsFinite(o.duration) || o.duration<0 || o.duration>120 || o.bones==null || o.bones.Length>256 ||
                     o.bones.Any(b=>!Path(b)) || o.bones.Distinct().Count()!=o.bones.Length ||
@@ -178,7 +194,7 @@ namespace ModelSpace
                     var clip=player?player.GetClip(name):null;
                     if(!clip)throw new ArgumentException("PERFORMANCE_CLIP_MISSING: "+name);
                     player.AddClip(clip,alias);var state=player[alias];
-                    state.layer=10+Array.IndexOf(CharacterPerformanceContract.Groups,option.group);
+                    state.layer=10+Array.FindIndex(profile.groups,g=>g.id==option.group);
                     state.blendMode=option.additive?AnimationBlendMode.Additive:AnimationBlendMode.Blend;
                     state.wrapMode=option.loop && option.kind!="toggle"?WrapMode.Loop:WrapMode.ClampForever;
                     foreach(var path in option.bones)

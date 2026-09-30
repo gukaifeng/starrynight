@@ -3,6 +3,7 @@
 import argparse
 import hashlib
 import json
+import re
 from pathlib import Path, PurePosixPath
 import struct
 import sys
@@ -10,7 +11,7 @@ import zipfile
 
 CAPABILITIES = {'core.animation@1', 'core.gaze@1', 'core.expression@1', 'core.speech.amplitude@1',
                 'core.speech.viseme@1', 'core.interaction@1', 'core.effects@1', 'core.parameters@1',
-                'core.behavior@1', 'core.posture@1', 'core.secondary-motion@1', 'core.performance@1', 'core.autonomy@1', 'legacy.human-studio@1'}
+                'core.behavior@1', 'core.posture@1', 'core.secondary-motion@1', 'core.performance@1', 'core.performance@2', 'core.autonomy@1', 'legacy.human-studio@1'}
 CHANNELS = {'body', 'expression', 'effect', 'gaze', 'posture'}
 MAX_BYTES = 256 * 1024 * 1024
 FORBIDDEN = {'.cs','.dll','.dylib','.so','.exe','.shader','.compute','.sh','.py','.js','.unitypackage'}
@@ -228,19 +229,33 @@ def validate_performances(m,model):
         if any(not isinstance(b,dict) or not path(b.get('path')) for b in values):
             fail(label+' path is invalid (paths <=128 UTF-16 units)')
         distinct([b['path'] for b in values],label+' binding')
-    if not isinstance(profile,dict) or profile.get('schemaVersion')!=1:fail('schema is invalid')
-    groups=bounded(profile.get('groups'),6,'groups');options=bounded(profile.get('options'),256,'options')
+    if not isinstance(profile,dict) or profile.get('schemaVersion') not in (1,2):fail('schema is invalid')
+    groups=bounded(profile.get('groups'),6 if profile['schemaVersion']==1 else 32,'groups');options=bounded(profile.get('options'),256,'options')
     visible(profile.get('defaults'),'defaults')
     allowed={'expression','pose','hands','ears','tail','appearance'}
-    if any(not isinstance(g,dict) or g.get('id') not in allowed or not name(g.get('label')) for g in groups):fail('group is invalid')
+    def valid_group(g):
+        if not isinstance(g,dict) or not name(g.get('label')):return False
+        if profile['schemaVersion']==1:return g.get('id') in allowed
+        return isinstance(g.get('id'),str) and re.fullmatch(r'[a-z][a-z0-9_.-]{0,63}',g['id']) is not None
+    if any(not valid_group(g) for g in groups):fail('group is invalid')
     group_ids=[g['id'] for g in groups];distinct(group_ids,'group')
     if any(not isinstance(o,dict) or not name(o.get('id')) for o in options):fail('option id is invalid')
     ids=[o['id'] for o in options];distinct(ids,'option')
-    if 'core.performance@1' not in set(m['compatibility']['required']+m['compatibility']['optional']):
-        fail('profile must declare core.performance@1')
+    if 'core.performance@'+str(profile['schemaVersion']) not in set(m['compatibility']['required']+m['compatibility']['optional']):
+        fail('profile must declare matching core.performance version')
+    if profile['schemaVersion']==2 and 'core.performance@2' not in m['compatibility']['required']:
+        fail('extensible groups require core.performance@2 in required capabilities')
     track_count=0
     for o in options:
         kind=o.get('kind','preset');bones=bounded(o.get('bones',[]),256,'bones');tracks=bounded(o.get('morphTracks',[]),256,'morphTracks')
+        hint=o.get('ai')
+        if hint is not None:
+            if not isinstance(hint,dict) or not name(hint.get('intent')):fail('AI intent is invalid')
+            effects=bounded(hint.get('effects'),8,'AI effects')
+            if not effects or any(not name(e) for e in effects):fail('AI effects are invalid')
+            moods=bounded(hint.get('moods',[]),16,'AI moods');conflicts=bounded(hint.get('conflicts',[]),32,'AI conflicts')
+            if any(not name(v) for v in moods) or any(v not in group_ids or v==o.get('group') for v in conflicts):fail('AI moods/conflicts are invalid')
+            if not isinstance(hint.get('automatic'),bool) or not isinstance(hint.get('speechCompatible'),bool) or not number(hint.get('cooldownSeconds',3),0,300):fail('AI policy is invalid')
         if o.get('group') not in group_ids or not name(o.get('label')) or kind not in {'preset','motion','toggle'} or not number(o.get('duration',0),0,120):fail('option fields are invalid: '+o['id'])
         if any(not path(b) for b in bones):fail('bone path is invalid (paths <=128 UTF-16 units): '+o['id'])
         distinct(bones,'bone binding')

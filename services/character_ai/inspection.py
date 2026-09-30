@@ -41,7 +41,7 @@ def report(settings,engine,owner,request):
     # Runtime rules live in executable code as well as prompts. Include the full
     # deployed modules so a tester can inspect thresholds/filters without a
     # hand-maintained summary becoming a second, misleading source of truth.
-    for name in ('prompts','schemas','greetings','director','speech_text','orchestrator','provider','asr','storage'):
+    for name in ('prompts','schemas','greetings','director','performance_library','speech_text','orchestrator','provider','asr','storage'):
         module=importlib.import_module('.'+name,__package__)
         add('rules-'+name,'执行规则 · '+name,'当前服务实际加载版本的完整规则源码。',Path(module.__file__).read_text())
     return dict(version=1,character_id=char,captured_at=datetime.now(timezone.utc).isoformat(),sections=sections)

@@ -1,4 +1,4 @@
-# 原作表现标准：core.performance@1
+# 原作表现标准：core.performance@1 / @2
 
 `performance` 是角色包中的可选能力，供模型作者声明表情、姿态、手势、耳尾和穿搭配件。它与对话用 `actions` / `expressions` 并存；只交付数据，不携带源 SDK、控制器、脚本或 Shader。当前模式适合把原作可见选项接入 App，并不模拟完整 VRChat FX 状态机。
 
@@ -7,6 +7,8 @@
 ## 能力和包结构
 
 在 `compatibility.optional` 声明 `core.performance@1`，并提供 `performance.schemaVersion:1`。没有该字段的旧包照常使用原会话行为。新包升级 `packageVersion`，保持既有角色 ID、选项 ID 和安装标识稳定。
+
+v0.57 起，自定义分组使用 `performance.schemaVersion:2`，并在 `compatibility.required` 声明 `core.performance@2`。v2 最多 32 组，ID 匹配 `[a-z][a-z0-9_.-]{0,63}`，例如 `author.wings`。iOS 面板、AI 目录和 Unity 动画层按声明组处理。旧宿主拒绝不支持的 required 能力，不能把 v2 设为 optional 来假装向前兼容。当前两位角色仍保留原 v1 包。
 
 ```json
 {
@@ -30,7 +32,7 @@
 
 ## 分组、选项及单位
 
-六个固定分组为 `expression`、`pose`、`hands`、`ears`、`tail`、`appearance`。未提供资源的分组不显示。每个选项稳定 ID 唯一；界面标签使用面向用户的名称，不直接展示技术骨骼名。
+v1 的六个固定分组为 `expression`、`pose`、`hands`、`ears`、`tail`、`appearance`。未提供资源的分组不显示。每个选项稳定 ID 唯一；界面标签使用面向用户的名称，不直接展示技术骨骼名。
 
 | 字段 | 当前语义 |
 |---|---|
@@ -49,9 +51,11 @@
 | `defaults` | 角色作者默认 Renderer 可见性；缺省值不是把全部 mesh 打开 |
 | `defaultOn` | 进入该角色时选中的默认项；同组非 toggle 默认最多一个 |
 
-已知预算：最多 6 组、256 选项；每个 morph 数组最多 256 绑定，每个可见性数组及 defaults 最多 64；骨骼数组最多 256；全包累计动态 morph track 最多 256，每条最多 7201 个关键帧。performance 的选项 ID、分组／选项标签、clip／offClip 名、形变名和所有节点／Renderer 路径最长 **128 个 UTF-16 code unit**（与 Unity string.Length 一致；普通汉字算 1，补充平面字符如多数 emoji 算 2），且不可全为空白。路径必须相对、无反斜杠、无空段及 `.` / `..`。各 morph／morphTracks 数组按 renderer + shape 去重，各 visibility／defaults 数组按 path 去重，bones 不可重复。SDK Python 预检按同样规则拒收；其他能力的共享路径长度不会因此改变。这些是拒收上限，不是推荐资源量；包体仍遵守 XCP 文件和几何预算。
+已知预算：v1 最多 6 组、v2 最多 32 组，均最多 256 选项；每个 morph 数组最多 256 绑定，每个可见性数组及 defaults 最多 64；骨骼数组最多 256；全包累计动态 morph track 最多 256，每条最多 7201 个关键帧。performance 的选项 ID、分组／选项标签、clip／offClip 名、形变名和所有节点／Renderer 路径最长 **128 个 UTF-16 code unit**（与 Unity string.Length 一致；普通汉字算 1，补充平面字符如多数 emoji 算 2），且不可全为空白。路径必须相对、无反斜杠、无空段及 `.` / `..`。各 morph／morphTracks 数组按 renderer + shape 去重，各 visibility／defaults 数组按 path 去重，bones 不可重复。SDK Python 预检按同样规则拒收；其他能力的共享路径长度不会因此改变。这些是拒收上限，不是推荐资源量；包体仍遵守 XCP 文件和几何预算。
 
 源数据中的 `sourceClip`、`sourceOffClip`、`sourceMorphCurves` 属于转换审计材料，发布前移除。原作缺少 renderer、clip 或形变时，不展示一个没有效果的按钮；记录为何过滤。单纯引用外部 GUID 不是可用动作。
+
+v2 分组顺序决定动画层顺序，跨组共享骨骼时必须审查混合结果。选项可附 `ai` 调用语义、适用情绪、自动策略与冲突声明，见 [AI 表演标准](08-ai-performance-standard.md)。
 
 ## 命令与回执
 

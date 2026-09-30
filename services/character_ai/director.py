@@ -24,14 +24,26 @@ ALIASES = dict(smile='soft_smile',happy='bright_smile',cheerful='bright_smile',c
 EMOTION_FACE = dict(happy='bright_smile',sad='sad',surprised='surprised',serious='serious',worried='worried',
                     curious='thinking',confused='confused',excited='excited',playful='teasing_smile')
 
+def visible_narration(value):
+    """Read-time compatibility for old saved literary appearance descriptions."""
+    if value.get('mode')=='performed':return True
+    text=value.get('text','')
+    return not re.search(r'头发|发色|长发|短发|棕色|金色|肤色|皮肤|眼睛|瞳孔|眼眸|身材|脸型|衣服|裙子|穿着|留着|一双|外貌',text)
+
 class Director:
     def __init__(self,store,rng=None):self.store=store;self.rng=rng or random.Random()
     def capability(self,character,available):
-        enabled=[a for a in assets(character) if a['asset_id'] in available]
+        enabled=[a for a in assets(character) if a['enabled'] and a['asset_id'] in available and a.get('speech_compatible',True)]
         intents={a['intent'] for a in enabled}
         return dict(supported_expression_intents=sorted({'neutral'}|{a['intent'] for a in enabled if a['kind']=='expression'}),
                     supported_action_intents=sorted({'idle'}|{a['intent'] for a in enabled if a['kind']=='action'}),
-                    intent_guide={k:v for k,v in INTENT_GUIDE.items() if k in intents})
+                    intent_guide={k:v for k,v in INTENT_GUIDE.items() if k in intents},
+                    groups=[dict(group=g,label=next(a.get('group_label',g) for a in enabled if a['group']==g),
+                        choices=[dict(intent=a['intent'],meaning=a.get('label',a['observable_effects'][0]),
+                                      automatic=a.get('automatic',True)) for a in enabled if a['group']==g])
+                        for g in dict.fromkeys(a['group'] for a in enabled)],
+                    choreography=dict(simultaneous_groups=True,phases=2,target_cues='每句组合4至8项，并在较长台词中自然变化；按角色实际可用组增减',
+                                      contextual_only='automatic=false只在对话明确合适或用户要求时使用，不能随机更换坐躺或穿搭'))
     def resolve(self,owner,character,kind,intent,intensity,relationship,state,available):
         now=time.time()
         library=[a for a in assets(character) if a['enabled'] and a['asset_id'] in available and a['kind']==kind]
@@ -70,15 +82,71 @@ class Director:
             performance.expression_intent=EMOTION_FACE.get(emotion,EMOTION_FACE.get(dominant_emotion,'neutral'))
             if performance.expression_intent=='neutral' and trigger in ('appLaunch','firstLaunch','firstMeeting','characterSwitch'):
                 performance.expression_intent='soft_smile'
-        face,fg=self.resolve(owner,character,'expression',performance.expression_intent,performance.intensity,relationship,state,available)
-        action,ag=self.resolve(owner,character,'action',performance.action_intent,performance.intensity,relationship,state,available)
-        return dict(beat_id=beat.beat_id,expression_asset=face,action_asset=action,
-                    grounding='approximate' if 'approximate' in (fg,ag) else 'exact' if face or action else 'none')
+        library=[a for a in assets(character) if a['enabled'] and a['asset_id'] in available and a.get('speech_compatible',True)]
+        mood=dominant_emotion
+        if mood=='neutral' and beat.dialogue:mood=beat.dialogue.speech.emotion
+        if trigger=='model_shaken':mood='playful' if performance.expression_intent in ('pout','teasing_smile') else 'serious'
+        cues=[];selected=set();occupied={};now=time.time()
+        def add(group,intent=None,offset=0,active=True,automatic=False):
+            if len(cues)>=24 or any(abs(offset-t)<1200 for t in occupied.get(group,[])):return
+            pool=[a for a in library if a['group']==group and a['asset_id'] not in selected]
+            if automatic:
+                pool=[a for a in pool if a.get('automatic',True) and
+                      (not a.get('moods') or mood in a['moods'] or (group=='expression' and mood=='neutral' and a['intent']=='soft_smile'))]
+            elif intent:
+                intent=ALIASES.get(intent,intent)
+                pool=[a for a in pool if a['intent']==intent]
+            else:return
+            weighted=[]
+            for a in pool:
+                if not active and a.get('source_kind')!='toggle':continue
+                if relationship.get('closeness',0)<a['min_closeness'] or state.get('anger',0)>a['max_anger']:continue
+                if not a['intensity_min']<=performance.intensity<=a['intensity_max']:continue
+                if any(a['group'] in c['asset'].get('conflicts',[]) or c['asset']['group'] in a.get('conflicts',[]) for c in cues):continue
+                used,last=self.store.db.execute('SELECT count(*),max(created) FROM asset_usage WHERE owner=? AND character=? AND asset=?',(owner,character,a['asset_id'])).fetchone()
+                if now-(last or 0)<a['cooldown_sec']:continue
+                # Data-driven mood + recency diversity; no character/group enum.
+                weight=a['base_weight']*(1+min(3,(now-(last or 0))/20))/(1+math.log1p(used))
+                weighted.append((a,weight))
+            if not weighted:return
+            a=self.rng.choices([a for a,_ in weighted],weights=[w for _,w in weighted],k=1)[0]
+            with self.store.db:self.store.db.execute('INSERT INTO asset_usage(owner,character,asset,kind,created) VALUES(?,?,?,?,?)',(owner,character,a['asset_id'],a['kind'],now))
+            selected.add(a['asset_id']);occupied.setdefault(group,[]).append(offset)
+            duration=min(8000,a['duration_ms']) if automatic else a['duration_ms']
+            cues.append(dict(asset=a,offset_ms=offset,duration_ms=duration,active=active))
+        # The planner can request every declared group, including new author
+        # groups, postures and temporary toggles. Keep old plans compatible.
+        for cue in sorted(performance.cues,key=lambda c:c.offset_ms):
+            group=cue.group
+            matches={a['group'] for a in library if a['intent']==ALIASES.get(cue.intent,cue.intent)}
+            if group not in matches and len(matches)==1:group=next(iter(matches))
+            add(group,cue.intent,cue.offset_ms,cue.active)
+        if performance.expression_intent!='neutral':add('expression',performance.expression_intent)
+        if performance.action_intent!='idle':
+            match=next((a for a in library if a['intent']==performance.action_intent),None)
+            if match:add(match['group'],performance.action_intent)
+        groups=list(dict.fromkeys(a['group'] for a in library if a.get('automatic',True)))
+        # Rotate underserved groups through the bounded parallel budget for
+        # future avatars with many channels. Existing avatars use all 4 groups.
+        groups.sort(key=lambda g:self.store.db.execute('SELECT count(*) FROM asset_usage WHERE owner=? AND character=? AND asset IN (%s)' % ','.join('?' for _ in [a for a in library if a['group']==g]),
+                    (owner,character,*[a['asset_id'] for a in library if a['group']==g])).fetchone()[0])
+        for index,group in enumerate(groups[:8]):
+            if not occupied.get(group):add(group,offset=index*100,automatic=True)
+        if beat.dialogue and len(beat.dialogue.text)>=10:
+            second=min(4200,max(2200,len(beat.dialogue.text)*65))
+            for index,group in enumerate(groups[:8]):add(group,offset=second+index*120,automatic=True)
+        cues.sort(key=lambda c:c['offset_ms'])
+        face=next((c['asset'] for c in cues if c['asset']['kind']=='expression'),None)
+        action=next((c['asset'] for c in cues if c['asset']['kind']=='action'),None)
+        return dict(beat_id=beat.beat_id,expression_asset=face,action_asset=action,performances=cues,
+                    grounding='exact' if cues else 'none')
 
 def grounded(narration,resolved,appearance_facts=()):
     entry=next((r for r in resolved if r['beat_id']==narration.beat_id),None)
     if not entry:return False
-    effects=[s for k in ('expression_asset','action_asset') if entry.get(k) for s in entry[k]['observable_effects']]
+    items=([c['asset'] for c in entry['performances'] if c.get('active',True)] if 'performances' in entry
+           else [entry[k] for k in ('expression_asset','action_asset') if entry.get(k)])
+    effects=[s for a in items for s in a['observable_effects']]
     if narration.mode=='performed' and (not effects or not narration.evidence or any(e not in effects for e in narration.evidence)):return False
     if narration.mode=='performed':
         # Hard grounding: a valid citation alone is insufficient. Models can cite
@@ -88,14 +156,11 @@ def grounded(narration,resolved,appearance_facts=()):
         if clean(narration.text)!=clean(''.join(narration.evidence)):return False
     if narration.mode=='literary':
         if narration.visual_grounding!='none':return False
-        # Facts are reviewed server-side character metadata. Client scene text
-        # and fictional backstory never authorize claims about the actual image.
+        # Static appearance is already visible on the model. Neither reviewed
+        # character facts nor fictional background authorize appearance prose.
+        if narration.evidence:return False
         remainder=narration.text
-        for fact in narration.evidence:
-            if fact not in appearance_facts or fact not in remainder:return False
-            remainder=remainder.replace(fact,'',1)
-        # The rest may describe conversational pace only. A real cited eye/hair
-        # trait cannot be used to smuggle in an unperformed physical interaction.
+        # Unperformed narration may describe conversational pace only.
         words=r'(?:短暂|片刻|轻轻|微微|渐渐|稍稍|慢慢|柔和|温柔|安静|轻柔|平静|停顿|沉默|对话|话语|话音|语气|交流|声音|字句|余音|这一刻|此刻|之间|之中|落下|放缓|停留|延续|流淌|散开|下来|一点|一阵|让|中|在|的|地|得|了|也|更|很|里|间|变|得以|带着|显得|随着|和|与|而|着|是|一|丝|份|分|，|。|、|；|：|…|\s)'
         if not re.fullmatch(words+r'*',remainder):return False
     # Do not display common hallucinated physical interactions even if the model
@@ -106,10 +171,9 @@ def grounded(narration,resolved,appearance_facts=()):
 def grounded_excerpt(narration,resolved,appearance_facts=()):
     """Render only independently grounded clauses or the model's verified citations.
 
-    A correct hair description followed by invented sunlight should lose the
-    sunlight, not the valid clause. If the prose entirely rewrites those facts,
-    use the actual citations the AI selected. No random/local conversation reply
-    or invented action is introduced, and a performance is never relabelled.
+    Static appearance clauses are omitted even if factually correct. Preserve
+    only conversational pace or observable evidence from selected animations;
+    never replace rejected prose with a local invented reply or physical action.
     """
     if grounded(narration,resolved,appearance_facts):return narration
     parts=[];evidence=[]

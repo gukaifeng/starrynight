@@ -17,6 +17,7 @@ label='com.starrynight.character-ai';domain='gui/'+str(os.getuid())
 subprocess.run(['launchctl','bootout',domain+'/'+label],capture_output=True)
 code=runtime/'code/services/character_ai';code.mkdir(parents=True,exist_ok=True)
 for source in (root/'services/character_ai').glob('*.py'):shutil.copy2(source,code/source.name)
+shutil.copy2(root/'services/character_ai/performance_catalog.json',code/'performance_catalog.json')
 venv=runtime/'.venv';python=venv/'bin/python'
 if not python.exists():subprocess.run([sys.executable,'-m','venv',str(venv)],check=True)
 with (runtime/'dependency-install.log').open('w') as log:

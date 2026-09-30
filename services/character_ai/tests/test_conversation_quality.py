@@ -171,7 +171,8 @@ def test_director_reaches_real_faces_hands_ears_tails_without_body_or_costume_ch
         assert result['action_asset']['group']==group and result['grounding']=='exact'
     assert director.resolve('u',char,'action','hug',.5,{}, {},allowed)==(None,'none')
     assert director.resolve('u',char,'action','ear_wiggle',.5,{}, {},[])==(None,'none')
-    assert {a['group'] for a in assets(char)}=={'expression','hands','ears','tail'}
+    assert {a['group'] for a in assets(char)}=={'expression','hands','ears','tail','pose','appearance'}
+    assert {c['asset']['group'] for c in result['performances']} <= {'expression','hands','ears','tail'}
     guide=director.capability(char,allowed)
     assert guide['intent_guide']['ear_wiggle'] and 'tail_wag' in guide['supported_action_intents']
     greeting=director.beat('first',char,Beat(beat_id='b',dialogue=dict(text='你好')),{}, {},allowed,trigger='firstMeeting')
@@ -185,5 +186,6 @@ def test_reviewed_mappings_match_installed_catalog():
         actual={a['id']:a for a in model['performance']['options']}
         for asset in assets(model['id']):
             option=actual[asset['asset_id']]
-            assert option['group']==asset['group'] and option['kind']!='toggle'
-            assert option.get('clip') or option.get('morphs') or option.get('morphTracks')
+            assert option['group']==asset['group'] and option['kind']==asset['source_kind']
+            assert option.get('clip') or option.get('morphs') or option.get('morphTracks') or option.get('visibility')
+            if option['kind']=='toggle':assert not asset['automatic']

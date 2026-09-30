@@ -1,14 +1,41 @@
-import asyncio, base64, random, time, uuid
+import asyncio, base64, random, re, time, uuid
 from contextlib import aclosing
-from .schemas import Plan, NarrationResult, Speech, Vocal, visible_text, visible_thought, CONTROL_TEXT
+from .schemas import Plan, NarrationResult, Speech, Vocal, PerformanceCue, visible_text, visible_thought, CONTROL_TEXT
 from .profiles import PROFILES
 from .prompts import PLANNER, NARRATOR
-from .director import Director, grounded_excerpt
+from .director import Director, grounded_excerpt, visible_narration
 from .storage import clamp, dump
 from .speech_text import audio_key
 from .greetings import ENTRY_TRIGGERS, greeting_context, repeated_greeting, plan_text
 
 def event(kind, **data): return dict(type=kind,**data)
+
+def brief_shake_plan(plan,mood):
+    """Keep one AI-authored reaction; never manufacture a local complaint.
+
+    Character models sometimes append unrelated invitation beats. Preserve the
+    first utterance at natural sentence boundaries, without another paid call.
+    """
+    first=next((b for b in plan.beats if b.dialogue),None)
+    if first is None:return
+    plan.beats=[first];plan.memory_updates=[]
+    lines=re.split(r'(?<=[。！？!?～])\s*',first.dialogue.text)
+    kept=''
+    for line in lines:
+        if not line:continue
+        if kept and len(kept+line)>40:break
+        kept+=line
+        if len(kept)>=15:break
+    first.dialogue.text=kept or first.dialogue.text
+    plan.state_interpretation.dominant_emotion=mood
+    first.dialogue.speech.emotion='happy' if mood=='playful' else 'serious'
+    first.dialogue.speech.delivery='teasing' if mood=='playful' else 'soft'
+    face='pout' if mood=='playful' else 'serious'
+    first.performance.expression_intent=face
+    first.performance.cues=[c for c in first.performance.cues if c.group!='expression' or c.offset_ms>=2200][:22]
+    first.performance.cues.insert(0,PerformanceCue(group='expression',intent=face))
+    if not any(c.group=='expression' and c.offset_ms>=2200 for c in first.performance.cues):
+        first.performance.cues.append(PerformanceCue(group='expression',intent='soft_smile',offset_ms=2800))
 
 class Orchestrator:
     def __init__(self,settings,store,provider):
@@ -17,7 +44,7 @@ class Orchestrator:
     def context(self,owner,request,*,persist=True):
         char=request.character_id
         if persist:self.store.sync_memories(owner,char,request.memories)
-        context = dict(character_profile={k:v for k,v in PROFILES[char].items() if k not in ('voice_prompt','preview_text','voice_revision','voice_delivery')},
+        context = dict(character_profile={k:v for k,v in PROFILES[char].items() if k not in ('voice_prompt','preview_text','voice_revision','voice_delivery','appearance_facts')},
             user_message=request.text,trigger=request.trigger,preferences=request.preferences,scene=request.scene,
             recent_messages=self.store.history(owner,char) or [m.model_dump() for m in request.recent_messages],memories=self.store.recall(owner,char,request.text,incoming=None if persist else request.memories,touch=persist),
             relationship=self.store.get('relationship',owner,char,dict(closeness=.05,trust=.1,conflict=0)),
@@ -32,13 +59,17 @@ class Orchestrator:
             last = self.store.db.execute('SELECT max(created) FROM messages WHERE owner=? AND character=?',(owner,char)).fetchone()[0]
             context['greeting_context'] = greeting_context(context['recent_messages'],
                 self.store.get('greetings',owner,char,[]),max(0,int(time.time()-last)) if last else None)
+        if request.trigger=='model_shaken':
+            context['interaction_context']=dict(kind='shake',intensity=request.interaction.intensity if request.interaction else 0,
+                mood=random.choice(['playful','serious']) if persist else 'playful',
+                task='唯一任务：对刚刚连续晃动虚拟角色作出一句15至35字的新吐槽；只生成1个beat，撒娇或轻微生气，附多组真实表演。不要另开话题、提出新游戏、编造刚做了食物或回复历史问题。')
         return context
     async def narration(self,owner,char,plan,resolved,scene):
-        facts=PROFILES[char].get('appearance_facts',[])
+        facts=[]
         try:
             async with asyncio.timeout(self.settings.narration_timeout_seconds):
                 result=await self.provider.structured(owner,char,'narration',NARRATOR,
-                    dict(plan=plan.model_dump(),resolved=resolved,scene=scene,appearance_facts=facts),NarrationResult)
+                    dict(plan=plan.model_dump(),resolved=resolved,scene=scene),NarrationResult)
                 reviewed=[(n,grounded_excerpt(n,resolved,facts)) for n in result.narrations]
                 accepted=[];seen=set()
                 for _,excerpt in reviewed:
@@ -66,11 +97,12 @@ class Orchestrator:
         char=request.character_id; rid=str(request.request_id)
         # Delivery negotiation isn't conversation content. Preserve hashes for
         # pre-upgrade requests and never re-bill a retry with a different mode.
-        cached=self.store.request(owner,char,rid,request.model_dump(mode='json',exclude={'progressive_reply'}))
+        cached=self.store.request(owner,char,rid,request.model_dump(mode='json',exclude={'progressive_reply'}|({'interaction'} if request.interaction is None else set())))
         if cached:
             # Revalidate pre-upgrade cached thoughts without rewriting archives
             # or generating/charging for the same message again.
-            cached={**cached,'beats':[{**b,'thought':visible_thought(b['thought']) if b.get('thought') else None}
+            cached={**cached,'beats':[{**b,'thought':visible_thought(b['thought']) if b.get('thought') else None,
+                                      'narrations':[n for n in b.get('narrations',[]) if visible_narration(n)]}
                                       for b in cached.get('beats',[])]}
             yield event('reply.narration.ready',script=cached,cached=True)
             if request.wants_audio:
@@ -78,6 +110,13 @@ class Orchestrator:
                     async for e in audio:yield e
             yield event('reply.completed',message_id=cached['message_id']); return
         context=self.context(owner,request)
+        if request.trigger=='model_shaken':
+            previous=self.store.get('shake_reaction',owner,char,{})
+            if request.interaction is None or request.interaction.kind!='shake' or request.interaction.intensity<.4 or time.time()-previous.get('last',0)<35:
+                empty=dict(message_id=str(uuid.uuid4()),character_id=char,beats=[],text='')
+                self.store.complete(owner,char,rid,empty)
+                yield event('reply.completed',message_id=empty['message_id']);return
+            self.store.put('shake_reaction',owner,char,dict(last=time.time()))
         if request.trigger=='idle':
             timing=self.store.get('proactive',owner,char,{})
             unanswered=timing.get('unanswered',0)
@@ -88,6 +127,8 @@ class Orchestrator:
                 self.store.complete(owner,char,rid,empty)
                 yield event('reply.completed',message_id=empty['message_id']); return
         plan=await self.provider.structured(owner,char,'plan',PLANNER,context,Plan)
+        if request.trigger=='model_shaken':
+            brief_shake_plan(plan,context['interaction_context']['mood'])
         if request.trigger in ENTRY_TRIGGERS:
             previous=context['greeting_context']['previous_lines_to_avoid']
             if repeated_greeting(plan_text(plan),previous):
@@ -131,7 +172,8 @@ class Orchestrator:
                 dialogue=({'text':visible_text(b.dialogue.text),'speech':b.dialogue.speech.model_dump()} if b.dialogue else None),
                 narrations=[dict(text=visible_text(n.text),mode=n.mode,grounding=r['grounding'] if n.mode=='performed' else 'none') for n in narrations if n.beat_id==b.beat_id][:1],
                 vocal_events=[v.model_dump() for v in b.vocal_events],
-                visuals=[dict(asset_id=a['asset_id'],group=a['group'],duration_ms=a['duration_ms'],grounding=r['grounding']) for k in ('expression_asset','action_asset') if (a:=r.get(k))]))
+                visuals=[dict(asset_id=c['asset']['asset_id'],group=c['asset']['group'],duration_ms=c['duration_ms'],
+                    offset_ms=c['offset_ms'],active=c['active'],grounding=r['grounding']) for c in r['performances']]))
         text='\n'.join(b['dialogue']['text'] for b in beats if b['dialogue'])
         script=dict(message_id=str(uuid.uuid4()),character_id=char,beats=beats,text=text,trigger=request.trigger,idle_decision=plan.idle_decision,
             memory_suggestions=[m.content for m in plan.memory_updates] if request.trigger=='user_message' else [])

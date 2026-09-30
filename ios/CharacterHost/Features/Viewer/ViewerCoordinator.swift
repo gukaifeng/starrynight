@@ -94,6 +94,9 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
         if ProcessInfo.processInfo.arguments.contains("--conversation-gesture-fixture") {
             ConversationGestureFixture.seed(companionStore)
         }
+        if ProcessInfo.processInfo.arguments.contains("--expressive-conversation-fixture") {
+            ConversationGestureFixture.seedPerformance(companionStore)
+        }
 #endif
         if ProcessInfo.processInfo.arguments.contains("--shell-discover") { selectedTab = .discover }
         else if page == .home { resumeLastCharacter(reason:.appLaunch) }
@@ -327,33 +330,50 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
     }
     private var aiVisualBaseline: [String:Set<String>] = [:]
     private var aiVisualTasks: [String:Task<Void,Never>] = [:]
+    private var aiVisualSequence:Task<Void,Never>?
     private func applyAIVisuals(_ visuals: [AIVisual]) {
+        aiVisualSequence?.cancel()
+        let actor=selectedModel.id
+        aiVisualSequence=Task { @MainActor [weak self] in
+            var previous=0
+            for visual in visuals.sorted(by:{($0.offsetMs ?? 0)<($1.offsetMs ?? 0)}).prefix(24) {
+                let offset=min(12000,max(0,visual.offsetMs ?? 0))
+                if offset>previous {try? await Task.sleep(for:.milliseconds(offset-previous))}
+                guard !Task.isCancelled,let self,self.selectedModel.id==actor else {return}
+                previous=offset;self.applyAIVisual(visual)
+            }
+        }
+    }
+    private func applyAIVisual(_ visual:AIVisual) {
         guard page == .viewer, desiredVisible, characterPerformance.ready,
               let profile = selectedModel.performance else { return }
-        for visual in visuals {
             guard let option = profile.options.first(where:{ $0.id == visual.assetId && $0.group == visual.group }),
-                  ["expression","hands","ears","tail"].contains(option.group), !option.isToggle else { continue }
+                  profile.groups.contains(where:{$0.id==option.group}) else {return}
             let group = option.group
             if aiVisualBaseline[group] == nil {
                 aiVisualBaseline[group] = characterPerformance.selections.intersection(Set(profile.options.filter { $0.group == group }.map(\.id)))
             }
             aiVisualTasks[group]?.cancel()
-            signal(CharacterIntent(eventName:"performance.select",target:option.id))
+            signal(CharacterIntent(eventName:"performance.select",target:option.id,intensity:visual.active == false ? 0 : 1))
             let actor = selectedModel.id
             aiVisualTasks[group] = Task { @MainActor [weak self] in
-                try? await Task.sleep(for:.milliseconds(min(8000,max(1200,visual.durationMs))))
+                try? await Task.sleep(for:.milliseconds(min(20000,max(1200,visual.durationMs))))
                 guard !Task.isCancelled, let self, self.selectedModel.id == actor else { return }
                 self.restoreAIGroup(group)
             }
-        }
     }
     private func restoreAIGroup(_ group: String) {
         guard let original = aiVisualBaseline.removeValue(forKey:group) else { return }
         aiVisualTasks.removeValue(forKey:group)
         signal(CharacterIntent(eventName:"performance.reset",target:group))
-        for id in original { signal(CharacterIntent(eventName:"performance.select",target:id)) }
+        for option in selectedModel.performance?.options.filter({$0.group==group}) ?? [] {
+            if option.isToggle || original.contains(option.id) {
+                signal(CharacterIntent(eventName:"performance.select",target:option.id,intensity:original.contains(option.id) ? 1 : 0))
+            }
+        }
     }
     private func endAIVisuals() {
+        aiVisualSequence?.cancel();aiVisualSequence=nil
         aiVisualTasks.values.forEach { $0.cancel() }; aiVisualTasks.removeAll()
         for group in Array(aiVisualBaseline.keys) { restoreAIGroup(group) }
         aiVisualBaseline.removeAll()
@@ -866,6 +886,11 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
             overlay?.setRuntimeFraming(event)
         }
         switch name {
+        case "characterShaken":
+            guard page == .viewer,desiredVisible,event["presentationId"] as? Int==presentation,
+                  event["modelId"] as? String==selectedModel.runtimeID else {return}
+            companion?.reactToShake(intensity:event["previewShakeIntensity"] as? Double ?? 0.7)
+            overlay?.setRuntimeFraming(event)
         case "framingGestureEnded":
             guard companion == nil else { return }
             guard event["presentationId"] as? Int == presentation,

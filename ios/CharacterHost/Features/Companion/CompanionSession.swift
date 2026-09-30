@@ -45,6 +45,8 @@ final class CompanionSession {
     @ObservationIgnored private var task: Task<Void,Never>?
     @ObservationIgnored private var idleTask: Task<Void,Never>?
     @ObservationIgnored private var silentVisualTask: Task<Void,Never>?
+    @ObservationIgnored private var shakeTask: Task<Void,Never>?
+    private(set) var shakeReactions=0
     @ObservationIgnored private var token = UUID()
     @ObservationIgnored private var activeTurn = false
     @ObservationIgnored private var pendingGreeting: ConversationEntry?
@@ -159,10 +161,28 @@ final class CompanionSession {
             "scene":["time":Date().formatted(date:.omitted,time:.shortened),"environment":model.display.description],
             "available_assets":model.performance?.options.map(\.id) ?? [],"wants_audio":!muted]
     }
-    private func generate(_ text: String,trigger: String,entry: ConversationEntry? = nil) {
+    func reactToShake(intensity:Double) {
+        guard !inspectionActive,!characterEditorPresented,store.accountID==ownerID,
+              !(isGuest && store.guestLimitReached),!speech.isRecording,shakeTask==nil else {return}
+        shakeReactions+=1
+        shakeTask=Task { @MainActor [weak self] in
+            defer {self?.shakeTask=nil}
+            try? await Task.sleep(for:.milliseconds(350))
+            for _ in 0..<60 {
+                guard !Task.isCancelled,let self,!self.inspectionActive,!self.characterEditorPresented,
+                      self.store.accountID==self.ownerID else {return}
+                if !self.generating && !self.speech.isSpeaking && !self.speech.isBusy && !self.speech.isRecording {
+                    self.generate("",trigger:"model_shaken",interaction:["kind":"shake","intensity":min(1,max(0,intensity))]);return
+                }
+                try? await Task.sleep(for:.milliseconds(250))
+            }
+        }
+    }
+    private func generate(_ text: String,trigger: String,entry: ConversationEntry? = nil,interaction:[String:Any]? = nil) {
         stop(); let current = token; generating = true; beginTurn(); emit("state.thinking")
         var body=requestBody(text,trigger:trigger)
         if let entry { body["entry_id"] = entry.id.uuidString }
+        if let interaction {body["interaction"]=interaction}
         task = Task { @MainActor [weak self] in
             guard let self else { return }
             var received = false
@@ -254,7 +274,7 @@ final class CompanionSession {
                 guard !performedBeats.contains(beat.beatId) else { continue }
                 performedBeats.insert(beat.beatId)
                 onAIVisual?(beat.visuals)
-                try? await Task.sleep(for:.milliseconds(beat.visuals.map(\.durationMs).max() ?? 2500))
+                try? await Task.sleep(for:.milliseconds(beat.visuals.map{($0.offsetMs ?? 0)+$0.durationMs}.max() ?? 2500))
             }
         }
     }
@@ -282,6 +302,7 @@ final class CompanionSession {
     func stop() {
         pendingGreeting = nil; task?.cancel(); task = nil; idleTask?.cancel(); idleTask = nil
         silentVisualTask?.cancel(); silentVisualTask = nil
+        shakeTask?.cancel();shakeTask=nil
         if activeTurn { emit("turn.cancel") }
         activeTurn = false; token = UUID(); generating = false; activeScript = nil
         performedBeats.removeAll()

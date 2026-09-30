@@ -959,7 +959,10 @@
       "type": "object",
       "properties": {
         "schemaVersion": {
-          "const": 1
+          "enum": [
+            1,
+            2
+          ]
         },
         "groups": {
           "type": "array",
@@ -967,14 +970,8 @@
             "type": "object",
             "properties": {
               "id": {
-                "enum": [
-                  "expression",
-                  "pose",
-                  "hands",
-                  "ears",
-                  "tail",
-                  "appearance"
-                ]
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_.-]{0,63}$"
               },
               "label": {
                 "type": "string",
@@ -992,7 +989,7 @@
             "additionalProperties": true
           },
           "minItems": 1,
-          "maxItems": 6
+          "maxItems": 32
         },
         "options": {
           "type": "array",
@@ -1005,14 +1002,8 @@
                 "maxLength": 128
               },
               "group": {
-                "enum": [
-                  "expression",
-                  "pose",
-                  "hands",
-                  "ears",
-                  "tail",
-                  "appearance"
-                ]
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_.-]{0,63}$"
               },
               "label": {
                 "type": "string",
@@ -1174,6 +1165,62 @@
                     "keys"
                   ]
                 }
+              },
+              "ai": {
+                "type": "object",
+                "description": "Optional authored conversation semantics, exported to the AI service catalog.",
+                "properties": {
+                  "intent": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "effects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "maxLength": 128,
+                      "minLength": 1
+                    },
+                    "maxItems": 8,
+                    "minItems": 1
+                  },
+                  "moods": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "maxLength": 128,
+                      "minLength": 1
+                    },
+                    "maxItems": 16
+                  },
+                  "automatic": {
+                    "type": "boolean"
+                  },
+                  "speechCompatible": {
+                    "type": "boolean"
+                  },
+                  "cooldownSeconds": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 300
+                  },
+                  "conflicts": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-z0-9_.-]{0,63}$"
+                    },
+                    "maxItems": 32
+                  }
+                },
+                "additionalProperties": true,
+                "required": [
+                  "intent",
+                  "effects",
+                  "automatic",
+                  "speechCompatible"
+                ]
               }
             },
             "required": [
@@ -1217,7 +1264,55 @@
         "options",
         "defaults"
       ],
-      "additionalProperties": true
+      "additionalProperties": true,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "schemaVersion": {
+                "const": 1
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "groups": {
+                "maxItems": 6,
+                "items": {
+                  "properties": {
+                    "id": {
+                      "enum": [
+                        "expression",
+                        "pose",
+                        "hands",
+                        "ears",
+                        "tail",
+                        "appearance"
+                      ]
+                    }
+                  }
+                }
+              },
+              "options": {
+                "items": {
+                  "properties": {
+                    "group": {
+                      "enum": [
+                        "expression",
+                        "pose",
+                        "hands",
+                        "ears",
+                        "tail",
+                        "appearance"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
     },
     "autonomy": {
       "type": "object",

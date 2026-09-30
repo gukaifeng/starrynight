@@ -24,6 +24,8 @@ class Speech(Strict):
         # vocabulary. Translate known meanings to our supported speech controls;
         # unknown values still fail validation and never become arbitrary tags.
         return {'playful':'happy','teasing':'happy','cheerful':'happy','excited':'happy','joyful':'happy',
+                'bright_smile':'happy','soft_smile':'happy','teasing_smile':'happy','shy_smile':'happy',
+                'angry':'serious','pout':'serious','confused':'neutral','thinking':'neutral',
                 'calm':'neutral','relaxed':'neutral','curious':'neutral',
                 'concerned':'worried','anxious':'worried','amazed':'surprised',
                 'melancholy':'sad'}.get(value,value) if isinstance(value,str) else value
@@ -42,10 +44,18 @@ class Dialogue(Strict):
             raise ValueError('dialogue.text contains control JSON; put speech/performance beside dialogue, never inside its text')
         return value
 
+class PerformanceCue(Strict):
+    group: str = Field(min_length=1,max_length=64)
+    intent: str = Field(min_length=1,max_length=128)
+    offset_ms: int = Field(default=0,ge=0,le=12000)
+    active: bool = True
+
 class Performance(Strict):
-    expression_intent: str = Field(default='neutral',max_length=40)
-    action_intent: str = Field(default='idle',max_length=40)
+    expression_intent: str = Field(default='neutral',max_length=128)
+    action_intent: str = Field(default='idle',max_length=128)
     intensity: float = Field(default=.4, ge=0, le=1)
+    cues: list[PerformanceCue] = Field(default_factory=list,max_length=24,
+        description='按可用分组组合多种表演；同组分时变化，不同组可并行。仅引用该组已声明的intent，不输出asset ID。')
 
 class NarrationIntent(Strict):
     purpose: str = Field(default='',max_length=100)
@@ -128,11 +138,16 @@ class ContextMessage(Strict):
     role: Literal['user','assistant']
     text: str = Field(max_length=700)
 
+class ModelInteraction(Strict):
+    kind: Literal['shake']
+    intensity: float = Field(ge=0,le=1)
+
 class Request(Strict):
     request_id: UUID
     character_id: Literal['anime-kipfel','anime-mamehinata']
     text: str = Field(default='',max_length=500)
-    trigger: Literal['user_message','appLaunch','firstLaunch','firstMeeting','characterSwitch','idle','story'] = 'user_message'
+    trigger: Literal['user_message','appLaunch','firstLaunch','firstMeeting','characterSwitch','idle','story','model_shaken'] = 'user_message'
+    interaction: ModelInteraction | None = None
     entry_id: UUID | None = None
     preferences: dict[str,str] = Field(default_factory=dict)
     memories: list[ClientMemory] = Field(default_factory=list,max_length=100)

@@ -18,6 +18,7 @@ struct AIBeat: Codable, Sendable, Identifiable {
     var vocalEvents: [AIVocalEvent]?
     var id: String { beatId }
     var hasAudio: Bool { dialogue != nil || !(vocalEvents ?? []).isEmpty }
+    var visibleNarrations:[AINarration] {narrations.filter(\.isVisible)}
     var visibleThought: String? {
         guard let thought else { return nil }
         let text=thought.trimmingCharacters(in:.whitespacesAndNewlines)
@@ -37,8 +38,15 @@ struct AIBeat: Codable, Sendable, Identifiable {
 }
 struct AIDialogue: Codable, Sendable { var text: String }
 struct AIVocalEvent: Codable, Sendable { var event: String }
-struct AINarration: Codable, Sendable { var text: String; var mode: String; var grounding: String }
-struct AIVisual: Codable, Sendable { var assetId: String; var group: String; var durationMs: Int; var grounding: String }
+struct AINarration: Codable, Sendable {
+    var text: String; var mode: String; var grounding: String
+    var isVisible:Bool {mode=="performed" || text.range(of:"头发|发色|长发|短发|棕色|金色|肤色|皮肤|眼睛|瞳孔|眼眸|身材|脸型|衣服|裙子|穿着|留着|一双|外貌",options:.regularExpression)==nil}
+}
+struct AIVisual: Codable, Sendable {
+    var assetId: String; var group: String; var durationMs: Int; var grounding: String
+    var offsetMs:Int? = nil
+    var active:Bool? = nil
+}
 struct AIEvent: Decodable, Sendable {
     var type: String
     var script: AIScript?

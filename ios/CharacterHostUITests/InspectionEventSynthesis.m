@@ -78,6 +78,22 @@ void SNSynthesizeConversationTurn(CGPoint start, CGPoint bend, CGPoint end, void
     }];
 }
 
+void SNSynthesizeConversationShake(CGPoint start, void (^completion)(NSError *)) {
+    Class paths=NSClassFromString(@"XCPointerEventPath"),records=NSClassFromString(@"XCSynthesizedEventRecord");
+    id device=[XCUIDevice sharedDevice];
+    if(!paths || !records || ![device respondsToSelector:NSSelectorFromString(@"eventSynthesizer")]) {
+        completion([NSError errorWithDomain:@"ConversationShakeTest" code:1 userInfo:nil]);return;
+    }
+    id record=[[records alloc] initWithName:@"conversation-repeated-small-rotation" interfaceOrientation:1];
+    id one=[[paths alloc] initForTouchAtPoint:start offset:0];
+    [one moveToPoint:start atOffset:.06];
+    for(int i=0;i<8;i++)[one moveToPoint:CGPointMake(start.x+(i%2==0?100:-100),start.y) atOffset:.32+i*.32];
+    [one liftUpAtOffset:2.75];[record addPointerEventPath:one];
+    [[device valueForKey:@"eventSynthesizer"] synthesizeEvent:record completion:^(BOOL success,NSError *error) {
+        dispatch_async(dispatch_get_main_queue(),^{completion(error ?: (success ? nil : [NSError errorWithDomain:@"ConversationShakeTest" code:2 userInfo:nil]));});
+    }];
+}
+
 void SNSynthesizePreviewCancellation(CGPoint start, CGSize viewport, void (^completion)(NSError *)) {
     Class paths=NSClassFromString(@"XCPointerEventPath"),records=NSClassFromString(@"XCSynthesizedEventRecord");
     id device=[XCUIDevice sharedDevice];

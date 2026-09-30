@@ -144,7 +144,7 @@ namespace ModelSpace
     {
         public static readonly string[] Capabilities={"core.animation@1","core.gaze@1","core.expression@1",
             "core.speech.amplitude@1","core.speech.viseme@1","core.interaction@1","core.effects@1","core.parameters@1",
-            "core.behavior@1","core.posture@1","core.secondary-motion@1","core.performance@1","core.autonomy@1","legacy.human-studio@1"};
+            "core.behavior@1","core.posture@1","core.secondary-motion@1","core.performance@1","core.performance@2","core.autonomy@1","legacy.human-studio@1"};
         public static void Validate(CharacterManifest m)
         {
             if(m==null || m.schemaVersion!=1 || string.IsNullOrWhiteSpace(m.id)) throw new ArgumentException("CHARACTER_SCHEMA_UNSUPPORTED");
@@ -157,6 +157,8 @@ namespace ModelSpace
             if(m.actions.Length==0 || m.Action("Idle")==null) throw new ArgumentException("CHARACTER_IDLE_REQUIRED");
             if(m.actions.Select(a=>a.id).Distinct().Count()!=m.actions.Length) throw new ArgumentException("CHARACTER_DUPLICATE_ACTION");
             CharacterPerformanceContract.Validate(m.performance);
+            if(m.performance?.schemaVersion==2 && !m.compatibility.required.Contains("core.performance@2"))
+                throw new ArgumentException("CHARACTER_CAPABILITY_REQUIRED: core.performance@2");
             CharacterAutonomyContract.Validate(m);
         }
         public static float MorphScale(SkinnedMeshRenderer skin,int index) => skin.sharedMesh.GetBlendShapeFrameWeight(index,skin.sharedMesh.GetBlendShapeFrameCount(index)-1);

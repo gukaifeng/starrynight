@@ -35,7 +35,7 @@ PROFILES = {
     preview_text='我是豆日向！今天发现了一件开心的小事，想说给你听！')
 }
 
-def assets(character):
+def reviewed_assets(character):
     if character not in PROFILES: raise ValueError('UNKNOWN_CHARACTER')
     k=character=='anime-kipfel'
     faces = ([
@@ -114,3 +114,7 @@ def assets(character):
                           intensity_min=0,intensity_max=1,base_weight=1,rarity='common',min_closeness=0,max_anger=1,cooldown_sec=9,
                           duration_ms=4200,interruptible=True,return_to='baseline',enabled=True))
     return items
+
+def assets(character):
+    from .performance_library import catalogue
+    return catalogue(character,reviewed_assets(character))

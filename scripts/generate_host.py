@@ -15,6 +15,7 @@ from urllib.parse import urlsplit
 import xml.sax.saxutils as xml
 from generate_asset_credits import generate_asset_credits
 from generate_character_public_profiles import generate as generate_public_profiles
+from generate_ai_performances import generate as generate_ai_performances
 
 ROOT = Path(__file__).resolve().parents[1]
 test_tool_config=ROOT/'.local/character-ai-client/TestTools.json'
@@ -53,6 +54,7 @@ def configuration(key, settings):
 # available offline in both About and each character's source-attribution page.
 generate_asset_credits(ROOT)
 generate_public_profiles(ROOT)
+generate_ai_performances(ROOT)
 source_refs=[]; source_build=[]; resource_build=[]
 active_music = {t['asset'] for c in json.loads((ios/'CharacterHost/Resources/CharacterCollections.json').read_text())['collections'] for t in c['music']}
 for path in sorted((ios/'CharacterHost').rglob('*')):
@@ -133,7 +135,7 @@ settings={'PRODUCT_NAME':'$(TARGET_NAME)','PRODUCT_BUNDLE_IDENTIFIER':'com.model
     'FRAMEWORK_SEARCH_PATHS':['$(inherited)','$(BUILT_PRODUCTS_DIR)'],
     'OTHER_LDFLAGS':['$(inherited)','-lc++','-framework','CoreML','-framework','Accelerate'],
     'GCC_ENABLE_CPP_EXCEPTIONS':'YES',
-    'CODE_SIGN_STYLE':'Automatic','CURRENT_PROJECT_VERSION':'82','MARKETING_VERSION':'0.56.0',
+    'CODE_SIGN_STYLE':'Automatic','CURRENT_PROJECT_VERSION':'83','MARKETING_VERSION':'0.57.0',
     'ENABLE_USER_SCRIPT_SANDBOXING':'NO','SUPPORTS_MACCATALYST':'NO','SWIFT_EMIT_LOC_STRINGS':'YES',
     'ARCHS':'arm64','ENABLE_DEBUG_DYLIB':'NO','ASSETCATALOG_COMPILER_APPICON_NAME':'AppIcon'}
 target=obj('host-target','PBXNativeTarget',name='CharacterHost',productName='CharacterHost',productType='com.apple.product-type.application',productReference=app,

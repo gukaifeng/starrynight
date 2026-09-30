@@ -4,9 +4,11 @@
 
 正式英文名 **StarryNight**，仓库和根目录统一为 `starrynight`。当前根目录 `/Users/gukaifeng/Documents/starrynight`，Xcode 真机入口为 `ios/StarryNight.xcworkspace`，模拟器入口为 `ios/StarryNight-Simulator.xcworkspace`，scheme 均为 `CharacterHost`。命名约定与迁移记录见 [英文命名与目录](docs/project-naming.md)。
 
-以精致 3D 角色为核心的 AI 陪伴产品。当前源码 **v0.52.0 / build 73**，名称保持「星夜」，默认月白深色主题，保留彩色星夜等可选主题，Logo 更新为极简月白星月矢量标志。原生 SwiftUI / UIKit + Unity as a Library，当前优先 **iPhone 手机版**，暂停新增 iPad 测试。
+以精致 3D 角色为核心的 AI 陪伴产品。当前源码 **v0.57.0 / build 83**，名称保持「星夜」，默认月白深色主题，保留彩色星夜等可选主题，Logo 更新为极简月白星月矢量标志。原生 SwiftUI / UIKit + Unity as a Library，当前优先 **iPhone 手机版**，暂停新增 iPad 测试。
 
-正在开发独立账户平台：新增 [`backend/`](backend/README.md)，采用 Go、PostgreSQL、Redis，拥有独立构建、迁移、测试、容器和 CI；iOS 已加入账号密码、测试游客及账户同步源码。前半程真实 PG/Redis 基础联调通过，后半程本机运行权限受限，最新代码与 iPhone 安装状态详见[账户平台验证](docs/verification/account-platform/README.md)。这轮尚未发布新的 iOS 安装版本，手机仍以此前已安装版本为准。[完整架构与数据归属](backend/docs/architecture.md)区分了 Go 平台与现有 Python AI worker 的职责和未完成的上线环节。
+v0.57.0 已接入全部角色表现的语义目录和多组时间轴，普通对话目标组合 4–8 项表情／动作；新分组通过 core.performance@2 扩展。静态外貌旁白隐藏，动作与心声用括号斜体；普通单指反复晃动会触发真实 AI 的撒娇／小生气和语音。已安装 iPhone 并读回 **0.57.0 / 83**；手机锁定阻止自动打开，模拟器验证通过。见[本轮实施与验证](docs/design/2026-09-30-expressive-conversation.md)。
+
+独立账户平台位于 [`backend/`](backend/README.md)，采用 Go、PostgreSQL、Redis，拥有独立构建、迁移、测试、容器和 CI。Go 平台与 Python AI worker 的职责见[账户平台架构](backend/docs/architecture.md)；当前 AI worker 仍部署在本机，正式云端部署尚未完成。账户平台的阶段性验证见[记录](docs/verification/account-platform/README.md)。
 
 v0.52.0 核实琪宝、豆日向的原始 Prefab 与 FBX 均提供 15 个 VRChat 口型，当前 App 已保留 5 个原作元音形变，朗读由实际音频振幅驱动原作张嘴形变。修复连续语音分句和停止时的时间戳倒退，防止 Unity 拒绝后续口型；等待下一段音频时归零，并隔离过期的音频回调。真实 AVAudioEngine 播放回归通过，Unity 两角色实际网格检查共 23 项通过，未增加程序化说话头部动作。本轮没有付费 AI 调用，已安装 iPhone 17 并读回 **0.52.0 / 73**。详见[原作口型核查与同步修复](docs/verification/authored-lip-sync/README.md)。
 

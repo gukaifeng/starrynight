@@ -453,6 +453,7 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
         values["greetingScene"] = chatSession?.record.messages.last(where:{ $0.proactiveScene != nil })?.proactiveScene
         values["greetingCount"] = chatSession?.record.greeting?.count ?? 0
         values["confirmedPerformanceCounts"] = characterPerformance?.confirmedCounts ?? [:]
+        values["shakeReactions"] = chatSession?.shakeReactions ?? 0
         values["guestTurns"] = chatSession?.store.guestTurns ?? 0
         values["userMessageCount"] = chatSession?.record.messages.filter { $0.role == "user" }.count ?? 0
         if ProcessInfo.processInfo.arguments.contains("--ui-testing"),

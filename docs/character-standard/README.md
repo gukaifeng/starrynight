@@ -18,7 +18,7 @@
 4. [Character API 接口规范](04-character-api.md)：信号、通道、轮次、取消、回执和能力登记规则。
 5. [SDK 使用方法](../../character-sdk/README.md)：预检、打包、兼容审查和导入命令。
 6. [持续姿势、聊天配置与制作要求](05-posture-standard.md)：站/坐/蹲/躺、参数样本、专用动作及接触边界。
-7. [可选原作表现标准 core.performance@1](06-performance-standard.md)：表情、姿态、手势、耳尾、穿搭及原作动态曲线；旧包不声明则维持既有会话能力。
+7. [可选原作表现标准 core.performance@1/@2](06-performance-standard.md)：表情、姿态、手势、耳尾、穿搭及原作动态曲线；旧包不声明则维持既有会话能力。
 8. [角色平台基础验证记录](../verification/character-platform/README.md)：构建、运行与实际发现/修复的问题。
 9. [自然待机与衣发微风](07-natural-idle-standard.md)：可选 core.autonomy@1、原作眨眼/呼吸、表情优先级及环境风数据。
 
@@ -47,4 +47,4 @@
 
 模型制作仍使用当前 XCP 1.1，不需要为每位用户导出一套相同的模型。宿主的 `ModelDescriptor.id` 可为账号创建的实例 ID，`runtimeID` 始终是包内角色 ID。Unity 协议收到的 `modelId` / `actorId` 仍为原包角色 ID；作者不要把用户昵称当作运行时查找键。宿主分别保存实例的作者定义与听众偏好/记忆/历史；当前会话不能用旧的个人外观或取景值覆盖作者定义。公开作品是角色设定快照，现阶段仅在本机身份 A/B 间模拟发现，不是模型文件上传或网络市场。详见[星夜方案](../design/2026-09-28-starry-shell.md)及[当前集合边界](character-collections.md)。
 
-- [AI 表演适配标准 v1](08-ai-performance-standard.md)：真实对话、原作能力匹配、专属音色、可观察旁白与取消恢复。
+- [AI 表演适配标准 v2](08-ai-performance-standard.md)：真实对话、原作能力匹配、专属音色、可观察旁白与取消恢复。

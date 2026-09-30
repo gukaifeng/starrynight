@@ -42,11 +42,24 @@ class PerformanceContractTests(unittest.TestCase):
         source=self.m['performance']['options'][0];source.update(kind='motion',next='rest')
         self.m['performance']['options'].append({'id':'rest','group':'expression','label':'自然','kind':'preset'})
         self.validate()
+    def test_v2_extensible_groups_require_explicit_host_capability(self):
+        p=self.m['performance'];p['schemaVersion']=2
+        p['groups'] += [{'id':'author.extra'+str(i),'label':'扩展表现'} for i in range(8)]
+        p['options'].append({'id':'extra','group':'author.extra0','label':'灵光','kind':'preset'})
+        self.m['compatibility']['required']=['core.performance@2'];self.validate()
+        self.m['compatibility']['required']=[]
+        with self.assertRaisesRegex(ValueError,'matching core.performance'):self.validate()
     def test_total_track_budget_cannot_be_split_across_options(self):
         def exceed(p):
             base=p['options'][0];base['morphTracks']=[track(),track('blink')]
             p['options']=[dict(copy.deepcopy(base),id='variant-'+str(i)) for i in range(129)]
         self.reject(exceed,'profile exceeds 256 morph tracks')
+    def test_ai_semantics_are_bounded_and_conflicts_reference_real_groups(self):
+        self.m['performance']['options'][0]['ai']=dict(intent='smile',effects=['轻轻微笑'],moods=['happy'],automatic=True,speechCompatible=True,conflicts=['appearance'])
+        self.validate()
+        self.reject(lambda p:p['options'][0]['ai'].update(conflicts=['unknown']),'AI moods/conflicts')
+        self.reject(lambda p:p['options'][0]['ai'].update(effects=[]),'AI effects')
+        self.reject(lambda p:p['options'][0]['ai'].update(cooldownSeconds=float('nan')),'AI policy')
     def test_next_must_be_nonloop_motion_and_target_nontoggle(self):
         p=self.m['performance'];p['options'].append({'id':'rest','group':'expression','label':'自然','kind':'preset'})
         self.reject(lambda p:p['options'][0].update(next='rest'),'invalid continuation')

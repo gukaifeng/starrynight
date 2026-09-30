@@ -50,6 +50,8 @@ namespace ModelSpace
         public bool inspectionActive,inspectionPreparing,inspectionMoving;
         public bool previewRotationActive;
         public int previewToken,previewRotationCount,previewRotationReturnCount;
+        public int previewShakeCount;
+        public float previewShakeIntensity;
         public float previewRotationYaw,previewRotationPitch,previewRotationPeakYaw,previewRotationPeakPitch;
         public CharacterViewPose inspectionPose;
         public Rect inspectionEnvelope;
@@ -406,7 +408,8 @@ namespace ModelSpace
                 else if(value.previewToken==previewToken) {
                     if(value.state=="changed") {inspection.Preview.Move(value.deltaX,value.deltaY);ScheduleState();}
                     else if(value.state=="ended" || value.state=="cancelled") {
-                        inspection.Preview.End();Emit("previewRotationEnded");ScheduleState();
+                        bool shaken=inspection.Preview.End(value.state=="ended");Emit("previewRotationEnded");
+                        if(shaken)Emit("characterShaken");ScheduleState();
                     }
                 }
                 return;
@@ -715,6 +718,7 @@ namespace ModelSpace
                 previewRotationYaw=inspection.Preview.Offset.x,previewRotationPitch=inspection.Preview.Offset.y,
                 previewRotationPeakYaw=inspection.Preview.PeakYaw,previewRotationPeakPitch=inspection.Preview.PeakPitch,
                 previewRotationCount=inspection.Preview.Count,previewRotationReturnCount=inspection.Preview.ReturnCount,
+                previewShakeCount=inspection.Preview.ShakeCount,previewShakeIntensity=inspection.Preview.ShakeIntensity,
                 inspectionPose=inspection.Target,inspectionMoving=inspection.Moving,inspectionEnvelope=inspection.ProjectedEnvelope,
                 inspectionScale=inspection.Scale,inspectionTranslationX=inspection.Translation.x,inspectionTranslationY=inspection.Translation.y,
                 idlePlaying=actions && actions.IdlePlaying,idleTime=actions ? actions.IdleTime : 0,idleWeight=actions ? actions.IdleWeight : 0,
