@@ -48,6 +48,10 @@ source-meta.json            # 原始版本、哈希、主 Prefab 和变体来源
 
 控制图包含状态机、状态、过渡、BlendTree、mask 和原作 motion 引用。源 Unity 文件可能残留已脱离实际层根的历史对象，只导出从实际层根可达的图；可达依赖缺失必须失败。不能把任意缺失动画替换成空动作。唯一已审核的 SDK 中性手代理 GUID 在校验器中精确列举，使用该角色自身 Prefab 中性手指并标记 `host-neutral-hand-adaptation`。
 
+来源适配器同时读取内联和独立 `.asset` BlendTree。外部树以 `guid:fileID` 标识，保留同一文件中的嵌套子资产；内部树继续沿用旧 ID。循环引用留给 SDK 检查并拒绝，不能在展开时无限递归。这是现有控制图表示的解析补齐，不新增宿主能力版本。
+
+Prefab 候选发现沿实际 `m_SourcePrefab` 链查找 Descriptor，不要求 Descriptor 直接序列化在最外层文件。作者场景与备选变体保留为审核依据。构建时合并控制器的组件（例如 Modular Avatar Merge Animator）是另一类来源能力：在没有经过验证的合并适配器时必须阻止激活，不能误判为无动作、无菜单的简单角色。
+
 参数驱动支持已审核的 Set/Add/Random/Copy 和范围映射；层权重与 playable 权重独立相乘，遵循原作混合时长；Eyes/Mouth tracking 所有权决定宿主眨眼、口型是否让位。源脚本、动画事件、任意回调与网络行为不执行。同步层、状态机级行为及未支持状态行为先隔离，不悄悄丢弃。
 
 AI 自动调度与手动菜单独立：只有人工/画面核对过的 `ai.automatic` 语义才能给 AI 使用；模型衣服、体型等选项默认仅手动。新增角色的语义映射不能从别的角色复制动作 ID；新增分组无需修改聊天协议。遵守 [AI 表演标准](08-ai-performance-standard.md) 的轮次、取消、冷却、恢复和语音所有权规则。
@@ -84,8 +88,12 @@ AI 自动调度与手动菜单独立：只有人工/画面核对过的 `ai.autom
 5. 每批只激活已通过画面与控制检查的候选。控制复核记录绑定 `character.json` SHA-256，并覆盖全部控制 ID；过期记录不能放行新包。
 6. 后续新能力用独立 capability 和 schema revision 增加适配器、兼容样本与验证；现有文档中的预留不代表已经实现。重大升级仍可能需要迁移，不能承诺任意未来需求都零成本兼容。
 
+元数据重建的转换缓存同时记录工具、源审计、几何 JSON/二进制、动作采样和站姿哈希；旧回执没有签名也不能直接复用。源版本、主 Prefab 或 Inspector 不符时先重新检查。预检将官方 SDK 引用与本地未解析 GUID 分开，避免把“平台运行时提供的动作”误说成“作者档案缺文件”；识别出处不代表已经实现该平台能力。
+
 实际首批结果和未完成项见 [分批导入记录](../verification/vrchat-batch-import/README.md)。
 
 ## 官方依据
 
 控制层、参数、菜单和行为分别依据 VRChat 官方 [Playable Layers](https://creators.vrchat.com/avatars/playable-layers/)、[Animator Parameters](https://creators.vrchat.com/avatars/animator-parameters/)、[Expression Menu](https://creators.vrchat.com/avatars/expression-menu-and-controls/) 和 [State Behaviors](https://creators.vrchat.com/avatars/state-behaviors/)。平台的 [PhysBones](https://creators.vrchat.com/common-components/physbones/)、[Constraints](https://creators.vrchat.com/common-components/constraints/) 与 [Contacts](https://creators.vrchat.com/common-components/contacts/) 是不同能力，不能相互代替。
+
+外部混合树依据 Unity [Blend Trees](https://docs.unity3d.com/6000.0/Documentation/Manual/class-BlendTree.html)；构建时控制器组装依据 Modular Avatar [Merge Animator](https://modular-avatar.nadena.dev/docs/reference/merge-animator)。来源的构建流程与已烘焙的运行数据需要分别验证。

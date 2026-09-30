@@ -14,29 +14,48 @@ import subprocess
 import sys
 import shutil
 from vrchat_portable_convert import write_json
+from vrchat_conversion_signature import signature,require_reusable
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'character-sdk/tools'))
 from character_tool import seal, validate
 
+NEUTRAL_HAND_PROXY='14980fc5fe40191418954549174fe63e'
+
+
+def missing_motion_dependencies(controls,motions):
+    ids={m['guid'] for m in motions['motions']};missing=set()
+    for graph in controls['controllers']:
+        known=ids|{b['id'] for b in graph['blends']}|{'','0'}
+        refs={s['motion'] for s in graph['states']}|{c['motion'] for b in graph['blends'] for c in b['children']}
+        missing|=refs-known
+    return missing
+
 
 def control_dependencies(controls,motions):
     # Explicit, reviewed substitution for the SDK-only relaxed-hand proxy.
     # Use this model's own neutral fingers, never a different avatar's curves.
-    neutral_proxy='14980fc5fe40191418954549174fe63e'
-    ids={m['guid'] for m in motions['motions']};missing=set()
     for graph in controls['controllers']:
         if any(l['synced']!=-1 for l in graph['layers']):raise ValueError('Synced Animator layer needs a reviewed adapter')
         if any(m['behaviors'] for m in graph['machines']):raise ValueError('Machine-level behavior needs a reviewed adapter')
-        known=ids|{b['id'] for b in graph['blends']}|{'','0'}
-        refs={s['motion'] for s in graph['states']}|{c['motion'] for b in graph['blends'] for c in b['children']}
-        missing|=refs-known
-    fallback=missing & {neutral_proxy}
+    missing=missing_motion_dependencies(controls,motions)
+    fallback=missing & {NEUTRAL_HAND_PROXY}
     if missing-fallback:raise ValueError('Missing reachable motion dependencies: '+str(sorted(missing-fallback)))
     controls['baselineFallbackMotions']=sorted(fallback)
     if fallback:
         controls['limitations']=[x for x in controls['limitations'] if x['kind']!='host-neutral-hand-adaptation']
         controls['limitations'].append(dict(kind='host-neutral-hand-adaptation',detail='SDK proxy_hands_idle is not distributed. Reset uses this source prefab neutral fingers.'))
+
+
+def require_selected_inspection(row, snapshot):
+    """A changed source selection cannot reuse the previous variant's snapshot."""
+    stamp_path=snapshot/'inspection-stamp.json'
+    stamp=json.loads(stamp_path.read_text()) if stamp_path.exists() else {}
+    geometry=json.loads((snapshot/'geometry.json').read_text())
+    if (stamp.get('sourceSHA256')!=row['sourceSHA256'] or stamp.get('prefab')!=row['prefab'] or
+        geometry.get('prefab')!=row['prefab'] or
+        stamp.get('toolSHA256')!=hashlib.sha256((ROOT/'scripts/vrchat/VrcPortableGeometry.cs').read_bytes()).hexdigest()):
+        raise ValueError('Selected source/Prefab/Inspector changed; rerun inspect_vrchat_library.py')
 
 
 def assemble(row,folder,stage,order):
@@ -144,6 +163,10 @@ def main():
         stage=ROOT/'.local/vrchat-batch/stages'/row['role'];output=ROOT/'.local/vrchat-batch/converted'/row['role']
         try:
             if not (stage/'Inspection/Portable'/row['role']/'host-standing.json').exists():raise ValueError('Current Unity inspection is not complete')
+            require_selected_inspection(row,stage/'Inspection/Portable'/row['role'])
+            if args.reuse_conversion:
+                receipt=json.loads((output/'portable-conversion.json').read_text())
+                require_reusable(receipt.get('conversionSignature'),signature(stage,row['role']))
             if not args.reuse_conversion:
                 with (ROOT/'.local/logs'/('vrchat-convert-'+row['role']+'.log')).open('w') as log:
                     subprocess.run([sys.executable,str(ROOT/'scripts/vrchat_portable_convert.py'),'--stage',str(stage),'--role',row['role'],'--output',str(output)],check=True,stdout=log,stderr=subprocess.STDOUT)

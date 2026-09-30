@@ -70,6 +70,53 @@ def prune_graph(graph):
     return graph
 
 
+def prefab_build_requirements(guid,read):
+    """Inspect reachable prefab assembly directives without running source code."""
+    visited=set();requirements=[]
+    def visit(source):
+        if not source or source in visited:return
+        visited.add(source)
+        for identity,d in read(source).items():
+            if d.get('m_Enabled',1) and 'matchAvatarWriteDefaults' in d and 'layerType' in d and d.get('animator',{}).get('guid'):
+                requirements.append(dict(kind='unsupported-build-merge-animator',prefab=source,component=identity,
+                    controller=d['animator']['guid'],detail='Author controller is assembled at build time; flatten with a reviewed adapter before claiming controls are absent.'))
+            visit(d.get('m_SourcePrefab',{}).get('guid'))
+    visit(guid);return requirements
+
+
+class BlendReader:
+    """Resolve inline and external BlendTree subassets without losing fileID.
+
+    The host receives the same portable graph, not extra Unity asset files.
+    Source-qualified IDs prevent two .asset files' 20600000 roots colliding.
+    """
+    def __init__(self,controller,read,graph):
+        self.controller=controller;self.read=read;self.graph=graph;self.added=set()
+
+    def motion(self,ref,owner=None):
+        ref=ref or {};owner=owner or self.controller
+        source=ref.get('guid') or owner;fileid=reference(ref)
+        data=self.read(source).get(fileid,{})
+        if data.get('classID')==206:
+            identity=fileid if source==self.controller else source+':'+fileid
+            self.add(data,identity,source);return identity
+        return ref.get('guid') or (fileid if source==self.controller else source if fileid!='0' else '0')
+
+    def add(self,d,identity,owner):
+        if identity in self.added:return
+        # Prune orphaned author history before the SDK enforces its 512 live
+        # tree budget. This larger read budget only bounds raw source parsing.
+        if len(self.added)>=4096:raise ValueError('Source blend graph exceeds import audit budget')
+        self.added.add(identity)
+        self.graph['blends'].append(dict(id=identity,name=d.get('m_Name') or '',kind=int(d.get('m_BlendType',0)),
+            x=d.get('m_BlendParameter',''),y=d.get('m_BlendParameterY',''),automatic=bool(d.get('m_UseAutomaticThresholds',0)),
+            minimum=float(d.get('m_MinThreshold',0)),maximum=float(d.get('m_MaxThreshold',1)),
+            children=[dict(motion=self.motion(c.get('m_Motion'),owner),threshold=float(c.get('m_Threshold',0)),
+                x=c.get('m_Position',{}).get('x',0),y=c.get('m_Position',{}).get('y',0),speed=float(c.get('m_TimeScale',1)),
+                cycle=float(c.get('m_CycleOffset',0)),mirror=bool(c.get('m_Mirror',0)),parameter=c.get('m_DirectBlendParameter',''))
+                for c in d.get('m_Childs',[])]))
+
+
 def build(stage,geometry):
     audit=json.loads((stage/'source-audit.json').read_text())
     assets={a['guid']:a for ar in audit['archives'] for p in ar['unityPackages'] for a in p['assets']}
@@ -78,9 +125,11 @@ def build(stage,geometry):
     def read(guid):
         if guid not in loaded:
             a=assets.get(guid)
-            loaded[guid]=documents(a.get('metadataPath') or a['extractedPath']) if a else {}
+            loaded[guid]=documents(a.get('metadataPath') or a['extractedPath']) if a and a['extension'] in (
+                '.prefab','.controller','.overridecontroller','.asset','.anim','.mask') else {}
         return loaded[guid]
     main=by_path[geometry['prefab']]
+    notes.extend(prefab_build_requirements(main['guid'],lambda g:read(g) if g in assets and assets[g]['extension']=='.prefab' else {}))
     def descriptor(guid,visited):
         if guid in visited:return None
         visited.add(guid)
@@ -155,6 +204,7 @@ def build(stage,geometry):
         if not controller:
             notes.append(dict(kind='missing-controller',guid=guid));continue
         graph=dict(id=guid,playable=int(layer['type']),parameters=[],layers=[],machines=[],states=[],transitions=[],blends=[])
+        blend_reader=BlendReader(guid,lambda g:read(g) if g in assets and assets[g]['extension'] in ('.controller','.asset') else {},graph)
         for p in controller.get('m_AnimatorParameters',[]):
             name=p['m_Name'];kind={1:'float',3:'int',4:'bool',9:'trigger'}.get(p['m_Type'],'float')
             initial=p.get({'float':'m_DefaultFloat','int':'m_DefaultInt','bool':'m_DefaultBool','trigger':'m_DefaultBool'}[kind],0)
@@ -173,11 +223,11 @@ def build(stage,geometry):
                 graph['machines'].append(dict(**common,states=[reference(x['m_State']) for x in d.get('m_ChildStates',[])],children=[reference(x['m_StateMachine']) for x in d.get('m_ChildStateMachines',[])],default=reference(d.get('m_DefaultState')),any=[reference(x) for x in d.get('m_AnyStateTransitions',[])],entry=[reference(x) for x in d.get('m_EntryTransitions',[])],behaviors=behaviors(d),machineTransitions=exits))
             elif d['classID']==1102:
                 motion=d.get('m_Motion',{})
-                graph['states'].append(dict(**common,motion=motion.get('guid') or reference(motion),speed=float(d.get('m_Speed',1)),cycle=float(d.get('m_CycleOffset',0)),writeDefaults=bool(d.get('m_WriteDefaultValues',1)),mirror=bool(d.get('m_Mirror',0)),timeParameter=d.get('m_TimeParameter','') if d.get('m_TimeParameterActive',0) else '',speedParameter=d.get('m_SpeedParameter','') if d.get('m_SpeedParameterActive',0) else '',transitions=[reference(x) for x in d.get('m_Transitions',[])],behaviors=behaviors(d)))
+                graph['states'].append(dict(**common,motion=blend_reader.motion(motion),speed=float(d.get('m_Speed',1)),cycle=float(d.get('m_CycleOffset',0)),writeDefaults=bool(d.get('m_WriteDefaultValues',1)),mirror=bool(d.get('m_Mirror',0)),timeParameter=d.get('m_TimeParameter','') if d.get('m_TimeParameterActive',0) else '',speedParameter=d.get('m_SpeedParameter','') if d.get('m_SpeedParameterActive',0) else '',transitions=[reference(x) for x in d.get('m_Transitions',[])],behaviors=behaviors(d)))
             elif d['classID'] in (1101,1109):
                 graph['transitions'].append(dict(**common,target=reference(d.get('m_DstState')),machine=reference(d.get('m_DstStateMachine')),exit=bool(d.get('m_IsExit',0)),muted=bool(d.get('m_Mute',0)),solo=bool(d.get('m_Solo',0)),duration=float(d.get('m_TransitionDuration',0)),offset=float(d.get('m_TransitionOffset',0)),exitTime=float(d.get('m_ExitTime',0)),hasExitTime=bool(d.get('m_HasExitTime',0)),fixedDuration=bool(d.get('m_HasFixedDuration',1)),interrupt=int(d.get('m_InterruptionSource',0)),ordered=bool(d.get('m_OrderedInterruption',1)),self=bool(d.get('m_CanTransitionToSelf',1)),conditions=[dict(parameter=c['m_ConditionEvent'],mode=int(c['m_ConditionMode']),threshold=float(c.get('m_EventTreshold',0))) for c in d.get('m_Conditions',[])]))
             elif d['classID']==206:
-                graph['blends'].append(dict(**common,kind=int(d.get('m_BlendType',0)),x=d.get('m_BlendParameter',''),y=d.get('m_BlendParameterY',''),automatic=bool(d.get('m_UseAutomaticThresholds',0)),minimum=float(d.get('m_MinThreshold',0)),maximum=float(d.get('m_MaxThreshold',1)),children=[dict(motion=c.get('m_Motion',{}).get('guid') or reference(c.get('m_Motion')),threshold=float(c.get('m_Threshold',0)),x=c.get('m_Position',{}).get('x',0),y=c.get('m_Position',{}).get('y',0),speed=float(c.get('m_TimeScale',1)),cycle=float(c.get('m_CycleOffset',0)),mirror=bool(c.get('m_Mirror',0)),parameter=c.get('m_DirectBlendParameter','')) for c in d.get('m_Childs',[])]))
+                blend_reader.add(d,identity,guid)
         out['controllers'].append(prune_graph(graph))
     for guid in sorted(used_masks):
         mask=next((d for d in read(guid).values() if d['classID']==319),None)

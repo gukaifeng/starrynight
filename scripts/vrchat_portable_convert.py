@@ -19,6 +19,7 @@ from prepare_anime_characters import GLB, paths
 from audit_vrchat_archives import material_inventory
 from vrchat_materials import vector
 from vrchat_controls import build as build_controls
+from vrchat_conversion_signature import signature
 
 MIRROR_P=np.array([-1.,1.,1.],np.float32)
 MIRROR_Q=np.array([1.,-1.,-1.,1.],np.float32)
@@ -277,7 +278,7 @@ def main():
     secondary,physics=portable_secondary(a.stage,a.role,b,geometry)
     b.write(a.output/'model.glb')
     report['materialLimitations']=export_materials(a.stage,geometry,a.output,a.shaders)
-    report.update(role=a.role,meshBytes=(a.output/'model.glb').stat().st_size,nodes=len(index),morphs=sum(len(s['shapes']) for s in geometry['skins']),clips=len(motions),baseline=source['baseline'],controls=len(controls['controls']),controllerLimitations=controls['limitations'])
+    report.update(role=a.role,meshBytes=(a.output/'model.glb').stat().st_size,nodes=len(index),morphs=sum(len(s['shapes']) for s in geometry['skins']),clips=len(motions),baseline=source['baseline'],controls=len(controls['controls']),controllerLimitations=controls['limitations'],conversionSignature=signature(a.stage,a.role))
     write_json(a.output/'portable-conversion.json',report)
     write_json(a.output/'motion-map.json',motions)
     write_json(a.output/'avatar-controls.json',controls)

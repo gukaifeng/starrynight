@@ -16,7 +16,7 @@ PREFERRED = {
     'kikyo': 'Assets/Kikyo/Prefab/Kikyo_PB.prefab',
     'mizuki': 'Assets/IKUSIA/mizuki/Prefab/liltoon/mizuki.prefab',
     'nemesis': 'Assets/Nemesis/Nemesis_Full.prefab',
-    'ramune': 'Assets/EMOLab Avatars/Ramune/GomenneRamuneChan/GomenneRamuneChan.prefab',
+    'ramune': 'Assets/EMOLab Avatars/Ramune/Ramune.prefab',
     'shiratsume': 'Assets/HARUNOPUPU/Shiratsume/Prefab/Shiratsume_All.prefab',
     'shizuku': 'Assets/kuromaru9/shizuku/Prefabs/shizuku.prefab',
     'nozomi': 'Assets/Nozomi/Nozomi_1.00.prefab',
@@ -44,6 +44,34 @@ def prefab_score(asset, key):
         if token in asset['path'].casefold():
             score -= 30
     return score
+
+
+def avatar_prefabs(package):
+    """Find avatar roots whose descriptor lives in a nested source prefab.
+
+    Only actual prefab-instance edges count. A menu or controller referring to
+    an avatar must not become a candidate. Walk each root with its own visited
+    set so malformed cycles cannot recurse forever or hide another live branch.
+    Build-time assembly requirements are reviewed separately before activation.
+    """
+    prefabs = {a['guid']: a for a in package['assets'] if a['extension'] == '.prefab'}
+    edges = {}
+    for guid, asset in prefabs.items():
+        path = asset.get('metadataPath')
+        data = Path(path).read_text(errors='replace') if path else ''
+        edges[guid] = re.findall(r'm_SourcePrefab:\s*\{[^}]*\bguid:\s*([0-9a-f]{32})', data)
+    def has_descriptor(root):
+        pending, seen = [root], set()
+        while pending:
+            guid = pending.pop()
+            if guid in seen or guid not in prefabs:
+                continue
+            seen.add(guid)
+            if prefabs[guid].get('inspection', {}).get('descriptors'):
+                return True
+            pending.extend(edges[guid])
+        return False
+    return [asset for guid, asset in prefabs.items() if has_descriptor(guid)]
 
 
 def select_fbx(package, prefab):
@@ -80,8 +108,7 @@ def build(index_path, output):
         folder = Path(source['source']).parent.name
         key = role_key(folder)
         packages = report.get('inventory', {}).get('packages', [])
-        candidates = [(i,a) for i,p in enumerate(packages) for a in p['assets']
-                      if a['extension'] == '.prefab' and a.get('inspection', {}).get('descriptors')]
+        candidates = [(i,a) for i,p in enumerate(packages) for a in avatar_prefabs(p)]
         selected = next(((i,a) for i,a in candidates if a['path'] == PREFERRED.get(key)), None)
         if selected is None and candidates:
             selected = max(candidates, key=lambda pair:prefab_score(pair[1], key))
@@ -97,6 +124,11 @@ def build(index_path, output):
             i, prefab = selected
             row.update(package=i, packageLocation=packages[i]['location'][1:], prefab=prefab['path'],
                        fbx=select_fbx(packages[i],prefab))
+        # Scenes remain evidence for which variant the author presents. The
+        # full Ramune prefab nests its descriptor inside the base body; the
+        # separately supplied Gomenne prefab must not stand in for that root.
+        scenes=[dict(package=i,path=a['path']) for i,p in enumerate(packages) for a in p['assets'] if a['extension']=='.unity']
+        if scenes:row['scenes']=scenes
         if key == 'kipfel':
             row['upgrade'] = dict(previousVersion='1.0.3', preserveCharacterID=True)
         models.append(row)

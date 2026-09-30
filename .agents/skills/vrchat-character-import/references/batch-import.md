@@ -4,7 +4,7 @@
 
 ## 数据流与可恢复位置
 
-`vrchat_batch_audit.py` → `plan_vrchat_library.py` → `inspect_vrchat_library.py` → `package_vrchat_library.py` → `PortableAvatarReview.Run` → `activate_vrchat_batch.py` → 正常 Unity/iOS 构建和安装。
+`vrchat_batch_audit.py` → `plan_vrchat_library.py` → `inspect_vrchat_library.py` → `preflight_vrchat_library.py` → `package_vrchat_library.py` → `PortableAvatarReview.Run` → `activate_vrchat_batch.py` → 正常 Unity/iOS 构建和安装。
 
 中间件全部在 `.local/vrchat-batch/`：index/plan、archives、每角色 stages、converted 候选、render 实际检查、inspection/package 状态。任何单角色失败只暂停该角色；用户已要求缺本体或缺依赖先跳过。原包不得修改。批次名册在 `assets/characters/import-batches.json`，最终发布名册在 `active-roster.json`。
 
@@ -13,16 +13,21 @@
 ```bash
 .local/character-sdk-venv/bin/python scripts/vrchat_batch_audit.py \
   "/absolute/path/to/library" --output .local/vrchat-batch
-python3 scripts/plan_vrchat_library.py
+.local/character-sdk-venv/bin/python scripts/plan_vrchat_library.py
 python3 scripts/prepare_liltoon.py
 python3 scripts/prepare_vrc_reference_data.py
 
 # 顺序执行会写同一 stage 的 Unity 工作；--only 只限制本批，不清空其他状态。
 .local/character-sdk-venv/bin/python scripts/inspect_vrchat_library.py --only chiffon,karin
+.local/character-venv/bin/python scripts/preflight_vrchat_library.py --only chiffon,karin
 .local/character-venv/bin/python scripts/package_vrchat_library.py --only chiffon,karin
 ```
 
-计划表决定主 Prefab、版本与候选封面，先检查再用；不要仅按 ZIP 名猜主模型。`--reuse-conversion` 仅用于输入几何/运动/转换器未变、重建元数据时；转换器或 Inspector 改动后重跑相应步骤。inspection stamp 绑定 source/tool SHA 和 Prefab，不能手工补 stamp 代替重跑。
+计划表决定主 Prefab、版本与候选封面，先检查再用；不要仅按 ZIP 名猜主模型。Descriptor 可以位于嵌套 Prefab，候选发现沿 `m_SourcePrefab` 递归，保留作者场景与变体；仅查根节点会把 Ramune 完整角色错选成 Gomenne 简版，把 Torao 成品错选成 Parent。换主 Prefab 后重新做 Unity inspection。
+
+`--reuse-conversion` 仅用于输入几何/运动/转换器未变、重建元数据时；转换器或 Inspector 改动后重跑相应步骤。转换回执绑定工具和几何、二进制、采样、站姿、源审计哈希；旧回执无签名时也拒绝复用。inspection stamp 绑定 source/tool SHA 和 Prefab，不能手工补 stamp 代替重跑。此检查只影响候选重建，不会使已安装的旧 XCP 包失效。
+
+预检生成私有 `capability-preflight.json`，重新解析源图，并标记旧 inspection 是否需要更新。`graph-ready` 不等于可发布：材质、包预算、真实画面、控制复位、AI 数据与设备验证仍需完成。SDK 动画引用与未知 GUID 分开列出；官方索引仅从固定哈希的本机 SDK ZIP 读取路径，不提取或打包动画。不要把平台提供的 motion 误报为作者漏装文件，也不能因为官方索引中找得到名字就把它标成宿主已支持。
 
 新材质固定官方 lilToon 2.3.4，由脚本恢复；禁止加载来源中的任意 shader/Editor/C#/DLL。VRChat SDK 3.10.5 仅从固定哈希档案提取官方 mask 数据到私有缓存，平台动画和 SDK 二进制不进入 App。引用确实缺失不能全局 ignore；精确中性手 fallback 之外的缺 motion 留待补齐。
 
@@ -68,3 +73,5 @@ unity run "$PWD/unity/CharacterRuntime" --timeout 900 -- \
 5. SDK 校验、曲线采样、Editor 画面、模拟器交互和真机性能分别记录，不能相互冒充。
 6. 单个角色重跑不要覆盖整库状态；需要公共能力升级时记录影响面，并使相应源/工具签名缓存失效。
 7. 生成场景、Prefab、GLB、贴图、原图封面与原始采样保持私有；Git 只提交工具、约束、名册、来源哈希和文字证据。场景可从 `BuildIos.Setup` 恢复。
+8. BlendTree 可独立保存在 `.asset`，并有嵌套子资产。用 GUID + fileID 保留身份，不把外部树当作动画 GUID，也不让两个相同 fileID 的外部树互相覆盖；内联图 ID 保持兼容。
+9. 原包的 Modular Avatar Merge Animator 在构建时才合成控制器。解析器会记录 `unsupported-build-merge-animator`；缺少对应组装适配时不能以“菜单为零”通过，更不能运行来源脚本来消除 Missing Script。Ramune 的完整根正是此类来源。详细证据见 `docs/verification/vrchat-batch-import/preflight-02.md`。
