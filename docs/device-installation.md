@@ -8,9 +8,11 @@
 
 现有宿主已支持 `UIDeviceFamily=[1,2]`，无需改 App ID 或重新导出 Unity。旧描述文件只含 iPhone，本次按 iPad 的实际 UDID 使用现有 Personal Team 自动注册／签名；Release 构建、严格验签及目标设备包含检查通过。**星夜 0.66.0 / build 92 已安装并自动启动于实体 iPad，设备读回版本一致。** iPhone 上的安装保留。本轮验证安装、启动和版本，没有声称已完成 iPad 横竖屏逐项交互或持续帧率验收。
 
-配对后可通过同一可互通局域网使用 Xcode 无线安装、更新及启动；安装时保持设备解锁，网络需要能发现并连接该设备。见 [Apple 无线运行说明](https://help.apple.com/xcode/mac/current/en.lproj/dev3e2f4ee6d.html)。本次确认的是有线连接，尚未实测拔线后的无线可达性，不能把“同一 Wi-Fi”直接等同于“已经无线连通”。已安装的 App 可拔线打开；当前开发版真实 AI 使用 Mac 上的服务，聊天仍需能访问该服务。
+配对后可通过同一可互通局域网使用 Xcode 无线安装、更新及启动；安装时保持设备解锁，网络需要能发现并连接该设备。见 [Apple 无线运行说明](https://help.apple.com/xcode/mac/current/en.lproj/dev3e2f4ee6d.html)。用户随后拔掉数据线，实际复查得到 `transportType=localNetwork`、`tunnelState=connected`，并成功无线读取版本、使用同一 0.66.0 / 92 包再次安装及启动。**无线安装和启动已实测通过**。已安装的 App 可拔线打开；当前开发版真实 AI 使用 Mac 上的服务，聊天仍需能访问该服务。
 
 证据仅留本机：`.local/checks/ipad-066-connected.json`、`ipad-066-lock-connected.json`、`ipad-066-install.json`、`ipad-066-launch.json`、`ipad-066-app.json`，以及 `.local/logs/ipad-066-device-build.log`。设备标识、签名描述文件和账户材料不提交公开仓库。
+
+拔线验证另存 `.local/checks/ipad-066-wireless-{details,app,install,launch}.json`，无线测试没有变更版本或先卸载 App。
 
 ## 历史交付状态（2026-09-29，0.37.0 / build56）
 
