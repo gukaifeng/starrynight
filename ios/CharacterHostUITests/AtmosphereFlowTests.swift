@@ -23,7 +23,7 @@ final class AtmosphereFlowTests: XCTestCase {
         wait(app,button:"musicToggleButton") { $0["track"] as? String == "MoonlitTide" && self.number($0,"volume") == 0.15 && self.bool($0,"playing") }
         capture("03-music",app,button:"musicToggleButton")
         app.closeCustomizationPage("closeMusicButton")
-        let input = app.textViews["chatInput"].exists ? app.textViews["chatInput"] : app.textFields["chatInput"]
+        let input = app.textViews["chatInput"]
         input.tap(); input.typeText("你好")
         XCTAssertTrue(app.keyboards.firstMatch.exists)
         XCTAssertLessThan(app.staticTexts["写下此刻想说的话"].frame.maxY,input.frame.minY)
@@ -113,7 +113,7 @@ final class AtmosphereFlowTests: XCTestCase {
         wait(app,button:"musicToggleButton") { self.bool($0,"playing") && self.number($0,"samples") > 2 }
         app.closeCustomizationPage("closeMusicButton")
         XCTAssertLessThanOrEqual(app.images["characterStage"].frame.maxX,app.otherElements["companionPanel"].frame.minX)
-        XCTAssertTrue(app.textFields["chatInput"].isHittable)
+        XCTAssertTrue(app.textViews["chatInput"].isHittable)
         capture("09-ipad-landscape",app)
         app.openCustomization(); app.openCustomization("profile")
         XCTAssertTrue(app.textFields["profileName"].waitForExistence(timeout:5))

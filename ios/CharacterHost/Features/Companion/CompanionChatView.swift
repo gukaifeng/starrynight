@@ -25,10 +25,11 @@ struct CompanionChatView: View {
     private var chatFontSize: CGFloat { CGFloat(session.store.chatDisplay.normalized.fontSize)*textScale }
     @State private var scrollState = ConversationScrollState()
     @Namespace private var chatViewport
-    @FocusState private var editing: Bool
+    @State private var editing = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     private var interfaceAnimation: Animation { reduceMotion ? .easeInOut(duration:0.18) : .spring(response:0.42,dampingFraction:0.9) }
+    private var latestContent: [String] { [String(session.record.messages.count)] + (session.record.messages.last?.visibleContentKey ?? []) }
     var body: some View {
         GeometryReader { geometry in
           VStack(spacing:0) {
@@ -103,6 +104,7 @@ struct CompanionChatView: View {
                             }
                         }
                 }.scrollDisabled(session.inspectionActive).scrollIndicators(.hidden).scrollDismissesKeyboard(.interactively).accessibilityIdentifier("chatMessages")
+                    .accessibilityValue(scrollState.isAtLatest ? "最新消息" : "历史消息")
                     .coordinateSpace(name:chatViewport)
                     .onPreferenceChange(ConversationBottomPreference.self) { distance in
                         if let distance { scrollState.update(bottomDistance:Double(distance)) }
@@ -118,8 +120,8 @@ struct CompanionChatView: View {
                     .onChange(of:session.messageFocusRequest) { showFocusedMessage(using:proxy) }
                     .onChange(of:session.store.chatDisplay.fontSize) { if scrollState.followingLatest { proxy.scrollTo("latest",anchor:.bottom) } }
                     .onChange(of:viewport.size.height) { if scrollState.followingLatest { proxy.scrollTo("latest",anchor:.bottom) } }
-                    .onChange(of:session.draftReply) { if scrollState.followingLatest { proxy.scrollTo("latest",anchor:.bottom) } }
-                    .onChange(of:session.record.messages.count) { if scrollState.followingLatest { withAnimation(interfaceAnimation) { proxy.scrollTo("latest",anchor:.bottom) } } }
+                    .onChange(of:session.draftReply) { if !session.draftReply.isEmpty { receiveContent(using:proxy) } }
+                    .onChange(of:latestContent) { receiveContent(using:proxy) }
                 if (scrollState.showsReturnButton || session.focusedMessageID != nil) && !session.record.messages.isEmpty {
                     ReturnLatestControl {
                         session.clearMessageFocus(); scrollState.returnToLatest()
@@ -164,12 +166,17 @@ struct CompanionChatView: View {
     }
     private func composer(compact:Bool) -> some View {
         HStack(alignment:.bottom,spacing:2) {
-            TextField("想和你说…",text:$session.input,axis:.vertical).lineLimit(1...(compact ? 1 : 3))
-                .font(.system(size:chatFontSize)).lineSpacing(3)
+            ChatComposerInput(text:$session.input,isFocused:$editing,fontSize:chatFontSize,
+                              foreground:UIColor(Theme.ink),accent:UIColor(Theme.accent),
+                              maxLines:compact ? 1 : 3,isEnabled:!session.characterEditorPresented,onSend:send)
+                .frame(maxWidth:.infinity)
+                .overlay(alignment:.topLeading) {
+                    if session.input.isEmpty {
+                        Text("想和你说…").font(.system(size:chatFontSize)).foregroundStyle(Theme.ink.opacity(0.35))
+                            .allowsHitTesting(false).accessibilityHidden(true)
+                    }
+                }
                 .padding(.leading,16).padding(.trailing,4).padding(.vertical,12)
-                .disabled(session.characterEditorPresented)
-                .focused($editing).submitLabel(.send).onSubmit { send() }.accessibilityIdentifier("chatInput")
-                .onChange(of:session.input) { if session.input.count > 500 { session.input = String(session.input.prefix(500)) } }
             Button {
                 editing = false
                 if !session.speech.isRecording { session.stop() }
@@ -213,7 +220,18 @@ struct CompanionChatView: View {
         scrollState.scrollTowardHistory()
         DispatchQueue.main.async { proxy.scrollTo(id,anchor:UnitPoint(x:0.5,y:0.8)) }
     }
-    private func send() { editing = false; session.clearMessageFocus(); scrollState.returnToLatest(); session.send() }
+    private func receiveContent(using proxy:ScrollViewProxy) {
+        session.clearMessageFocus(); scrollState.returnToLatest()
+        // Clearing a search focus replaces the historical window. Scroll after
+        // that layout update so the real latest message already exists.
+        DispatchQueue.main.async {
+            if scrollState.followingLatest { withAnimation(interfaceAnimation) { proxy.scrollTo("latest",anchor:.bottom) } }
+        }
+    }
+    private func send() {
+        guard canSend, !session.characterEditorPresented else { return }
+        editing = false; session.clearMessageFocus(); scrollState.returnToLatest(); session.send()
+    }
     private func messageView(_ message: CompanionMessage) -> some View {
         VStack(alignment:message.role == "user" ? .trailing : .leading,spacing:0) {
             if message.role == "assistant" {

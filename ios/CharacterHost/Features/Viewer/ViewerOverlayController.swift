@@ -238,8 +238,8 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
     }
     private func setModelControlsLocked(_ locked: Bool) {
         modelControlsLocked = true
-        gestureHint.text = "点击右上角修改位置"
-        stageProbe.accessibilityLabel = "角色互动区域，右上角修改位置"
+        gestureHint.text = "单指轻转，松手复位；右上角修改位置"
+        stageProbe.accessibilityLabel = "角色互动区域，单指小范围旋转，松手恢复；右上角修改位置"
         syncGestureInput()
     }
     private var framing = CharacterFraming.recommended
@@ -629,7 +629,7 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
         NotificationCenter.default.addObserver(self,selector:#selector(keyboardChanged),name:UIResponder.keyboardDidHideNotification,object:nil)
         stageProbe.backgroundColor = .clear; stageProbe.isUserInteractionEnabled = false
         stageProbe.isAccessibilityElement = true; stageProbe.accessibilityIdentifier = "characterStage"
-        stageProbe.accessibilityLabel = "角色互动区域，右上角修改位置"
+        stageProbe.accessibilityLabel = "角色互动区域，单指小范围旋转，松手恢复；右上角修改位置"
         stageProbe.accessibilityTraits = .image; view.addSubview(stageProbe)
         updatePositionButton()
 #if DEBUG

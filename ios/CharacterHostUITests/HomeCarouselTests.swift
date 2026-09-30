@@ -47,7 +47,7 @@ final class HomeCarouselTests:XCTestCase {
             for entry in [card,"intro-" + id,"chat-" + id] {
                 XCTAssertTrue(app.buttons[entry].isHittable); app.buttons[entry].tap()
                 XCTAssertTrue(app.buttons["characterActionsMenu"].waitForExistence(timeout:60))
-                XCTAssertTrue(app.textFields["chatInput"].exists || app.textViews["chatInput"].exists)
+                XCTAssertTrue(app.textViews["chatInput"].exists)
                 XCTAssertFalse(app.scrollViews["characterActionsScroll"].exists)
                 XCTAssertFalse(app.buttons["action" + action + "Button"].exists)
                 app.waitForCharacter { $0["modelId"] as? String == id }

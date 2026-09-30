@@ -53,7 +53,7 @@ async def test_pipeline_idempotency_and_scope(setup):
 def test_paid_guard_and_ambiguous_failures(setup):
     settings,store=setup
     with pytest.raises(ValueError,match='DISABLED'):store.reserve('plan','u','c',1,settings)
-    settings.paid_enabled=True;settings.max_daily_calls=1
+    settings.paid_enabled=True;settings.max_daily_calls=1;settings.enforce_conversation_limits=True
     job=store.reserve('plan','u','c',1,settings);store.usage(job,'interrupted_or_failed')
     with pytest.raises(ValueError,match='DAILY_CALL_LIMIT'):store.reserve('plan','u','c',1,settings)
 
@@ -77,6 +77,53 @@ def test_only_spoken_content_enters_tts():
     assert visible_thought('第一次正式问候，要让对方感受到温暖') is None
     assert visible_thought('我有点紧张，也有一点开心。')=='我有点紧张，也有一点开心。'
     assert visible_text('[excited][amazed][serious][empathetic]你好')=='你好'
+
+def test_appearance_narration_uses_reviewed_character_facts_only(setup):
+    from services.character_ai.profiles import PROFILES
+    facts=PROFILES['anime-kipfel']['appearance_facts']
+    resolved=[dict(beat_id='b',expression_asset=None,action_asset=None,grounding='none')]
+    narration=Narration(beat_id='b',mode='literary',text=facts[0]+'。片刻停顿，话语轻柔。',visual_grounding='none',evidence=[facts[0]])
+    assert grounded(narration,resolved,facts)
+    assert not grounded(narration,resolved,PROFILES['anime-mamehinata']['appearance_facts'])
+    assert not grounded(narration.model_copy(update={'text':facts[0]+'，她走到你身边。'}),resolved,facts)
+    assert not grounded(narration.model_copy(update={'text':'她有银色的长发。'}),resolved,facts)
+    assert not grounded(narration.model_copy(update={'evidence':[]}),resolved,facts)
+    assert not grounded(narration.model_copy(update={'text':'片刻停顿。'}),resolved,facts)
+
+def test_valid_model_clause_survives_unsupported_lighting_without_local_replacement():
+    from services.character_ai.director import grounded_excerpt
+    facts=['她留着浅棕色的头发']
+    resolved=[dict(beat_id='b1',expression_asset=None,action_asset=None,grounding='none')]
+    original=Narration(beat_id='b1',mode='literary',text='她留着浅棕色的头发，在窗边透进来的光里显得特别柔和。',visual_grounding='none',evidence=facts)
+    result=grounded_excerpt(original,resolved,facts)
+    assert result.text=='她留着浅棕色的头发。' and result.evidence==facts
+    assert result.text.rstrip('。') in original.text
+    rejected_prose=grounded_excerpt(original.model_copy(update={'text':'晨光穿过窗棂，浅棕发丝泛着暖意。'}),resolved,facts)
+    assert rejected_prose.text=='她留着浅棕色的头发。' and '晨光' not in rejected_prose.text
+    assert grounded_excerpt(original.model_copy(update={'text':'她走到窗边，伸手抱住你。','evidence':[]}),resolved,facts) is None
+    assert grounded_excerpt(original.model_copy(update={'mode':'performed'}),resolved,facts) is None
+    assert grounded_excerpt(original.model_copy(update={'text':'她留着银白色的头发。','evidence':['她留着银白色的头发']}),resolved,facts) is None
+
+@pytest.mark.asyncio
+async def test_visible_thought_narration_dialogue_survive_storage_and_replay(setup):
+    class LiteraryProvider(FakeProvider):
+        async def structured(self,owner,char,purpose,system,context,schema):
+            self.calls.append(purpose)
+            if purpose=='plan':return Plan.model_validate(dict(beats=[dict(beat_id='b',thought=dict(text='我也想听听后面的故事。'),dialogue=dict(text='后来发生了什么？'))]))
+            fact=context['appearance_facts'][0]
+            return NarrationResult(narrations=[Narration(beat_id='b',mode='literary',text=fact+'。',visual_grounding='none',evidence=[fact])])
+    settings,store=setup;provider=LiteraryProvider();engine=Orchestrator(settings,store,provider)
+    request=Request(request_id=uuid.uuid4(),character_id='anime-kipfel',text='今天读了一本书',wants_audio=False,progressive_reply=True)
+    events=[e async for e in engine.reply('u',request)]
+    first=next(e['script'] for e in events if e['type']=='reply.narration.ready')
+    final=next(e['script'] for e in events if e['type']=='reply.script.updated')
+    assert first['message_id']==final['message_id'] and len(store.history('u',request.character_id))==2
+    assert final['beats'][0]['thought']=='我也想听听后面的故事。'
+    assert final['beats'][0]['narrations'][0]['text']=='她留着浅金色的长发。'
+    assert final['text']=='后来发生了什么？'
+    text,_=speech_input(final['beats'][0]);assert text=='后来发生了什么？'
+    replay=[e async for e in engine.reply('u',request)]
+    assert replay[0]['script']==final and provider.calls==['plan','narration']
 
 def test_asr_partial_final_and_deduplication():
     transcript=Transcript()
@@ -108,7 +155,7 @@ async def test_multiline_stream_and_heartbeats():
 def test_budget_atomic_across_connections(setup):
     from concurrent.futures import ThreadPoolExecutor
     import threading
-    settings,store=setup;settings.paid_enabled=True;settings.max_daily_calls=1
+    settings,store=setup;settings.paid_enabled=True;settings.max_daily_calls=1;settings.enforce_conversation_limits=True
     barrier=threading.Barrier(2)
     def reserve(_):
         second=Store(settings.data_dir/'test.sqlite3');barrier.wait()
@@ -124,6 +171,7 @@ async def test_auth_api_isolation_and_paid_disabled(setup):
     settings,store=setup;provider=FakeProvider();app=create_app(settings,provider)
     headers={'Authorization':'Bearer test-client','X-Starry-Installation':str(uuid.uuid4()),'X-Starry-Account':'guest'}
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),base_url='http://test') as client:
+        assert (await client.get('/health')).json()['revision']==3
         assert (await client.get('/v1/status')).status_code==401
         assert (await client.get('/v1/status',headers=headers)).status_code==200
         assert (await client.get('/v1/admin/usage',headers=headers)).status_code==401

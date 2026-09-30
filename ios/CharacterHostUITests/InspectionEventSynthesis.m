@@ -58,3 +58,25 @@ void SNSynthesizeViewEdit(CGPoint start, CGSize viewport, void (^completion)(NSE
         dispatch_async(dispatch_get_main_queue(),^{completion(error);});
     }];
 }
+
+void SNSynthesizePreviewCancellation(CGPoint start, CGSize viewport, void (^completion)(NSError *)) {
+    Class paths=NSClassFromString(@"XCPointerEventPath"),records=NSClassFromString(@"XCSynthesizedEventRecord");
+    id device=[XCUIDevice sharedDevice];
+    if(!paths || !records || ![device respondsToSelector:NSSelectorFromString(@"eventSynthesizer")]) {
+        completion([NSError errorWithDomain:@"PreviewRotationTest" code:1 userInfo:nil]);return;
+    }
+    id record=[[records alloc] initWithName:@"cancel-temporary-turn-with-second-finger" interfaceOrientation:1];
+    id one=[[paths alloc] initForTouchAtPoint:start offset:0];
+    CGPoint turn=CGPointMake(start.x+viewport.width*.1,start.y+20);
+    [one moveToPoint:turn atOffset:.45];
+    CGPoint second=CGPointMake(turn.x+45,turn.y);
+    id two=[[paths alloc] initForTouchAtPoint:second offset:.65];
+    CGPoint end=CGPointMake(turn.x-10,turn.y+50),endTwo=CGPointMake(second.x+20,second.y+50);
+    [one moveToPoint:end atOffset:1.2];[two moveToPoint:endTwo atOffset:1.2];
+    [two liftUpAtOffset:1.35];
+    [one moveToPoint:CGPointMake(end.x-50,end.y) atOffset:1.8];[one liftUpAtOffset:2.1];
+    [record addPointerEventPath:one];[record addPointerEventPath:two];
+    [[device valueForKey:@"eventSynthesizer"] synthesizeEvent:record completion:^(BOOL success,NSError *error) {
+        dispatch_async(dispatch_get_main_queue(),^{completion(error ?: (success ? nil : [NSError errorWithDomain:@"PreviewRotationTest" code:2 userInfo:nil]));});
+    }];
+}

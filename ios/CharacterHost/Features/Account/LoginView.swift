@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct LoginView: View {
+struct DemoLoginView: View {
     @Bindable var account: AccountStore
     @State private var method = LoginMethod.wechat
     @State private var email = DemoAccount.email

@@ -47,7 +47,7 @@ final class CharacterIdentityTests:XCTestCase {
                 app.buttons["customizationButton"].tap()
                 XCTAssertTrue(app.buttons["closeCharacterDetails"].waitForExistence(timeout:5))
                 app.buttons["closeCharacterDetails"].tap()
-                XCTAssertTrue(app.textFields["chatInput"].waitForExistence(timeout:5))
+                XCTAssertTrue(app.textViews["chatInput"].waitForExistence(timeout:5))
             }
         }
     }
@@ -70,7 +70,7 @@ final class CharacterIdentityTests:XCTestCase {
         XCTAssertTrue(app.buttons["profileCustomizeButton"].waitForExistence(timeout:5))
         XCTAssertFalse(app.buttons["profileChatButton"].exists)
         app.coordinate(withNormalizedOffset:CGVector(dx:0.9,dy:0.2)).tap()
-        XCTAssertTrue(app.textFields["chatInput"].waitForExistence(timeout:6))
+        XCTAssertTrue(app.textViews["chatInput"].waitForExistence(timeout:6))
         app.waitForCharacter { $0["framingMotionActive"] as? Bool == false }
         let after = app.characterRuntime
         for key in ["distance","framingSize","framingAngle","pitch","yaw","cameraFov"] {
@@ -138,7 +138,7 @@ final class CharacterIdentityTests:XCTestCase {
         continueAfterFailure = false
         let app = launch()
         app.waitForCharacter { $0["framingMotionActive"] as? Bool == false }
-        let input = app.textViews["chatInput"].exists ? app.textViews["chatInput"] : app.textFields["chatInput"]
+        let input = app.textViews["chatInput"]
         let draft = "这段草稿先留着"
         let keyboard = app.keyboards.firstMatch
         func keyboardClosed() {
@@ -190,7 +190,7 @@ final class CharacterIdentityTests:XCTestCase {
     @MainActor func testSpeakingAvatarRipplesStopWithSpeech() {
         continueAfterFailure = false
         let app = launch()
-        let input = app.textFields["chatInput"]
+        let input = app.textViews["chatInput"]
         input.tap(); input.typeText("你好，今天一起听音乐吧")
         app.buttons["sendMessageButton"].tap()
         // A proactive greeting precedes the reply. Bind the actually playing message

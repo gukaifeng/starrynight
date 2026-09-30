@@ -32,7 +32,7 @@ final class RealAIConversationTests: XCTestCase {
         XCTAssertTrue(app.buttons["customizationButton"].waitForExistence(timeout:65))
         waitForRealVoice(app)
         capture("real-ai-kipfel-greeting",app)
-        let field = app.textFields["chatInput"].exists ? app.textFields["chatInput"] : app.textViews["chatInput"]
+        let field = app.textViews["chatInput"]
         XCTAssertTrue(field.waitForExistence(timeout:10));field.tap();field.typeText("我今天画好了一朵小花，用一句话夸夸我吧。")
         app.buttons["sendMessageButton"].tap()
         let reply = app.staticTexts.matching(identifier:"assistantMessage")

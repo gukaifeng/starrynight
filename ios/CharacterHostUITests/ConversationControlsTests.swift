@@ -16,7 +16,7 @@ final class ConversationControlsTests:XCTestCase {
         XCTAssertTrue(app.buttons["closeConversationSound"].waitForExistence(timeout:8))
         app.sliders["speechSoundVolume"].adjust(toNormalizedSliderPosition:0)
         app.buttons["closeConversationSound"].tap()
-        let input=app.textFields["chatInput"]
+        let input=app.textViews["chatInput"]
         input.tap(); input.typeText("saved draft 42")
         XCTAssertFalse(app.buttons["dismissChatKeyboardButton"].exists)
         app.coordinate(withNormalizedOffset:CGVector(dx:0.94,dy:0.30)).tap()

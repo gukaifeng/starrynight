@@ -18,6 +18,11 @@ class Settings:
     max_daily_tts_characters: int = 3000
     max_daily_asr_seconds: int = 180
     max_voice_designs: int = 2
+    # Normal conversation is not a development smoke test. Old stored daily
+    # thresholds are inert unless an operator explicitly opts back in.
+    enforce_conversation_limits: bool = False
+    # Runs beside audio, never before the first progressive text response.
+    narration_timeout_seconds: float = 8.0
     paid_enabled: bool = True
 
     @classmethod

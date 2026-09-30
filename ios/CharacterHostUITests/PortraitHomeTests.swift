@@ -8,7 +8,7 @@ final class PortraitHomeTests:XCTestCase {
         app.launch(); app.selectHomeModel("real-woman")
         app.buttons["humanModelCard"].tap()
         XCTAssertTrue(app.buttons["customizationButton"].waitForExistence(timeout:60))
-        let input = app.textFields["chatInput"].exists ? app.textFields["chatInput"] : app.textViews["chatInput"]
+        let input = app.textViews["chatInput"]
         XCTAssertLessThan(input.frame.midX,app.buttons["recordVoiceButton"].frame.midX)
         XCTAssertLessThan(app.buttons["recordVoiceButton"].frame.midX,app.buttons["sendMessageButton"].frame.midX)
         XCTAssertEqual(app.buttons["viewerBackButton"].frame.width,44,accuracy:1)

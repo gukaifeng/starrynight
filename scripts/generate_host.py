@@ -11,6 +11,7 @@ import os
 from pathlib import Path
 import plistlib
 import subprocess
+from urllib.parse import urlsplit
 import xml.sax.saxutils as xml
 from generate_asset_credits import generate_asset_credits
 
@@ -70,7 +71,7 @@ for path in sorted((ios/'CharacterHost').rglob('*')):
 # Run the same pure Swift checks in the iOS runtime when local macOS executables
 # cannot launch. The SceneDelegate entry is DEBUG + simulator + explicit flag only.
 if args.platform == 'simulator':
-    for test_name in ['CloudSpeechPlaybackTests', 'CompanionExperienceTests', 'ConversationGreetingTests', 'ConversationExportTests', 'CharacterLibraryTests', 'AuthorSubscriptionTests', 'CacheStorageTests', 'CharacterViewPresetTests', 'MarketplaceCoreTests']:
+    for test_name in ['ConversationPresentationFixture', 'ChatComposerInputTests', 'CloudSpeechPlaybackTests', 'CompanionExperienceTests', 'ConversationGreetingTests', 'ConversationExportTests', 'CharacterLibraryTests', 'AuthorSubscriptionTests', 'CacheStorageTests', 'CharacterViewPresetTests', 'MarketplaceCoreTests']:
         relative=f'../scripts/tests/{test_name}.swift'
         ref=obj(relative,'PBXFileReference',lastKnownFileType='sourcecode.swift',path=relative,sourceTree='<group>')
         source_refs.append(ref); source_build.append(buildfile(relative,ref))
@@ -80,6 +81,19 @@ connection = ROOT/'.local/character-ai-client/Connection.json'
 if connection.exists():
     ref=obj('ai-connection','PBXFileReference',lastKnownFileType='text.json',path='../.local/character-ai-client/Connection.json',sourceTree='<group>')
     source_refs.append(ref); resource_build.append(buildfile('ai-connection',ref))
+
+# The platform endpoint is independently configurable; it contains no credentials.
+platform_connection = ROOT/f'.local/platform-client/{args.platform}/PlatformConnection.json'
+if not platform_connection.exists():
+    platform_connection = ROOT/'.local/platform-client/PlatformConnection.json'
+has_platform_connection = platform_connection.exists()
+if has_platform_connection and args.platform == 'device':
+    endpoint = json.loads(platform_connection.read_text()).get('baseURL', '')
+    if urlsplit(endpoint).hostname in ('127.0.0.1', 'localhost'):
+        has_platform_connection = False
+if has_platform_connection:
+    ref=obj('platform-connection','PBXFileReference',lastKnownFileType='text.json',path='../'+str(platform_connection.relative_to(ROOT)),sourceTree='<group>')
+    source_refs.append(ref); resource_build.append(buildfile('platform-connection',ref))
 
 app=obj('app-product','PBXFileReference',explicitFileType='wrapper.application',path='CharacterHost.app',sourceTree='BUILT_PRODUCTS_DIR',includeInIndex='0')
 unity_ref=obj('unity-project','PBXFileReference',lastKnownFileType='wrapper.pb-project',path=f'../build/unity-{args.platform}/Unity-iPhone.xcodeproj',sourceTree='<group>')
@@ -108,7 +122,7 @@ settings={'PRODUCT_NAME':'$(TARGET_NAME)','PRODUCT_BUNDLE_IDENTIFIER':'com.model
     'FRAMEWORK_SEARCH_PATHS':['$(inherited)','$(BUILT_PRODUCTS_DIR)'],
     'OTHER_LDFLAGS':['$(inherited)','-lc++','-framework','CoreML','-framework','Accelerate'],
     'GCC_ENABLE_CPP_EXCEPTIONS':'YES',
-    'CODE_SIGN_STYLE':'Automatic','CURRENT_PROJECT_VERSION':'73','MARKETING_VERSION':'0.52.0',
+    'CODE_SIGN_STYLE':'Automatic','CURRENT_PROJECT_VERSION':'76','MARKETING_VERSION':'0.54.0',
     'ENABLE_USER_SCRIPT_SANDBOXING':'NO','SUPPORTS_MACCATALYST':'NO','SWIFT_EMIT_LOC_STRINGS':'YES',
     'ARCHS':'arm64','ENABLE_DEBUG_DYLIB':'NO','ASSETCATALOG_COMPILER_APPICON_NAME':'AppIcon'}
 target=obj('host-target','PBXNativeTarget',name='CharacterHost',productName='CharacterHost',productType='com.apple.product-type.application',productReference=app,

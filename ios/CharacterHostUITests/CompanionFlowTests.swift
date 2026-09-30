@@ -88,7 +88,7 @@ final class CompanionFlowTests: XCTestCase {
         XCTAssertTrue(app.buttons["customizationButton"].exists); capture("10-chat-action-regression")
     }
     @MainActor private func send(_ text: String, in app: XCUIApplication) {
-        let input = app.textViews["chatInput"].exists ? app.textViews["chatInput"] : app.textFields["chatInput"]
+        let input = app.textViews["chatInput"]
         XCTAssertTrue(input.waitForExistence(timeout:5)); input.tap(); input.typeText(text)
         app.buttons["sendMessageButton"].tap()
     }

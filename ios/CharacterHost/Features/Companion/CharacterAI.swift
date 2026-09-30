@@ -47,10 +47,46 @@ enum AIConnectionError: LocalizedError {
         switch self {
         case .unconfigured: "AI 连接尚未配置。"
         case .unavailable: "暂时连不上 AI 服务。当前开发版需要 Mac 上的服务运行，并处于同一网络。"
-        case .server(let code): code == 401 ? "AI 连接凭证已变更，请更新安装版本。" : code == 409 ? "上一轮还在结束，请稍后再试。" : "AI 服务暂时不可用（\(code)）。"
-        case .remote(let code): code.contains("LIMIT") ? "本机设置的今日 AI 用量已用完，稍后再聊。" : "AI 暂时没有完成回复，请稍后重试。"
+        case .server(let code): code == 401 ? "AI 连接凭证已变更，请更新安装版本。" : [429,503].contains(code) ? "AI 服务暂时繁忙，请稍后重试。" : "AI 服务暂时不可用（\(code)）。"
+        case .remote(let code): Self.remoteDescription(code)
         case .testingDisabled: "自动测试已关闭付费 AI 调用。"
         }
+    }
+    private static func remoteDescription(_ code:String)->String {
+        switch code {
+        case "TURN_IN_PROGRESS": return "这条消息正在生成回复。"
+        case "SERVER_BUSY": return "AI 服务暂时繁忙，请稍后重试。"
+        case "TURN_CLEANUP_TIMEOUT": return "AI 连接正在恢复，请重试。"
+        case "DAILY_CALL_LIMIT","USAGE_LIMIT_TTS","USAGE_LIMIT_ASR": return "AI 服务仍在使用旧版测试额度设置，请更新本机服务。"
+        case "REQUEST_INCOMPLETE": return "这次回复已中断，可以重新发送。"
+        case "REPLY_TIMEOUT": return "这次回复等待过久，可以重新发送。"
+        default:
+            if code.hasPrefix("PROVIDER_429_") {return "AI 服务暂时繁忙，请稍后重试。"}
+            return "AI 暂时没有完成回复，请稍后重试。"
+        }
+    }
+    static func http(_ status:Int,body:Data)->AIConnectionError {
+        if status==401 {return .server(status)}
+        if let json=(try? JSONSerialization.jsonObject(with:body)) as? [String:Any],let code=json["detail"] as? String {
+            return .remote(code)
+        }
+        return .server(status)
+    }
+}
+
+/// Task cancellation can occur while the consumer is waiting for audio to play,
+/// with no pending URLSession read. Cancel the transport immediately in that case.
+private final class AIStreamCancellation: @unchecked Sendable {
+    private let lock=NSLock()
+    private var task:URLSessionTask?
+    private var cancelled=false
+    func install(_ value:URLSessionTask) {
+        lock.lock();let stop=cancelled;if !stop {task=value};lock.unlock()
+        if stop {value.cancel()}
+    }
+    func cancel() {
+        lock.lock();cancelled=true;let value=task;task=nil;lock.unlock()
+        value?.cancel()
     }
 }
 private final class AINoRedirect: NSObject, URLSessionTaskDelegate, Sendable {
@@ -59,6 +95,10 @@ private final class AINoRedirect: NSObject, URLSessionTaskDelegate, Sendable {
 }
 
 @MainActor final class CharacterAI {
+    /// Installed by the account layer; the AI pipeline itself stays independent
+    /// of login UI and the account persistence implementation.
+    static var authenticatedRequest: ((String,String) throws -> URLRequest?)?
+    static var clearAccountArchive: ((String,String) async throws -> Void)?
     private struct Connection: Decodable { let baseURL, clientToken: String }
     private let connection: Connection?
     let accountID: String
@@ -84,6 +124,7 @@ private final class AINoRedirect: NSObject, URLSessionTaskDelegate, Sendable {
     }
     func request(_ path: String, paid: Bool = true) throws -> URLRequest {
         if paid && !Self.paidTestsEnabled { throw AIConnectionError.testingDisabled }
+        if let request = try Self.authenticatedRequest?(accountID,path) { return request }
         guard let connection, let base = URL(string:connection.baseURL),
               base.scheme == "https" || (base.scheme == "http" && (base.host?.hasSuffix(".local") == true || base.host == "127.0.0.1")),
               let url = URL(string:path,relativeTo:base)?.absoluteURL else { throw AIConnectionError.unconfigured }
@@ -105,17 +146,25 @@ private final class AINoRedirect: NSObject, URLSessionTaskDelegate, Sendable {
         guard (response as? HTTPURLResponse)?.statusCode == 200 else {
             throw AIConnectionError.server((response as? HTTPURLResponse)?.statusCode ?? 0)
         }
+        try await Self.clearAccountArchive?(accountID,characterID)
     }
     func events(path: String, body: [String:Any]?, consume: (AIEvent) async throws -> Void) async throws {
         var request = try request(path); request.httpMethod = "POST"
         request.setValue("application/json",forHTTPHeaderField:"Content-Type")
         request.setValue("text/event-stream",forHTTPHeaderField:"Accept")
+        // Older gateways ignore this header and keep their original event order.
+        request.setValue("progressive-v1",forHTTPHeaderField:"X-Starry-Reply-Mode")
         if let body { request.httpBody = try JSONSerialization.data(withJSONObject:body) }
+        let cancellation=AIStreamCancellation()
         do {
+          try await withTaskCancellationHandler {
             let (bytes, response) = try await session.bytes(for:request)
-            defer { bytes.task.cancel() }
+            cancellation.install(bytes.task)
+            defer { cancellation.cancel() }
             guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
-                throw AIConnectionError.server((response as? HTTPURLResponse)?.statusCode ?? 0)
+                var errorBody=Data()
+                for try await byte in bytes { if errorBody.count>=16384 {break};errorBody.append(byte) }
+                throw AIConnectionError.http((response as? HTTPURLResponse)?.statusCode ?? 0,body:errorBody)
             }
             let decoder = JSONDecoder(); decoder.keyDecodingStrategy = .convertFromSnakeCase
             var completed = false
@@ -129,6 +178,7 @@ private final class AINoRedirect: NSObject, URLSessionTaskDelegate, Sendable {
                 try await consume(event)
             }
             guard completed else { throw AIConnectionError.remote("STREAM_INTERRUPTED") }
+          } onCancel: { cancellation.cancel() }
         } catch is CancellationError { throw CancellationError() }
         catch let error as AIConnectionError { throw error }
         catch { if Task.isCancelled { throw CancellationError() }; throw AIConnectionError.unavailable }

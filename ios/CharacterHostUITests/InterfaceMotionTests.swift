@@ -15,7 +15,7 @@ final class InterfaceMotionTests: XCTestCase {
         XCTAssertEqual(number(initial,"layoutMotionRevision"),2)
         capture("01-conversation",app)
 
-        let input = app.textViews["chatInput"].exists ? app.textViews["chatInput"] : app.textFields["chatInput"]
+        let input = app.textViews["chatInput"]
         input.tap(); input.typeText("hello")
         XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout:5))
         XCTAssertLessThanOrEqual(input.frame.maxY,app.keyboards.firstMatch.frame.minY+1)

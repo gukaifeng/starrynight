@@ -15,7 +15,7 @@ final class NearbyExperienceTests: XCTestCase {
         let button = app.buttons["tab-"+tab]; wait { button.isHittable }; button.tap()
     }
     @MainActor private func send(_ text:String,_ app:XCUIApplication) {
-        let field = app.textFields["chatInput"].exists ? app.textFields["chatInput"] : app.textViews["chatInput"]
+        let field = app.textViews["chatInput"]
         let previous = app.staticTexts.matching(identifier:"assistantMessage").count
         field.tap(); field.typeText(text)
         wait { app.buttons["sendMessageButton"].isEnabled && app.buttons["sendMessageButton"].isHittable }
@@ -47,7 +47,7 @@ final class NearbyExperienceTests: XCTestCase {
         XCTAssertTrue(app.staticTexts["guestAllowance"].label.contains("登录"),app.staticTexts["guestAllowance"].label); capture("nearby-guest-limit")
         app.terminate(); app.launchArguments = ["--ui-testing","--companion-testing","--auth-testing","--keep-companion-data","--keep-auth-data"]; app.launch(); ready(app)
         XCTAssertTrue(app.staticTexts["guestAllowance"].label.contains("登录"))
-        let field = app.textFields["chatInput"].exists ? app.textFields["chatInput"] : app.textViews["chatInput"]
+        let field = app.textViews["chatInput"]
         field.tap(); field.typeText("第六轮需要登录"); app.buttons["sendMessageButton"].tap()
         XCTAssertTrue(app.buttons["signInButton"].waitForExistence(timeout:15)); capture("nearby-login")
         app.buttons["signInButton"].tap(); ready(app)

@@ -20,7 +20,7 @@ final class MessageHandoffTests:XCTestCase {
             let row=app.buttons["message-"+id]
             XCTAssertTrue(row.waitForExistence(timeout:8));row.tap()
             XCTAssertTrue(app.buttons["customizationButton"].waitForExistence(timeout:20))
-            XCTAssertTrue(app.textFields["chatInput"].isHittable)
+            XCTAssertTrue(app.textViews["chatInput"].isHittable)
             let state=app.characterRuntime
             XCTAssertEqual(state["modelId"] as? String,id)
             XCTAssertEqual(state["framingMotionActive"] as? Bool,false)
@@ -33,7 +33,7 @@ final class MessageHandoffTests:XCTestCase {
             image.name="message-handoff-\(index)-\(id)";image.lifetime = .keepAlways;add(image)
             RunLoop.current.run(until:Date().addingTimeInterval(0.75))
         }
-        let input=app.textFields["chatInput"]
+        let input=app.textViews["chatInput"]
         input.tap();input.typeText("下次继续聊")
         XCTAssertEqual(input.value as? String,"下次继续聊")
         app.buttons["dismissChatKeyboardButton"].tap()

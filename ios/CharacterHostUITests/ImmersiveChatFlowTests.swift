@@ -17,7 +17,7 @@ final class ImmersiveChatFlowTests: XCTestCase {
         app.buttons["starter-hello"].tap()
         XCTAssertTrue(app.staticTexts.matching(identifier:"assistantMessage").firstMatch.waitForExistence(timeout:20))
         wait {!app.buttons["stopReplyButton"].exists}
-        let input=app.textFields["chatInput"].exists ? app.textFields["chatInput"] : app.textViews["chatInput"]
+        let input=app.textViews["chatInput"]
         for (index,text) in ["今天工作有点累，想安静地待一会儿","今天和朋友分享了一件开心的事","你平时喜欢做什么？"].enumerated() {
             input.tap();input.typeText(text);app.buttons["sendMessageButton"].tap()
             if index==0 && app.otherElements["streamingReply"].waitForExistence(timeout:2) {capture("02-streaming")}
@@ -103,7 +103,7 @@ final class ImmersiveChatFlowTests: XCTestCase {
         app.coordinate(withNormalizedOffset:CGVector(dx:number(initial,"headX"),dy:number(initial,"headY"))).press(forDuration:0.12)
         wait { self.number(self.state(app),"headTapCount") > taps }
 
-        let input = app.textViews["chatInput"].exists ? app.textViews["chatInput"] : app.textFields["chatInput"]
+        let input = app.textViews["chatInput"]
         input.tap(); input.typeText("hello")
         XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout:5))
         XCTAssertLessThanOrEqual(input.frame.maxY,app.keyboards.firstMatch.frame.minY)

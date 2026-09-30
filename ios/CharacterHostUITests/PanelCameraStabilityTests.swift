@@ -26,7 +26,7 @@ final class PanelCameraStabilityTests:XCTestCase {
         app.buttons["closeCharacterDetails"].tap()
         sameCamera(app,original)
 
-        let input = app.textFields["chatInput"]
+        let input = app.textViews["chatInput"]
         input.tap();input.typeText("先留一句草稿")
         XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout:5))
         sameCamera(app,original);capture("03-keyboard",app)
@@ -67,14 +67,14 @@ final class PanelCameraStabilityTests:XCTestCase {
         waitForPage(app,"closeMusicButton",leaving:"closeCustomizationButton")
         sameCamera(app,landscape)
         app.closeCustomizationPage("closeMusicButton");sameCamera(app,landscape)
-        app.textFields["chatInput"].tap();app.textFields["chatInput"].typeText("横屏草稿")
+        app.textViews["chatInput"].tap();app.textViews["chatInput"].typeText("横屏草稿")
         XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout:5))
         sameCamera(app,landscape);capture("07-landscape-keyboard",app)
         app.openCustomization("history")
         waitForPage(app,"closeHistoryButton",leaving:"closeCustomizationButton")
         sameCamera(app,landscape)
         app.closeCustomizationPage("closeHistoryButton");sameCamera(app,landscape)
-        XCTAssertEqual(app.textFields["chatInput"].value as? String,"横屏草稿")
+        XCTAssertEqual(app.textViews["chatInput"].value as? String,"横屏草稿")
         capture("08-landscape-personal-panels",app)
     }
 

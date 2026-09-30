@@ -5,12 +5,34 @@ import Observation
 final class AccountStore {
     private(set) var session: DemoAccountSession?
     var error: String?
+    private(set) var cloudSession: PlatformSession?
+    var isBusy = false
+    var syncStatus = "本机保存"
+    var cloudShouldImportLocal = false
+    var onSync: (() -> Void)?
+    var onUseCloud: (() -> Void)?
+    var onFirstSync: (() -> Void)?
+    var hasSyncConflicts = false
+    var needsReauthentication = false
+    @ObservationIgnored private var isolatedTest = false
     @ObservationIgnored private let defaults: UserDefaults
     @ObservationIgnored private let sessionKey: String
     var isSignedIn: Bool { session != nil }
+    func updateCloudProfile(version:Int,profile:[String:JSONValue]) {
+        guard var remote = cloudSession else { return }
+        remote.user.version = version; remote.user.profile = profile
+        cloudSession = remote; PlatformAPI.shared.activeSession = remote
+        if !isolatedTest { do { try PlatformCredentials.write(remote) } catch { self.error = error.localizedDescription } }
+    }
 
     init(defaults:UserDefaults = .standard, arguments:[String] = ProcessInfo.processInfo.arguments) {
         self.defaults = defaults
+        CharacterAI.authenticatedRequest = { account,path in try PlatformAPI.shared.aiRequest(accountID:account,path:path) }
+        CharacterAI.clearAccountArchive = { account,character in
+            guard let remote=PlatformAPI.shared.activeSession,remote.user.id==account else{return}
+            _ = try await PlatformAPI.shared.request("DELETE","/v1/conversations/"+character+"/messages",token:remote.token)
+        }
+        isolatedTest = arguments.contains("--ui-testing") || defaults != .standard
         var key = "xiaoban.demo-account.v1"
 #if DEBUG
         // Existing viewer/voice tests exercise their own flows with an isolated demo session.
@@ -30,9 +52,30 @@ final class AccountStore {
             session = DemoAccountSession(accountID:DemoAccount.id,method:.wechat)
         }
 #endif
+        if !isolatedTest, let saved = PlatformCredentials.read() {
+            cloudSession = saved; PlatformAPI.shared.activeSession = saved
+            session = DemoAccountSession(accountID:saved.user.id,method:saved.user.guest ? .testGuest : .password)
+        }
+    }
+
+    func authenticate(action:String,username:String = "",password:String = "",name:String = "") async {
+        guard !isBusy else { return };isBusy = true;error = nil
+        defer { isBusy = false }
+        do {
+            let remote = try await PlatformAPI.shared.authenticate(action,username:username.trimmingCharacters(in:.whitespacesAndNewlines),
+                password:password,name:name.trimmingCharacters(in:.whitespacesAndNewlines),upgrading:cloudSession)
+            if !isolatedTest { try PlatformCredentials.write(remote) }
+            cloudSession = remote;PlatformAPI.shared.activeSession = remote
+            needsReauthentication = false
+            cloudShouldImportLocal = action != "login"
+            session = DemoAccountSession(accountID:remote.user.id,method:remote.user.guest ? .testGuest : .password)
+            syncStatus = "正在连接账户资料"
+            onSync?()
+        } catch { self.error = error.localizedDescription }
     }
 
     @discardableResult func signIn(_ method:LoginMethod, identifier:String = "", code:String = "") -> Bool {
+        guard cloudSession == nil else { return false }
         error = nil
         if method != .wechat {
             let clean = identifier.trimmingCharacters(in:.whitespacesAndNewlines)
@@ -53,11 +96,19 @@ final class AccountStore {
         return true
     }
     func switchDemoIdentity() {
+        guard cloudSession == nil else { return }
         let next = DemoAccountSession(accountID:session?.accountID == DemoAccount.id ? DemoAccount.alternateID : DemoAccount.id,method:.wechat)
         guard let data = try? JSONEncoder().encode(next) else { return }
         defaults.set(data,forKey:sessionKey); session = next; error = nil
     }
     func signOut() {
+        if let remote = cloudSession {
+            do { if !isolatedTest { try PlatformCredentials.write(nil) } }
+            catch { self.error = error.localizedDescription;return }
+            Task { _ = try? await PlatformAPI.shared.request("POST","/v1/auth/logout",token:remote.token) }
+            cloudSession = nil;PlatformAPI.shared.activeSession = nil;syncStatus = "本机保存"
+            needsReauthentication = false;hasSyncConflicts = false
+        }
         defaults.removeObject(forKey:sessionKey)
         session = nil; error = nil
         // Character settings, memories and conversation files belong to the same demo identity.

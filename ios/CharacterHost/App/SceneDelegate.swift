@@ -19,6 +19,18 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         window.overrideUserInterfaceStyle = .dark
         window.makeKeyAndVisible()
 #if DEBUG && targetEnvironment(simulator)
+        if ProcessInfo.processInfo.arguments.contains("--conversation-presentation-check") {
+            window.rootViewController=UIHostingController(rootView:ConversationPresentationFixture())
+            return
+        }
+        if ProcessInfo.processInfo.arguments.contains("--chat-input-check") {
+            let label = UILabel(); label.numberOfLines = 0; label.textColor = .white
+            label.frame = CGRect(x:24,y:100,width:window.bounds.width-48,height:450)
+            label.accessibilityIdentifier = "chatInputCoreResult"
+            do { label.text = try ChatComposerInputTests.run() }
+            catch { label.text = "FAIL: \(error.localizedDescription)" }
+            placeholder.view.addSubview(label); return
+        }
         if ProcessInfo.processInfo.arguments.contains("--speech-playback-check") {
             let label = UILabel(); label.numberOfLines = 0; label.textColor = .white
             label.frame = CGRect(x:24,y:100,width:window.bounds.width-48,height:450)
@@ -112,7 +124,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     }
     private func bootstrap(in windowScene:UIWindowScene) {
 #if DEBUG && targetEnvironment(simulator)
-        if ProcessInfo.processInfo.arguments.contains(where: { ["--speech-playback-check", "--greeting-core-check", "--view-presets-check", "--experience-core-check", "--export-core-check", "--export-ui-check", "--social-core-check", "--cache-core-check", "--market-core-check"].contains($0) }) { return }
+        if ProcessInfo.processInfo.arguments.contains(where: { ["--conversation-presentation-check", "--chat-input-check", "--speech-playback-check", "--greeting-core-check", "--view-presets-check", "--experience-core-check", "--export-core-check", "--export-ui-check", "--social-core-check", "--cache-core-check", "--market-core-check"].contains($0) }) { return }
 #endif
         guard coordinator == nil, bootstrapTask == nil else { return }
         // Paint the lightweight brand cover, then prepare only the native shell.

@@ -35,7 +35,7 @@ final class FramingFlowTests: XCTestCase {
         app.buttons["framingAngleRight"].tap()
         app.closeCustomizationPage("closeFramingButton")
         waitFor(app) { $0["framingShot"] as? String == "conversation" && self.number($0,"framingAngle") == 20 && $0["name"] as? String == "state" }
-        let input = app.textViews["chatInput"].exists ? app.textViews["chatInput"] : app.textFields["chatInput"]
+        let input = app.textViews["chatInput"]
         XCTAssertTrue(input.exists); input.tap(); input.typeText("你好")
         waitFor(app) { self.number($0,"framingAngle") == 20 && $0["name"] as? String == "state" }
         XCTAssertTrue(app.keyboards.firstMatch.exists)
@@ -87,7 +87,7 @@ final class FramingFlowTests: XCTestCase {
         app.coordinate(withNormalizedOffset:CGVector(dx:number(head,"headX"),dy:number(head,"headY"))).press(forDuration:0.12)
         waitFor(app) { self.number($0,"headTapCount") == taps + 1 }
         capture("13-luma-head")
-        let input = app.textViews["chatInput"].exists ? app.textViews["chatInput"] : app.textFields["chatInput"]
+        let input = app.textViews["chatInput"]
         input.tap(); input.typeText("你好")
         let title = app.staticTexts["写下此刻想说的话"]
         XCTAssertTrue(title.waitForExistence(timeout:5)); XCTAssertEqual(title.label,"写下此刻想说的话")

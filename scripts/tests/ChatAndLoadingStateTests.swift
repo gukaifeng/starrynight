@@ -12,7 +12,7 @@ import Foundation
         scroll.scrollTowardHistory(); scroll.update(bottomDistance:150)
         check(scroll.showsReturnButton && !scroll.followingLatest,"Dragging into history offers return")
         scroll.update(bottomDistance:240)
-        check(scroll.showsReturnButton && !scroll.followingLatest,"Incoming messages do not steal the reader's position")
+        check(scroll.showsReturnButton && !scroll.followingLatest,"Geometry changes alone do not steal the reader's position")
         scroll.update(bottomDistance:40)
         check(scroll.showsReturnButton,"Almost at bottom remains explicit")
         scroll.update(bottomDistance:18)
@@ -28,6 +28,13 @@ import Foundation
         check(!scroll.showsReturnButton && scroll.followingLatest,"A taller viewport or smaller text can also reach the bottom")
         let previous = scroll; scroll.update(bottomDistance:.nan)
         check(scroll == previous,"Invalid layout samples do not change state")
+        for source in ["user message","AI message","late AI narration"] {
+            scroll.scrollTowardHistory(); scroll.update(bottomDistance:480)
+            scroll.returnToLatest()
+            check(scroll.followingLatest && !scroll.showsReturnButton,"New \(source) resumes following even from history")
+            scroll.update(bottomDistance:0)
+            check(scroll.isAtLatest,"New \(source) settles at the actual bottom")
+        }
 
         var loading = ModelLoadingPresentation()
         check(!loading.isVisible,"The retained-home path does not start a new arrival")

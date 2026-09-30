@@ -1,8 +1,9 @@
 import asyncio, base64, hashlib, random, time, uuid, wave
+from contextlib import aclosing
 from .schemas import Plan, NarrationResult, Speech, Vocal, visible_text, visible_thought
 from .profiles import PROFILES
 from .prompts import PLANNER, NARRATOR
-from .director import Director, grounded
+from .director import Director, grounded_excerpt
 from .storage import clamp, dump
 
 def event(kind, **data): return dict(type=kind,**data)
@@ -22,12 +23,45 @@ class Orchestrator:
             speech_capability=dict(emotions=Speech.model_json_schema()['properties']['emotion']['enum'],
                                    deliveries=Speech.model_json_schema()['properties']['delivery']['enum'],
                                    vocal_events=Vocal.model_json_schema()['properties']['event']['enum']))
+    async def narration(self,owner,char,plan,resolved,scene):
+        facts=PROFILES[char].get('appearance_facts',[])
+        try:
+            async with asyncio.timeout(self.settings.narration_timeout_seconds):
+                result=await self.provider.structured(owner,char,'narration',NARRATOR,
+                    dict(plan=plan.model_dump(),resolved=resolved,scene=scene,appearance_facts=facts),NarrationResult)
+                reviewed=[(n,grounded_excerpt(n,resolved,facts)) for n in result.narrations]
+                accepted=[];seen=set()
+                for _,excerpt in reviewed:
+                    if excerpt is not None and excerpt.text not in seen:
+                        accepted.append(excerpt);seen.add(excerpt.text)
+                # Bounded, owner-scoped private evidence explains omissions;
+                # provider text and user context never go to public/server logs.
+                self.store.put('narration_review',owner,char,dict(
+                    accepted=len(accepted),trimmed=sum(excerpt is not None and excerpt!=n for n,excerpt in reviewed),
+                    rejected=[n.model_dump() for n,excerpt in reviewed if excerpt is None]))
+                return accepted,None
+        except TimeoutError:
+            return [],None  # Optional decoration must not hold up conversation.
+        except Exception:
+            return [],'旁白暂未生成，台词与语音仍可使用。'
     async def reply(self,owner,request):
+        try:
+            async with aclosing(self._reply(owner,request)) as source:
+                async for item in source:yield item
+        finally:
+            # Completed text is retained; interrupted generations aren't left
+            # labelled as running. Never retry an ambiguously billed request.
+            self.store.interrupt(owner,request.character_id,str(request.request_id))
+    async def _reply(self,owner,request):
         char=request.character_id; rid=str(request.request_id)
-        cached=self.store.request(owner,char,rid,request.model_dump(mode='json'))
+        # Delivery negotiation isn't conversation content. Preserve hashes for
+        # pre-upgrade requests and never re-bill a retry with a different mode.
+        cached=self.store.request(owner,char,rid,request.model_dump(mode='json',exclude={'progressive_reply'}))
         if cached:
             yield event('reply.narration.ready',script=cached,cached=True)
-            async for e in self.audio(owner,char,cached,create=False): yield e
+            if request.wants_audio:
+                async with aclosing(self.audio(owner,char,cached,create=False)) as audio:
+                    async for e in audio:yield e
             yield event('reply.completed',message_id=cached['message_id']); return
         context=self.context(owner,request)
         if request.trigger=='idle':
@@ -60,14 +94,8 @@ class Orchestrator:
         resolved=[self.director.beat(owner,char,b,context['relationship'],context['state'],request.available_assets) for b in plan.beats]
         yield event('segment.visual.resolved',count=len(resolved))
         narrations=[]; warning=None
-        if plan.beats:
-            try:
-                narration=await self.provider.structured(owner,char,'narration',NARRATOR,
-                    dict(plan=plan.model_dump(),resolved=resolved,scene=request.scene),NarrationResult)
-                narrations=[n for n in narration.narrations if grounded(n,resolved)]
-            except Exception:
-                # Valid dialogue still reaches the user if the second model call fails.
-                warning='旁白暂未生成，台词与语音仍可使用。'
+        if plan.beats and not request.progressive_reply:
+            narrations,warning=await self.narration(owner,char,plan,resolved,request.scene)
         beats=[]
         for b,r in zip(plan.beats,resolved):
             thought=b.thought if b.thought and b.thought.visibility=='visible' else None
@@ -95,8 +123,39 @@ class Orchestrator:
         self.store.complete(owner,char,rid,script)
         yield event('reply.narration.ready',script=script,cached=False)
         if warning:yield event('reply.warning',message=warning)
-        if request.wants_audio:
-            async for e in self.audio(owner,char,script,create=True):yield e
+        narration_task=None;audio_task=None
+        audio=self.audio(owner,char,script,create=True) if request.wants_audio else None
+        try:
+            if request.progressive_reply and plan.beats:
+                narration_task=asyncio.create_task(self.narration(owner,char,plan,resolved,request.scene))
+            if audio is not None:audio_task=asyncio.create_task(anext(audio))
+            # Deliver narration as soon as it is ready, even while TTS is still
+            # producing chunks. Only one audio event is prefetched; the outer
+            # stream keeps its bounded buffer and cancellation semantics.
+            while narration_task is not None or audio_task is not None:
+                done,_=await asyncio.wait([t for t in (narration_task,audio_task) if t is not None],return_when=asyncio.FIRST_COMPLETED)
+                if narration_task is not None and narration_task in done:
+                    narrations,warning=narration_task.result();narration_task=None
+                    if narrations:
+                        enriched=[{**b,'narrations':[dict(text=visible_text(n.text),mode=n.mode,
+                            grounding=r['grounding'] if n.mode=='performed' else 'none')
+                            for n in narrations if n.beat_id==b['beat_id']][:1]} for b,r in zip(beats,resolved)]
+                        script={**script,'beats':enriched}
+                        self.store.enrich_reply(owner,char,rid,script)
+                        yield event('reply.script.updated',script=script)
+                    if warning:yield event('reply.warning',message=warning)
+                if audio_task is not None and audio_task in done:
+                    try:audio_event=audio_task.result()
+                    except StopAsyncIteration:audio_task=None
+                    else:
+                        audio_task=None
+                        yield audio_event
+                        audio_task=asyncio.create_task(anext(audio))
+        finally:
+            pending=[t for t in (narration_task,audio_task) if t is not None]
+            for task in pending:task.cancel()
+            if pending:await asyncio.gather(*pending,return_exceptions=True)
+            if audio is not None:await audio.aclose()
         yield event('reply.completed',message_id=script['message_id'])
 
     async def audio(self,owner,char,script,create):
@@ -121,9 +180,10 @@ class Orchestrator:
                         yield event('segment.audio.chunk',beat_id=beat['beat_id'],data=base64.b64encode(chunk).decode())
                         await asyncio.sleep(0)
                 else:
-                    async for chunk in self.provider.synthesize(owner,char,beat,voice['voice_id']):
-                        data.extend(chunk)
-                        yield event('segment.audio.chunk',beat_id=beat['beat_id'],data=base64.b64encode(chunk).decode())
+                    async with aclosing(self.provider.synthesize(owner,char,beat,voice['voice_id'])) as synthesis:
+                        async for chunk in synthesis:
+                            data.extend(chunk)
+                            yield event('segment.audio.chunk',beat_id=beat['beat_id'],data=base64.b64encode(chunk).decode())
                     if data:
                         temp=path.with_suffix('.tmp');temp.write_bytes(data);temp.replace(path)
                         files=sorted(folder.glob('*.pcm'),key=lambda f:f.stat().st_mtime)

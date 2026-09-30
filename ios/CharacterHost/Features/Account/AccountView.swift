@@ -4,10 +4,18 @@ struct AccountView: View {
     let account: AccountStore
     var onSignOut: () -> Void
     var embedded = false
+    @State private var connecting = false
 
     var body: some View {
         Group {
-            if embedded { content }
+            if connecting {
+                VStack(alignment:.leading,spacing:0) {
+                    Button { withAnimation(.easeInOut(duration:0.24)) { connecting = false } } label: {
+                        Label("账户",systemImage:"chevron.left").font(.system(size:14)).padding(20)
+                    }.buttonStyle(.plain)
+                    LoginView(account:account).environment(\.softPanelDismiss,{ connecting = false })
+                }.transition(.opacity)
+            } else if embedded { content }
             else {
                 NavigationStack {
                     content.navigationTitle("账户").navigationBarTitleDisplayMode(.inline)
@@ -15,6 +23,8 @@ struct AccountView: View {
                 }
             }
         }.foregroundStyle(Theme.ink).tint(Theme.accent).softSheetSurface()
+            .animation(.easeInOut(duration:0.24),value:connecting)
+            .onChange(of:account.cloudSession) { _,value in if value != nil { connecting = false } }
     }
     private var content: some View {
         List {
@@ -22,9 +32,9 @@ struct AccountView: View {
                 HStack(spacing:14) {
                     UserAccountAvatar(size:56)
                     VStack(alignment:.leading,spacing:6) {
-                        Text(DemoAccount.name + (account.session?.accountID == DemoAccount.alternateID ? " B" : " A"))
+                        Text(account.cloudSession?.user.displayName ?? (DemoAccount.name + (account.session?.accountID == DemoAccount.alternateID ? " B" : " A")))
                             .font(.headline)
-                        Text("已登录 · 本机测试账户")
+                        Text(account.cloudSession.map { $0.user.guest ? "测试体验 · 可注册保留资料" : "已连接账户服务" } ?? "本机体验账户")
                             .font(.caption).foregroundStyle(Theme.secondary)
                     }
                 }
@@ -34,6 +44,21 @@ struct AccountView: View {
             .listRowBackground(Theme.surface)
             .listRowInsets(EdgeInsets(top:10,leading:16,bottom:10,trailing:16))
 
+            if let cloud = account.cloudSession {
+                Section {
+                    if !cloud.user.guest { accountRow("账号",value:cloud.user.username,identifier:"serverUsername") }
+                    accountRow("资料同步",value:account.syncStatus,identifier:"accountSyncStatus")
+                    Button("立即同步") { account.onSync?() }.accessibilityIdentifier("syncAccountNow")
+                    if account.needsReauthentication && !cloud.user.guest {
+                        Button("重新登录") { connecting = true }.accessibilityIdentifier("reauthenticateAccount")
+                    }
+                    if account.hasSyncConflicts {
+                        Button("保留本机副本，采用云端版本") { account.onUseCloud?() }.font(.footnote)
+                    }
+                    if cloud.user.guest { Button("设置账号与密码") { connecting = true }.accessibilityIdentifier("upgradeGuestAccount") }
+                } header: { Text("账户与资料") }
+                    .listRowBackground(Theme.surface)
+            } else {
             Section {
                 accountRow("星夜号",value:account.session?.accountID ?? DemoAccount.id,identifier:"accountID")
                 if let session = account.session {
@@ -45,6 +70,12 @@ struct AccountView: View {
             .listRowBackground(Theme.surface)
             .listRowInsets(EdgeInsets(top:10,leading:16,bottom:10,trailing:16))
 
+            Section {
+                Button("连接服务端账户") { connecting = true }.accessibilityIdentifier("connectPlatformAccount")
+            }.listRowBackground(Theme.surface)
+            }
+
+            if account.cloudSession == nil {
             Section {
                 ForEach(LoginMethod.allCases) { method in
                     LabeledContent {
@@ -68,6 +99,7 @@ struct AccountView: View {
             }
             .listRowBackground(Theme.surface)
             .listRowInsets(EdgeInsets(top:10,leading:16,bottom:10,trailing:16))
+            }
 
             Section {
                 Button(action:onSignOut) {
@@ -101,7 +133,7 @@ struct AccountView: View {
         .font(.subheadline).frame(minHeight:32)
     }
     private func detail(_ method:LoginMethod) -> String {
-        switch method { case .wechat: "星夜体验微信"; case .email: DemoAccount.email; case .phone: "+86 138 **** 0000" }
+        switch method { case .wechat: "星夜体验微信"; case .email: DemoAccount.email; case .phone: "+86 138 **** 0000";case .password:"账号密码";case .testGuest:"测试体验" }
     }
 }
 

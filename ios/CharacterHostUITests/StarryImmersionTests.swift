@@ -24,7 +24,7 @@ final class StarryImmersionTests:XCTestCase {
         wait { self.state(app)["cameraSnapCount"] != nil }
         let first=state(app);capture("starry-immersive-home")
         XCTAssertFalse(app.staticTexts["正在准备模型"].exists)
-        let draft = app.textFields["chatInput"].exists ? app.textFields["chatInput"] : app.textViews["chatInput"]
+        let draft = app.textViews["chatInput"]
         draft.tap(); draft.typeText("明晚继续聊")
         app.buttons["dismissChatKeyboardButton"].tap()
         for destination in ["messages","discover","mine"] {
@@ -120,7 +120,7 @@ final class StarryImmersionTests:XCTestCase {
         RunLoop.current.run(until:Date().addingTimeInterval(3))
         capture("starry-settled-closeup")
         XCTAssertTrue(app.buttons["customizationButton"].label.hasPrefix("初音未来"))
-        XCTAssertTrue(app.textFields["chatInput"].exists || app.textViews["chatInput"].exists)
+        XCTAssertTrue(app.textViews["chatInput"].exists)
     }
 
 }

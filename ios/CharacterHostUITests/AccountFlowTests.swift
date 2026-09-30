@@ -34,7 +34,7 @@ final class AccountFlowTests: XCTestCase {
             if method == "wechat" {
                 app.buttons["chat-real-woman"].tap()
                 XCTAssertTrue(app.buttons["viewerBackButton"].waitForExistence(timeout:60))
-                XCTAssertTrue(app.textFields["chatInput"].exists || app.textViews["chatInput"].exists)
+                XCTAssertTrue(app.textViews["chatInput"].exists)
                 capture("02-signed-in-character")
                 app.buttons["viewerBackButton"].tap()
                 XCTAssertTrue(app.buttons["accountCenterButton"].waitForExistence(timeout:10))

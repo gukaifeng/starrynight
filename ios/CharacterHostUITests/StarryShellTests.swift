@@ -30,8 +30,8 @@ final class StarryShellTests: XCTestCase {
         for name in ["home","messages","create","discover","mine"] { XCTAssertTrue(app.buttons["tab-"+name].isHittable) }
         capture("starry-home-phone")
         app.buttons["starter-hello"].tap(); app.waitForReply()
-        let input = app.textFields["chatInput"]
-        if input.exists { input.tap() } else { app.textViews["chatInput"].tap() }
+        let input = app.textViews["chatInput"]
+        input.tap()
         XCTAssertTrue(app.buttons["sendMessageButton"].isHittable)
         XCTAssertFalse(app.buttons["tab-messages"].isHittable)
         app.buttons["dismissChatKeyboardButton"].tap()

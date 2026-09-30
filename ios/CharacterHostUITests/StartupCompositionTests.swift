@@ -82,7 +82,7 @@ final class StartupCompositionTests:XCTestCase {
     @MainActor private func waitForConversation(_ app:XCUIApplication,file:StaticString = #filePath,line:UInt = #line) {
         XCTAssertTrue(app.buttons["customizationButton"].waitForExistence(timeout:30),file:file,line:line)
         XCTAssertFalse(app.otherElements["conversationPreparing"].exists,file:file,line:line)
-        XCTAssertTrue(app.textFields["chatInput"].isHittable,file:file,line:line)
+        XCTAssertTrue(app.textViews["chatInput"].isHittable,file:file,line:line)
     }
     @MainActor private func capture(_ name:String) {
         let image=XCTAttachment(screenshot:XCUIScreen.main.screenshot())

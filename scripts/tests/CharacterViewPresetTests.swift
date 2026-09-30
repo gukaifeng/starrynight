@@ -38,9 +38,9 @@ struct CharacterViewPresetTests {
         let damaged=CharacterViewPose(yaw:.nan,pitch:.infinity,scale:-1,x:20,y:-20).normalized
         try check(damaged.yaw.isFinite && damaged.pitch.isFinite && damaged.scale>0 && abs(damaged.x)<=0.45 && abs(damaged.y)<=0.45,"Invalid values cannot reach runtime")
         let turns=CharacterViewPose(yaw:1125,pitch:-810,scale:0.9,x:0.02).normalized
-        try check(turns.yaw==45 && turns.pitch == -25,"Whole yaw turns wrap equivalently; old pitch is limited to eye level")
-        try check(turns.matches(CharacterViewPose(yaw:1125,pitch:-25,scale:0.9,x:0.02)),"Pose comparisons understand full yaw rotations")
-        try check(CharacterViewPose(pitch:720).normalized.pitch == 0 && CharacterViewPose(pitch:-180).normalized.pitch == 25,"Legacy pitch canonicalization matches Unity")
+        try check(turns.yaw==45 && turns.pitch == -80,"Whole yaw turns wrap equivalently; old pitch uses the expanded safe range")
+        try check(turns.matches(CharacterViewPose(yaw:1125,pitch:-80,scale:0.9,x:0.02)),"Pose comparisons understand full yaw rotations")
+        try check(CharacterViewPose(pitch:720).normalized.pitch == 0 && CharacterViewPose(pitch:-180).normalized.pitch == 80,"Legacy pitch canonicalization matches Unity")
         restarted.update("anime-kipfel") {$0.viewPose=turns}
         let free=CompanionStore(storageURL:url,arguments:[])
         try check(free.record("anime-kipfel").lastViewPose==turns,"Bounded pitch survives persistence")

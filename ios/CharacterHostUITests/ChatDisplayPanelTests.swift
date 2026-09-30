@@ -15,7 +15,7 @@ final class ChatDisplayPanelTests: XCTestCase {
         XCTAssertEqual(panel.frame.height/app.frame.height,0.60,accuracy:0.02)
 
         let phrase = "每句话都看得清楚"
-        let input = app.textFields["chatInput"].exists ? app.textFields["chatInput"] : app.textViews["chatInput"]
+        let input = app.textViews["chatInput"]
         input.tap(); input.typeText(phrase); app.buttons["sendMessageButton"].tap()
         app.waitForReply()
         let message = app.staticTexts.matching(identifier:"userMessage").matching(NSPredicate(format:"label == %@",phrase)).firstMatch

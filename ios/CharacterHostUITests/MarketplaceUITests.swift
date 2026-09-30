@@ -19,7 +19,7 @@ final class MarketplaceUITests:XCTestCase {
         capture("01-market-selected")
         first.tap()
         XCTAssertTrue(app.buttons["closeCharacterDetails"].waitForExistence(timeout:5))
-        XCTAssertFalse(app.textFields["chatInput"].exists,"Cards open a profile, never a conversation immediately")
+        XCTAssertFalse(app.textViews["chatInput"].exists,"Cards open a profile, never a conversation immediately")
         app.buttons["closeCharacterDetails"].tap()
         search.tap(); search.typeText("豆日向\n")
         XCTAssertTrue(app.buttons["discover-open-anime-mamehinata"].waitForExistence(timeout:5))

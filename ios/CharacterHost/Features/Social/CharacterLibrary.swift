@@ -21,10 +21,12 @@ final class CharacterLibrary {
             guard [1, 2].contains(value.schemaVersion) else { throw CocoaError(.coderReadCorrupt) }
             let legacy = value.schemaVersion == 1
             for id in Set(Array(value.accounts.keys) + value.creations.map(\.ownerID)).sorted() {
-                Self.ensureAuthor(for: id, in: &value)
+                if !id.hasPrefix("public-author:") { Self.ensureAuthor(for: id, in: &value) }
             }
             for index in value.creations.indices {
-                value.creations[index].authorID = value.authorByAccount[value.creations[index].ownerID]
+                if !value.creations[index].ownerID.hasPrefix("public-author:") {
+                    value.creations[index].authorID = value.authorByAccount[value.creations[index].ownerID]
+                }
             }
             for id in Array(value.accounts.keys) {
                 guard var account = value.accounts[id] else { continue }
@@ -216,7 +218,39 @@ final class CharacterLibrary {
     @discardableResult private func commit(_ change: (inout CharacterLibraryArchive) -> Void) -> Bool {
         guard !blocked else { return false }
         var next = archive; change(&next)
-        do { try Self.write(next, to: url); archive = next; error = nil; return true }
+        do { try Self.write(next, to: url); archive = next; error = nil
+            NotificationCenter.default.post(name:.accountDataChanged,object:nil)
+            return true
+        }
         catch { self.error = "资料保存失败，请检查剩余空间后重试。"; return false }
+    }
+
+    func applyCloudRelations(subscriptions:[String],follows:[String]) {
+        commit { state in
+            var value = state.accounts[accountID] ?? CharacterLibraryAccount(subscriptions:[])
+            value.subscriptions = subscriptions;value.followedAuthors = follows
+            if !subscriptions.contains(value.lastCharacter ?? "") { value.lastCharacter = subscriptions.first }
+            state.accounts[accountID] = value
+        }
+    }
+    func applyCloudAuthor(_ author:AuthorProfile) {
+        commit { $0.authors[author.id] = author;$0.authorByAccount[accountID] = author.id }
+    }
+    func applyCloudPublicAuthor(_ author:AuthorProfile) {
+        commit { $0.authors[author.id] = author }
+    }
+    func applyCloudCreation(_ character:OwnedCharacter?,id:String) {
+        commit { state in state.creations.removeAll { $0.id == id };if let character { state.creations.append(character) } }
+    }
+    func applyCloudConversation(_ id:String,hidden:Bool) {
+        commit { state in
+            guard var account = state.accounts[accountID] else { return }
+            if hidden { account.hiddenConversations[id] = max(Date(),account.hiddenConversations[id] ?? .distantPast) }
+            else { account.hiddenConversations.removeValue(forKey:id) }
+            state.accounts[accountID] = account
+        }
+    }
+    func applyCloudLastCharacter(_ id:String?) {
+        commit { $0.accounts[accountID]?.lastCharacter = id }
     }
 }

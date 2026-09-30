@@ -8,13 +8,13 @@ struct CharacterViewPose: Codable, Equatable, Sendable {
     var x = 0.0
     var y = 0.0
     static let original = Self()
-    static let maximumPitch = 25.0
+    static let maximumPitch = 80.0
     var normalized: Self {
         func bounded(_ value:Double,_ range:ClosedRange<Double>,_ fallback:Double = 0) -> Double {
             value.isFinite ? min(range.upperBound,max(range.lowerBound,value)) : fallback
         }
         // Retain equivalent multi-turn yaw; migrate old overhead/inverted pitch
-        // into the same eye-level envelope enforced by Unity revision 7.
+        // into the same expanded envelope enforced by Unity revision 10.
         func angle(_ value:Double) -> Double { value.isFinite ? value.remainder(dividingBy:360) : 0 }
         let vertical = angle(pitch)
         return Self(yaw:angle(yaw),pitch:bounded(vertical == -180 ? 180 : vertical,-Self.maximumPitch...Self.maximumPitch),

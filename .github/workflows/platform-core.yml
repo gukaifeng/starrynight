@@ -1,0 +1,22 @@
+name: Native account protocol
+on:
+  push:
+    paths:
+      - 'ios/CharacterHost/Features/Account/**'
+      - 'scripts/test_platform_core.sh'
+      - 'scripts/tests/PlatformSyncTests.swift'
+      - '.github/workflows/platform-core.yml'
+  pull_request:
+    paths:
+      - 'ios/CharacterHost/Features/Account/**'
+      - 'scripts/test_platform_core.sh'
+      - 'scripts/tests/PlatformSyncTests.swift'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  protocol:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash scripts/test_platform_core.sh

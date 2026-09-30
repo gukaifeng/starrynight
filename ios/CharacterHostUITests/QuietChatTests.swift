@@ -25,7 +25,7 @@ final class QuietChatTests:XCTestCase {
         app.buttons["closeCustomizationButton"].tap()
         XCTAssertTrue(app.buttons["closeCharacterDetails"].waitForExistence(timeout:5))
         app.buttons["closeCharacterDetails"].tap()
-        let input=app.textFields["chatInput"].exists ? app.textFields["chatInput"] : app.textViews["chatInput"]
+        let input=app.textViews["chatInput"]
         input.tap();input.typeText("今晚一起看月亮")
         app.buttons["sendMessageButton"].tap()
         wait { app.staticTexts.matching(identifier:"assistantMessage").count == 1 && !app.buttons["stopReplyButton"].exists }

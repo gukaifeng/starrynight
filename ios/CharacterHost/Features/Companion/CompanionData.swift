@@ -1,5 +1,7 @@
 import Foundation
 
+extension Notification.Name { static let accountDataChanged = Notification.Name("starry.account-data.changed") }
+
 struct CharacterProfile: Codable, Equatable, Sendable {
     var name: String
     var background = "一起分享日常、慢慢了解彼此的伙伴。"
@@ -49,6 +51,16 @@ struct CompanionMessage: Codable, Identifiable, Sendable {
     var storyID: String? = nil
     var aiScript: AIScript? = nil
     var source: String? = nil
+    // A late narration enriches the same message. Track visible content rather
+    // than only message count, and exclude audio duration/playback metadata.
+    var visibleContentKey: [String] {
+        var parts = [id.uuidString,role,text]
+        for beat in aiScript?.beats ?? [] {
+            parts.append(contentsOf:[beat.beatId,beat.dialogue?.text ?? "",beat.visibleThought ?? ""])
+            parts.append(contentsOf:beat.narrations.map(\.text))
+        }
+        return parts
+    }
 }
 struct CompanionMemory: Codable, Identifiable, Sendable {
     var id = UUID()

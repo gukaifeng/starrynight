@@ -64,7 +64,7 @@ final class VrchatCharacterTests: XCTestCase {
             sameCamera(app, settled, includingPresentation: true)
             capture(id + "-profile-camera-kept", app)
             app.buttons["closeCharacterDetails"].tap()
-            XCTAssertTrue(app.textFields["chatInput"].waitForExistence(timeout: 6))
+            XCTAssertTrue(app.textViews["chatInput"].waitForExistence(timeout: 6))
             sameCamera(app, settled, includingPresentation: true)
             capture(id + "-capsule-after-profile", app)
         }
@@ -160,7 +160,7 @@ final class VrchatCharacterTests: XCTestCase {
             app.buttons["closeCharacterPerformance"].tap()
             XCTAssertTrue(app.buttons["closeCharacterDetails"].waitForExistence(timeout:5))
             app.buttons["closeCharacterDetails"].tap()
-            XCTAssertTrue(app.textFields["chatInput"].waitForExistence(timeout:6))
+            XCTAssertTrue(app.textViews["chatInput"].waitForExistence(timeout:6))
             sameCamera(app,camera,includingPresentation:true)
             // Retained home tab resumes the same engine instance and actual choices.
             app.buttons["tab-messages"].tap()
@@ -229,7 +229,7 @@ final class VrchatCharacterTests: XCTestCase {
             ($0["stableRenderedFrames"] as? Int ?? 0) >= 3 &&
             $0["framingMotionActive"] as? Bool == false
         }, timeout: 45)
-        XCTAssertTrue(app.textFields["chatInput"].isHittable)
+        XCTAssertTrue(app.textViews["chatInput"].isHittable)
         XCTAssertFalse(app.descendants(matching: .any).matching(identifier: "characterArrival").firstMatch.exists)
         XCTAssertEqual(app.characterRuntime["actionFraming"] as? Bool, false)
     }

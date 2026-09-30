@@ -1,6 +1,34 @@
 import UIKit
 import UIKit.UIGestureRecognizerSubclass
 
+/// A drag on the uncovered character, never a pinch or a one-finger tail of one.
+/// Keeping the initial point lets Unity test the mesh that was actually touched.
+private final class CharacterPreviewGesture: UIGestureRecognizer {
+    private var finger:UITouch?
+    private(set) var origin = CGPoint.zero
+    private(set) var rotation = CGPoint.zero
+    override func touchesBegan(_ touches:Set<UITouch>,with event:UIEvent) {
+        guard finger == nil,touches.count == 1,let touch=touches.first else {
+            state = state == .possible ? .failed : .cancelled;return
+        }
+        finger=touch;origin=touch.location(in:view)
+    }
+    override func touchesMoved(_ touches:Set<UITouch>,with event:UIEvent) {
+        guard let finger,let view else {return}
+        let point=finger.location(in:view),dx=point.x-origin.x,dy=point.y-origin.y
+        guard state != .possible || hypot(dx,dy)>=7 else {return}
+        rotation=CGPoint(x:dx/max(1,view.bounds.width),y:dy/max(1,view.bounds.height))
+        state = state == .possible ? .began : .changed
+    }
+    override func touchesEnded(_ touches:Set<UITouch>,with event:UIEvent) {
+        state = state == .possible ? .failed : .ended
+    }
+    override func touchesCancelled(_ touches:Set<UITouch>,with event:UIEvent) {
+        state = state == .possible ? .failed : .cancelled
+    }
+    override func reset() {finger=nil;origin = .zero;rotation = .zero;super.reset()}
+}
+
 /// Enabled only by the position button. Finger-count changes start a new basis,
 /// so adding/removing a finger never mixes rotation with translation or zoom.
 private final class CharacterEditGesture: UIGestureRecognizer {
@@ -56,12 +84,16 @@ final class CharacterTouchSurface:UIView,UIGestureRecognizerDelegate {
     private(set) var editing=false
     private static var nextToken=0
     private(set) var inspectionToken=0
+    private var previewToken=0
+    private var previewInProgress=false
     private lazy var tap=UITapGestureRecognizer(target:self,action:#selector(tapped(_:)))
+    private lazy var preview=CharacterPreviewGesture(target:self,action:#selector(previewed(_:)))
     private lazy var inspect=CharacterEditGesture(target:self,action:#selector(inspected(_:)))
     override init(frame:CGRect) {
         super.init(frame:frame)
         backgroundColor = .clear;isOpaque=false;isMultipleTouchEnabled=true
-        addGestureRecognizer(tap);addGestureRecognizer(inspect);inspect.isEnabled=false
+        addGestureRecognizer(tap);addGestureRecognizer(preview);addGestureRecognizer(inspect);inspect.isEnabled=false
+        tap.require(toFail:preview)
     }
     required init?(coder:NSCoder) {fatalError("init(coder:) has not been implemented")}
     func observeEditing(in overlay:UIView,accepts:@escaping(CGPoint,UIView?)->Bool) {
@@ -73,22 +105,42 @@ final class CharacterTouchSurface:UIView,UIGestureRecognizerDelegate {
     func configure(available:Bool,framingEnabled:Bool) {
         if !available {cancelInspection()}
         isUserInteractionEnabled=available;tap.isEnabled=available && !editing;inspect.isEnabled=available && editing
+        preview.isEnabled=available && !editing
     }
     func beginEditing() {
         Self.nextToken+=1;inspectionToken=Self.nextToken;editing=true;tap.isEnabled=false;inspect.isEnabled=isUserInteractionEnabled
+        preview.isEnabled=false
     }
     func cancelCurrentAdjustment() {inspect.isEnabled=false;inspect.isEnabled=editing && isUserInteractionEnabled}
     func endEditing() {
         // Disabling an in-flight recognizer delivers its final cancellation first.
         inspect.isEnabled=false;editing=false;inspectionInProgress=false;tap.isEnabled=isUserInteractionEnabled
+        preview.isEnabled=isUserInteractionEnabled
     }
-    func cancelInspection() {endEditing()}
+    func cancelInspection() {preview.isEnabled=false;endEditing()}
     override func didMoveToWindow() {super.didMoveToWindow();if window==nil {cancelInspection()}}
     override func touchesBegan(_ touches:Set<UITouch>,with event:UIEvent?) {touchSequences+=1;super.touchesBegan(touches,with:event)}
     @objc private func tapped(_ recognizer:UITapGestureRecognizer) {
         guard !editing,recognizer.state == .ended,bounds.width>0,bounds.height>0 else {return}
         let point=recognizer.location(in:self);recognizedGestures+=1
         onGesture?(["action":"tap","state":"ended","viewportX":point.x/bounds.width,"viewportY":point.y/bounds.height])
+    }
+    @objc private func previewed(_ recognizer:CharacterPreviewGesture) {
+        guard bounds.width>0,bounds.height>0 else {return}
+        let state:String
+        switch recognizer.state {
+        case .began:
+            guard !editing else {return}
+            Self.nextToken+=1;previewToken=Self.nextToken;previewInProgress=true;recognizedGestures+=1;state="began"
+        case .changed:guard previewInProgress else {return};state="changed"
+        case .ended,.cancelled,.failed:
+            guard previewInProgress else {return}
+            previewInProgress=false;state=recognizer.state == .ended ? "ended" : "cancelled"
+        default:return
+        }
+        onGesture?(["action":"previewRotate","state":state,"previewToken":previewToken,
+            "viewportX":recognizer.origin.x/bounds.width,"viewportY":recognizer.origin.y/bounds.height,
+            "deltaX":recognizer.rotation.x,"deltaY":recognizer.rotation.y])
     }
     @objc private func inspected(_ recognizer:CharacterEditGesture) {
         guard editing else {return}

@@ -70,7 +70,7 @@ struct MessagesPage: View {
                         .listRowInsets(EdgeInsets(top:0,leading:24,bottom:0,trailing:24))
                         .listRowBackground(Color.clear).listRowSeparator(.hidden)
                         .swipeActions(edge:.trailing,allowsFullSwipe:false) {
-                            Button { hide(model) } label: { Label("不显示",systemImage:"eye.slash") }
+                            Button("不显示") { hide(model) }
                                 .tint(Theme.card).accessibilityIdentifier("hideConversation-"+model.id)
                         }
                         .accessibilityAction(named:Text("不显示")) { hide(model) }

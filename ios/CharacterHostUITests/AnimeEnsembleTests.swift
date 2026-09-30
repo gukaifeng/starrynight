@@ -109,7 +109,7 @@ final class AnimeEnsembleTests:XCTestCase {
         app.waitForCharacter { $0["modelId"] as? String == id }
     }
     @MainActor private func send(_ text:String,_ app:XCUIApplication) {
-        let input=app.textFields["chatInput"];XCTAssertTrue(input.waitForExistence(timeout:8));input.tap();input.typeText(text);app.buttons["sendMessageButton"].tap()
+        let input=app.textViews["chatInput"];XCTAssertTrue(input.waitForExistence(timeout:8));input.tap();input.typeText(text);app.buttons["sendMessageButton"].tap()
     }
     @MainActor private func stopVoice(_ app:XCUIApplication) {
         for voice in app.buttons.matching(NSPredicate(format:"identifier BEGINSWITH %@","messageVoice-")).allElementsBoundByIndex {

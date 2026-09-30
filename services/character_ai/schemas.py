@@ -128,6 +128,7 @@ class Request(Strict):
     scene: dict[str,str] = Field(default_factory=dict)
     available_assets: list[str] = Field(default_factory=list,max_length=256)
     wants_audio: bool = True
+    progressive_reply: bool = False
 
     @field_validator('preferences','scene')
     @classmethod

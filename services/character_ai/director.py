@@ -46,7 +46,7 @@ class Director:
         return dict(beat_id=beat.beat_id,expression_asset=face,action_asset=action,
                     grounding='approximate' if 'approximate' in (fg,ag) else 'exact' if face or action else 'none')
 
-def grounded(narration,resolved):
+def grounded(narration,resolved,appearance_facts=()):
     entry=next((r for r in resolved if r['beat_id']==narration.beat_id),None)
     if not entry:return False
     effects=[s for k in ('expression_asset','action_asset') if entry.get(k) for s in entry[k]['observable_effects']]
@@ -58,13 +58,46 @@ def grounded(narration,resolved):
         clean=lambda s: re.sub(r'[\s，。；、！,.!;：:她他]+','',s)
         if clean(narration.text)!=clean(''.join(narration.evidence)):return False
     if narration.mode=='literary':
-        if narration.visual_grounding!='none' or narration.evidence:return False
-        # Until scene assets expose grounded environmental facts, literary text
-        # may describe only the pace of this exchange. Fail closed on invented
-        # daylight, food, furniture or poses; a verb denylist cannot prove safety.
+        if narration.visual_grounding!='none':return False
+        # Facts are reviewed server-side character metadata. Client scene text
+        # and fictional backstory never authorize claims about the actual image.
+        remainder=narration.text
+        for fact in narration.evidence:
+            if fact not in appearance_facts or fact not in remainder:return False
+            remainder=remainder.replace(fact,'',1)
+        # The rest may describe conversational pace only. A real cited eye/hair
+        # trait cannot be used to smuggle in an unperformed physical interaction.
         words=r'(?:短暂|片刻|轻轻|微微|渐渐|稍稍|慢慢|柔和|温柔|安静|轻柔|平静|停顿|沉默|对话|话语|话音|语气|交流|声音|字句|余音|这一刻|此刻|之间|之中|落下|放缓|停留|延续|流淌|散开|下来|一点|一阵|让|中|在|的|地|得|了|也|更|很|里|间|变|得以|带着|显得|随着|和|与|而|着|是|一|丝|份|分|，|。|、|；|：|…|\s)'
-        if not re.fullmatch(words+r'+',narration.text):return False
+        if not re.fullmatch(words+r'*',remainder):return False
     # Do not display common hallucinated physical interactions even if the model
     # incorrectly cites an otherwise valid facial expression as evidence.
     forbidden=['走到','走向','拿起','抱住','拥抱','拍你','拍了拍','捂嘴','捂住嘴','抬手','伸手','伸出手','打开门','靠在你','坐到','递给','摸了摸','转过身','偏过头','别过脸','转过头']
     return not any(x in narration.text and not any(x in e for e in effects) for x in forbidden)
+
+def grounded_excerpt(narration,resolved,appearance_facts=()):
+    """Render only independently grounded clauses or the model's verified citations.
+
+    A correct hair description followed by invented sunlight should lose the
+    sunlight, not the valid clause. If the prose entirely rewrites those facts,
+    use the actual citations the AI selected. No random/local conversation reply
+    or invented action is introduced, and a performance is never relabelled.
+    """
+    if grounded(narration,resolved,appearance_facts):return narration
+    parts=[];evidence=[]
+    for clause in re.split(r'[，。！？；,!?;\n]+',narration.text):
+        clause=clause.strip()
+        if not clause:continue
+        citations=[e for e in narration.evidence if e in clause]
+        candidate=narration.model_copy(update={'text':clause,'evidence':citations})
+        if grounded(candidate,resolved,appearance_facts):
+            parts.append(clause)
+            for citation in citations:
+                if citation not in evidence:evidence.append(citation)
+    if parts:
+        excerpt=narration.model_copy(update={'text':'。'.join(parts)+'。','evidence':evidence})
+        if grounded(excerpt,resolved,appearance_facts):return excerpt
+    if narration.evidence:
+        cited=narration.model_copy(update={'text':'。'.join(dict.fromkeys(narration.evidence))+'。',
+                                         'evidence':list(dict.fromkeys(narration.evidence))})
+        if grounded(cited,resolved,appearance_facts):return cited
+    return None

@@ -128,7 +128,7 @@ final class LandscapeFlowTests: XCTestCase {
         wait { !app.keyboards.firstMatch.exists }
         app.closeCustomizationPage("closeProfileButton");settled(app);pose("lie",app)
     }
-    @MainActor private func field(_ app:XCUIApplication)->XCUIElement {app.textViews["chatInput"].exists ? app.textViews["chatInput"] : app.textFields["chatInput"]}
+    @MainActor private func field(_ app:XCUIApplication)->XCUIElement {app.textViews["chatInput"]}
     @MainActor private func send(_ text:String,_ app:XCUIApplication){let f=field(app);f.tap();f.typeText(text);app.buttons["sendMessageButton"].tap()}
     @MainActor private func pose(_ id:String,_ app:XCUIApplication){wait {let p=self.event(app)["posture"] as? [String:Any];return p?["id"] as? String == id && p?["transitioning"] as? Bool == false}}
     @MainActor private func rotate(_ orientation:UIDeviceOrientation,_ app:XCUIApplication){

@@ -94,11 +94,11 @@ struct MyPage: View {
             else { UserAccountAvatar(size:56,signed:signed) }
             VStack(alignment:.leading,spacing:6) {
                 HStack(spacing:7) {
-                    Text(signed ? coordinator.library.currentAuthor?.name ?? "星夜体验者" : "初来星夜")
+                    Text(signed ? coordinator.account.cloudSession?.user.displayName ?? coordinator.library.currentAuthor?.name ?? "星夜体验者" : "初来星夜")
                         .font(.system(size:20,weight:.semibold,design:.rounded)).lineLimit(1)
                     Image(systemName:"chevron.right").font(.system(size:9,weight:.medium)).foregroundStyle(Theme.secondary.opacity(0.7))
                 }
-                Text(signed ? "星夜号：" + (coordinator.account.session?.accountID ?? "") : "游客 · 正在开始的故事")
+                Text(signed ? "星夜号：" + (coordinator.account.cloudSession.map { $0.user.guest ? "测试体验" : $0.user.username } ?? coordinator.account.session?.accountID ?? "") : "游客 · 正在开始的故事")
                     .font(.system(size:10)).foregroundStyle(Theme.secondary).lineLimit(1).accessibilityIdentifier("profileAccountID")
             }.frame(maxWidth:.infinity,alignment:.leading)
         }.padding(.vertical,4).contentShape(Rectangle())
@@ -297,7 +297,7 @@ struct ProfileSettingsView: View {
                     NavigationLink { AboutView(embedded:true) } label: { Label("关于星夜",systemImage:"info.circle") }
                         .accessibilityIdentifier("aboutStarryButton")
                 }.listRowBackground(Theme.surface)
-                if coordinator.account.isSignedIn {
+                if coordinator.account.isSignedIn && coordinator.account.cloudSession == nil {
                     Section("体验设置") {
                         Button { onClose(); coordinator.account.switchDemoIdentity() } label: {
                             Label("切换到体验身份 " + (coordinator.account.session?.accountID == DemoAccount.id ? "B" : "A"),systemImage:"person.2")

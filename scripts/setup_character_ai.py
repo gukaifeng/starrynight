@@ -21,7 +21,8 @@ path=folder/'settings.json'
 config=json.loads(path.read_text()) if path.exists() else {}
 config.update(api_key=key,host='https://'+parsed.netloc,data_dir=str(folder))
 config.setdefault('client_token',secrets.token_urlsafe(32));config.setdefault('admin_token',secrets.token_urlsafe(40))
-# Conservative initial development budget. Persisted counters survive restarts.
+# Optional operator limits; disabled for conversation by the user's request.
+config['enforce_conversation_limits']=False
 config.setdefault('max_daily_calls',60);config.setdefault('max_daily_tts_characters',2500)
 config.setdefault('max_daily_asr_seconds',120);config.setdefault('max_voice_designs',2)
 path.write_text(json.dumps(config,indent=2));path.chmod(0o600)

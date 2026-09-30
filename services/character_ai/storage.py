@@ -45,6 +45,10 @@ class Store:
         return None
     def complete(self,owner,character,id,result):
         with self.db:self.db.execute('UPDATE requests SET status=?,result=? WHERE owner=? AND character=? AND id=?',('completed',dump(result),owner,character,id))
+    def enrich_reply(self,owner,character,id,result):
+        with self.db:
+            self.db.execute("UPDATE messages SET data=? WHERE id=? AND owner=? AND character=? AND role='assistant'",(dump(result),result['message_id'],owner,character))
+            self.db.execute("UPDATE requests SET result=? WHERE owner=? AND character=? AND id=? AND status='completed'",(dump(result),owner,character,id))
     def sync_memories(self,owner,character,memories):
         with self.db:
             self.db.execute("DELETE FROM memories WHERE owner=? AND character=? AND source='manual'",(owner,character))
@@ -75,14 +79,18 @@ class Store:
             # Admission and reservation must be atomic even if a maintenance
             # process runs alongside the single-worker gateway.
             self.db.execute('BEGIN IMMEDIATE')
-            used=self.db.execute("SELECT count(*) FROM usage WHERE created>=? AND status!='not_sent'",(start,)).fetchone()[0]
-            if used>=settings.max_daily_calls:raise ValueError('DAILY_CALL_LIMIT')
+            if settings.enforce_conversation_limits:
+                used=self.db.execute("SELECT count(*) FROM usage WHERE created>=? AND status!='not_sent'",(start,)).fetchone()[0]
+                if used>=settings.max_daily_calls:raise ValueError('DAILY_CALL_LIMIT')
             limit={'tts':settings.max_daily_tts_characters,'asr':settings.max_daily_asr_seconds,'voice_design':settings.max_voice_designs}.get(kind)
-            if limit is not None:
+            if limit is not None and (kind=='voice_design' or settings.enforce_conversation_limits):
                 since=0 if kind=='voice_design' else start
                 count=self.db.execute('SELECT coalesce(sum(reserved),0) FROM usage WHERE kind=? AND created>=?',(kind,since)).fetchone()[0]
                 if count+units>limit:raise ValueError('USAGE_LIMIT_'+kind.upper())
             return self.db.execute('INSERT INTO usage(kind,owner,character,reserved,units,status,metrics,created) VALUES(?,?,?,?,?,?,?,?)',(kind,owner,character,units,0,'reserved','{}',time.time())).lastrowid
+    def interrupt(self,owner,character,id):
+        with self.db:
+            self.db.execute("UPDATE requests SET status='interrupted' WHERE owner=? AND character=? AND id=? AND result IS NULL",(owner,character,id))
     def usage(self,id,status,metrics=None,units=None):
         with self.db:
             self.db.execute('UPDATE usage SET status=?,metrics=?,units=coalesce(?,units) WHERE id=?',(status,dump(metrics or {}),units,id))

@@ -7,6 +7,7 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
     enum Page { case home, loading, viewer, closing, error }
     let account = AccountStore()
     let library = CharacterLibrary()
+    @ObservationIgnored private var platformSync:AccountSync?
     var selectedTab: AppTab = .home
     var loginPresented = false
     private(set) var startupInProgress = true
@@ -99,11 +100,21 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
         let id = account.session?.accountID ?? "guest"
         let isNew = !library.hasAccount(id)
         let oldGuest = companionStore.accountID == "guest"
-        let adoptingGuest = id != "guest" && isNew && oldGuest &&
+        let canAdoptGuest = account.cloudSession == nil || account.cloudShouldImportLocal
+        let adoptingGuest = canAdoptGuest && id != "guest" && isNew && oldGuest &&
             (companionStore.archive.guestImportedBy == nil || companionStore.archive.guestImportedBy == id)
-        if id != "guest", isNew, oldGuest { companionStore.importGuest(into:id) }
+        if canAdoptGuest, id != "guest", isNew, oldGuest { companionStore.importGuest(into:id) }
         companionStore.activateAccount(id)
         library.activate(id,existing:companionStore.currentRecords,adoptingGuest:adoptingGuest)
+        if platformSync == nil {
+            platformSync = AccountSync(account:account,store:companionStore,library:library)
+            account.onFirstSync = { [weak self] in
+                guard let self,self.selectedTab == .home,
+                      let id=self.library.lastCharacter,id != self.selectedModel.id else{return}
+                self.openCharacter(id,greetingReason:.conversationReturn)
+            }
+        }
+        platformSync?.activate()
         if ProcessInfo.processInfo.arguments.contains("--companion-testing"), !ProcessInfo.processInfo.arguments.contains("--keep-companion-data") { predictionDefaults.removeObject(forKey:predictionKey) }
         prediction.visits = predictionDefaults.data(forKey:predictionKey).flatMap { try? JSONDecoder().decode([CharacterPrediction.Visit].self,from:$0) } ?? []
     }
@@ -847,7 +858,7 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
         // auto-save replies must survive a tab change/background transition.
         overlay?.receiveInspectionEvent(event)
         if event["presentationId"] as? Int == presentation, event["modelId"] as? String == selectedModel.runtimeID,
-           ["state","studioConfigured","environmentConfigured","framingConfigured","companionViewport","actionStarted","actionCompleted","headTapped","characterReceipt","parametersConfigured","postureConfigured","postureSettled","performanceConfigured","inspectionPrepared","inspectionBegan","inspectionEnded","inspectionReturned","inspectionRejected","inspectionAdjusting","inspectionChanged","inspectionCaptured","inspectionClosed","inspectionLoaded"].contains(name) {
+           ["state","studioConfigured","environmentConfigured","framingConfigured","companionViewport","actionStarted","actionCompleted","headTapped","characterReceipt","parametersConfigured","postureConfigured","postureSettled","performanceConfigured","inspectionPrepared","inspectionBegan","inspectionEnded","inspectionReturned","inspectionRejected","inspectionAdjusting","inspectionChanged","inspectionCaptured","inspectionClosed","inspectionLoaded","previewRotationBegan","previewRotationEnded","previewRotationReturned","previewRotationRejected"].contains(name) {
             overlay?.setRuntimeFraming(event)
         }
         switch name {

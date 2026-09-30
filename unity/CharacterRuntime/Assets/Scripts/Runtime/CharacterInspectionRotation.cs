@@ -15,9 +15,9 @@ namespace ModelSpace
     // latest view per account/character; rotation never silently pans or zooms.
     public sealed class CharacterInspectionRotation
     {
-        public const int Revision=7;
+        public const int Revision=10;
         public const float TurnFramingReserve=1.10f;
-        public const float HoldSeconds=1, MaximumPitch=25;
+        public const float HoldSeconds=1, MaximumPitch=80;
         public const float MinimumScale=.78f,MaximumScale=1.28f,MaximumTranslation=.45f;
         Transform model;
         Camera camera;
@@ -56,6 +56,7 @@ namespace ModelSpace
         public float TargetScale {get;private set;}=1;
         public Vector2 Translation {get;private set;}
         public Vector2 TargetTranslation {get;private set;}
+        public CharacterPreviewRotation Preview {get;}=new CharacterPreviewRotation();
         public int Count { get; private set; }
         public int RejectedCount { get; private set; }
         public int ReturnCount { get; private set; }
@@ -89,6 +90,7 @@ namespace ModelSpace
             var horizontal=Vector3.ProjectOnPlane(right,Vector3.up);
             if(horizontal.sqrMagnitude<.0001f)return false;
             pitchAxis=horizontal.normalized;
+            Preview.End();
             if(Preparing)Assign(chargeBase);
             Active=true;Preparing=false;Moving=false;returning=false;Count++;return true;
         }
@@ -195,6 +197,7 @@ namespace ModelSpace
         public void Load(CharacterViewPose pose,bool immediate=false)
         {
             if(!pose.Valid)return;
+            if(immediate)Preview.Reset();else Preview.End();
             rotationOnly=false;committed=Normalize(pose);Assign(committed);Preparing=false;Moving=false;returning=true;
             if(immediate) {Yaw=TargetYaw;Pitch=TargetPitch;Scale=TargetScale;Translation=TargetTranslation;ClearVelocity();}
         }
@@ -213,12 +216,14 @@ namespace ModelSpace
         }
         public void ResetImmediate()
         {
+            Preview.Reset();
             RestoreFrame();rotationOnly=false;Active=Preparing=Moving=returning=false;Yaw=Pitch=chargeTime=0;Scale=1;Translation=Vector2.zero;
             Assign(CharacterViewPose.Default);ClearVelocity();
         }
         public bool Step(float deltaTime)
         {
             if(!float.IsFinite(deltaTime) || deltaTime<=0)return false;
+            Preview.Step(deltaTime);
             float dt=Mathf.Min(deltaTime,.05f),response=Moving ? .10f : .32f;
             if(Preparing)
             {
@@ -326,10 +331,14 @@ namespace ModelSpace
                 if(!rotationOnly)p=Constrain(p,!requested.IsDefault);
                 Yaw=p.yaw;Pitch=p.pitch;Scale=p.scale;Translation=new Vector2(p.x,p.y);
             }
+            // Apply the temporary turn about the same body pivot, after fitting
+            // the saved pose. No preview angle enters projection compensation.
+            p.yaw+=Preview.Offset.x;
+            p.pitch=Mathf.Clamp(p.pitch+Preview.Offset.y,-MaximumPitch,MaximumPitch);
             ProjectedEnvelope=Project(p);
             if(p.IsDefault)return;
             authoredRotation=model.rotation;authoredPosition=model.position;authoredScale=model.localScale;
-            var q=Quaternion.AngleAxis(Pitch%360,pitchAxis)*Quaternion.AngleAxis(Yaw%360,Vector3.up);
+            var q=Quaternion.AngleAxis(p.pitch%360,pitchAxis)*Quaternion.AngleAxis(p.yaw%360,Vector3.up);
             var pivot=hasProjection ? bodyPivot : authoredPosition;
             model.rotation=q*authoredRotation;model.localScale=authoredScale*Scale;
             model.position=(hasProjection ? region.center+(pivot-region.center)*Scale : pivot)+q*(authoredPosition-pivot)*Scale+pitchAxis*Translation.x*worldSpan.x-screenUp*Translation.y*worldSpan.y;

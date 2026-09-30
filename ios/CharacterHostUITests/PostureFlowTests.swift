@@ -71,7 +71,7 @@ final class PostureFlowTests: XCTestCase {
     private func isPose(_ e:[String:Any],_ id:String)->Bool{pose(e)["id"] as? String == id && pose(e)["transitioning"] as? Bool == false}
     private func value(_ e:[String:Any],_ id:String)->Double{(pose(e)["parameters"] as? [[String:Any]])?.first{$0["id"] as? String == id}?["value"] as? Double ?? -999}
     @MainActor private func send(_ text:String,_ app:XCUIApplication) {
-        let input=app.textViews["chatInput"].exists ? app.textViews["chatInput"] : app.textFields["chatInput"]
+        let input=app.textViews["chatInput"]
         XCTAssertTrue(input.waitForExistence(timeout:8));input.tap();input.typeText(text);app.buttons["sendMessageButton"].tap()
         app.waitForReply(timeout:20)
     }

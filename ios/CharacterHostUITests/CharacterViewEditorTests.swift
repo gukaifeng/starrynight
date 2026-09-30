@@ -1,6 +1,65 @@
 import XCTest
 
 final class CharacterViewEditorTests:XCTestCase {
+    @MainActor func testNormalDragReturnsToSavedPoseWithoutOpeningEditor() {
+        continueAfterFailure=false
+        let app=XCUIApplication();app.launchArguments=["--ui-testing","--companion-testing","--auth-testing"]
+        app.launch();ready(app)
+        app.waitForCharacter {self.number($0,"inspectionGestureRevision")>=8}
+        func previewAndReturn() {
+            let before=app.characterRuntime,saved=pose(before)
+            let stored=before["viewPoseSaved"] as? [String:Double]
+            let count=number(before,"previewRotationCount"),returns=number(before,"previewRotationReturnCount")
+            let start=app.coordinate(withNormalizedOffset:CGVector(dx:number(before,"headX"),dy:number(before,"headY")))
+            start.press(forDuration:0.06,thenDragTo:start.withOffset(CGVector(dx:app.frame.width * 0.25,dy:45)),withVelocity:.slow,thenHoldForDuration:0.3)
+            app.waitForCharacter {self.number($0,"previewRotationReturnCount")>returns}
+            let after=app.characterRuntime
+            XCTAssertEqual(number(after,"previewRotationCount"),count+1)
+            XCTAssertGreaterThan(number(after,"previewRotationPeakYaw"),5)
+            XCTAssertLessThanOrEqual(number(after,"previewRotationPeakYaw"),18.001)
+            XCTAssertLessThanOrEqual(number(after,"previewRotationPeakPitch"),8.001)
+            XCTAssertEqual(number(after,"previewRotationYaw"),0)
+            XCTAssertEqual(number(after,"previewRotationPitch"),0)
+            XCTAssertEqual(after["viewEditorOpen"] as? Bool,false)
+            XCTAssertEqual(after["inspectionChatLocked"] as? Bool,false)
+            XCTAssertEqual(after["viewPoseSaved"] as? [String:Double],stored,"Temporary rotation must never write the account's saved view")
+            for key in ["yaw","pitch","scale","x","y"] {XCTAssertEqual(pose(after)[key] ?? -1,saved[key] ?? -2,accuracy:0.001)}
+        }
+        previewAndReturn()
+        open(app);drag(app,dx:0.06,dy:-0.02)
+        app.buttons["closeCharacterViewEditor"].tap()
+        app.waitForCharacter {$0["viewEditorOpen"] as? Bool == false && self.number($0,"inspectionMoving")==0}
+        previewAndReturn()
+        let count=number(app.characterRuntime,"previewRotationCount")
+        // The fully transparent upper fade deliberately passes touches to the
+        // visible model. Exercise the readable chat area, not XCTest's default
+        // swipe origin near that transparent edge.
+        let chat=app.scrollViews["chatMessages"]
+        chat.coordinate(withNormalizedOffset:CGVector(dx:0.5,dy:0.72)).press(forDuration:0.06,
+            thenDragTo:chat.coordinate(withNormalizedOffset:CGVector(dx:0.5,dy:0.95)),withVelocity:.slow,thenHoldForDuration:0.1)
+        XCTAssertEqual(number(app.characterRuntime,"previewRotationCount"),count,"Chat scrolling belongs to the chat")
+        capture("temporary-single-finger-rotation",app)
+    }
+    @MainActor func testNormalTwoFingerGestureIsRejectedAndCancelsAnActiveDrag() {
+        continueAfterFailure=false
+        let app=XCUIApplication();app.launchArguments=["--ui-testing","--companion-testing","--auth-testing"]
+        app.launch();ready(app)
+        app.waitForCharacter {self.number($0,"inspectionGestureRevision")>=8}
+        let before=app.characterRuntime,saved=pose(before)
+        let start=CGPoint(x:number(before,"headX")*app.frame.width,y:number(before,"headY")*app.frame.height)
+        let two=expectation(description:"two fingers on closed editor")
+        SNSynthesizeViewEdit(start,app.frame.size) {error in XCTAssertNil(error);two.fulfill()}
+        wait(for:[two],timeout:8)
+        XCTAssertEqual(number(app.characterRuntime,"previewRotationCount"),number(before,"previewRotationCount"),"Two fingers must not start a temporary turn")
+        let cancellation=expectation(description:"second finger cancels active temporary drag")
+        SNSynthesizePreviewCancellation(start,app.frame.size) {error in XCTAssertNil(error);cancellation.fulfill()}
+        wait(for:[cancellation],timeout:8)
+        app.waitForCharacter {self.number($0,"previewRotationReturnCount")>self.number(before,"previewRotationReturnCount")}
+        XCTAssertEqual(number(app.characterRuntime,"previewRotationCount"),number(before,"previewRotationCount")+1,"The remaining finger must not restart rotation")
+        for key in ["yaw","pitch","scale","x","y"] {XCTAssertEqual(pose(app.characterRuntime)[key] ?? -1,saved[key] ?? -2,accuracy:0.001)}
+        XCTAssertEqual(app.characterRuntime["viewPoseSaved"] as? [String:Double],before["viewPoseSaved"] as? [String:Double])
+        capture("temporary-rotation-two-finger-cancel",app)
+    }
     @MainActor func testPresetPersistenceAndIsolation() {
         let app=XCUIApplication();app.launchArguments=["--view-presets-check"]
         app.launch()
@@ -122,16 +181,21 @@ final class CharacterViewEditorTests:XCTestCase {
         continueAfterFailure=false
         let app=XCUIApplication();app.launchArguments=["--ui-testing","--companion-testing","--auth-testing"]
         app.launch();ready(app);open(app)
+        app.waitForCharacter {self.number($0,"inspectionGestureRevision")>=10}
         let start=app.coordinate(withNormalizedOffset:CGVector(dx:0.83,dy:0.38))
         start.press(forDuration:0.08,thenDragTo:app.coordinate(withNormalizedOffset:CGVector(dx:0.14,dy:0.38)),withVelocity:.slow,thenHoldForDuration:0.2)
         let top=app.coordinate(withNormalizedOffset:CGVector(dx:0.48,dy:0.27))
-        top.press(forDuration:0.08,thenDragTo:app.coordinate(withNormalizedOffset:CGVector(dx:0.48,dy:0.76)),withVelocity:.slow,thenHoldForDuration:0.2)
-        app.waitForCharacter {abs(self.pose($0)["yaw"] ?? 0)>200 && abs(self.pose($0)["pitch"] ?? 0)>24}
-        XCTAssertLessThanOrEqual(abs(pose(app.characterRuntime)["pitch"] ?? 100),25.01)
+        for _ in 0..<2 {
+            top.press(forDuration:0.08,thenDragTo:app.coordinate(withNormalizedOffset:CGVector(dx:0.48,dy:0.76)),withVelocity:.slow,thenHoldForDuration:0.2)
+        }
+        app.waitForCharacter {abs(self.pose($0)["yaw"] ?? 0)>200 && abs(self.pose($0)["pitch"] ?? 0)>79}
+        XCTAssertLessThanOrEqual(abs(pose(app.characterRuntime)["pitch"] ?? 100),80.01)
         let bottom=app.coordinate(withNormalizedOffset:CGVector(dx:0.48,dy:0.78))
-        bottom.press(forDuration:0.08,thenDragTo:app.coordinate(withNormalizedOffset:CGVector(dx:0.48,dy:0.16)),withVelocity:.slow,thenHoldForDuration:0.2)
-        app.waitForCharacter {(self.pose($0)["pitch"] ?? 0)>24}
-        XCTAssertLessThanOrEqual(pose(app.characterRuntime)["pitch"] ?? 100,25.01)
+        for _ in 0..<3 {
+            bottom.press(forDuration:0.08,thenDragTo:app.coordinate(withNormalizedOffset:CGVector(dx:0.48,dy:0.16)),withVelocity:.slow,thenHoldForDuration:0.2)
+        }
+        app.waitForCharacter {(self.pose($0)["pitch"] ?? 0)>79}
+        XCTAssertLessThanOrEqual(pose(app.characterRuntime)["pitch"] ?? 100,80.01)
         let saved=pose(app.characterRuntime)
         XCTAssertEqual(saved["scale"] ?? 0,1,accuracy:0.001);XCTAssertEqual(saved["x"] ?? 1,0,accuracy:0.001);XCTAssertEqual(saved["y"] ?? 1,0,accuracy:0.001)
         capture("free-yaw-bounded-pitch",app)

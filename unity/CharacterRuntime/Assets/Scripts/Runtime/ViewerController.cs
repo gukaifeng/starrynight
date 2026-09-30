@@ -13,7 +13,7 @@ namespace ModelSpace
         public bool framingGesturesEnabled = true;
         public bool nativeGestures;
         public float deltaX, deltaY, translationX, translationY, scale = 1;
-        public int inspectionToken;
+        public int inspectionToken,previewToken;
         public CharacterViewPose inspectionPose;
         public float topInset, bottomInset;
         public int targetFPS = 120;
@@ -47,6 +47,9 @@ namespace ModelSpace
         public bool framingMotionActive;
         public int inspectionGestureRevision=CharacterInspectionRotation.Revision,inspectionCount,inspectionRejectedCount,inspectionReturnCount;
         public bool inspectionActive,inspectionPreparing,inspectionMoving;
+        public bool previewRotationActive;
+        public int previewToken,previewRotationCount,previewRotationReturnCount;
+        public float previewRotationYaw,previewRotationPitch,previewRotationPeakYaw,previewRotationPeakPitch;
         public CharacterViewPose inspectionPose;
         public Rect inspectionEnvelope;
         public int inspectionToken;
@@ -246,7 +249,9 @@ namespace ModelSpace
             if (!viewCamera) return;
             inspection.RestoreFrame();
             HandleInput();
+            int previewReturns=inspection.Preview.ReturnCount;
             if(inspection.Step(Time.unscaledDeltaTime))Emit("inspectionReturned");
+            if(previewReturns!=inspection.Preview.ReturnCount)Emit("previewRotationReturned");
             float t = 1 - Mathf.Exp(-18f * Time.unscaledDeltaTime);
             currentSize = Mathf.Lerp(currentSize, size, t);
             currentAngle = Mathf.Lerp(currentAngle, angle, t);
@@ -377,9 +382,33 @@ namespace ModelSpace
             // One durable update per gesture, not a native bridge event / disk write per frame.
             Emit("framingGestureEnded"); ScheduleState();
         }
+        int previewToken;
         void HandleNativeGesture(BridgePayload value)
         {
             if (!nativeGestures || !gesturesEnabled || value == null || !viewCamera) return;
+            if(value.action=="previewRotate")
+            {
+                if(value.state=="began") {
+                    // Starts on the displayed mesh, not empty scenery or chat.
+                    // A separate token/command prevents draft commits on release.
+                    if(value.previewToken<=previewToken)return;
+                    inspection.Preview.End();previewToken=value.previewToken;
+                    if(!inspection.Active && !inspection.Preparing && actions &&
+                       float.IsFinite(value.viewportX) && float.IsFinite(value.viewportY) &&
+                       value.viewportX>=0 && value.viewportX<=1 && value.viewportY>=0 && value.viewportY<=1 &&
+                       HitDisplayedModel(new Vector2(value.viewportX*Screen.width,(1-value.viewportY)*Screen.height))) {
+                        inspection.Preview.Begin();inspection.Preview.Move(value.deltaX,value.deltaY);Emit("previewRotationBegan");
+                    }
+                    else Emit("previewRotationRejected");
+                }
+                else if(value.previewToken==previewToken) {
+                    if(value.state=="changed") {inspection.Preview.Move(value.deltaX,value.deltaY);ScheduleState();}
+                    else if(value.state=="ended" || value.state=="cancelled") {
+                        inspection.Preview.End();Emit("previewRotationEnded");ScheduleState();
+                    }
+                }
+                return;
+            }
             if(value.action=="inspect")
             {
                 if(value.state=="open") {
@@ -438,7 +467,7 @@ namespace ModelSpace
         }
         void InterruptInput()
         {
-            FinishGesture(); ClearInput(); suppressUntilRelease = Input.touchCount > 0;
+            inspection.Preview.End();FinishGesture(); ClearInput(); suppressUntilRelease = Input.touchCount > 0;
         }
         bool HitDisplayedModel(Vector2 point)
         {
@@ -680,6 +709,10 @@ namespace ModelSpace
                 framingShot = shot, effectiveShot = EffectiveShot, framingSize = size, framingAngle = angle, actionFraming = actionFraming,
                 gesturesEnabled = gesturesEnabled, framingGesturesEnabled = framingGesturesEnabled, nativeGestures = nativeGestures,
                 inspectionActive=inspection.Active,inspectionPreparing=inspection.Preparing,inspectionToken=inspectionToken,
+                previewToken=previewToken,previewRotationActive=inspection.Preview.Active,
+                previewRotationYaw=inspection.Preview.Offset.x,previewRotationPitch=inspection.Preview.Offset.y,
+                previewRotationPeakYaw=inspection.Preview.PeakYaw,previewRotationPeakPitch=inspection.Preview.PeakPitch,
+                previewRotationCount=inspection.Preview.Count,previewRotationReturnCount=inspection.Preview.ReturnCount,
                 inspectionPose=inspection.Target,inspectionMoving=inspection.Moving,inspectionEnvelope=inspection.ProjectedEnvelope,
                 inspectionScale=inspection.Scale,inspectionTranslationX=inspection.Translation.x,inspectionTranslationY=inspection.Translation.y,
                 idlePlaying=actions && actions.IdlePlaying,idleTime=actions ? actions.IdleTime : 0,idleWeight=actions ? actions.IdleWeight : 0,

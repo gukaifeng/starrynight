@@ -36,6 +36,7 @@ final class CompanionStore {
     var chatDisplay = ChatDisplaySettings()
     @ObservationIgnored private let chatDisplayDefaults: UserDefaults
     @ObservationIgnored private var recoveryBlocked = false
+    @ObservationIgnored private var batching = false
     let url: URL
     init(storageURL:URL? = nil,displayDefaults:UserDefaults? = nil,arguments:[String] = ProcessInfo.processInfo.arguments) {
         let directory = FileManager.default.urls(for:.applicationSupportDirectory,in:.userDomainMask).first!
@@ -98,8 +99,22 @@ final class CompanionStore {
         var record = record(id); change(&record)
         record.messages = Array(record.messages.suffix(1000))
         next.characters[key(id)] = record
-        do { try CompanionPersistence.write(next,to:url); archive = next; error = nil }
+        if batching { archive = next; error = nil; return }
+        do { try CompanionPersistence.write(next,to:url); archive = next; error = nil
+            NotificationCenter.default.post(name:.accountDataChanged,object:nil)
+        }
         catch { self.error = "保存失败，改动尚未写入。请检查设备存储空间后重试。" }
+    }
+    /// One disk write per incoming sync page, with rollback on a storage error.
+    func applyCloudBatch(_ updates:() throws -> Void) throws {
+        guard !batching,!recoveryBlocked else { throw CocoaError(.fileWriteUnknown) }
+        let previous=archive;batching=true;error=nil
+        defer { batching=false }
+        do {
+            try updates()
+            if error != nil { throw CocoaError(.fileWriteUnknown) }
+            try CompanionPersistence.write(archive,to:url)
+        } catch { archive=previous;self.error="云端资料暂未写入，本机原记录已保留。";throw error }
     }
     func saveProfile(_ profile: CharacterProfile, id: String) {
         var clean = profile; clean.normalize(); update(id) { $0.profile = clean }
@@ -107,6 +122,7 @@ final class CompanionStore {
     func saveChatDisplay() -> Bool {
         chatDisplay = chatDisplay.normalized
         chatDisplay.save(to:chatDisplayDefaults)
+        NotificationCenter.default.post(name:.accountDataChanged,object:nil)
         return true
     }
     func addMemory(_ text: String, id: String) {

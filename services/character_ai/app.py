@@ -1,27 +1,27 @@
 """Authenticated LAN development gateway; cloud keys never enter the iOS bundle."""
-import asyncio, hashlib, hmac, json, re, time
+import asyncio, hashlib, hmac, json, re
 from contextlib import asynccontextmanager
 from uuid import UUID
 from fastapi import FastAPI, Request as HTTPRequest, HTTPException, WebSocket, WebSocketDisconnect
-from fastapi.responses import StreamingResponse
 from .config import Settings
-from .storage import Store, dump
+from .storage import Store
 from .provider import Provider
-from .orchestrator import Orchestrator, event
+from .orchestrator import Orchestrator
 from .schemas import Request
 from .profiles import PROFILES
 from .asr import recognize
+from .streams import TurnStreams
 
 def create_app(settings=None,provider=None):
     settings=settings or Settings.load();store=Store(settings.data_dir/'state.sqlite3')
     provider=provider or Provider(settings,store);engine=Orchestrator(settings,store,provider)
-    busy=set(); last={}
+    busy=set(); turns=TurnStreams()
     @asynccontextmanager
     async def lifespan(app):
         yield
-        await provider.close();store.db.close()
-    app=FastAPI(title='StarryNight Character Gateway',version='1.0',lifespan=lifespan,docs_url=None,redoc_url=None)
-    app.state.store=store;app.state.engine=engine
+        await turns.close();await provider.close();store.db.close()
+    app=FastAPI(title='StarryNight Character Gateway',version='1.2',lifespan=lifespan,docs_url=None,redoc_url=None)
+    app.state.store=store;app.state.engine=engine;app.state.turns=turns
     def owner(headers):
         token=headers.get('authorization','').removeprefix('Bearer ')
         if not settings.client_token or not hmac.compare_digest(token,settings.client_token):raise HTTPException(401,'UNAUTHORIZED')
@@ -33,20 +33,11 @@ def create_app(settings=None,provider=None):
     def admin(headers):
         if not settings.admin_token or not hmac.compare_digest(headers.get('authorization','').removeprefix('Bearer '),settings.admin_token):raise HTTPException(401,'UNAUTHORIZED')
     def acquire(key):
-        if key in busy or len(busy)>=4:raise HTTPException(409,'BUSY')
-        if time.monotonic()-last.get(key,0)<1:raise HTTPException(429,'SLOW_DOWN')
-        busy.add(key);last[key]=time.monotonic()
-    async def stream(iterator,key):
-        try:
-            async for e in iterator:yield 'data: '+dump(e)+'\n\n'
-        except asyncio.CancelledError:raise
-        except Exception as error:
-            code=str(error) if isinstance(error,ValueError) else getattr(error,'code','CONNECTION_FAILED')
-            safe=code if re.fullmatch(r'[A-Za-z0-9_-]{1,100}',code) else 'CONNECTION_FAILED'
-            yield 'data: '+dump(event('reply.error',code=safe,message='暂时没有收到回复，请检查连接或稍后重试。'))+'\n\n'
-        finally:busy.discard(key)
+        if key in busy:raise HTTPException(409,'AUDIO_INPUT_BUSY')
+        if len(busy)>=4:raise HTTPException(503,'SERVER_BUSY')
+        busy.add(key)
     @app.get('/health')
-    async def health():return dict(status='ok',protocol=1,paid_calls=False)
+    async def health():return dict(status='ok',protocol=1,revision=3,paid_calls=False)
     @app.get('/v1/status')
     async def status(request:HTTPRequest):
         owner(request.headers)
@@ -56,20 +47,19 @@ def create_app(settings=None,provider=None):
         who=owner(request.headers)
         if character!=body.character_id:raise HTTPException(400,'CHARACTER_MISMATCH')
         if body.trigger in ('user_message','story') and not body.text.strip():raise HTTPException(400,'EMPTY_MESSAGE')
-        key=who+':'+character;acquire(key)
-        return StreamingResponse(stream(engine.reply(who,body),key),media_type='text/event-stream',headers={'Cache-Control':'no-store','X-Accel-Buffering':'no'})
+        if request.headers.get('x-starry-reply-mode')=='progressive-v1':body.progressive_reply=True
+        return await turns.start(who+':'+character,str(body.request_id),lambda: engine.reply(who,body),replace=body.trigger!='idle')
     @app.post('/v1/conversations/{character}/messages/{message_id}/audio')
     async def replay(character:str,message_id:UUID,request:HTTPRequest):
         who=owner(request.headers)
         row=store.db.execute("SELECT data FROM messages WHERE id=? AND owner=? AND character=? AND role='assistant'",(str(message_id),who,character)).fetchone()
         if not row:raise HTTPException(404,'MESSAGE_NOT_FOUND')
-        key=who+':'+character;acquire(key)
-        return StreamingResponse(stream(engine.audio(who,character,json.loads(row[0]),True),key),media_type='text/event-stream',headers={'Cache-Control':'no-store'})
+        return await turns.start(who+':'+character,'audio:'+str(message_id),lambda: engine.audio(who,character,json.loads(row[0]),True))
     @app.delete('/v1/conversations/{character}/messages')
     async def clear_messages(character:str,request:HTTPRequest):
         who=owner(request.headers)
         if character not in PROFILES:raise HTTPException(404)
-        if who+':'+character in busy:raise HTTPException(409,'BUSY')
+        await turns.cancel(who+':'+character)
         voice=store.get('voice','system',character,{})
         rows=store.db.execute("SELECT data FROM messages WHERE owner=? AND character=? AND role='assistant'",(who,character)).fetchall()
         for row in rows:

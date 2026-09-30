@@ -1,0 +1,50 @@
+name: Backend
+on:
+  push:
+    paths: ['backend/**', '.github/workflows/backend.yml']
+  pull_request:
+    paths: ['backend/**', '.github/workflows/backend.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: backend-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:17.11-bookworm
+        env:
+          POSTGRES_USER: starry
+          POSTGRES_PASSWORD: ci-fixture-only
+          POSTGRES_DB: starry_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd 'pg_isready -U starry -d starry_test'
+          --health-interval 5s --health-timeout 5s --health-retries 20
+      redis:
+        image: redis:8.10.2-bookworm
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd 'redis-cli ping'
+          --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      TEST_DATABASE_URL: postgres://starry:ci-fixture-only@127.0.0.1:5432/starry_test?sslmode=disable
+      TEST_REDIS_URL: redis://127.0.0.1:6379/1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.27.1'
+          cache-dependency-path: backend/go.sum
+      - run: test -z "$(gofmt -l cmd internal migrations)"
+      - run: make check
+      - run: make integration
+      - run: make build
+      - run: make openapi && git diff --exit-code -- api/openapi.json
+      - run: docker build -f deploy/Dockerfile -t starry-platform:ci .

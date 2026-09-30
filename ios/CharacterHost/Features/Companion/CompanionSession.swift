@@ -183,6 +183,14 @@ final class CompanionSession {
                         }
                         if !self.muted { self.speech.prepare(message.id,script:script) }
                         else { self.playSilentVisuals(script) }
+                    case "reply.script.updated":
+                        guard let script=event.script,let id=UUID(uuidString:script.messageId) else {return}
+                        if self.activeScript?.messageId==script.messageId {self.activeScript=script}
+                        self.store.update(self.model.id) { record in
+                            if let index=record.messages.firstIndex(where:{$0.id==id}) {
+                                record.messages[index].aiScript=script
+                            }
+                        }
                     case "reply.warning": self.notice = event.message
                     case "segment.audio.started", "segment.audio.chunk", "segment.audio.ready", "audio.error":
                         if !self.muted { try await self.speech.accept(event) }

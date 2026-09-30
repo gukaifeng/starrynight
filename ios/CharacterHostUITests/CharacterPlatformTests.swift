@@ -53,7 +53,7 @@ final class CharacterPlatformTests: XCTestCase {
         capture("06-legacy-character-contract")
     }
     @MainActor private func send(_ text:String,_ app:XCUIApplication) {
-        let input=app.textViews["chatInput"].exists ? app.textViews["chatInput"] : app.textFields["chatInput"]
+        let input=app.textViews["chatInput"]
         XCTAssertTrue(input.waitForExistence(timeout:8)); input.tap(); input.typeText(text); app.buttons["sendMessageButton"].tap()
     }
     @MainActor private func event(_ app:XCUIApplication)->[String:Any] {
