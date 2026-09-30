@@ -15,8 +15,10 @@ import (
 // pass this gateway; voice design, usage/admin APIs and arbitrary URLs do not.
 var aiConversation = regexp.MustCompile(`^/v1/ai/conversations/([a-zA-Z0-9_-]{1,120})/messages(?:/[a-fA-F0-9-]{36}/audio)?$`)
 var aiASR = regexp.MustCompile(`^/v1/ai/asr/([a-zA-Z0-9_-]{1,120})$`)
+var aiProfile = regexp.MustCompile(`^/v1/ai/characters/([a-zA-Z0-9_-]{1,120})/profile$`)
+var aiInspector = regexp.MustCompile(`^/v1/ai/testing/characters/([a-zA-Z0-9_-]{1,120})/inspector$`)
 
-func aiRoute(method, path string) (character string, allowed bool) {
+func aiRoute(method, path, environment string) (character string, allowed bool) {
 	if path == "/v1/ai/status" {
 		return "", method == http.MethodGet
 	}
@@ -26,12 +28,20 @@ func aiRoute(method, path string) (character string, allowed bool) {
 	if match := aiASR.FindStringSubmatch(path); match != nil {
 		return match[1], method == http.MethodGet
 	}
+	if match := aiProfile.FindStringSubmatch(path); match != nil {
+		return match[1], method == http.MethodGet
+	}
+	if match := aiInspector.FindStringSubmatch(path); match != nil {
+		return match[1], method == http.MethodPost && (environment == "development" || environment == "test")
+	}
 	return "", false
 }
 
 func (s *Server) documentAIRoutes() {
 	for _, route := range []struct{ method, path, id, description string }{
 		{"GET", "/v1/ai/status", "ai-status", "Private worker readiness; does not invoke a paid provider."},
+		{"GET", "/v1/ai/characters/{character}/profile", "ai-public-profile", "Explicit public persona fields only."},
+		{"POST", "/v1/ai/testing/characters/{character}/inspector", "ai-test-inspector", "Read-only owner-scoped configuration inspection. Available only in development/test environments with worker inspection explicitly enabled; otherwise 404. Never invokes a paid provider."},
 		{"POST", "/v1/ai/conversations/{character}/messages", "ai-reply", "SSE reply/audio events. Existing worker request schema; account identity is supplied by this gateway."},
 		{"POST", "/v1/ai/conversations/{character}/messages/{message}/audio", "ai-audio", "SSE audio replay for an existing worker message."},
 		{"DELETE", "/v1/ai/conversations/{character}/messages", "ai-clear-context", "Clear worker context. Account archive has its own clear endpoint."},
@@ -83,7 +93,7 @@ func (s *Server) aiRoutes() {
 			http.Error(w, "sign in required", 401)
 			return
 		}
-		character, allowed := aiRoute(r.Method, r.URL.Path)
+		character, allowed := aiRoute(r.Method, r.URL.Path, s.Config.Environment)
 		if !allowed {
 			http.NotFound(w, r)
 			return

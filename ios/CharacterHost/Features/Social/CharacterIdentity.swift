@@ -97,6 +97,8 @@ struct CharacterDetailsPanel: View {
     @State private var showingAuthor = false
     @State private var showingCredits = false
     @State private var showingPerformance = false
+    @State private var showingAIInspector = false
+    @State private var loadedPublicProfile:CharacterPublicProfile?
     @State private var editorClose = SoftPanelCloseRequest()
     @Environment(\.softPanelCloseRequest) private var close
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -104,10 +106,18 @@ struct CharacterDetailsPanel: View {
         model.conversationProfile(preserving:store.contains(model.id) ? store.record(model.id).profile : nil)
     }
     private var subscribed:Bool { library.subscriptions.contains(model.id) }
+    private var publicProfile:CharacterPublicProfile? {loadedPublicProfile ?? CharacterPublicProfile.find(model.id)}
     private var motion:Animation { .easeInOut(duration:reduceMotion ? 0.15 : 0.28) }
     var body: some View {
         ZStack(alignment:.topLeading) {
-            if showingAuthor, let author = library.author(for:model.id) {
+            if showingAIInspector {
+#if STARRY_TEST_TOOLS
+                if let session {
+                    AIInspectionPanel(session:session).environment(\.softPanelCloseRequest,editorClose)
+                        .environment(\.softPanelDismiss,{editorClose.request()}).transition(.opacity)
+                }
+#endif
+            } else if showingAuthor, let author = library.author(for:model.id) {
                 AnyView(AuthorProfilePanel(authorID:author.id,library:library,store:store,portraits:portraits,
                     onOpenCharacter:{ id,customize in onOpenCharacter?(id,customize) }))
                     .environment(\.softPanelCloseRequest,editorClose)
@@ -135,6 +145,12 @@ struct CharacterDetailsPanel: View {
             .softPanelPageSurface(opaque:!showsLiveCharacter)
             .onAppear { close?.beforeClose = { editorClose.beforeClose?() ?? true } }
             .onDisappear { close?.beforeClose = nil }
+            .task(id:model.id) {
+                let api=CharacterAI(accountID:store.accountID,characterID:model.id)
+                if let value:CharacterPublicProfile=try? await api.configuration("/v1/characters/"+model.id+"/profile"),!Task.isCancelled {
+                    loadedPublicProfile=value
+                }
+            }
     }
     private var introduction:some View {
         VStack(spacing:0) {
@@ -143,14 +159,28 @@ struct CharacterDetailsPanel: View {
                 VStack(alignment:.leading,spacing:14) {
                     CharacterCover(model:model,focalCrop:true).frame(height:106)
                         .clipShape(RoundedRectangle(cornerRadius:16,style:.continuous))
-                    ProfileIdentityHeader(name:profile.name,subtitle:profile.personality+" · "+profile.tone,nameID:"profileName") {
+                    ProfileIdentityHeader(name:profile.name,subtitle:publicProfile?.occupation ?? profile.personality+" · "+profile.tone,nameID:"profileName") {
                         CharacterAvatar(model:model,profile:profile,portraits:portraits,size:52,floatingEnabled:false)
                     } accessory: { subscriptionButton }
                     VStack(alignment:.leading,spacing:10) {
-                        Text(model.display.invitation).font(.system(size:16,weight:.medium)).lineSpacing(4)
+                        Text(publicProfile?.invitation ?? model.display.invitation).font(.system(size:16,weight:.medium,design:.serif)).lineSpacing(4)
                             .foregroundStyle(Theme.ink.opacity(0.92))
-                        Text(profile.background).font(.system(size:13)).lineSpacing(5).foregroundStyle(Theme.secondary)
+                        if let publicProfile {
+                            Text(publicProfile.traits.joined(separator:" · ")).font(.system(size:12,weight:.medium))
+                                .foregroundStyle(Theme.accent).fixedSize(horizontal:false,vertical:true)
+                                .accessibilityIdentifier("publicCharacterTraits")
+                        }
+                        Text(publicProfile?.story ?? profile.background).font(.system(size:13)).lineSpacing(5).foregroundStyle(Theme.secondary)
                             .frame(maxWidth:.infinity,alignment:.leading)
+                            .accessibilityIdentifier("publicCharacterStory")
+                        if let publicProfile {
+                            HStack(alignment:.top,spacing:8) {
+                                Image(systemName:"heart").font(.system(size:11))
+                                Text(publicProfile.likes.joined(separator:"、")).font(.system(size:12)).lineSpacing(3)
+                            }.foregroundStyle(Theme.peach.opacity(0.85)).padding(.vertical,3)
+                                .accessibilityIdentifier("publicCharacterLikes")
+                            Text(publicProfile.world+" · "+publicProfile.tone).font(.system(size:11)).foregroundStyle(Theme.secondary.opacity(0.8))
+                        }
                         HStack(spacing:8) {
                             customizeButton
                             if showsLiveCharacter, model.performance != nil, performanceState != nil {
@@ -223,6 +253,20 @@ struct CharacterDetailsPanel: View {
                     } label: { Label("模型素材与原始署名",systemImage:"doc.text").font(.system(size:11)).foregroundStyle(Theme.secondary).frame(minHeight:44) }
                         .buttonStyle(.plain).accessibilityIdentifier("characterCreditsButton")
                     if let error = library.error { Text(error).font(.caption).foregroundStyle(Theme.peach) }
+#if STARRY_TEST_TOOLS
+                    if session != nil {
+                        Button {
+                            beginChild {showingAIInspector=false}
+                            withAnimation(motion) {showingAIInspector=true}
+                        } label: {
+                            HStack(spacing:8) {
+                                Image(systemName:"curlybraces")
+                                Text("AI 设定检查");Text("测试").font(.system(size:10)).foregroundStyle(Theme.secondary)
+                                Spacer();Image(systemName:"chevron.right").font(.system(size:10))
+                            }.font(.system(size:12)).padding(.vertical,10).contentShape(Rectangle())
+                        }.buttonStyle(.plain).accessibilityIdentifier("openAIInspector")
+                    }
+#endif
                     HStack(spacing:8) {
                         Image(systemName:"sparkles").font(.system(size:12))
                         Text("选一首专属音乐，把重要的话留在共同记忆里。")

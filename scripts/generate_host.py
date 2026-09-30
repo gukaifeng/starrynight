@@ -14,8 +14,11 @@ import subprocess
 from urllib.parse import urlsplit
 import xml.sax.saxutils as xml
 from generate_asset_credits import generate_asset_credits
+from generate_character_public_profiles import generate as generate_public_profiles
 
 ROOT = Path(__file__).resolve().parents[1]
+test_tool_config=ROOT/'.local/character-ai-client/TestTools.json'
+test_tools=os.environ.get('STARRY_TEST_TOOLS', '1' if test_tool_config.exists() and json.loads(test_tool_config.read_text()).get('enabled') else '0')=='1'
 parser = argparse.ArgumentParser()
 parser.add_argument('--platform', choices=['simulator', 'device'], default='simulator')
 args = parser.parse_args()
@@ -40,8 +43,8 @@ def obj(key, isa, **fields):
 def buildfile(key, ref, **extra): return obj('build:'+key,'PBXBuildFile',fileRef=ref,**extra)
 def configuration(key, settings):
     configs = [obj(f'{key}:{name}','XCBuildConfiguration',name=name,buildSettings=dict(settings,**(
-        {'SWIFT_OPTIMIZATION_LEVEL':'-Onone','GCC_OPTIMIZATION_LEVEL':'0','DEBUG_INFORMATION_FORMAT':'dwarf','SWIFT_ACTIVE_COMPILATION_CONDITIONS':'DEBUG'} if name=='Debug' else
-        {'SWIFT_OPTIMIZATION_LEVEL':'-O','GCC_OPTIMIZATION_LEVEL':'s','DEBUG_INFORMATION_FORMAT':'dwarf-with-dsym'}))) for name in ['Debug','Release']]
+        {'SWIFT_OPTIMIZATION_LEVEL':'-Onone','GCC_OPTIMIZATION_LEVEL':'0','DEBUG_INFORMATION_FORMAT':'dwarf','SWIFT_ACTIVE_COMPILATION_CONDITIONS':'$(inherited) DEBUG'+(' STARRY_TEST_TOOLS' if test_tools else '')} if name=='Debug' else
+        {'SWIFT_OPTIMIZATION_LEVEL':'-O','GCC_OPTIMIZATION_LEVEL':'s','DEBUG_INFORMATION_FORMAT':'dwarf-with-dsym','SWIFT_ACTIVE_COMPILATION_CONDITIONS':'$(inherited)'+(' STARRY_TEST_TOOLS' if test_tools else '')}))) for name in ['Debug','Release']]
     if key in ('host','tests'):
         for config in configs: objects[config]['baseConfigurationReference'] = uid('base-config')
     return obj(key+':configs','XCConfigurationList',buildConfigurations=configs,defaultConfigurationIsVisible='0',defaultConfigurationName='Debug')
@@ -49,6 +52,7 @@ def configuration(key, settings):
 # Keep model authors, original licensing and separate upstream NOTICE files
 # available offline in both About and each character's source-attribution page.
 generate_asset_credits(ROOT)
+generate_public_profiles(ROOT)
 source_refs=[]; source_build=[]; resource_build=[]
 active_music = {t['asset'] for c in json.loads((ios/'CharacterHost/Resources/CharacterCollections.json').read_text())['collections'] for t in c['music']}
 for path in sorted((ios/'CharacterHost').rglob('*')):
@@ -77,6 +81,13 @@ if args.platform == 'simulator':
         source_refs.append(ref); source_build.append(buildfile(relative,ref))
 
 # Restricted development gateway token only; the paid provider key is server-only.
+if test_tools:
+    rules=ROOT/'.local/character-ai-client/ClientAIRules.txt'
+    rules.parent.mkdir(parents=True,exist_ok=True)
+    names=('CompanionSession.swift','ConversationGreeting.swift','CloudSpeech.swift','SpeechClipCache.swift','CharacterAI.swift')
+    rules.write_text('\n\n'.join('===== '+name+' =====\n'+(ios/'CharacterHost/Features/Companion'/name).read_text() for name in names))
+    ref=obj('ai-test-rules','PBXFileReference',lastKnownFileType='text',path='../.local/character-ai-client/ClientAIRules.txt',sourceTree='<group>')
+    source_refs.append(ref);resource_build.append(buildfile('ai-test-rules',ref))
 connection = ROOT/'.local/character-ai-client/Connection.json'
 if connection.exists():
     ref=obj('ai-connection','PBXFileReference',lastKnownFileType='text.json',path='../.local/character-ai-client/Connection.json',sourceTree='<group>')
@@ -122,7 +133,7 @@ settings={'PRODUCT_NAME':'$(TARGET_NAME)','PRODUCT_BUNDLE_IDENTIFIER':'com.model
     'FRAMEWORK_SEARCH_PATHS':['$(inherited)','$(BUILT_PRODUCTS_DIR)'],
     'OTHER_LDFLAGS':['$(inherited)','-lc++','-framework','CoreML','-framework','Accelerate'],
     'GCC_ENABLE_CPP_EXCEPTIONS':'YES',
-    'CODE_SIGN_STYLE':'Automatic','CURRENT_PROJECT_VERSION':'81','MARKETING_VERSION':'0.55.2',
+    'CODE_SIGN_STYLE':'Automatic','CURRENT_PROJECT_VERSION':'82','MARKETING_VERSION':'0.56.0',
     'ENABLE_USER_SCRIPT_SANDBOXING':'NO','SUPPORTS_MACCATALYST':'NO','SWIFT_EMIT_LOC_STRINGS':'YES',
     'ARCHS':'arm64','ENABLE_DEBUG_DYLIB':'NO','ASSETCATALOG_COMPILER_APPICON_NAME':'AppIcon'}
 target=obj('host-target','PBXNativeTarget',name='CharacterHost',productName='CharacterHost',productType='com.apple.product-type.application',productReference=app,

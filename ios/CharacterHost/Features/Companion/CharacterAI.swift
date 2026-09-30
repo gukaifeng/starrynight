@@ -149,6 +149,20 @@ private final class AINoRedirect: NSObject, URLSessionTaskDelegate, Sendable {
               let (_, response) = try? await session.data(for:request) else { return false }
         return (response as? HTTPURLResponse)?.statusCode == 200
     }
+    func configuration<T:Decodable & Sendable>(_ path:String,body:[String:Any]? = nil) async throws -> T {
+        var request=try request(path,paid:false);request.timeoutInterval=15
+        request.setValue("application/json",forHTTPHeaderField:"Accept")
+        if let body {
+            request.httpMethod="POST";request.setValue("application/json",forHTTPHeaderField:"Content-Type")
+            request.httpBody=try JSONSerialization.data(withJSONObject:body)
+        }
+        let (data,response)=try await session.data(for:request)
+        guard (response as? HTTPURLResponse)?.statusCode==200 else {
+            throw AIConnectionError.http((response as? HTTPURLResponse)?.statusCode ?? 0,body:data)
+        }
+        let decoder=JSONDecoder();decoder.keyDecodingStrategy = .convertFromSnakeCase
+        return try decoder.decode(T.self,from:data)
+    }
     func clearMessages() async throws {
         var request = try request("/v1/conversations/"+characterID+"/messages",paid:false)
         request.httpMethod = "DELETE"

@@ -70,15 +70,18 @@ class Store:
         with self.db:
             self.db.execute("DELETE FROM memories WHERE owner=? AND character=? AND source='manual'",(owner,character))
             for m in memories:self.db.execute('INSERT OR REPLACE INTO memories VALUES(?,?,?,?,?,?,?,?)',('manual:'+m.id,owner,character,'manual',m.text,.95,time.time(),0))
-    def recall(self,owner,character,query):
+    def recall(self,owner,character,query,*,incoming=None,touch=True):
         rows=self.db.execute('SELECT * FROM memories WHERE owner=? AND character=?',(owner,character)).fetchall()
+        if incoming is not None:
+            rows=[r for r in rows if r['source']!='manual']+[dict(id='manual:'+m.id,source='manual',content=m.text,importance=.95,created=time.time()) for m in incoming]
         grams={query[i:i+2] for i in range(max(0,len(query)-1))}
         def score(r):
             overlap=sum(g in r['content'] for g in grams)/max(1,len(grams))
             return .65*overlap+.25*r['importance']+.1*math.exp(-(time.time()-r['created'])/2592000)
         chosen=sorted(rows,key=score,reverse=True)[:6]
-        with self.db:
-            for r in chosen:self.db.execute('UPDATE memories SET recalled=? WHERE owner=? AND character=? AND id=?',(time.time(),owner,character,r['id']))
+        if touch:
+            with self.db:
+                for r in chosen:self.db.execute('UPDATE memories SET recalled=? WHERE owner=? AND character=? AND id=?',(time.time(),owner,character,r['id']))
         return [dict(type=r['source'],content=r['content']) for r in chosen]
     def state(self,owner,character):
         state=self.get('state',owner,character,dict(happiness=.45,sadness=.1,anger=0,anxiety=.1,loneliness=.1,energy=.65,boredom=.1,attention_to_user=.7,updated=time.time(),unanswered_proactive_count=0))

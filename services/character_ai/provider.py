@@ -6,6 +6,7 @@ from .storage import dump
 from .speech_text import spoken_text
 from .prompts import PLAN_SHAPE, REPLY_LENGTH
 from .profiles import PROFILES
+from .diagnostics import record_request
 
 VOCALS = dict(gasp='[gasp]', sigh='[sighing]', throat_clear='[clears throat]',
               giggle='[giggles]', laugh='[laughing]', cough='[cough]', snort='[snorts]')
@@ -38,6 +39,25 @@ def speech_input(beat):
     instruction = DELIVERY.get(speech.get('delivery'), '自然交谈') + '，情绪'+degree+'，日常聊天，不要播音腔。'
     return text, instruction
 
+def structured_messages(purpose,system,context,schema):
+    shape=PLAN_SHAPE if purpose=='plan' else ''
+    content=dump(context)
+    if purpose=='plan':
+        current=dict(trigger=context.get('trigger'),user_message=context.get('user_message',''),reply_length=REPLY_LENGTH)
+        current['task']=context['greeting_context']['task'] if context.get('greeting_context') else '只回应user_message这条新消息。历史回复不是本轮台词，不要照搬。明确的表演请求放进performance，台词不自述动作。'
+        if context.get('greeting_correction'):current['correction']=context['greeting_correction']
+        content+='\n\n当前这一轮（历史仅供参考）：\n'+dump(current)
+    return [dict(role='system',content=system+'\nJSON Schema:\n'+dump(schema.model_json_schema())+'\n'+shape),dict(role='user',content=content)]
+
+def structured_payload(settings,purpose,messages,attempt=0):
+    return dict(model=settings.character_model,messages=messages,temperature=.45 if attempt==0 else .1,
+                max_tokens=1500 if purpose=='plan' else 600,response_format={'type':'json_object'})
+
+def speech_payload(settings,character,beat,voice):
+    text,instruction=speech_input(beat)
+    return dict(model=settings.tts_model,input=dict(text=text,voice=voice,format='pcm',sample_rate=24000,
+                instruction=PROFILES.get(character,{}).get('voice_delivery','')+instruction,language_hints=['zh']))
+
 class Provider:
     def __init__(self, settings, store, client=None):
         self.settings, self.store = settings, store
@@ -54,29 +74,16 @@ class Provider:
             raise ProviderError('PROVIDER_'+str(response.status_code)+'_'+str(code or 'ERROR')[:60])
     async def structured(self, owner, character, purpose, system, context, schema):
         shape = PLAN_SHAPE if purpose == 'plan' else ''
-        content=dump(context)
-        if purpose=='plan':
-            # The previous layout placed the current user message BEFORE a long
-            # history/capability object. Explicitly anchor the current turn last;
-            # older dialogue is background, not another request to answer.
-            current=dict(trigger=context.get('trigger'),user_message=context.get('user_message',''))
-            current['reply_length']=REPLY_LENGTH
-            if context.get('greeting_context'):
-                current['task']=context['greeting_context']['task']
-            else:
-                current['task']='只回应user_message这条新消息。历史回复不是本轮台词，不要照搬。明确的表演请求放进performance，台词不自述动作。'
-            if context.get('greeting_correction'): current['correction']=context['greeting_correction']
-            content+='\n\n当前这一轮（历史仅供参考）：\n'+dump(current)
-        messages = [dict(role='system',content=system+'\nJSON Schema:\n'+dump(schema.model_json_schema())+'\n'+shape),
-                    dict(role='user',content=content)]
+        messages=structured_messages(purpose,system,context,schema)
         # Exactly one schema correction; network/timeouts are never blindly retried.
         for attempt in range(2):
             usage = self.store.reserve(purpose, owner, character, 1, self.settings)
             started = time.monotonic()
             try:
+                payload=structured_payload(self.settings,purpose,messages,attempt)
+                record_request(self.settings,self.store,owner,character,purpose,payload)
                 response = await self.http.post(self.settings.host+'/compatible-mode/v1/chat/completions', headers=self.headers,
-                    json=dict(model=self.settings.character_model,messages=messages,temperature=.45 if attempt == 0 else .1,
-                              max_tokens=1500 if purpose=='plan' else 600,response_format={'type':'json_object'}))
+                    json=payload)
                 self.check(response); data = response.json()
                 self.store.usage(usage,'completed',dict(**data.get('usage',{}),latency_ms=int((time.monotonic()-started)*1000),request_id=data.get('id')),1)
                 raw = data['choices'][0]['message']['content']
@@ -92,15 +99,15 @@ class Provider:
                 if row[0]=='reserved': self.store.usage(usage,'interrupted_or_failed')
                 raise
     async def synthesize(self, owner, character, beat, voice):
-        text, instruction = speech_input(beat)
+        text, _ = speech_input(beat)
         if not text: return
-        instruction=PROFILES.get(character,{}).get('voice_delivery','')+instruction
         usage = self.store.reserve('tts',owner,character,len(text),self.settings)
         total = 0; metrics = {}; finished = False
         try:
+            payload=speech_payload(self.settings,character,beat,voice)
+            record_request(self.settings,self.store,owner,character,'tts',payload)
             async with self.http.stream('POST', self.settings.host+'/api/v1/services/audio/tts/SpeechSynthesizer',
-                headers={**self.headers,'X-DashScope-SSE':'enable'}, json={
-                    'model':self.settings.tts_model,'input':dict(text=text,voice=voice,format='pcm',sample_rate=24000,instruction=instruction,language_hints=['zh'])}) as response:
+                headers={**self.headers,'X-DashScope-SSE':'enable'}, json=payload) as response:
                 if response.status_code>=400: await response.aread(); self.check(response)
                 async for kind,raw in sse_events(response.aiter_lines()):
                     raw=raw.strip()

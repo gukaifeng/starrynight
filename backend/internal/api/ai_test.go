@@ -24,11 +24,19 @@ func TestAIAllowlistAndTrustedIdentity(t *testing.T) {
 		{"DELETE", "/v1/ai/conversations/anime-kipfel/messages", true}, {"GET", "/v1/ai/asr/anime-kipfel", true},
 		{"POST", "/v1/ai/admin/usage", false}, {"GET", "/v1/ai/admin/usage", false},
 		{"POST", "/v1/ai/characters/anime-kipfel/voice-designs", false},
+		{"GET", "/v1/ai/characters/anime-kipfel/profile", true},
+		{"POST", "/v1/ai/characters/anime-kipfel/profile", false},
+		{"POST", "/v1/ai/testing/characters/anime-kipfel/inspector", true},
+		{"GET", "/v1/ai/testing/characters/anime-kipfel/inspector", false},
+		{"POST", "/v1/ai/testing/characters/../inspector", false},
 		{"POST", "/v1/ai/conversations/../messages", false}, {"GET", "/v1/ai/conversations/anime-kipfel/messages", false},
 	} {
-		if _, ok := aiRoute(c.method, c.path); ok != c.allowed {
+		if _, ok := aiRoute(c.method, c.path, "development"); ok != c.allowed {
 			t.Fatalf("allowlist: %s %s", c.method, c.path)
 		}
+	}
+	if _, ok := aiRoute("POST", "/v1/ai/testing/characters/anime-kipfel/inspector", "production"); ok {
+		t.Fatal("production must never proxy test-only AI configuration")
 	}
 	target, _ := url.Parse("http://private-worker:8091")
 	proxy := newAIProxy(target, "worker-only-fixture", fixtureTransport(func(r *http.Request) (*http.Response, error) {

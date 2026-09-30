@@ -24,6 +24,9 @@ class Settings:
     # Runs beside audio, never before the first progressive text response.
     narration_timeout_seconds: float = 8.0
     paid_enabled: bool = True
+    # Testing deployments explicitly opt in; public deployments expose no
+    # authored prompts, private persona, memory or provider request inspector.
+    enable_test_inspector: bool = False
 
     @classmethod
     def load(cls):

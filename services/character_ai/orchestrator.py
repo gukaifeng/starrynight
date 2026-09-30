@@ -14,12 +14,12 @@ class Orchestrator:
     def __init__(self,settings,store,provider):
         self.settings,self.store,self.provider=settings,store,provider
         self.director=Director(store)
-    def context(self,owner,request):
+    def context(self,owner,request,*,persist=True):
         char=request.character_id
-        self.store.sync_memories(owner,char,request.memories)
+        if persist:self.store.sync_memories(owner,char,request.memories)
         context = dict(character_profile={k:v for k,v in PROFILES[char].items() if k not in ('voice_prompt','preview_text','voice_revision','voice_delivery')},
             user_message=request.text,trigger=request.trigger,preferences=request.preferences,scene=request.scene,
-            recent_messages=self.store.history(owner,char) or [m.model_dump() for m in request.recent_messages],memories=self.store.recall(owner,char,request.text),
+            recent_messages=self.store.history(owner,char) or [m.model_dump() for m in request.recent_messages],memories=self.store.recall(owner,char,request.text,incoming=None if persist else request.memories,touch=persist),
             relationship=self.store.get('relationship',owner,char,dict(closeness=.05,trust=.1,conflict=0)),
             state=self.store.state(owner,char),avatar_capability=self.director.capability(char,request.available_assets),
             speech_capability=dict(emotions=Speech.model_json_schema()['properties']['emotion']['enum'],

@@ -148,17 +148,20 @@ final class CompanionSession {
     func continueStory() { input = "请接着讲我们的故事，留一点空间让我决定接下来发生什么。"; send() }
     private func emit(_ name: String) { onIntent?(CharacterIntent(eventName:name,turnId:activeTurn ? token.uuidString : "")) }
     private func beginTurn() { activeTurn = true; emit("turn.begin") }
-    private func generate(_ text: String,trigger: String,entry: ConversationEntry? = nil) {
-        stop(); let current = token; generating = true; beginTurn(); emit("state.thinking")
+    func requestBody(_ text:String,trigger:String)->[String:Any] {
         let p = record.together.preferences.normalized
         var recent = record.messages.filter { $0.source == "cloud-v1" }
         if recent.last?.role == "user", recent.last?.text == text { recent.removeLast() }
-        var body: [String:Any] = ["request_id":UUID().uuidString,"character_id":model.id,"text":text,"trigger":trigger,
+        return ["request_id":UUID().uuidString,"character_id":model.id,"text":text,"trigger":trigger,
             "preferences":["nickname":p.nickname,"aboutMe":p.aboutMe,"relationship":p.relationship,"responseStyle":p.responseStyle,"avoidedTopics":p.avoidedTopics],
             "memories":record.memories.suffix(100).map { ["id":$0.id.uuidString,"text":$0.text] },
             "recent_messages":recent.suffix(12).map { ["role":$0.role,"text":String($0.text.prefix(700))] },
             "scene":["time":Date().formatted(date:.omitted,time:.shortened),"environment":model.display.description],
             "available_assets":model.performance?.options.map(\.id) ?? [],"wants_audio":!muted]
+    }
+    private func generate(_ text: String,trigger: String,entry: ConversationEntry? = nil) {
+        stop(); let current = token; generating = true; beginTurn(); emit("state.thinking")
+        var body=requestBody(text,trigger:trigger)
         if let entry { body["entry_id"] = entry.id.uuidString }
         task = Task { @MainActor [weak self] in
             guard let self else { return }

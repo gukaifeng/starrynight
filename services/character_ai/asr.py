@@ -14,6 +14,7 @@ class Transcript:
         return dict(type='asr.partial',text=''.join(self.finals.values())+text)
 
 async def recognize(socket,settings,store,owner,character,nickname=''):
+    from .diagnostics import record_request
     usage=None
     task=uuid.uuid4().hex; transcript=Transcript(); metrics={}; forwarded=0
     url=settings.host.replace('https://','wss://')+'/api-ws/v1/inference'
@@ -24,9 +25,11 @@ async def recognize(socket,settings,store,owner,character,nickname=''):
     try:
         async with websockets.connect(url,additional_headers={'Authorization':'Bearer '+settings.api_key},open_timeout=12,max_size=1024*1024) as upstream:
             usage=store.reserve('asr',owner,character,30,settings)
-            await upstream.send(dump({'header':{'action':'run-task','task_id':task,'streaming':'duplex'},
+            payload={'header':{'action':'run-task','task_id':task,'streaming':'duplex'},
                 'payload':{'task_group':'audio','task':'asr','function':'recognition','model':settings.asr_model,
-                    'parameters':{'format':'pcm','sample_rate':16000,'language_hints':['zh'],'max_sentence_silence':800},'input':{'context':context}}}))
+                    'parameters':{'format':'pcm','sample_rate':16000,'language_hints':['zh'],'max_sentence_silence':800},'input':{'context':context}}}
+            record_request(settings,store,owner,character,'asr',payload)
+            await upstream.send(dump(payload))
             first=json.loads(await asyncio.wait_for(upstream.recv(),15))
             metrics['start_event']=first.get('header',{}).get('event')
             metrics['provider_code']=first.get('header',{}).get('error_code')

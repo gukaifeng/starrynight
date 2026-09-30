@@ -12,6 +12,8 @@ from .profiles import PROFILES
 from .asr import recognize
 from .streams import TurnStreams
 from .speech_text import audio_key
+from .public_profiles import public_profile
+from .inspection import report as inspection_report
 
 def create_app(settings=None,provider=None):
     settings=settings or Settings.load();store=Store(settings.data_dir/'state.sqlite3')
@@ -43,6 +45,17 @@ def create_app(settings=None,provider=None):
     async def status(request:HTTPRequest):
         owner(request.headers)
         return dict(ready=bool(settings.api_key),voices={c:bool((store.get('voice','system',c) or {}).get('approved')) for c in PROFILES})
+    @app.get('/v1/characters/{character}/profile')
+    async def character_profile(character:str,request:HTTPRequest):
+        owner(request.headers)
+        if character not in PROFILES:raise HTTPException(404)
+        return public_profile(character)
+    @app.post('/v1/testing/characters/{character}/inspector')
+    async def inspector(character:str,body:Request,request:HTTPRequest):
+        if not settings.enable_test_inspector:raise HTTPException(404)
+        who=owner(request.headers)
+        if character!=body.character_id:raise HTTPException(400,'CHARACTER_MISMATCH')
+        return inspection_report(settings,engine,who,body)
     @app.post('/v1/conversations/{character}/messages')
     async def messages(character:str,body:Request,request:HTTPRequest):
         who=owner(request.headers)
@@ -73,6 +86,7 @@ def create_app(settings=None,provider=None):
             store.db.execute('DELETE FROM messages WHERE owner=? AND character=?',(who,character))
             store.db.execute('DELETE FROM requests WHERE owner=? AND character=?',(who,character))
             store.db.execute("DELETE FROM records WHERE kind='greetings' AND owner=? AND character=?",(who,character))
+            store.db.execute("DELETE FROM records WHERE kind='inspection_requests' AND owner=? AND character=?",(who,character))
         return dict(cleared=True)
     @app.websocket('/v1/asr/{character}')
     async def asr(socket:WebSocket,character:str):

@@ -35,6 +35,8 @@ make integration
 
 AI 的两个环境变量要同时配置或都不配置。未配置时账户功能照常运行，AI 代理返回 503。不要为了账户联调重新付费设计音色；现有音色和 Key 留在原私有目录。
 
+角色公开资料走 `GET /v1/ai/characters/{id}/profile`，只返回明确的公开字段。完整 AI 调教测试检查走 `POST /v1/ai/testing/characters/{id}/inspector`：Go 仅允许 `development` / `test`，`production` 一律 404；私有 worker 还必须显式开启默认关闭的 `enable_test_inspector`。身份由既有账户会话转写，不能由客户端指定其他 owner。该接口只读且不调用付费模型；详细开关、数据范围与客户端入口见[角色设定检查](../../docs/design/2026-09-30-character-settings-and-source-idle.md)。
+
 ## App 联调
 
 模拟器使用 `http://127.0.0.1:8090`。在仓库根运行：

@@ -1061,6 +1061,41 @@
         ]
       }
     },
+    "/v1/ai/characters/{character}/profile": {
+      "get": {
+        "description": "Explicit public persona fields only.",
+        "operationId": "ai-public-profile",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "character",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Worker response; SSE where documented"
+          },
+          "401": {
+            "description": "Session required"
+          },
+          "503": {
+            "description": "Worker unconfigured or unavailable"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "tags": [
+          "AI worker"
+        ]
+      }
+    },
     "/v1/ai/conversations/{character}/messages": {
       "delete": {
         "description": "Clear worker context. Account archive has its own clear endpoint.",
@@ -1176,6 +1211,41 @@
       "get": {
         "description": "Private worker readiness; does not invoke a paid provider.",
         "operationId": "ai-status",
+        "responses": {
+          "200": {
+            "description": "Worker response; SSE where documented"
+          },
+          "401": {
+            "description": "Session required"
+          },
+          "503": {
+            "description": "Worker unconfigured or unavailable"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "tags": [
+          "AI worker"
+        ]
+      }
+    },
+    "/v1/ai/testing/characters/{character}/inspector": {
+      "post": {
+        "description": "Read-only owner-scoped configuration inspection. Available only in development/test environments with worker inspection explicitly enabled; otherwise 404. Never invokes a paid provider.",
+        "operationId": "ai-test-inspector",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "character",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Worker response; SSE where documented"
