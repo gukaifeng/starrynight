@@ -68,6 +68,10 @@ class Orchestrator:
         # pre-upgrade requests and never re-bill a retry with a different mode.
         cached=self.store.request(owner,char,rid,request.model_dump(mode='json',exclude={'progressive_reply'}))
         if cached:
+            # Revalidate pre-upgrade cached thoughts without rewriting archives
+            # or generating/charging for the same message again.
+            cached={**cached,'beats':[{**b,'thought':visible_thought(b['thought']) if b.get('thought') else None}
+                                      for b in cached.get('beats',[])]}
             yield event('reply.narration.ready',script=cached,cached=True)
             if request.wants_audio:
                 async with aclosing(self.audio(owner,char,cached,create=False)) as audio:
@@ -102,6 +106,9 @@ class Orchestrator:
         allowance=1 if sum(len(b.dialogue.text) if b.dialogue else 0 for b in plan.beats)<80 else 2
         used=[]
         for b in plan.beats:
+            if b.thought:
+                thought=visible_thought(b.thought.text)
+                b.thought=b.thought.model_copy(update={'text':thought}) if thought else None
             filtered=[]
             for v in b.vocal_events:
                 if v.event in previous or len(used)>=allowance:continue

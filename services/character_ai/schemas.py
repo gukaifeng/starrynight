@@ -9,7 +9,7 @@ class Strict(BaseModel):
     model_config = ConfigDict(extra='forbid')
 
 class Thought(Strict):
-    text: str = Field(max_length=160)
+    text: str = Field(max_length=160,description='读者可见的角色第一人称短心声，含我或咱，通常20字以内；不是回复计划、编排说明或旁白意图。不合适时省略thought。')
     visibility: Literal['visible','hidden','unlock_required'] = 'visible'
 
 class Speech(Strict):
@@ -158,7 +158,16 @@ def visible_text(text: str) -> str:
 def visible_thought(text: str) -> str | None:
     text=visible_text(text)
     # This field is fictional character monologue, never a report on reply
-    # planning or instruction-following. Drop leakage; don't invent replacement.
+    # planning. Require an explicit first-person short aside, not only absence
+    # of a few forbidden words. The 40-codepoint ceiling allows older genuine
+    # asides; new generation targets 20. Keep the native replay guard in sync.
+    if not text or len(text)>40 or not any(word in text for word in ('我','咱')):
+        return None
     metadata=('用户','让对方','对方感受','需传递','正式问候','边界清晰','回应策略',
-              '准备回复','作为角色','符合人设','需要表现','应当表达','台词','情绪状态','遵守')
-    return text if text and not any(word in text for word in metadata) else None
+              '准备回复','作为角色','符合人设','需要表现','应当表达','台词','情绪状态','遵守',
+              '编排','提示词','分享邀请','回复意图')
+    planning=(r'(?:引出|引导|转入|转向|延续|承接).{0,18}(?:话题|邀请)',
+              r'(?:营造|延续|保持|维持|烘托|渲染).{0,18}氛围',
+              r'(?:结合|根据|符合|体现).{0,14}(?:人设|设定|偏好|上下文)',
+              r'(?:选择|使用|采用).{0,18}(?:语气|措辞|表情|动作)')
+    return None if any(word in text for word in metadata) or any(re.search(p,text) for p in planning) else text

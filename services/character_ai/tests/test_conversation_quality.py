@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 from services.character_ai.config import Settings
 from services.character_ai.storage import Store
-from services.character_ai.schemas import Beat, Plan, NarrationResult, Request
+from services.character_ai.schemas import Beat, Plan, NarrationResult, Request, visible_thought
 from services.character_ai.provider import speech_input
 from services.character_ai.speech_text import spoken_text, audio_key
 from services.character_ai.greetings import greeting_context, repeated_greeting
@@ -50,6 +50,60 @@ def test_control_json_cannot_hide_inside_a_valid_dialogue_string():
     with pytest.raises(ValueError,match='control JSON'):
         Beat(beat_id='b',dialogue=dict(text='你好～","speech":{"emotion":"happy"}},'))
     assert Beat(beat_id='b',dialogue=dict(text='你说的 JSON，我听到了。')).dialogue.text
+
+
+REPORTED_THOUGHT='轻唤昵称，延续晨光庭院的宁静氛围，并自然引出书籍或日常话题的分享邀请。'
+
+@pytest.mark.parametrize('text',[
+    REPORTED_THOUGHT,
+    '我需要延续宁静的氛围，并自然引出书籍话题。',
+    '我根据上下文选择温柔语气回应。',
+    '我先引导日常话题，再发出分享邀请。',
+    '我'+('有点期待。'*9),
+])
+def test_planning_is_not_character_inner_voice(text):
+    assert visible_thought(text) is None
+
+
+@pytest.mark.parametrize('text',[
+    '我也想听听后面的故事。',
+    '你记得这件事，让我有点开心。',
+    '我很喜欢你给我的昵称。',
+    '我喜欢这里安静的氛围。',
+    '咱们又见面了，真好。',
+])
+def test_genuine_first_person_feelings_survive(text):
+    assert visible_thought(text)==text
+
+
+@pytest.mark.asyncio
+async def test_reported_planning_hidden_for_new_and_cached_replies_without_extra_calls(tmp_path):
+    class ThoughtProvider:
+        def __init__(self):self.calls=[]
+        async def structured(self,owner,char,purpose,system,context,schema):
+            self.calls.append(purpose)
+            if purpose=='plan':
+                return Plan(beats=[Beat(beat_id='b',thought=REPORTED_THOUGHT,dialogue=dict(text='你回来啦。'))])
+            assert context['plan']['beats'][0]['thought'] is None
+            return NarrationResult()
+    store=Store(tmp_path/'state.db');provider=ThoughtProvider()
+    engine=Orchestrator(Settings(data_dir=tmp_path,paid_enabled=False),store,provider)
+    req=Request(request_id=uuid.uuid4(),character_id='anime-kipfel',text='我回来啦',wants_audio=False)
+    events=[e async for e in engine.reply('u',req)]
+    script=next(e['script'] for e in events if e['type']=='reply.narration.ready')
+    assert script['beats'][0]['thought'] is None and script['text']=='你回来啦。'
+    assert speech_input(script['beats'][0])[0]=='你回来啦。'
+    # Simulate the actual old persisted payload. Read-time filtering must not
+    # destroy the archive or regenerate the paid answer/audio on a retry.
+    script['beats'][0]['thought']=REPORTED_THOUGHT
+    store.complete('u',req.character_id,str(req.request_id),script)
+    replay=[e async for e in engine.reply('u',req)]
+    assert replay[0]['script']['beats'][0]['thought'] is None
+    assert replay[0]['script']['text']=='你回来啦。'
+    assert provider.calls==['plan','narration']
+    archived=json.loads(store.db.execute('SELECT result FROM requests').fetchone()[0])
+    assert archived['beats'][0]['thought']==REPORTED_THOUGHT
+    store.db.close()
 
 
 def test_duplicate_greeting_guard_accepts_new_topic_hook_not_old_answer():

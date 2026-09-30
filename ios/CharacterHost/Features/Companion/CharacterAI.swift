@@ -19,11 +19,20 @@ struct AIBeat: Codable, Sendable, Identifiable {
     var id: String { beatId }
     var hasAudio: Bool { dialogue != nil || !(vocalEvents ?? []).isEmpty }
     var visibleThought: String? {
-        guard let thought, !thought.isEmpty else { return nil }
-        // Also protect old persisted replies from the first integration build.
+        guard let thought else { return nil }
+        let text=thought.trimmingCharacters(in:.whitespacesAndNewlines)
+        // Same contract as schemas.visible_thought, including old local records.
+        // Omitting an invalid optional aside never changes dialogue or audio.
+        guard !text.isEmpty, text.unicodeScalars.count<=40,
+              text.contains("我") || text.contains("咱") else { return nil }
         let metadata = ["用户","让对方","对方感受","需传递","正式问候","边界清晰","回应策略",
-                        "准备回复","作为角色","符合人设","需要表现","应当表达","台词","情绪状态","遵守"]
-        return metadata.contains(where:thought.contains) ? nil : thought
+                        "准备回复","作为角色","符合人设","需要表现","应当表达","台词","情绪状态","遵守",
+                        "编排","提示词","分享邀请","回复意图"]
+        let planning = ["(?:引出|引导|转入|转向|延续|承接).{0,18}(?:话题|邀请)",
+                        "(?:营造|延续|保持|维持|烘托|渲染).{0,18}氛围",
+                        "(?:结合|根据|符合|体现).{0,14}(?:人设|设定|偏好|上下文)",
+                        "(?:选择|使用|采用).{0,18}(?:语气|措辞|表情|动作)"]
+        return metadata.contains(where:text.contains) || planning.contains(where:{text.range(of:$0,options:.regularExpression) != nil}) ? nil : text
     }
 }
 struct AIDialogue: Codable, Sendable { var text: String }

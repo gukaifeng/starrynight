@@ -7,6 +7,8 @@ final class ConversationPresentationTests: XCTestCase {
         app.launch();defer {app.terminate()}
         let scroll=app.scrollViews["chatMessages"]
         XCTAssertTrue(scroll.waitForExistence(timeout:20))
+        XCTAssertTrue(app.staticTexts["你回来啦。"].waitForExistence(timeout:5))
+        XCTAssertFalse(app.descendants(matching:.any)["aiThought"].exists,"Old planning text must be hidden while its genuine dialogue stays visible")
         func awaitPosition(_ text:String) {
             let ready=NSPredicate { _,_ in (scroll.value as? String)==text }
             XCTAssertEqual(XCTWaiter.wait(for:[XCTNSPredicateExpectation(predicate:ready,object:nil)],timeout:8),.completed)

@@ -12,6 +12,11 @@ struct ConversationPresentationFixture: View {
         let model=ModelDescriptor.all.first!
         store.update(model.id) { record in
             record.messages=(0..<80).map { CompanionMessage(role:$0.isMultiple(of:2) ? "assistant" : "user",text:"历史消息 \($0)：这是一段用于检查滚动和渐变的文字。") }
+            let id=UUID()
+            let beat=AIBeat(beatId:"old",thought:"轻唤昵称，延续晨光庭院的宁静氛围，并自然引出书籍或日常话题的分享邀请。",
+                            dialogue:AIDialogue(text:"你回来啦。"),narrations:[],visuals:[])
+            let script=AIScript(messageId:id.uuidString,characterId:model.id,text:"你回来啦。",beats:[beat])
+            record.messages.append(CompanionMessage(id:id,role:"assistant",text:script.text,aiScript:script,source:"cloud-v1"))
         }
         _session=State(initialValue:CompanionSession(store:store,model:model,soundscape:CompanionSoundscape()))
     }
@@ -47,7 +52,14 @@ struct ConversationPresentationFixture: View {
             let audioStable=before==record.messages[index].visibleContentKey
             record.messages[index].aiScript?.beats[0].narrations=[AINarration(text:"片刻停顿，让对话柔和下来。",mode:"literary",grounding:"none")]
             let changed=before != record.messages[index].visibleContentKey
-            contentCheck=audioStable && changed ? "PASS: audio metadata stays still; narration triggers following" : "FAIL: visible content key"
+            // Also exercise the native guard's positive and first-person
+            // planning cases; old persisted dialogue remains untouched.
+            var probe=record.messages[index].aiScript!.beats[0]
+            probe.thought="我需要延续宁静的氛围，并自然引出书籍话题。"
+            let planningHidden=probe.visibleThought == nil
+            probe.thought="我很喜欢你给我的昵称。"
+            let feelingPreserved=probe.visibleThought == probe.thought
+            contentCheck=audioStable && changed && planningHidden && feelingPreserved ? "PASS: audio metadata stays still; narration triggers following; planning stays hidden" : "FAIL: content presentation"
         }
     }
 }
