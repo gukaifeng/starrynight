@@ -73,16 +73,28 @@ import CryptoKit
         }
         try require(try await !speech.cachedReplay(script,messageID:message),"Old voice clips survived the voice revision change")
         speech.prepare(message,script:script)
-        for beat in script.beats {
-            try await speech.accept(AIEvent(type:"segment.audio.started",beatId:beat.beatId))
-            for offset in stride(from:0,to:pcm.count,by:9600) {
-                try await speech.accept(AIEvent(type:"segment.audio.chunk",data:Data(pcm.dropFirst(offset).prefix(9600)).base64EncodedString()))
-            }
-            try await speech.accept(AIEvent(type:"segment.audio.ready",beatId:beat.beatId))
-            try await Task.sleep(for:.milliseconds(100))
-            try require(speech.playbackLevel == 0,"A drained segment must stay silent while waiting for the next beat")
+        let pump=ReplyAudioPump { event in
+            if event.type=="audio.completed" {speech.finish()}
+            else {try await speech.accept(event)}
         }
-        speech.finish()
+        defer {pump.cancel()}
+        for beat in script.beats {
+            try pump.send(AIEvent(type:"segment.audio.started",beatId:beat.beatId))
+            for offset in stride(from:0,to:pcm.count,by:9600) {
+                try pump.send(AIEvent(type:"segment.audio.chunk",data:Data(pcm.dropFirst(offset).prefix(9600)).base64EncodedString()))
+            }
+            try pump.send(AIEvent(type:"segment.audio.ready",beatId:beat.beatId))
+        }
+        try pump.send(AIEvent(type:"audio.completed"))
+        // Simulate a visual arriving after the complete audio stream. Consuming
+        // it must be possible while the first beat is still physically playing.
+        for _ in 0..<100 {
+            if peak>0 {break}
+            try await Task.sleep(for:.milliseconds(10))
+        }
+        try require(speech.isSpeaking && played==["speech"],"The network consumer waited for PCM playback instead of accepting late visuals")
+        try await pump.finish()
+        try require(speech.playbackLevel==0,"Drained audio did not become silent")
         try require(peak > 0.02,"No actual mixer output was measured")
         try require(speech.audibleSegments == 2,"Expected both spoken and vocal-only output beats")
         try require(abs((speech.durations[message] ?? 0)-1.2)<0.01,"Playback did not drain both buffers")
@@ -98,6 +110,20 @@ import CryptoKit
         speech.stop()
         try await Task.sleep(for:.milliseconds(80))
         try require(!speech.isSpeaking && !speech.isBusy && speech.playbackLevel == 0 && soundscape.focus == .none,"Cancellation leaked playback state")
-        return "PASS: old voice cache invalidation, real audio-thread metering, monotonic lip-sync timestamps, two-beat playback, vocal-only cache replay, duration and cancellation; zero network calls."
+        var waiting=false;var cancelled=false;var nextBeatAccepted=false
+        let cancelledPump=ReplyAudioPump { event in
+            if event.type=="wait" {
+                waiting=true
+                do {try await Task.sleep(for:.seconds(10))}
+                catch {cancelled=true;throw error}
+            } else {nextBeatAccepted=true}
+        }
+        try cancelledPump.send(AIEvent(type:"wait"));try cancelledPump.send(AIEvent(type:"mustNotRun"))
+        while !waiting {await Task.yield()}
+        cancelledPump.cancel()
+        do {try await cancelledPump.finish();try require(false,"Cancelled audio worker reported success")}
+        catch is CancellationError {}
+        try require(cancelled && !nextBeatAccepted,"Cancellation left audio from the old turn queued")
+        return "PASS: old voice cache invalidation, real audio-thread metering, monotonic lip-sync timestamps, nonblocking two-beat audio queue, late visual delivery during playback, vocal-only cache replay, duration and worker cancellation; zero network calls."
     }
 }

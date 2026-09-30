@@ -17,7 +17,7 @@ public static class CharacterPreviewRotationTests
             rotation.Step(1f/hz);
             Check(float.IsFinite(rotation.Offset.x) && float.IsFinite(rotation.Offset.y),"finite output");
             Check(Math.Abs(rotation.Offset.x)<=18.0001f && Math.Abs(rotation.Offset.y)<=8.0001f,"hard small-angle envelope");
-            Check(float.IsFinite(rotation.ScaleRatio) && rotation.ScaleRatio>=.89999f && rotation.ScaleRatio<=1.10001f,"bounded transient pinch");
+            Check(float.IsFinite(rotation.ScaleRatio) && rotation.ScaleRatio>=.94999f && rotation.ScaleRatio<=1.05001f,"bounded transient pinch");
         }
     }
     public static void Main()
@@ -25,13 +25,13 @@ public static class CharacterPreviewRotationTests
         foreach(int hz in new[]{30,60,120}) {
             var pinch=new CharacterPreviewRotation();
             pinch.BeginPinch();pinch.Pinch(10);Tick(pinch,hz,hz/2);
-            Check(pinch.Pinching && pinch.ScaleRatio>1.09f && pinch.ReactionCount==1 && pinch.ReactionKind=="pinch_out","enlarge reacts before release");
+            Check(pinch.Pinching && pinch.ScaleRatio>1.049f && pinch.ReactionCount==1 && pinch.ReactionKind=="pinch_out","enlarge reacts before release");
             float enlarged=pinch.ScaleRatio;
             Check(!pinch.EndPinch(true) && pinch.ScaleRatio==enlarged,"release does not snap or emit twice");
             Tick(pinch,hz,hz*2);
             Check(pinch.ScaleRatio==1 && pinch.PinchReturnCount==1,"pinch returns exactly once");
             pinch.BeginPinch();pinch.Pinch(.01f);Tick(pinch,hz,hz/2);
-            Check(pinch.ScaleRatio<.91f && pinch.ReactionCount==1,"opposite pinch uses same cooldown");
+            Check(pinch.ScaleRatio<.951f && pinch.ReactionCount==1,"opposite pinch uses same cooldown");
             pinch.EndPinch();Tick(pinch,hz,hz*21);
             pinch.BeginPinch();pinch.Pinch(.5f);Tick(pinch,hz,hz/2);
             Check(pinch.Pinching && pinch.ReactionCount==2 && pinch.ReactionKind=="pinch_in","shrink has its own semantics");

@@ -143,6 +143,9 @@ class TimelinePlan(Plan):
         description='本轮新增内容的一句话摘要，必须不同于recent_response_focus以及刚刚的回答。先写此项，再写beats；静默时写保持安静。')
     beats: list[TimelineBeat] = Field(default_factory=list,max_length=3)
 
+class CoreTimelinePlan(TimelinePlan):
+    """Internal marker for speech-first planning without avatar control data."""
+
 class ShakeTimelinePlan(TimelinePlan):
     @field_validator('beats',mode='before')
     @classmethod
@@ -189,6 +192,7 @@ class Request(Strict):
     wants_audio: bool = True
     progressive_reply: bool = False
     timeline_reply: bool = False
+    parallel_performance: bool = False
 
     @field_validator('character_id')
     @classmethod

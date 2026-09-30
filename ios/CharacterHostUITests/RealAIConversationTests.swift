@@ -48,7 +48,7 @@ final class RealAIConversationTests: XCTestCase {
         app.waitForCharacter({ state in
             let counts=state["confirmedPerformanceCounts"] as? [String:Int] ?? [:]
             let changed=counts.keys.filter { counts[$0,default:0]>beforePerformance[$0,default:0] }
-            return changed.contains { ["kipfel-catear-pyoko-loop","kipfel-catear-up"].contains($0) } && changed.contains { $0.hasPrefix("kipfel-facial-") }
+            return changed.contains { ["kipfel-catear-pyoko-loop","kipfel-catear-pyoko-left","kipfel-catear-pyoko-right","kipfel-catear-up"].contains($0) } && changed.contains { $0.hasPrefix("kipfel-facial-") }
         },timeout:45)
         capture("real-ai-original-expression-and-ears",app)
         waitForRealVoice(app)
@@ -121,5 +121,8 @@ final class RealAIConversationTests: XCTestCase {
     @MainActor private func capture(_ name:String,_ app:XCUIApplication) {
         let shot=XCTAttachment(screenshot:app.screenshot());shot.name=name;shot.lifetime = .keepAlways;add(shot)
         let tree=XCTAttachment(string:app.debugDescription);tree.name=name+"-elements";tree.lifetime = .keepAlways;add(tree)
+        if let data=try? JSONSerialization.data(withJSONObject:app.characterRuntime,options:[.prettyPrinted,.sortedKeys]) {
+            let runtime=XCTAttachment(data:data,uniformTypeIdentifier:"public.json");runtime.name=name+"-runtime";runtime.lifetime = .keepAlways;add(runtime)
+        }
     }
 }

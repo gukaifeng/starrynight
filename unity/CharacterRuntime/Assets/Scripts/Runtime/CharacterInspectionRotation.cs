@@ -15,7 +15,7 @@ namespace ModelSpace
     // latest view per account/character; rotation never silently pans or zooms.
     public sealed class CharacterInspectionRotation
     {
-        public const int Revision=12;
+        public const int Revision=13;
         public const float TurnFramingReserve=1.10f;
         public const float HoldSeconds=1, MaximumPitch=80;
         public const float MinimumScale=.78f,MaximumScale=1.28f,MaximumTranslation=.45f;
@@ -246,7 +246,10 @@ namespace ModelSpace
         public bool Step(float deltaTime)
         {
             if(!float.IsFinite(deltaTime) || deltaTime<=0)return false;
-            SetPreviewScaleLimits();Preview.Step(deltaTime);
+            // This tiny, temporary squeeze/pull is relative to the saved pose.
+            // Applying the persistent full-body fit here capped an already
+            // cropped portrait at 1x, so the very first outward pinch did nothing.
+            Preview.Step(deltaTime);
             float dt=Mathf.Min(deltaTime,.05f),response=Moving ? .10f : .32f;
             if(Preparing)
             {
@@ -272,27 +275,6 @@ namespace ModelSpace
         public void ConstrainTarget() {
             var normalized=Normalize(requested);
             ApplyTarget(hasProjection && !rotationOnly && !normalized.IsDefault ? Constrain(normalized) : normalized);
-        }
-        void SetPreviewScaleLimits() {
-            float maximum=CharacterPreviewRotation.MaximumRatio;
-            if(hasProjection && (Preview.Pinching || Mathf.Abs(Preview.ScaleRatio-1)>.00001f)) {
-                var basis=Current;basis.yaw=basis.pitch=0;
-                var original=Project(basis);
-                // Never translate the saved pose to accommodate a pinch. Fit
-                // about the existing portrait anchor, allowing any pre-existing
-                // authored crop but no new overflow beyond it/the safe viewport.
-                var permitted=Rect.MinMaxRect(Mathf.Min(safe.xMin,original.xMin),Mathf.Min(safe.yMin,original.yMin),
-                    Mathf.Max(safe.xMax,original.xMax),Mathf.Max(safe.yMax,original.yMax));
-                float low=1,high=maximum;
-                for(int i=0;i<12;i++) {
-                    float candidate=(low+high)*.5f;var pose=basis;pose.scale*=candidate;var projected=Project(pose);
-                    if(projected.xMin>=permitted.xMin-.00001f && projected.yMin>=permitted.yMin-.00001f &&
-                       projected.xMax<=permitted.xMax+.00001f && projected.yMax<=permitted.yMax+.00001f)low=candidate;
-                    else high=candidate;
-                }
-                maximum=low;
-            }
-            Preview.SetScaleLimits(CharacterPreviewRotation.MinimumRatio,maximum);
         }
         // Translation/scale limits use the authored portrait as a stable reference.
         // Yaw remains unrestricted; pitch stays near eye level. Neither axis may

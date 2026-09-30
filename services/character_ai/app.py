@@ -21,8 +21,16 @@ def create_app(settings=None,provider=None):
     busy=set(); turns=TurnStreams()
     @asynccontextmanager
     async def lifespan(app):
-        yield
-        await turns.close();await provider.close();store.db.close()
+        async def warmup():
+            try:await engine.semantic.warmup()
+            except Exception as error:
+                store.put('startup','system','semantic_novelty',dict(error=type(error).__name__))
+        warming=asyncio.create_task(warmup())
+        try:yield
+        finally:
+            warming.cancel()
+            await asyncio.gather(warming,return_exceptions=True)
+            await turns.close();await provider.close();store.db.close()
     app=FastAPI(title='StarryNight Character Gateway',version='1.2',lifespan=lifespan,docs_url=None,redoc_url=None)
     app.state.store=store;app.state.engine=engine;app.state.turns=turns
     def owner(headers):
@@ -56,6 +64,7 @@ def create_app(settings=None,provider=None):
         who=owner(request.headers)
         if character!=body.character_id:raise HTTPException(400,'CHARACTER_MISMATCH')
         if request.headers.get('x-starry-reply-mode')=='timeline-v2':body.timeline_reply=True
+        body.parallel_performance=body.timeline_reply and request.headers.get('x-starry-performance-mode')=='parallel-v1'
         return inspection_report(settings,engine,who,body)
     @app.post('/v1/conversations/{character}/messages')
     async def messages(character:str,body:Request,request:HTTPRequest):
@@ -65,6 +74,7 @@ def create_app(settings=None,provider=None):
         mode=request.headers.get('x-starry-reply-mode')
         if mode in ('progressive-v1','timeline-v2'):body.progressive_reply=True
         if mode=='timeline-v2':body.timeline_reply=True
+        body.parallel_performance=body.timeline_reply and request.headers.get('x-starry-performance-mode')=='parallel-v1'
         return await turns.start(who+':'+character,str(body.request_id),lambda: engine.reply(who,body),replace=body.trigger!='idle')
     @app.post('/v1/conversations/{character}/messages/{message_id}/audio')
     async def replay(character:str,message_id:UUID,request:HTTPRequest):

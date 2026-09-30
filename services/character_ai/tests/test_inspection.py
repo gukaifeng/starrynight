@@ -64,6 +64,11 @@ async def test_inspector_disabled_by_default_and_auth_required(tmp_path):
         assert (await client.post(path.replace('kipfel','mamehinata'),json=body,headers=headers)).status_code==400
         public=await client.get('/v1/characters/anime-kipfel/profile',headers=headers)
         assert public.status_code==200 and 'voice_prompt' not in public.json()
+        parallel=await client.post(path,json=body,headers={**headers,'X-Starry-Reply-Mode':'timeline-v2','X-Starry-Performance-Mode':'parallel-v1'})
+        sections={s['id']:s['content'] for s in parallel.json()['sections']}
+        assert 'SpokenPlan' not in sections['payload']  # Private schema titles are compacted.
+        assert '"cues"' not in json.loads(sections['payload'])['messages'][0]['content']
+        assert 'performance-payload' in sections
     assert app.state.store.db.execute('SELECT count(*) FROM usage').fetchone()[0]==0
     await app.state.engine.provider.close();app.state.store.db.close()
 

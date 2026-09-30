@@ -42,6 +42,7 @@ final class CompanionSession {
     @ObservationIgnored var onAppearance: ((CharacterProfile) -> Void)?
     @ObservationIgnored var onPosture: ((PosturePreferences) async -> String?)?
     @ObservationIgnored var onAIVisual: (([AIVisual]) -> Void)?
+    @ObservationIgnored var onAdditionalAIVisual: (([AIVisual]) -> Void)?
     @ObservationIgnored var onEndAIVisual: (() -> Void)?
     @ObservationIgnored private var task: Task<Void,Never>?
     @ObservationIgnored private var idleTask: Task<Void,Never>?
@@ -51,6 +52,8 @@ final class CompanionSession {
     private(set) var shakeReactions=0
     private(set) var pinchReactions=0
     private(set) var lastModelInteraction=""
+    private(set) var lateVisualUpdates=0
+    private(set) var lateVisualsDuringSpeech=0
     @ObservationIgnored private var token = UUID()
     @ObservationIgnored private var activeTurn = false
     @ObservationIgnored private var pendingGreeting: ConversationEntry?
@@ -197,6 +200,16 @@ final class CompanionSession {
         task = Task { @MainActor [weak self] in
             guard let self else { return }
             var received = false
+            let audio=ReplyAudioPump { [weak self] event in
+                guard let self,self.token==current,self.store.accountID==self.ownerID else {throw CancellationError()}
+                if event.type=="audio.completed" {
+                    if !self.muted {self.speech.finish();self.replyReveal.finish();self.emit("state.idle")}
+                } else {
+                    if !self.muted {try await self.speech.accept(event)}
+                    if event.type=="audio.error",let script=self.activeScript {self.playSilentVisuals(script);self.revealSilently(script)}
+                }
+            }
+            defer {audio.cancel()}
             do {
                 try await api.events(path:"/v1/conversations/"+model.id+"/messages",body:body) { [weak self] event in
                     guard let self, current == self.token, self.store.accountID == self.ownerID else { throw CancellationError() }
@@ -238,13 +251,27 @@ final class CompanionSession {
                                 record.messages[index].aiScript=script
                             }
                         }
+                    case "reply.visuals.updated":
+                        guard let script=event.script,script.characterId==self.model.id,
+                              self.activeScript?.messageId==script.messageId,let id=UUID(uuidString:script.messageId) else {return}
+                        // Update only replayable visual controls. Never restart
+                        // speech, change its text/parts or append late narration.
+                        self.activeScript=script
+                        self.store.update(self.model.id) {record in
+                            if let index=record.messages.firstIndex(where:{$0.id==id}) {record.messages[index].aiScript=script}
+                        }
+                        if !self.inspectionActive,!self.characterEditorPresented,let visuals=event.visuals,!visuals.isEmpty {
+                            self.lateVisualUpdates+=1
+                            if self.speech.isSpeaking {self.lateVisualsDuringSpeech+=1}
+                            self.onAdditionalAIVisual?(visuals)
+                        }
                     case "reply.warning": self.notice = event.message
-                    case "segment.audio.started", "segment.audio.chunk", "segment.audio.ready", "audio.error":
-                        if !self.muted { try await self.speech.accept(event) }
-                        if event.type == "audio.error", let script=self.activeScript { self.playSilentVisuals(script);self.revealSilently(script) }
+                    case "segment.audio.started", "segment.audio.chunk", "segment.audio.ready", "audio.error", "audio.completed":
+                        try audio.send(event)
                     default: break
                     }
                 }
+                try await audio.finish()
                 guard current == token else { return }
                 generating = false; speech.finish()
                 if !muted && speech.error == nil {replyReveal.finish()}

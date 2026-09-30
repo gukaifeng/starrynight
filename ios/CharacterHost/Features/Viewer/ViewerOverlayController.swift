@@ -456,6 +456,8 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
         values["greetingScene"] = chatSession?.record.messages.last(where:{ $0.proactiveScene != nil })?.proactiveScene
         values["greetingCount"] = chatSession?.record.greeting?.count ?? 0
         values["confirmedPerformanceCounts"] = characterPerformance?.confirmedCounts ?? [:]
+        values["lateVisualUpdates"] = chatSession?.lateVisualUpdates ?? 0
+        values["lateVisualsDuringSpeech"] = chatSession?.lateVisualsDuringSpeech ?? 0
         values["shakeReactions"] = chatSession?.shakeReactions ?? 0
         values["pinchReactions"] = chatSession?.pinchReactions ?? 0
         values["lastModelInteraction"] = chatSession?.lastModelInteraction ?? ""

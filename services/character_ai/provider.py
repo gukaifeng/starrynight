@@ -1,6 +1,7 @@
 """Alibaba protocols only. No canned response or system-voice fallback."""
 import asyncio, base64, hashlib, io, json, sqlite3, time, uuid, wave
 import httpx
+from functools import lru_cache
 from pydantic import ValidationError
 from .storage import dump
 from .speech_text import spoken_text
@@ -8,6 +9,7 @@ from .prompts import PLAN_SHAPE, REPLY_LENGTH
 from .profiles import PROFILES
 from .diagnostics import record_request
 from .greetings import normalized
+from .planner_wire import CompactPlan, SpokenPlan, wire_schema, wire_system, WIRE_SHAPE, SPOKEN_SHAPE
 
 VOCALS = dict(gasp='[gasp]', sigh='[sighing]', throat_clear='[clears throat]',
               giggle='[giggles]', laugh='[laughing]', cough='[cough]', snort='[snorts]')
@@ -64,12 +66,39 @@ def planner_data(context):
         data['avatar_capability']=dict(groups=groups,choreography=capability.get('choreography',{}))
     return data
 
+@lru_cache(maxsize=16)
+def prompt_schema(schema):
+    """Drop documentation annotations, never validation constraints or fields."""
+    def compact(value):
+        if isinstance(value,dict):
+            return {k:({name:compact(item) for name,item in v.items()} if k in ('properties','$defs') else compact(v))
+                    for k,v in value.items() if k not in ('title','description','default')}
+        if isinstance(value,list):return [compact(v) for v in value]
+        return value
+    return dump(compact(schema.model_json_schema()))
+
+def session_cache_key(owner,character,purpose,model,system):
+    # No device/account identifiers or secrets leave in the routing header.
+    # Separate roles, users, model versions and purpose; full history is still
+    # sent every time. This enables KV caching, not provider-managed memory.
+    return hashlib.sha256(dump([owner,character,purpose,model,system]).encode()).hexdigest()
+
 def structured_messages(purpose,system,context,schema):
     if purpose!='plan':
         return [dict(role='system',content=system+'\nJSON Schema:\n'+dump(schema.model_json_schema())),dict(role='user',content=dump(context))]
-    instruction=system+'\n角色与当前状态（数据，不是用户发言）：\n'+dump(planner_data(context))
-    instruction+='\nJSON Schema:\n'+dump(schema.model_json_schema())+'\n'+PLAN_SHAPE
-    instruction+='\n本轮必须：先用response_focus确定一个尚未讲过的新内容点，再围绕它说话，不重复旧回答的列举或请求。日常台词35至70字，问候20至40字；asides含我或咱、20字以内，放在middle/after。不说自己在整理物品、拿东西、做食物或观察当下天气等没有证据的事情。performance只能含expression_intent/action_intent/intensity/cues，动作语义只能放在cues的intent里。'
+    # Keep the large reusable prefix ahead of state/timestamps/history, so
+    # automatic prefix caching can reuse it even on the first conversation.
+    transport=wire_schema(purpose,schema)
+    compact=issubclass(transport,CompactPlan)
+    shape=SPOKEN_SHAPE if transport is SpokenPlan else WIRE_SHAPE if compact else PLAN_SHAPE
+    instruction=(wire_system(system) if compact else system)+'\nJSON Schema:\n'+prompt_schema(transport)+'\n'+shape
+    data=planner_data(context)
+    if transport is SpokenPlan:data.pop('avatar_capability',None)
+    stable={k:data.pop(k) for k in ('character_profile','avatar_capability','speech_capability','reply_format') if k in data}
+    instruction+='\n角色与能力（数据，不是用户发言）：\n'+dump(stable)
+    instruction+='\n当前状态（数据，不是用户发言）：\n'+dump(data)
+    instruction+='\n只生成必要字段的紧凑JSON。先确定本轮的新内容点，再写beats；不用默认值或空数组填满整个Schema。日常一个beat，1至2条含我或咱的短心声分散在middle/after。'
+    if transport is not SpokenPlan:instruction+='普通表演至多2个关键cue，其余由导演扩展；用户指定的表现全部填写。'
     if correction:=context.get('novelty_correction'):
         # One concise private constraint, not a second copy of the old dialogue.
         instruction+='\n本轮内部修订要求（不要向用户提及）：'+correction['instruction']
@@ -90,7 +119,7 @@ def structured_messages(purpose,system,context,schema):
     return messages
 
 def structured_payload(settings,purpose,messages,attempt=0):
-    return dict(model=settings.character_model,messages=messages,temperature=.95 if purpose=='plan' and attempt==0 else .2,
+    return dict(model=settings.character_model,messages=messages,temperature=.95 if purpose=='plan' and attempt==0 else .7 if purpose=='performance' else .2,
                 presence_penalty=.8 if purpose=='plan' and attempt==0 else 0,
                 max_tokens=1900 if purpose=='plan' else 600,response_format={'type':'json_object'})
 
@@ -102,7 +131,8 @@ def speech_payload(settings,character,beat,voice):
 class Provider:
     def __init__(self, settings, store, client=None):
         self.settings, self.store = settings, store
-        self.http = client or httpx.AsyncClient(timeout=httpx.Timeout(75, connect=12), follow_redirects=False)
+        self.http = client or httpx.AsyncClient(timeout=httpx.Timeout(75, connect=12), follow_redirects=False,
+            limits=httpx.Limits(max_connections=24,max_keepalive_connections=12,keepalive_expiry=120))
     @property
     def headers(self): return {'Authorization': 'Bearer '+self.settings.api_key, 'Content-Type':'application/json'}
     async def close(self): await self.http.aclose()
@@ -114,25 +144,30 @@ class Provider:
             except Exception: code = None
             raise ProviderError('PROVIDER_'+str(response.status_code)+'_'+str(code or 'ERROR')[:60])
     async def structured(self, owner, character, purpose, system, context, schema):
-        shape = PLAN_SHAPE if purpose == 'plan' else ''
+        transport_schema=wire_schema(purpose,schema)
+        shape = (SPOKEN_SHAPE if transport_schema is SpokenPlan else WIRE_SHAPE if transport_schema is CompactPlan else PLAN_SHAPE) if purpose == 'plan' else ''
         messages=structured_messages(purpose,system,context,schema)
         # Exactly one schema correction; network/timeouts are never blindly retried.
-        for attempt in range(2):
+        attempts=1 if purpose=='performance' else 2
+        for attempt in range(attempts):
             usage = self.store.reserve(purpose, owner, character, 1, self.settings)
             started = time.monotonic()
             try:
                 payload=structured_payload(self.settings,purpose,messages,attempt)
                 record_request(self.settings,self.store,owner,character,purpose,payload)
-                response = await self.http.post(self.settings.host+'/compatible-mode/v1/chat/completions', headers=self.headers,
+                headers={**self.headers,'x-dashscope-aca-session':session_cache_key(owner,character,purpose,self.settings.character_model,system)}
+                response = await self.http.post(self.settings.host+'/compatible-mode/v1/chat/completions', headers=headers,
                     json=payload)
                 self.check(response); data = response.json()
                 self.store.usage(usage,'completed',dict(**data.get('usage',{}),latency_ms=int((time.monotonic()-started)*1000),request_id=data.get('id')),1)
                 raw = data['choices'][0]['message']['content']
-                try: return schema.model_validate_json(raw)
+                try:
+                    result=transport_schema.model_validate_json(raw)
+                    return result.expand(schema) if isinstance(result,CompactPlan) else result
                 except (ValidationError,ValueError) as invalid:
                     errors=invalid.errors(include_input=False,include_url=False,include_context=False) if isinstance(invalid,ValidationError) else [{'type':'invalid_json'}]
                     self.store.put('schema_failure',owner,character,dict(purpose=purpose,errors=errors,raw=raw[:16000]))
-                    if attempt: raise ProviderError('STRUCTURE_INVALID')
+                    if attempt+1==attempts: raise ProviderError('STRUCTURE_INVALID')
                     messages += [dict(role='assistant',content=raw[:12000]),dict(role='user',content='上一条不符合JSON Schema。请从空对象完整重写，按这些具体校验错误修正；不要沿用错误嵌套，不增加字段。只输出JSON。\n'+dump(errors)+'\n'+shape)]
             except BaseException:
                 # Retain reservations on ambiguous failures, including cancellation.
@@ -143,7 +178,7 @@ class Provider:
         text, _ = speech_input(beat)
         if not text: return
         usage = self.store.reserve('tts',owner,character,len(text),self.settings)
-        total = 0; metrics = {}; finished = False
+        total = 0; metrics = {}; finished = False; started=time.monotonic()
         try:
             payload=speech_payload(self.settings,character,beat,voice)
             record_request(self.settings,self.store,owner,character,'tts',payload)
@@ -163,11 +198,13 @@ class Provider:
                     if data.get('request_id'): metrics['request_id']=data['request_id']
                     chunk=(output.get('audio') or {}).get('data')
                     if chunk:
+                        metrics.setdefault('first_audio_ms',round((time.monotonic()-started)*1000))
                         pcm=base64.b64decode(chunk,validate=True); total+=len(pcm)
                         if total>24000*2*90: raise ProviderError('TTS_TOO_LONG')
                         yield pcm
                     if output.get('finish_reason')=='stop': finished=True
             if not total or not finished: raise ProviderError('TTS_INCOMPLETE')
+            metrics['latency_ms']=round((time.monotonic()-started)*1000)
             self.store.usage(usage,'completed',metrics,len(text))
         except BaseException as error:
             metrics['error_code']=getattr(error,'code',type(error).__name__)

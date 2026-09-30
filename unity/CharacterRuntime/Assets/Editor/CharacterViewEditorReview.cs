@@ -28,10 +28,11 @@ public static class CharacterViewEditorReview
             for(int frame=0;frame<60;frame++) {
                 edit.RestoreFrame();edit.Step(1f/60);edit.ApplyFrame();
                 Check(Near(edit.Target,saved) && Near(edit.Current,displayed),"pinch cannot translate or persist: "+context);
-                Check(edit.Preview.ScaleRatio>=.89999f && edit.Preview.ScaleRatio<=1.10001f,"pinch stays in its small relative range");
+                Check(edit.Preview.ScaleRatio>=.94999f && edit.Preview.ScaleRatio<=1.05001f,"pinch stays in its small relative range");
                 Check(camera.transform.position==cameraPosition,"pinch never reframes camera");
             }
-            if(ratio<1)Check(edit.Preview.ScaleRatio<.91f,"inward pinch is visible: "+context);
+            if(ratio>1)Check(edit.Preview.ScaleRatio>1.049f,"outward pinch works immediately even at the portrait edge: "+context);
+            if(ratio<1)Check(edit.Preview.ScaleRatio<.951f,"inward pinch is visible: "+context);
             Debug.Log("PREVIEW_PINCH_GEOMETRY "+context+" ratio="+ratio+" applied="+edit.Preview.ScaleRatio);
             float held=edit.Preview.ScaleRatio;edit.Preview.EndPinch(true);
             Check(edit.Preview.ScaleRatio==held,"pinch release stays continuous");Tick(edit,180);
@@ -94,6 +95,12 @@ public static class CharacterViewEditorReview
                     var cameraPosition=camera.transform.position;
                     edit.SetProjection(camera,region,safe);
                     ReviewPinch(edit,root,camera,source.modelId+" "+size);
+                    // A fitted custom portrait can touch the edge already.
+                    // It must still accept the first outward pull, without
+                    // requiring an inward squeeze to create space beforehand.
+                    edit.Load(new CharacterViewPose{scale=10,x=1,y=1},true);Tick(edit);
+                    ReviewPinch(edit,root,camera,source.modelId+" fitted-edge "+size);
+                    edit.ResetImmediate();Tick(edit);
                     Debug.Log("POSITION_GEOMETRY "+source.modelId+" "+size+" region="+region+" default="+edit.Project(CharacterViewPose.Default)+" turn30="+edit.Project(new CharacterViewPose{yaw=-30,scale=1})+" safe="+safe);
                     Check(edit.Begin(camera.transform.right),"open edit");
                     edit.BeginAdjustment();edit.Move(.075f,0);Tick(edit);
@@ -119,6 +126,7 @@ public static class CharacterViewEditorReview
                     edit.Close();var saved=edit.Target;Tick(edit);
                     edit.RestoreFrame();edit.Load(saved,true);edit.ApplyFrame();Check(Near(edit.Current,saved),"reloaded free rotation keeps scale and translation");Check(!edit.Active && Near(edit.Current,saved),"close retains the latest view without explicit save");
                     ReviewPreview(edit,root);
+                    ReviewPinch(edit,root,camera,source.modelId+" custom-pose "+size);
                     camera.transform.position=cameraPosition+camera.transform.right*.3f;
                     edit.SetProjection(camera,region,safe);Tick(edit);
                     camera.transform.position=cameraPosition;edit.SetProjection(camera,region,safe);Tick(edit);

@@ -71,6 +71,7 @@ struct AIEvent: Decodable, Sendable {
     var code: String?
     var message: String?
     var text: String?
+    var visuals: [AIVisual]?
 }
 enum AIConnectionError: LocalizedError {
     case unconfigured, unavailable, server(Int), remote(String), testingDisabled
@@ -173,6 +174,7 @@ private final class AINoRedirect: NSObject, URLSessionTaskDelegate, Sendable {
     func configuration<T:Decodable & Sendable>(_ path:String,body:[String:Any]? = nil) async throws -> T {
         var request=try request(path,paid:false);request.timeoutInterval=15
         request.setValue("timeline-v2",forHTTPHeaderField:"X-Starry-Reply-Mode")
+        request.setValue("parallel-v1",forHTTPHeaderField:"X-Starry-Performance-Mode")
         request.setValue("application/json",forHTTPHeaderField:"Accept")
         if let body {
             request.httpMethod="POST";request.setValue("application/json",forHTTPHeaderField:"Content-Type")
@@ -200,6 +202,7 @@ private final class AINoRedirect: NSObject, URLSessionTaskDelegate, Sendable {
         request.setValue("text/event-stream",forHTTPHeaderField:"Accept")
         // Older gateways ignore this header and keep their original event order.
         request.setValue("timeline-v2",forHTTPHeaderField:"X-Starry-Reply-Mode")
+        request.setValue("parallel-v1",forHTTPHeaderField:"X-Starry-Performance-Mode")
         if let body { request.httpBody = try JSONSerialization.data(withJSONObject:body) }
         let cancellation=AIStreamCancellation()
         do {
@@ -237,4 +240,35 @@ private final class AINoRedirect: NSObject, URLSessionTaskDelegate, Sendable {
         request.url = parts.url
         return session.webSocketTask(with:request)
     }
+}
+
+/// Network delivery must not wait for PCM to finish playing. This bounded,
+/// turn-owned queue preserves audio order while visual events arrive in parallel.
+@MainActor final class ReplyAudioPump {
+    private let continuation: AsyncThrowingStream<AIEvent,Error>.Continuation
+    private var worker: Task<Void,Error>?
+    private var failure: Error?
+    init(receive: @escaping @MainActor (AIEvent) async throws -> Void) {
+        let pair = AsyncThrowingStream<AIEvent,Error>.makeStream(bufferingPolicy:.bufferingOldest(128))
+        continuation=pair.continuation
+        worker=Task { @MainActor [weak self] in
+            do {
+                for try await event in pair.stream {
+                    try Task.checkCancellation()
+                    try await receive(event)
+                }
+            } catch { self?.failure=error; throw error }
+        }
+    }
+    func send(_ event:AIEvent) throws {
+        if let failure {throw failure}
+        switch continuation.yield(event) {
+        case .enqueued: break
+        case .dropped: throw AIConnectionError.remote("AUDIO_QUEUE_FULL")
+        case .terminated: throw CancellationError()
+        @unknown default: throw CancellationError()
+        }
+    }
+    func finish() async throws {continuation.finish();try await worker?.value}
+    func cancel() {continuation.finish(throwing:CancellationError());worker?.cancel()}
 }

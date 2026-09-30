@@ -46,7 +46,7 @@ final class CharacterViewEditorTests:XCTestCase {
         wait(for:[done],timeout:8)
         app.waitForCharacter {self.number($0,"previewPinchReturnCount")>self.number(before,"previewPinchReturnCount")}
         let after=app.characterRuntime
-        XCTAssertLessThan(number(after,"previewScaleMinimum"),0.94)
+        XCTAssertLessThan(number(after,"previewScaleMinimum"),0.956)
         XCTAssertEqual(number(after,"previewPinchCount"),number(before,"previewPinchCount")+1)
         XCTAssertEqual(number(after,"previewRotationCount"),number(before,"previewRotationCount"),"The remaining finger must not start rotation")
         XCTAssertEqual(number(after,"previewScaleRatio"),1)
@@ -57,7 +57,7 @@ final class CharacterViewEditorTests:XCTestCase {
     @MainActor private func previewPinch(ratio:CGFloat,kind:String) {
         continueAfterFailure=false
         let app=XCUIApplication();app.launchArguments=["--ui-testing","--companion-testing","--auth-testing"]
-        app.launch();ready(app);app.waitForCharacter {self.number($0,"inspectionGestureRevision")>=12}
+        app.launch();ready(app);app.waitForCharacter {self.number($0,"inspectionGestureRevision")>=13}
         let before=app.characterRuntime,saved=pose(before)
         let center=CGPoint(x:number(before,"headX")*app.frame.width,y:number(before,"headY")*app.frame.height)
         if ratio>1 {
@@ -70,10 +70,10 @@ final class CharacterViewEditorTests:XCTestCase {
         XCTAssertEqual(number(after,"previewPinchCount"),number(before,"previewPinchCount")+1)
         XCTAssertEqual(number(after,"previewRotationCount"),number(before,"previewRotationCount"),"The remaining finger cannot become a rotation")
         XCTAssertEqual(number(after,"previewScaleRatio"),1)
-        XCTAssertGreaterThanOrEqual(number(after,"previewScaleMinimum"),0.8999)
-        XCTAssertLessThanOrEqual(number(after,"previewScaleMaximum"),1.1001)
-        if ratio>1 {XCTAssertGreaterThan(number(after,"previewScaleMaximum"),1.06)}
-        else {XCTAssertLessThan(number(after,"previewScaleMinimum"),0.94)}
+        XCTAssertGreaterThanOrEqual(number(after,"previewScaleMinimum"),0.9499)
+        XCTAssertLessThanOrEqual(number(after,"previewScaleMaximum"),1.0501)
+        if ratio>1 {XCTAssertGreaterThan(number(after,"previewScaleMaximum"),1.044)}
+        else {XCTAssertLessThan(number(after,"previewScaleMinimum"),0.956)}
         XCTAssertEqual(after["lastModelInteraction"] as? String,kind)
         XCTAssertEqual(number(after,"pinchReactions"),number(before,"pinchReactions")+1)
         XCTAssertEqual(number(after,"shakeReactions"),number(before,"shakeReactions"))
@@ -84,6 +84,30 @@ final class CharacterViewEditorTests:XCTestCase {
     }
     @MainActor func testNormalPinchOutReactsWithoutSavingOrMoving() {previewPinch(ratio:1.8,kind:"pinch_out")}
     @MainActor func testNormalPinchInReactsWithoutSavingOrMoving() {previewPinch(ratio:0.45,kind:"pinch_in")}
+    @MainActor func testFirstOutwardPinchFromFittedCustomPortrait() {
+        continueAfterFailure=false
+        let app=XCUIApplication();app.launchArguments=["--ui-testing","--companion-testing","--auth-testing"]
+        app.launch();ready(app);open(app)
+        let editCenter=CGPoint(x:app.frame.midX,y:app.frame.height*0.34)
+        let fit=expectation(description:"zoom custom view to its fitted boundary")
+        SNSynthesizeViewEdit(editCenter,app.frame.size) {error in XCTAssertNil(error);fit.fulfill()}
+        wait(for:[fit],timeout:8)
+        app.buttons["closeCharacterViewEditor"].tap()
+        app.waitForCharacter {$0["viewEditorOpen"] as? Bool == false && self.number($0,"inspectionMoving")==0}
+        let before=app.characterRuntime
+        let center=CGPoint(x:number(before,"headX")*app.frame.width,y:number(before,"headY")*app.frame.height)
+        let pull=expectation(description:"first gesture is an outward pull")
+        SNSynthesizePreviewPinch(center,1.8) {error in XCTAssertNil(error);pull.fulfill()}
+        wait(for:[pull],timeout:8)
+        app.waitForCharacter {self.number($0,"previewPinchReturnCount")>self.number(before,"previewPinchReturnCount")}
+        let after=app.characterRuntime
+        XCTAssertGreaterThan(number(after,"previewScaleMaximum"),1.044)
+        XCTAssertLessThanOrEqual(number(after,"previewScaleMaximum"),1.0501)
+        XCTAssertEqual(number(after,"previewScaleRatio"),1)
+        XCTAssertEqual(after["viewPoseSaved"] as? [String:Double],before["viewPoseSaved"] as? [String:Double])
+        for key in ["yaw","pitch","scale","x","y"] {XCTAssertEqual(pose(after)[key] ?? -1,pose(before)[key] ?? -2,accuracy:0.001)}
+        capture("initial-outward-pull-at-custom-portrait",app)
+    }
     @MainActor func testPresetPersistenceAndIsolation() {
         let app=XCUIApplication();app.launchArguments=["--view-presets-check"]
         app.launch()

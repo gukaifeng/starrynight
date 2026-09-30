@@ -1,8 +1,8 @@
 import asyncio, base64, random, re, time, uuid
 from contextlib import aclosing
-from .schemas import Plan, TimelinePlan, ShakeTimelinePlan, NarrationResult, Speech, Vocal, PerformanceCue, visible_text, visible_thought, CONTROL_TEXT
+from .schemas import Plan, TimelinePlan, CoreTimelinePlan, ShakeTimelinePlan, NarrationResult, Speech, Vocal, PerformanceCue, visible_text, visible_thought, CONTROL_TEXT
 from .profiles import PROFILES
-from .prompts import PLANNER, NARRATOR
+from .prompts import PLANNER, CORE_PLANNER, NARRATOR
 from .director import Director, grounded_excerpt, visible_narration
 from .storage import clamp, dump
 from .speech_text import audio_key
@@ -10,16 +10,24 @@ from .greetings import ENTRY_TRIGGERS, greeting_context, plan_text
 from . import novelty
 from .reply_flow import compile_parts, duration_hint
 from .semantic_novelty import SemanticNovelty
+from . import parallel_performance
+from .ordered_audio import ordered_audio
 
 def event(kind, **data): return dict(type=kind,**data)
 
 INTERACTION_TRIGGERS={'model_shaken','model_pinched'}
 PINCH_ROTATION_LANGUAGE=re.compile(r'转圈|转来转去|摇晃|晃动|晃[得晕]|摇头|头晕')
+PINCH_SIZE_LANGUAGE=re.compile(r'放大|缩小|捏小|扯大|弄大|弄小|(?:我|身体|个头|身形|身子).{0,8}(?:变大|变小|拉近|推远)|拉.{0,5}这么近')
 
 def interaction_mismatch(request,text):
     if request.trigger!='model_pinched' or not request.interaction:return None
     if PINCH_ROTATION_LANGUAGE.search(text):
-        return '本次是双指缩放，不是旋转或摇晃；台词把互动说错了。按interaction_context.kind重新回应，不要复述错误动作或头晕。'
+        return '本次是轻捏或轻扯，不是旋转或摇晃；台词把互动说错了。按interaction_context.kind重新回应，不要复述错误动作或头晕。'
+    if PINCH_SIZE_LANGUAGE.search(text):
+        return '本次是轻捏或轻扯的玩闹，不改变角色大小或远近。围绕被捏/被扯时的撒娇或小生气重新回应，不说变大、变小或拉近。'
+    opposite=r'捏' if request.interaction.kind=='pinch_out' else r'扯|拽'
+    if re.search(opposite,text):
+        return '把捏与扯说反了。pinch_in只代表捏，pinch_out只代表扯；按本次kind重新回应。'
     return None
 def brief_shake_plan(plan,mood):
     """Keep one AI-authored reaction; never manufacture a local complaint.
@@ -78,12 +86,12 @@ class Orchestrator:
             kind=request.interaction.kind if request.interaction else 'shake'
             gesture={
                 'shake':'用户刚刚连续晃动虚拟角色，这是单指转动，不是捏或拉扯。',
-                'pinch_out':'用户刚刚双指向外拉开，临时放大了角色，如同轻扯着拉近一点。围绕这次拉近、轻扯的玩闹回应；绝不能误说转、摇晃或头晕。',
-                'pinch_in':'用户刚刚双指向内收拢，临时缩小了角色，如同轻轻捏了一下。围绕这次轻捏、缩小的玩闹回应；绝不能误说转、摇晃或头晕。',
+                'pinch_out':'用户刚刚双指向外拉开，角色感受到的是被轻轻扯了一下。情绪基调是对“扯”的撒娇或小生气，不是捏，也不是变大或靠近。',
+                'pinch_in':'用户刚刚双指向内收拢，角色感受到的是被轻轻捏了一下。情绪基调是对“捏”的撒娇或小生气，不是扯，也不是变小或远离。',
             }[kind]
             context['interaction_context']=dict(kind=kind,intensity=request.interaction.intensity if request.interaction else 0,
                 mood=random.choice(['playful','serious']) if persist else 'playful',
-                task=gesture+'用角色的个性做一次新的撒娇回应或轻微生气的小抱怨，1个beat、短短1至2句，附多组真实表演。注意与之前的反应不同：推进这次玩闹，而非再次复述同一种不适或同一句请求。只是显示变换，不编造身体变形、衣服变化或现实伤害，不重答过去的问题。')
+                task=gesture+'用角色的个性做一次新的撒娇回应或轻微生气的小抱怨，1个beat、短短1至2句，附真实表演。推进这次玩闹，不能换词复述旧抱怨。显示的弹性反馈会自动恢复，台词不谈显示、缩放、大小或远近；不编造身体变形、衣服变化或现实伤害，不重答过去的问题。')
         return context
     async def narration(self,owner,char,plan,resolved,scene):
         facts=[]
@@ -108,11 +116,16 @@ class Orchestrator:
             return [],'旁白暂未生成，台词与语音仍可使用。'
     async def reply(self,owner,request):
         budget=[3]  # Original + at most two internal quality revisions, shared with publication races.
+        started=time.monotonic();timing=dict(trigger=request.trigger,request_id=str(request.request_id))
         try:
             for attempt in range(3):
                 try:
                     async with aclosing(self._reply(owner,request,resume=attempt>0,budget=budget)) as source:
-                        async for item in source:yield item
+                        async for item in source:
+                            if item['type'] in ('reply.plan.ready','reply.narration.ready','segment.audio.chunk','reply.completed'):
+                                timing.setdefault(item['type']+'_ms',round((time.monotonic()-started)*1000))
+                            if item.get('cached'):timing['cached']=True
+                            yield item
                     return
                 except ValueError as error:
                     # Another role/worker may publish the same line while this
@@ -124,13 +137,18 @@ class Orchestrator:
             # Completed text is retained; interrupted generations aren't left
             # labelled as running. Never retry an ambiguously billed request.
             self.store.interrupt(owner,request.character_id,str(request.request_id))
+            timing['total_ms']=round((time.monotonic()-started)*1000)
+            timing['plan_attempts']=3-budget[0]
+            self.store.put('reply_latency',owner,request.character_id,timing)
     async def fresh_plan(self,owner,request,context,schema,budget):
         char=request.character_id;reviews=[];correction=None
         extra=[m for m in context['recent_messages'] if m['role']=='assistant']
         while budget[0]:
             budget[0]-=1
-            plan=await self.provider.structured(owner,char,'plan',PLANNER,
+            started=time.monotonic()
+            plan=await self.provider.structured(owner,char,'plan',CORE_PLANNER if request.parallel_performance else PLANNER,
                 {**context,**({'novelty_correction':correction} if correction else {})},schema)
+            generated=time.monotonic()
             if request.trigger in INTERACTION_TRIGGERS:brief_shake_plan(plan,context['interaction_context']['mood'])
             text=plan_text(plan)
             wrong_gesture=interaction_mismatch(request,text)
@@ -140,7 +158,8 @@ class Orchestrator:
             # suggestion may steer a new draft; it cannot reject a succession
             # of otherwise distinct answers merely sharing a topic or event.
             revise=bool(wrong_gesture or duplicate or (related and (related['score']>=.86 or (correction is None and budget[0]>0))))
-            reviews.append(dict(text=text,duplicate=duplicate,semantic_hint=related,interaction_mismatch=wrong_gesture,revised=revise))
+            reviews.append(dict(text=text,duplicate=duplicate,semantic_hint=related,interaction_mismatch=wrong_gesture,revised=revise,
+                generation_ms=round((generated-started)*1000),review_ms=round((time.monotonic()-generated)*1000)))
             if self.settings.enable_test_inspector:
                 self.store.put('novelty_review',owner,char,dict(attempts=reviews,accepted=not revise,remaining=budget[0]))
             if not revise:return plan
@@ -156,7 +175,7 @@ class Orchestrator:
         char=request.character_id; rid=str(request.request_id)
         # Delivery negotiation isn't conversation content. Preserve hashes for
         # pre-upgrade requests and never re-bill a retry with a different mode.
-        cached=None if resume else self.store.request(owner,char,rid,request.model_dump(mode='json',exclude={'progressive_reply','timeline_reply'}|({'interaction'} if request.interaction is None else set())))
+        cached=None if resume else self.store.request(owner,char,rid,request.model_dump(mode='json',exclude={'progressive_reply','timeline_reply','parallel_performance'}|({'interaction'} if request.interaction is None else set())))
         if cached:
             # Revalidate pre-upgrade cached thoughts without rewriting archives
             # or generating/charging for the same message again.
@@ -188,7 +207,20 @@ class Orchestrator:
                 empty=dict(message_id=str(uuid.uuid4()),character_id=char,beats=[],text='',idle_decision='do_nothing')
                 self.store.complete(owner,char,rid,empty)
                 yield event('reply.completed',message_id=empty['message_id']); return
-        schema=(ShakeTimelinePlan if request.trigger in INTERACTION_TRIGGERS else TimelinePlan) if request.timeline_reply else Plan
+        visuals=None
+        try:
+            if request.parallel_performance and request.timeline_reply and request.available_assets:
+                visuals=asyncio.create_task(parallel_performance.plan_performance(self,owner,request,context))
+            async with aclosing(self._planned_reply(owner,request,context,budget,visuals)) as source:
+                async for item in source:yield item
+        finally:
+            if visuals is not None:
+                visuals.cancel()
+                await asyncio.gather(visuals,return_exceptions=True)
+
+    async def _planned_reply(self,owner,request,context,budget,visuals):
+        char=request.character_id;rid=str(request.request_id)
+        schema=CoreTimelinePlan if request.parallel_performance else (ShakeTimelinePlan if request.trigger in INTERACTION_TRIGGERS else TimelinePlan) if request.timeline_reply else Plan
         plan=await self.fresh_plan(owner,request,context,schema,budget if budget is not None else [3])
         if plan is None:
             empty=dict(message_id=str(uuid.uuid4()),character_id=char,beats=[],text='',idle_decision='do_nothing')
@@ -197,6 +229,9 @@ class Orchestrator:
         # Silence is a first-class outcome; no TTS or narration expense.
         if request.trigger=='idle' and plan.idle_decision=='do_nothing': plan.beats=[]
         if request.trigger!='idle' and not any(b.dialogue for b in plan.beats): raise ValueError('EMPTY_REPLY')
+        if visuals is not None and visuals.done():
+            extra=visuals.result();visuals=None
+            if extra and plan.beats:plan.beats[0].performance.cues=(plan.beats[0].performance.cues+extra.cues)[:24]
         # Event density and consecutive-event suppression are enforced, not just prompted.
         previous=self.store.get('vocals',owner,char,[])
         allowance=1 if sum(len(b.dialogue.text) if b.dialogue else 0 for b in plan.beats)<80 else 2
@@ -261,7 +296,10 @@ class Orchestrator:
         if request.timeline_reply:
             # Complete ordered content was published once. Never append a late
             # Narrator result above words the user has already heard/read.
-            if request.wants_audio:
+            if request.parallel_performance:
+                async with aclosing(parallel_performance.deliver(self,owner,request,context,plan,script,visuals)) as output:
+                    async for item in output:yield item
+            elif request.wants_audio:
                 async with aclosing(self.audio(owner,char,script,create=True)) as audio:
                     async for e in audio:yield e
             yield event('reply.completed',message_id=script['message_id']);return
@@ -305,36 +343,40 @@ class Orchestrator:
         if not voice or not voice.get('approved'):
             yield event('audio.error',message='角色音色尚未就绪，文字已保留。'); return
         folder=self.settings.data_dir/'audio';folder.mkdir(exist_ok=True)
-        for beat in script['beats']:
-            if not beat['dialogue'] and not beat['vocal_events']:continue
-            key=audio_key(owner,char,voice['voice_id'],script['message_id'],beat['beat_id'])
-            path=folder/(key+'.pcm')
-            if not create and not path.exists():
-                yield event('audio.error',message='这句语音未完成，可点播放重新生成。');continue
-            yield event('segment.audio.started',beat_id=beat['beat_id'],sample_rate=24000,message_id=script['message_id'])
-            data=bytearray()
-            try:
-                if path.exists():
-                    path.touch()
-                    content=path.read_bytes()
-                    for offset in range(0,len(content),12288):
-                        chunk=content[offset:offset+12288];data.extend(chunk)
+        sources=[self.audio_beat(owner,char,script,beat,voice,folder,create) for beat in script['beats']
+                 if beat['dialogue'] or beat['vocal_events']]
+        async with aclosing(ordered_audio(sources)) as output:
+            async for item in output:yield item
+
+    async def audio_beat(self,owner,char,script,beat,voice,folder,create):
+        key=audio_key(owner,char,voice['voice_id'],script['message_id'],beat['beat_id'])
+        path=folder/(key+'.pcm')
+        if not create and not path.exists():
+            yield event('audio.error',message='这句语音未完成，可点播放重新生成。');return
+        yield event('segment.audio.started',beat_id=beat['beat_id'],sample_rate=24000,message_id=script['message_id'])
+        data=bytearray()
+        try:
+            if path.exists():
+                path.touch()
+                content=path.read_bytes()
+                for offset in range(0,len(content),12288):
+                    chunk=content[offset:offset+12288];data.extend(chunk)
+                    yield event('segment.audio.chunk',beat_id=beat['beat_id'],data=base64.b64encode(chunk).decode())
+                    await asyncio.sleep(0)
+            else:
+                async with aclosing(self.provider.synthesize(owner,char,beat,voice['voice_id'])) as synthesis:
+                    async for chunk in synthesis:
+                        data.extend(chunk)
                         yield event('segment.audio.chunk',beat_id=beat['beat_id'],data=base64.b64encode(chunk).decode())
-                        await asyncio.sleep(0)
-                else:
-                    async with aclosing(self.provider.synthesize(owner,char,beat,voice['voice_id'])) as synthesis:
-                        async for chunk in synthesis:
-                            data.extend(chunk)
-                            yield event('segment.audio.chunk',beat_id=beat['beat_id'],data=base64.b64encode(chunk).decode())
-                    if data:
-                        temp=path.with_suffix('.tmp');temp.write_bytes(data);temp.replace(path)
-                        files=sorted(folder.glob('*.pcm'),key=lambda f:f.stat().st_mtime)
-                        total=sum(f.stat().st_size for f in files)
-                        for old in files:
-                            if total<=128*1024*1024:break
-                            if old==path:continue
-                            total-=old.stat().st_size;old.unlink(missing_ok=True)
-                yield event('segment.audio.ready',beat_id=beat['beat_id'],duration=len(data)/48000)
-            except Exception:
-                yield event('audio.error',message='语音连接中断，文字已保留。点播放可重试。')
-                return
+                if data:
+                    temp=path.with_suffix('.tmp');temp.write_bytes(data);temp.replace(path)
+                    files=sorted(folder.glob('*.pcm'),key=lambda f:f.stat().st_mtime)
+                    total=sum(f.stat().st_size for f in files)
+                    for old in files:
+                        if total<=128*1024*1024:break
+                        if old==path:continue
+                        total-=old.stat().st_size;old.unlink(missing_ok=True)
+            yield event('segment.audio.ready',beat_id=beat['beat_id'],duration=len(data)/48000)
+        except Exception:
+            yield event('audio.error',message='语音连接中断，文字已保留。点播放可重试。')
+            return

@@ -6,7 +6,7 @@ namespace ModelSpace
     public sealed class CharacterPreviewRotation
     {
         public const float MaximumYaw=18,MaximumPitch=8;
-        public const float MinimumRatio=.90f,MaximumRatio=1.10f,PinchThreshold=.055f;
+        public const float MinimumRatio=.95f,MaximumRatio=1.05f,PinchThreshold=.025f;
         public const float ShakeTravel=1.5f,ShakeWindow=5,ShakeCooldown=20;
         Vector2 offset,target,velocity,origin;
         bool returning;
@@ -14,7 +14,6 @@ namespace ModelSpace
         int reversals;
         Vector2 previousTarget,lastDirection;
         float scale=1,scaleTarget=1,scaleOrigin=1,scaleVelocity,pinchStart;
-        float scaleMinimum=MinimumRatio,scaleMaximum=MaximumRatio;
         bool scaleReturning;
         public bool Pinching {get;private set;}
         public float ScaleRatio => scale;
@@ -42,14 +41,9 @@ namespace ModelSpace
         public void BeginPinch() {
             End();Pinching=true;scaleReturning=false;scaleOrigin=scale;scaleTarget=scale;pinchStart=clock;PinchCount++;
         }
-        public void SetScaleLimits(float minimum,float maximum) {
-            if(!float.IsFinite(minimum) || !float.IsFinite(maximum))return;
-            scaleMinimum=Mathf.Clamp(minimum,MinimumRatio,1);scaleMaximum=Mathf.Clamp(maximum,1,MaximumRatio);
-            scaleTarget=Mathf.Clamp(scaleTarget,scaleMinimum,scaleMaximum);
-        }
         public void Pinch(float ratio) {
             if(!Pinching || !float.IsFinite(ratio) || ratio<=0)return;
-            scaleTarget=Mathf.Clamp(scaleOrigin*ratio,scaleMinimum,scaleMaximum);
+            scaleTarget=Mathf.Clamp(scaleOrigin*ratio,MinimumRatio,MaximumRatio);
         }
         public bool EndPinch(bool react=false) {
             if(!Pinching)return false;
@@ -60,7 +54,7 @@ namespace ModelSpace
             float delta=scaleTarget-scaleOrigin;
             if(clock-lastReaction<ShakeCooldown || clock-pinchStart<.22f || Mathf.Abs(delta)<PinchThreshold)return false;
             PinchReactionCount++;ReactionCount++;ReactionKind=delta>0 ? "pinch_out" : "pinch_in";
-            ReactionIntensity=Mathf.Clamp01(.5f+Mathf.Abs(delta)*3);lastReaction=clock;return true;
+            ReactionIntensity=Mathf.Clamp01(.5f+Mathf.Abs(delta)*6);lastReaction=clock;return true;
         }
         public void Move(float horizontal,float vertical)
         {
@@ -98,7 +92,7 @@ namespace ModelSpace
             if(Active)TryReact(); // Threshold is observed while the finger is still down.
             if(Pinching)TryReactToPinch();
             scale=Mathf.SmoothDamp(scale,scaleTarget,ref scaleVelocity,Pinching ? .08f : .22f,Mathf.Infinity,Mathf.Min(deltaTime,.05f));
-            scale=Mathf.Clamp(scale,scaleMinimum,scaleMaximum);
+            scale=Mathf.Clamp(scale,MinimumRatio,MaximumRatio);
             MinimumObservedRatio=Mathf.Min(MinimumObservedRatio,scale);MaximumObservedRatio=Mathf.Max(MaximumObservedRatio,scale);
             if(scaleReturning && Mathf.Abs(scale-1)<.00005f && Mathf.Abs(scaleVelocity)<.0001f) {
                 scale=scaleTarget=1;scaleVelocity=0;scaleReturning=false;PinchReturnCount++;
@@ -117,7 +111,7 @@ namespace ModelSpace
             PeakYaw=PeakPitch=0;Count=ReturnCount=0;
             clock=windowStart=travel=0;reversals=ShakeCount=0;ShakeIntensity=0;lastReaction=lastMove=-100;previousTarget=lastDirection=Vector2.zero;
             Pinching=scaleReturning=false;scale=scaleTarget=scaleOrigin=1;scaleVelocity=pinchStart=0;
-            scaleMinimum=MinimumRatio;scaleMaximum=MaximumRatio;MinimumObservedRatio=MaximumObservedRatio=1;
+            MinimumObservedRatio=MaximumObservedRatio=1;
             PinchCount=PinchReturnCount=PinchReactionCount=ReactionCount=0;ReactionKind="shake";ReactionIntensity=0;
         }
     }

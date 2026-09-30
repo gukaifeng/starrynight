@@ -28,6 +28,13 @@ class SemanticNovelty:
             snapshot=cache/('models--'+LOCK['onnx_repository'].replace('/','--'))/'snapshots'/LOCK['revision']
             self.model=TextEmbedding(MODEL,specific_model_path=str(snapshot),local_files_only=True,threads=2)
         return list(self.model.embed(texts,batch_size=16))
+    async def warmup(self):
+        if not self.settings.semantic_novelty:return
+        async with self.lock:
+            if self.model is None:
+                # Local weights only, no dialogue/paid request. Load ORT and
+                # prime its kernels before a user's first generated answer.
+                await asyncio.to_thread(self.embed,['预热'])
     async def match(self,owner,text,trigger='user_message'):
         if not self.settings.semantic_novelty or len(text.strip())<10:return None
         import numpy as np

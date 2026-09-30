@@ -23,6 +23,7 @@ class Settings:
     enforce_conversation_limits: bool = False
     # Runs beside audio, never before the first progressive text response.
     narration_timeout_seconds: float = 8.0
+    performance_timeout_seconds: float = 8.0
     paid_enabled: bool = True
     # Testing deployments explicitly opt in; public deployments expose no
     # authored prompts, private persona, memory or provider request inspector.

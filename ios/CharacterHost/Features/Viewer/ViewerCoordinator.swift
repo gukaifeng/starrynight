@@ -295,6 +295,7 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
         session.onLoginRequested = { [weak self] in self?.requestLogin() }
         session.onIntent = { [weak self] intent in self?.signal(intent) }
         session.onAIVisual = { [weak self] visuals in self?.applyAIVisuals(visuals) }
+        session.onAdditionalAIVisual = { [weak self] visuals in self?.applyAIVisuals(visuals,replacingAll:false) }
         session.onEndAIVisual = { [weak self] in self?.endAIVisuals() }
         session.onAppearance = { [weak self] profile in self?.configureAppearance(profile) }
         session.onPosture = { [weak self] value in
@@ -330,17 +331,24 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
     }
     private var aiVisualBaseline: [String:Set<String>] = [:]
     private var aiVisualTasks: [String:Task<Void,Never>] = [:]
-    private var aiVisualSequence:Task<Void,Never>?
-    private func applyAIVisuals(_ visuals: [AIVisual]) {
-        aiVisualSequence?.cancel()
+    private var aiVisualSequences:[String:Task<Void,Never>]=[:]
+    private func applyAIVisuals(_ visuals: [AIVisual],replacingAll:Bool = true) {
+        if replacingAll {
+            aiVisualSequences.values.forEach { $0.cancel() };aiVisualSequences.removeAll()
+        }
         let actor=selectedModel.id
-        aiVisualSequence=Task { @MainActor [weak self] in
-            var previous=0
-            for visual in visuals.sorted(by:{($0.offsetMs ?? 0)<($1.offsetMs ?? 0)}).prefix(24) {
-                let offset=min(12000,max(0,visual.offsetMs ?? 0))
-                if offset>previous {try? await Task.sleep(for:.milliseconds(offset-previous))}
-                guard !Task.isCancelled,let self,self.selectedModel.id==actor else {return}
-                previous=offset;self.applyAIVisual(visual)
+        // A late ear/hand update must not cancel the other groups' next phase.
+        let groups=Dictionary(grouping:visuals.prefix(24),by: { $0.group })
+        for (group,cues) in groups {
+            aiVisualSequences[group]?.cancel()
+            aiVisualSequences[group]=Task { @MainActor [weak self] in
+                var previous=0
+                for visual in cues.sorted(by:{($0.offsetMs ?? 0)<($1.offsetMs ?? 0)}) {
+                    let offset=min(12000,max(0,visual.offsetMs ?? 0))
+                    if offset>previous {try? await Task.sleep(for:.milliseconds(offset-previous))}
+                    guard !Task.isCancelled,let self,self.selectedModel.id==actor else {return}
+                    previous=offset;self.applyAIVisual(visual)
+                }
             }
         }
     }
@@ -373,7 +381,7 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
         }
     }
     private func endAIVisuals() {
-        aiVisualSequence?.cancel();aiVisualSequence=nil
+        aiVisualSequences.values.forEach { $0.cancel() };aiVisualSequences.removeAll()
         aiVisualTasks.values.forEach { $0.cancel() }; aiVisualTasks.removeAll()
         for group in Array(aiVisualBaseline.keys) { restoreAIGroup(group) }
         aiVisualBaseline.removeAll()

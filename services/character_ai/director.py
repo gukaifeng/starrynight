@@ -67,7 +67,7 @@ class Director:
                 return chosen,match
             match='approximate'
         return None,'none'
-    def beat(self,owner,character,beat,relationship,state,available,dominant_emotion='neutral',trigger='user_message'):
+    def beat(self,owner,character,beat,relationship,state,available,dominant_emotion='neutral',trigger='user_message',automatic_fill=True):
         performance=beat.performance.model_copy()
         performance.expression_intent=ALIASES.get(performance.expression_intent,performance.expression_intent)
         performance.action_intent=ALIASES.get(performance.action_intent,performance.action_intent)
@@ -77,7 +77,7 @@ class Director:
                 if performance.action_intent=='idle':performance.action_intent=vocal.visual_sync.action_intent
         # A typed speech emotion is reliable fallback evidence; don't discard it
         # just because the planner left its separate performance at the default.
-        if performance.expression_intent=='neutral':
+        if automatic_fill and performance.expression_intent=='neutral':
             emotion=beat.dialogue.speech.emotion if beat.dialogue else 'neutral'
             performance.expression_intent=EMOTION_FACE.get(emotion,EMOTION_FACE.get(dominant_emotion,'neutral'))
             if performance.expression_intent=='neutral' and trigger in ('appLaunch','firstLaunch','firstMeeting','characterSwitch'):
@@ -130,7 +130,7 @@ class Director:
         if performance.action_intent!='idle':
             match=next((a for a in library if a['intent']==performance.action_intent),None)
             if match:add(match['group'],performance.action_intent)
-        groups=list(dict.fromkeys(a['group'] for a in library if a.get('automatic',True)))
+        groups=list(dict.fromkeys(a['group'] for a in library if a.get('automatic',True))) if automatic_fill else []
         # Rotate underserved groups through the bounded parallel budget for
         # future avatars with many channels. Existing avatars use all 4 groups.
         groups.sort(key=lambda g:self.store.db.execute('SELECT count(*) FROM asset_usage WHERE owner=? AND character=? AND asset IN (%s)' % ','.join('?' for _ in [a for a in library if a['group']==g]),
