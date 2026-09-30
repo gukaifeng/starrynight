@@ -7,6 +7,8 @@ description: Inspect and convert user-supplied VRChat avatar archives into this 
 
 目标是保留角色的默认外观和原创表现，把独立资产转换为星夜可验证的角色数据包。批量多作者来源或需要迁移完整原作控制图时，先读 [分批导入参考](references/batch-import.md)，使用 `core.avatar-controls@1` 与 `core.performance@2`。旧两角色的片段/曲线表现管线见 [表现迁移参考](references/performances.md)。基础动作按用户要求和来源声明，不自动补通用九动作。`.unitypackage`、VRChat SDK、源 FX Controller 文件不直接交付 App；审核后的数据图由宿主重建。
 
+遇到作者依赖 Modular Avatar 构建时合并控制器、菜单或骨架时，读 [隔离官方构建参考](references/modular-bake.md)。它使用受信的固定 MA/NDMF 依赖，不执行作者任意代码；来源构建通过仍不能代替材质、粒子、约束、角色媒体与 App 验收。
+
 以项目根目录为工作目录。先读 [compatibility.md](references/compatibility.md) 中与当前步骤相关的部分；XCP 字段和预算以 [角色制作规范](../../../docs/character-standard/02-model-production.md) 和 `character-sdk/schemas/` 为准。操作 Unity CLI 前另读本项目 [unity-cli 技能](../unity-cli/SKILL.md)，不要凭记忆编造 CLI 参数或同时启动多个写同一工程的 Editor。
 
 ## 先确定输入和实际完成度

@@ -25,12 +25,53 @@ class UnityLoader(getattr(yaml,'CSafeLoader',yaml.SafeLoader)):
 
 
 def documents(path):
+    with Path(path).open('rb') as stream:header=stream.read(16)
+    if Path(path).suffix.lower()=='.asset' and not header.startswith((b'%YAML',b'\xef\xbb\xbf%YAML',b'---')):
+        from vrchat_binary_data import read_documents
+        return read_documents(path)
     return {str(b['fileID']):dict(classID=b['classID'], **next(iter(yaml.load(re.sub(r'^(\s*(?:m_Mask|eyelidsBlendshapes): )([0-9a-fA-F]+)$',r'\1"\2"',b['text'],flags=re.M),Loader=UnityLoader).values())))
             for b in unity_blocks(Path(path).read_text(errors='replace')) if not b['stripped']}
 
 
 def reference(value):
     return str((value or {}).get('fileID',0))
+
+
+def controller_documents(guid,identity,read):
+    """Resolve one controller's state graph across generated subcontainers.
+
+    A GUID can contain several controllers, and states can live in a different
+    file from their controller. Preserve GUID + fileID instead of picking the
+    first controller or accidentally merging unrelated state graphs.
+    """
+    import copy
+    source=read(guid);controller=source.get(str(identity))
+    if not controller or controller.get('classID')!=91:
+        raise ValueError('Missing exact controller subasset: '+guid+':'+str(identity))
+    controller=copy.deepcopy(controller);result={}
+    def scoped(ref,owner):
+        if reference(ref)=='0':return {'fileID':0}
+        source_guid=ref.get('guid') or owner;fileid=reference(ref)
+        key=fileid if source_guid==guid else source_guid+':'+fileid
+        if key in result:return {'fileID':key}
+        row=read(source_guid).get(fileid)
+        if not row:raise ValueError('Missing state graph subasset: '+source_guid+':'+fileid)
+        row=copy.deepcopy(row);result[key]=row
+        for name in ('m_DefaultState','m_DstState','m_DstStateMachine'):
+            if name in row:row[name]=scoped(row[name],source_guid)
+        for name in ('m_Transitions','m_StateMachineBehaviours','m_AnyStateTransitions','m_EntryTransitions'):
+            if name in row:row[name]=[scoped(r,source_guid) for r in row[name]]
+        for name,field in (('m_ChildStates','m_State'),('m_ChildStateMachines','m_StateMachine')):
+            for child in row.get(name,[]):child[field]=scoped(child[field],source_guid)
+        for link in row.get('m_StateMachineTransitions') or []:
+            link['first']=scoped(link['first'],source_guid)
+            link['second']=[scoped(r,source_guid) for r in link['second']]
+        motion=row.get('m_Motion')
+        if motion and reference(motion)!='0' and not motion.get('guid'):motion['guid']=source_guid
+        return {'fileID':key}
+    for layer in controller.get('m_AnimatorLayers',[]):
+        layer['m_StateMachine']=scoped(layer['m_StateMachine'],guid)
+    return controller,result
 
 
 def prune_graph(graph):
@@ -168,31 +209,42 @@ def build(stage,geometry):
     desc=descriptor(main['guid'],set())
     if not desc:raise ValueError('Effective avatar descriptor is missing')
     out=dict(schemaVersion=1,profile='mecanim-portable-v1',parameters=[],controls=[],controllers=[],masks=[],limitations=notes)
-    param_guid=desc.get('expressionParameters',{}).get('guid')
+    param_ref=desc.get('expressionParameters',{});param_guid=param_ref.get('guid')
     if param_guid:
-        for d in read(param_guid).values():
+        if reference(param_ref) not in read(param_guid):notes.append(dict(kind='missing-expression-parameters',guid=param_guid,fileID=reference(param_ref)))
+        for d in [read(param_guid).get(reference(param_ref),{})]:
             for p in d.get('parameters',[]):
                 if p.get('name'):
                     out['parameters'].append(dict(name=p['name'],kind={0:'int',1:'float',2:'bool'}.get(p.get('valueType'),'float'),initial=p.get('defaultValue',0),saved=bool(p.get('saved',0))))
     params={p['name']:p for p in out['parameters']}
-    def menu(guid,group,seen,gates=()):
-        if not guid or guid in seen:return
+    def menu(ref,group,seen,gates=(),owner=''):
+        guid=ref.get('guid') or owner;fileid=reference(ref);menu_key=(guid,fileid)
+        if not guid or fileid=='0' or menu_key in seen:return
         if guid not in assets:
             notes.append(dict(kind='missing-menu',guid=guid));return
-        for d in read(guid).values():
+        if fileid not in read(guid):
+            notes.append(dict(kind='missing-menu',guid=guid,fileID=fileid));return
+        for d in [read(guid).get(fileid,{})]:
             for i,c in enumerate(d.get('controls',[])):
                 label=str(c.get('name') or 'Control '+str(i+1))
                 kind={101:1,102:2,103:3,201:4,202:5,203:6}.get(int(c.get('type',0)),int(c.get('type',0)))
                 if kind==3:
                     name=c.get('parameter',{}).get('name','')
                     gate=[dict(parameter=name,value=float(c.get('value',1)))] if name else []
-                    menu(c.get('subMenu',{}).get('guid'),group+[label],seen|{guid},tuple(list(gates)+gate));continue
+                    menu(c.get('subMenu',{}),group+[label],seen|{menu_key},tuple(list(gates)+gate),guid);continue
                 if kind not in (1,2,4,5,6):
                     notes.append(dict(kind='unknown-menu-control',type=kind,label=label));continue
                 names=[p.get('name','') for p in c.get('subParameters',[])] if kind in (4,5,6) else [c.get('parameter',{}).get('name','')]
                 for axis,name in enumerate(names):
                     if not name:continue
-                    identity=hashlib.sha256((guid+':'+str(i)+':'+str(axis)).encode()).hexdigest()[:20]
+                    menu_id=guid if fileid=='11400000' else guid+':'+fileid
+                    control_key=menu_id+':'+str(i)+':'+str(axis)
+                    if audit.get('bake'):
+                        # NDMF assigns fresh container GUIDs during each bake.
+                        # User-visible controls must survive a rebuild of the
+                        # same authored menu; container IDs are provenance only.
+                        control_key=json.dumps([geometry['role'],group,label,i,axis,name,kind,float(c.get('value',1))],ensure_ascii=False,separators=(',',':'))
+                    identity=hashlib.sha256(control_key.encode()).hexdigest()[:20]
                     label_axis=label if len(names)==1 else label+' · '+['X','Y','Z','W'][axis]
                     main=c.get('parameter',{}).get('name','')
                     gate=[dict(parameter=main,value=float(c.get('value',1)))] if main and kind in (4,5,6) else []
@@ -200,8 +252,8 @@ def build(stage,geometry):
                         parameter=name,kind='slider' if kind in (4,5,6) else 'button' if kind==1 else 'toggle',
                         value=float(c.get('value',1)),minimum=-1 if kind==4 else 0,maximum=1,
                         initial=params.get(name,{}).get('initial',0),sourceMenu=guid,sourceIndex=i,axis=axis,gates=list(gates)+gate))
-    menu(desc.get('expressionsMenu',{}).get('guid'),[],set())
-    used_masks=set()
+    menu(desc.get('expressionsMenu',{}),[],set())
+    used_masks={}
     def behavior(d):
         if 'disableLocomotion' in d or 'enterPoseSpace' in d:
             notes.append(dict(kind='host-stationary-tracking-context',script=d.get('m_Script',{}).get('guid'),
@@ -219,12 +271,17 @@ def build(stage,geometry):
         notes.append(dict(kind='unsupported-state-behaviour',script=d.get('m_Script',{}).get('guid'),fields=[k for k in d if not k.startswith('m_') and k!='classID']))
         return None
     for layer in desc.get('baseAnimationLayers',[])+desc.get('specialAnimationLayers',[]):
-        guid=layer.get('animatorController',{}).get('guid')
+        if layer['type'] in audit.get('bake',{}).get('untouchedDefaultCalibrationLayers',[]):
+            notes.append(dict(kind='host-source-default-calibration',playable=layer['type'],
+                detail='Source delegates this T/IK calibration pose to the platform and has no merge into it. Official build materializes it; preserve original default delegation in the conversation host.'))
+            continue
+        controller_ref=layer.get('animatorController',{});guid=controller_ref.get('guid')
         if not guid or layer.get('isDefault',0):continue
-        docs=read(guid);controller=next((d for d in docs.values() if d['classID']==91),None)
-        if not controller:
+        if read(guid).get(reference(controller_ref),{}).get('classID')!=91:
             notes.append(dict(kind='missing-controller',guid=guid));continue
-        graph=dict(id=guid,playable=int(layer['type']),parameters=[],layers=[],machines=[],states=[],transitions=[],blends=[])
+        controller,docs=controller_documents(guid,reference(controller_ref),read)
+        graph_id=guid if reference(controller_ref)=='9100000' else guid+':'+reference(controller_ref)
+        graph=dict(id=graph_id,playable=int(layer['type']),parameters=[],layers=[],machines=[],states=[],transitions=[],blends=[])
         blend_reader=BlendReader(guid,lambda g:read(g) if g in assets and assets[g]['extension'] in ('.controller','.asset') else {},graph,
             lambda source,fileid:source+':'+fileid if assets.get(source,{}).get('extension') in ('.fbx','.asset','.controller') else source)
         for p in controller.get('m_AnimatorParameters',[]):
@@ -234,8 +291,10 @@ def build(stage,geometry):
                 params[name]=dict(name=name,kind=kind,initial=float(initial),saved=False);out['parameters'].append(params[name])
             graph['parameters'].append(name)
         for l in controller.get('m_AnimatorLayers',[]):
-            mask=l.get('m_Mask',{}).get('guid') or layer.get('mask',{}).get('guid') or ''
-            if mask:used_masks.add(mask)
+            mask_ref=l.get('m_Mask',{}) if reference(l.get('m_Mask'))!='0' else layer.get('mask',{})
+            mask_guid=mask_ref.get('guid') or (guid if reference(mask_ref)!='0' else '')
+            mask=(mask_guid if reference(mask_ref)=='31900000' else mask_guid+':'+reference(mask_ref)) if mask_guid else ''
+            if mask:used_masks[mask]=(mask_guid,reference(mask_ref))
             graph['layers'].append(dict(name=l['m_Name'],root=reference(l['m_StateMachine']),weight=float(l.get('m_DefaultWeight',1)),additive=l.get('m_BlendingMode',0)==1,mask=mask,synced=int(l.get('m_SyncedLayerIndex',-1))))
         def behaviors(d):return [x for r in d.get('m_StateMachineBehaviours',[]) if (x:=behavior(docs.get(reference(r),{})))]
         for identity,d in docs.items():
@@ -251,14 +310,15 @@ def build(stage,geometry):
             elif d['classID']==206:
                 blend_reader.add(d,identity,guid)
         out['controllers'].append(prune_graph(graph))
-    for guid in sorted(used_masks):
-        mask=next((d for d in read(guid).values() if d['classID']==319),None)
+    for identity,(guid,fileid) in sorted(used_masks.items()):
+        mask=read(guid).get(fileid)
+        if mask and mask.get('classID')!=319:mask=None
         sdk_mask=Path('.local/dependencies/vrc-avatar-masks')/(guid+'.mask')
         if not mask and sdk_mask.exists():
             mask=next((d for d in documents(sdk_mask).values() if d['classID']==319),None)
         if mask:
             body=mask.get('m_Mask', '')
-            out['masks'].append(dict(id=guid,body=str(body),transforms=[dict(path=t['m_Path'] or '',active=bool(t['m_Weight'])) for t in mask.get('m_Elements',[])]))
+            out['masks'].append(dict(id=identity,body=str(body),transforms=[dict(path=t['m_Path'] or '',active=bool(t['m_Weight'])) for t in mask.get('m_Elements',[])]))
         else:notes.append(dict(kind='missing-avatar-mask',guid=guid))
     for side in ('Left','Right'):
         name='Gesture'+side

@@ -3,7 +3,7 @@ import hashlib
 from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[1]
-TOOLS=('vrchat_conversion_signature.py','vrchat_portable_convert.py','vrchat_controls.py','vrchat_host_context.py','vrchat_material_variants.py','vrchat_physics.py','prepare_liltoon.py',
+TOOLS=('vrchat_conversion_signature.py','vrchat_portable_convert.py','vrchat_controls.py','vrchat_binary_data.py','vrchat_host_context.py','vrchat_material_variants.py','vrchat_physics.py','prepare_liltoon.py',
        'audit_vrchat_archives.py','vrchat_materials.py','prepare_anime_characters.py',
        'vrchat/VrcSourceInspector.cs','vrchat/VrcPortableGeometry.cs','vrchat/requirements.txt')
 

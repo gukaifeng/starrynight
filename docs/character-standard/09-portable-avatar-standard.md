@@ -52,6 +52,8 @@ source-meta.json            # 原始版本、哈希、主 Prefab 和变体来源
 
 Prefab 候选发现沿实际 `m_SourcePrefab` 链查找 Descriptor，不要求 Descriptor 直接序列化在最外层文件。作者场景与备选变体保留为审核依据。构建时合并控制器的组件（例如 Modular Avatar Merge Animator）是另一类来源能力：在没有经过验证的合并适配器时必须阻止激活，不能误判为无动作、无菜单的简单角色。
 
+MA 来源现可在独立工程中用固定官方 MA/NDMF 完成组装，再用只读二进制适配器读取生成数据。同容器内多个控制器/菜单/mask，以及跨容器的状态机和行为，都按 GUID + fileID 定位。生成数据引用必须与 Unity 原生检查双向一致；不能因为网格完整就接受丢失的菜单。生成容器 GUID 不作为持久控件 ID，同来源重建应保持控件语义身份。该流程只补齐来源解析，未自动实现原作粒子、世界约束、抓取或缺失贴图；现有 XCP 能力版本不变，实际进展见 [构建结果验证](../verification/vrchat-batch-import/modular-bake.md)。
+
 参数驱动支持已审核的 Set/Add/Random/Copy 和范围映射；层权重与 playable 权重独立相乘，遵循原作混合时长；Eyes/Mouth tracking 所有权决定宿主眨眼、口型是否让位。源脚本、动画事件、任意回调与网络行为不执行。同步层、状态机级行为及未支持状态行为先隔离，不悄悄丢弃。
 
 AI 自动调度与手动菜单独立：只有人工/画面核对过的 `ai.automatic` 语义才能给 AI 使用；模型衣服、体型等选项默认仅手动。新增角色的语义映射不能从别的角色复制动作 ID；新增分组无需修改聊天协议。遵守 [AI 表演标准](08-ai-performance-standard.md) 的轮次、取消、冷却、恢复和语音所有权规则。

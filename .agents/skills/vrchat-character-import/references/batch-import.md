@@ -75,7 +75,7 @@ unity run "$PWD/unity/CharacterRuntime" --timeout 900 -- \
 6. 单个角色重跑不要覆盖整库状态；需要公共能力升级时记录影响面，并使相应源/工具签名缓存失效。
 7. 生成场景、Prefab、GLB、贴图、原图封面与原始采样保持私有；Git 只提交工具、约束、名册、来源哈希和文字证据。场景可从 `BuildIos.Setup` 恢复。
 8. BlendTree 可独立保存在 `.asset`，并有嵌套子资产。用 GUID + fileID 保留身份，不把外部树当作动画 GUID，也不让两个相同 fileID 的外部树互相覆盖；内联图 ID 保持兼容。
-9. 原包的 Modular Avatar Merge Animator 在构建时才合成控制器。解析器会记录 `unsupported-build-merge-animator`；缺少对应组装适配时不能以“菜单为零”通过，更不能运行来源脚本来消除 Missing Script。Ramune 的完整根正是此类来源。详细证据见 `docs/verification/vrchat-batch-import/preflight-02.md`。
+9. 原包的 Modular Avatar Merge Animator 在构建时才合成控制器。原始静态解析仍会记录 `unsupported-build-merge-animator`；按 [官方构建参考](modular-bake.md) 在独立 stage 使用固定的 MA/NDMF，读取生成数据后再检查。不能以“菜单为零”通过，不能安装作者任意脚本来消除 Missing Script。Ramune 已恢复合并控制图，但粒子/约束和缺贴图仍阻止发布。
 10. Material Variant 继承父纹理、数值、颜色，显式空纹理会清除父值；shader 仍以子材质自身为准。Shizuku 的 opaque 父 / cutout 子已用 Unity API 验证；不能因 GUID 不同拒绝所有材质继承。循环、缺父和未知 shader 仍报错。
 11. `.fbx`、`.asset`、`.controller` 可以包含 AnimationClip 子资产，按 `GUID:fileID` 采样，排除 Editor preview clip。Standalone `.anim` 保留旧 GUID。只打包活控制图可达 motion 和明确的 body baseline；旧版未使用动画不能拉入其他 shader 版本的材质。
 12. 同档案分包用 `additionalPackages`；跨档案仅用已审计 `dependencyAssets` 的精确 GUID + 内容哈希，并绑定 inspection stamp。例：Kumaly 引用的共享 `dummy.anim` 实际在用户的 Ichigo 档案中。找到一个空动画不能推广为任意缺 motion 的替代。
