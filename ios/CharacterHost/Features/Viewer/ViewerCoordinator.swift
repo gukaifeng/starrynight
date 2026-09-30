@@ -290,6 +290,7 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
         }
 #endif
         NotificationCenter.default.addObserver(self,selector:#selector(themeChanged),name:.themeChanged,object:nil)
+        NotificationCenter.default.addObserver(self,selector:#selector(hostEmotionMotionRequested),name:HostEmotionMotionPreference.notification,object:nil)
         NotificationCenter.default.addObserver(self,selector:#selector(memoryPressure),name:UIApplication.didReceiveMemoryWarningNotification,object:nil)
         if captureEnabled, let directory = FileManager.default.urls(for:.documentDirectory,in:.userDomainMask).first {
             try? FileManager.default.removeItem(at:directory.appendingPathComponent("performance-capture.jsonl"))
@@ -355,6 +356,19 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
         openCompanion(model)
     }
     private let characterPort = CharacterSignalPort()
+    // HOST-EMOTION-EXPERIMENT v1: this switch/preview never resets author controls.
+    @objc private func hostEmotionMotionRequested(_ notification:Notification) {
+        guard ready,desiredVisible,page == .viewer,
+              notification.userInfo?["actor"] as? String == selectedModel.runtimeID else {return}
+        if notification.userInfo?["kind"] as? String == "configure" { configureHostEmotionMotion() }
+        else if notification.userInfo?["kind"] as? String == "stop" {signal(CharacterIntent(eventName:"host.motion.stop"))}
+        else if let gesture=notification.userInfo?["gesture"] as? String {
+            signal(CharacterIntent(eventName:"host.motion.preview",target:gesture))
+        }
+    }
+    private func configureHostEmotionMotion() {
+        signal(CharacterIntent(eventName:"host.motion.configure",intensity:HostEmotionMotionPreference.enabled ? 1 : 0))
+    }
     private func signal(_ intent: CharacterIntent) { send("character.signal",payload:["signal":characterPort.payload(intent,actorId:selectedModel.runtimeID)]) }
     private func selectPerformance(_ option: String, enabled: Bool) {
         endAIVisuals()
@@ -400,6 +414,9 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
             }
             aiVisualTasks[group]?.cancel()
             signal(CharacterIntent(eventName:"performance.select",target:option.id,intensity:visual.active == false ? 0 : 1))
+            if visual.active != false, characterPerformance.hostMotionSupported, HostEmotionMotionPreference.enabled {
+                signal(CharacterIntent(eventName:"host.motion.cue",target:option.id))
+            }
             let actor = selectedModel.id
             aiVisualTasks[group] = Task { @MainActor [weak self] in
                 try? await Task.sleep(for:.milliseconds(min(20000,max(1200,visual.durationMs))))
@@ -756,6 +773,7 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
     }
     private func prepareSceneForReveal() {
         guard ready, desiredVisible, page == .loading else { return }
+        configureHostEmotionMotion()
         if overlay == nil, let root = bridge.rootController() {
             let overlay = ViewerOverlayController()
             overlay.portraits = portraits; overlay.library = library
@@ -957,7 +975,7 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
             overlay?.setRuntimeFraming(event)
         }
         if event["presentationId"] as? Int == presentation, event["modelId"] as? String == selectedModel.runtimeID,
-           ["state","studioConfigured","environmentConfigured","framingConfigured","companionViewport","actionStarted","actionCompleted","headTapped","characterReceipt","parametersConfigured","postureConfigured","postureSettled","performanceConfigured","inspectionPrepared","inspectionBegan","inspectionEnded","inspectionReturned","inspectionRejected","inspectionAdjusting","inspectionChanged","inspectionCaptured","inspectionClosed","inspectionLoaded","previewRotationBegan","previewRotationEnded","previewRotationReturned","previewRotationRejected"].contains(name) {
+           ["state","studioConfigured","environmentConfigured","framingConfigured","companionViewport","actionStarted","actionCompleted","headTapped","characterReceipt","parametersConfigured","postureConfigured","postureSettled","performanceConfigured","hostMotionChanged","inspectionPrepared","inspectionBegan","inspectionEnded","inspectionReturned","inspectionRejected","inspectionAdjusting","inspectionChanged","inspectionCaptured","inspectionClosed","inspectionLoaded","previewRotationBegan","previewRotationEnded","previewRotationReturned","previewRotationRejected"].contains(name) {
             overlay?.setRuntimeFraming(event)
         }
         switch name {

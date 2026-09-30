@@ -13,6 +13,10 @@ import Observation
     private(set) var pendingID: String?
     private(set) var pendingOption: String?
     private(set) var error: String?
+    private(set) var hostMotionSupported=false
+    private(set) var hostMotionEnabled=false
+    private(set) var hostMotionSuppressed=false
+    private(set) var hostMotionGesture=""
 #if DEBUG
     private(set) var confirmedCounts: [String:Int] = [:]
 #endif
@@ -21,6 +25,7 @@ import Observation
         self.modelID = modelID; self.presentation = presentation
         selections.removeAll(); controlValues.removeAll(); ready = false; transitioning = false
         pendingID = nil; pendingOption = nil; error = nil
+        hostMotionSupported=false;hostMotionEnabled=false;hostMotionSuppressed=false;hostMotionGesture=""
 #if DEBUG
         confirmedCounts.removeAll()
 #endif
@@ -38,6 +43,12 @@ import Observation
               event["presentationId"] as? Int == presentation else { return }
         if let platform = event["characterPlatform"] as? [String: Any],
            let selected = platform["performanceSelections"] as? [String] {
+            if let motion=platform["hostEmotionMotion"] as? [String:Any] {
+                hostMotionSupported=motion["supported"] as? Bool ?? false
+                hostMotionEnabled=motion["enabled"] as? Bool ?? false
+                hostMotionSuppressed=motion["suppressed"] as? Bool ?? false
+                hostMotionGesture=motion["gesture"] as? String ?? ""
+            }
             selections = Set(selected); ready = true
             transitioning = platform["performanceTransitioning"] as? Bool ?? false
             if let values=platform["avatarControlValues"] as? [[String:Any]] {
@@ -74,22 +85,37 @@ struct CharacterPerformancePanel: View {
     private var groups: [CharacterPerformanceProfile.Group] {
         profile.groups.filter { group in profile.options.contains { $0.group == group.id } }
     }
-    private var currentGroup: String { groups.contains { $0.id == selectedGroup } ? selectedGroup : groups.first?.id ?? "" }
+    private var currentGroup: String { selectedGroup == "host-emotion" && state.hostMotionSupported ? selectedGroup : groups.contains { $0.id == selectedGroup } ? selectedGroup : groups.first?.id ?? "" }
     private var options: [CharacterPerformanceProfile.Option] { profile.options.filter { $0.group == currentGroup } }
     private var canSelect: Bool { state.ready && state.pendingID == nil && state.modelID == model.runtimeID }
 
     var body: some View {
         VStack(spacing:0) {
             PanelPageHeader("角色表现 · " + model.name,backID:"closeCharacterPerformance") {
+                if currentGroup == "host-emotion" {
+                    Button { HostEmotionMotionPreference.request("stop",actor:model.runtimeID) } label: {
+                        Text("结束预览").font(.system(size:11,weight:.medium))
+                            .foregroundStyle(Theme.secondary).frame(minHeight:44)
+                    }.buttonStyle(.plain).accessibilityIdentifier("hostEmotionStop")
+                } else {
                 Button { onReset("") } label: {
                     Label("全部默认",systemImage:"arrow.counterclockwise")
                         .font(.system(size:11,weight:.medium))
                         .foregroundStyle(Theme.secondary).frame(minHeight:44).contentShape(Rectangle())
                 }.buttonStyle(.plain).disabled(!canSelect)
                     .accessibilityLabel("全部恢复默认").accessibilityIdentifier("performanceReset")
+                }
             }
             ScrollView(.horizontal) {
                 HStack(spacing:6) {
+                    if state.hostMotionSupported {
+                        Button { selectedGroup="host-emotion" } label: {
+                            Label("情绪动作 · 试用",systemImage:"sparkles")
+                                .font(.system(size:12,weight:.medium)).padding(.horizontal,11).frame(height:28)
+                                .background(selectedGroup == "host-emotion" ? Theme.accent.opacity(0.16) : Theme.surface.opacity(0.38),in:Capsule())
+                                .frame(minHeight:44)
+                        }.buttonStyle(.plain).accessibilityIdentifier("hostEmotionMotionTab")
+                    }
                     ForEach(groups) { group in
                         Button {
                             withAnimation(.easeInOut(duration:reduceMotion ? 0.1 : 0.22)) { selectedGroup = group.id }
@@ -106,7 +132,9 @@ struct CharacterPerformancePanel: View {
                     }
                 }.padding(.horizontal,18)
             }.scrollIndicators(.hidden).padding(.bottom,4).accessibilityIdentifier("performanceGroups")
-            ScrollView {
+            if selectedGroup == "host-emotion",state.hostMotionSupported {
+                HostEmotionMotionPanel(model:model,state:state)
+            } else { ScrollView {
                 LazyVGrid(columns:[GridItem(.adaptive(minimum:138),spacing:7)],spacing:7) {
                     defaultButton
                     ForEach(options) { option in
@@ -116,6 +144,7 @@ struct CharacterPerformancePanel: View {
                     }
                 }.padding(.horizontal,18).padding(.bottom,12)
             }.id(currentGroup).scrollIndicators(.hidden).accessibilityIdentifier("performanceOptions")
+            }
             if let error = state.error {
                 Text(error).font(.system(size:11)).foregroundStyle(Theme.peach)
                     .padding(.horizontal,18).padding(.bottom,12).accessibilityIdentifier("performanceError")

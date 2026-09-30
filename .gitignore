@@ -21,6 +21,9 @@ __pycache__/
 # Unity automatic scene recovery, retained locally
 **/_Recovery/
 **/_Recovery.meta
+# Unity Performance Testing generates machine/run metadata while exporting.
+/unity/CharacterRuntime/Assets/Resources/PerformanceTestRunInfo.json*
+/unity/CharacterRuntime/Assets/Resources/PerformanceTestRunSettings.json*
 
 # Local credentials and editor/runtime crash artifacts
 .env

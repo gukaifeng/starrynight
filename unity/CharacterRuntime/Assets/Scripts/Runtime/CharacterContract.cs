@@ -138,6 +138,7 @@ namespace ModelSpace
         public bool performanceTransitioning;
         public CharacterParameterValue[] avatarControlValues=Array.Empty<CharacterParameterValue>();
         public CharacterAutonomyState autonomy;
+        public HostEmotionMotionState hostEmotionMotion; // Optional host experiment, not an authored capability.
     }
     // Runtime-owned capability vocabulary. Unknown required capabilities refuse activation;
     // unknown optional capabilities degrade without breaking a character's base experience.

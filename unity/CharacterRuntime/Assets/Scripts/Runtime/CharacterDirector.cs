@@ -18,6 +18,9 @@ namespace ModelSpace
         CharacterPerformanceDriver performance;
         CharacterAutonomy autonomy;
         AvatarControlDriver avatarControl;
+        HostEmotionMotion hostEmotionMotion;
+        public Action OnHostMotionChanged;
+        public void SetHostMotionInteraction(bool value) {if(hostEmotionMotion)hostEmotionMotion.SetInteracting(value);}
         CharacterManifest manifest;
         int sequence,localSequence;
         string turn="";
@@ -26,8 +29,9 @@ namespace ModelSpace
         public CharacterPlatformState State { get { state.activeAction=actions?actions.CurrentAction:"";
             state.performanceSelections=performance?performance.Selections:Array.Empty<string>();
             state.avatarControlValues=avatarControl?avatarControl.Values:Array.Empty<CharacterParameterValue>();
-            state.performanceTransitioning=performance && performance.Transitioning;state.autonomy=autonomy?autonomy.State:null;return state; } private set { state=value; } }
-        public void ClearPerformance() { if(autonomy)autonomy.Clear();if(performance)performance.Clear(); }
+            state.performanceTransitioning=performance && performance.Transitioning;state.autonomy=autonomy?autonomy.State:null;
+            state.hostEmotionMotion=hostEmotionMotion?hostEmotionMotion.State:null;return state; } private set { state=value; } }
+        public void ClearPerformance() { if(hostEmotionMotion)hostEmotionMotion.Clear();if(autonomy)autonomy.Clear();if(performance)performance.Clear(); }
         public void Bind(ViewerCharacter character,CharacterActions actionSource,CompanionAvatarDriver speechSource,CharacterGaze gazeSource)
         {
             if(autonomy)autonomy.Clear();
@@ -41,6 +45,9 @@ namespace ModelSpace
             performance.Bind(character);
             autonomy=GetComponent<CharacterAutonomy>() ?? gameObject.AddComponent<CharacterAutonomy>();
             autonomy.Bind(character,performance);
+            hostEmotionMotion=GetComponent<HostEmotionMotion>() ?? gameObject.AddComponent<HostEmotionMotion>();
+            hostEmotionMotion.Bind(character,actions);
+            hostEmotionMotion.OnChanged=()=>OnHostMotionChanged?.Invoke();
             sequence=localSequence=0; turn=""; seen.Clear(); seenOrder.Clear(); cooldowns.Clear();
             State=new CharacterPlatformState { packageVersion=manifest.packageVersion,expression="neutral",effect="" };
         }
@@ -63,6 +70,16 @@ namespace ModelSpace
             State.accepted++;
             switch(s.eventName)
             {
+                case "host.motion.configure":
+                    hostEmotionMotion.Configure(s.intensity>.5f);receipt.executed++;return Finish(receipt);
+                case "host.motion.stop":
+                    hostEmotionMotion.Cancel();receipt.executed++;return Finish(receipt);
+                case "host.motion.preview":case "host.motion.cue":
+                    receipt.channel="host-emotion";receipt.target=s.target;
+                    string motionError=s.eventName=="host.motion.preview"?hostEmotionMotion.Request(s.target,true):hostEmotionMotion.CueOriginalExpression(s.target);
+                    if(motionError!=null) {receipt.status="degraded";receipt.code=motionError;receipt.skipped++;}
+                    else receipt.executed++;
+                    return Finish(receipt);
                 case "turn.begin":
                     if(string.IsNullOrEmpty(s.turnId)) { receipt.status="rejected"; receipt.code="TURN_ID_REQUIRED"; break; }
                     Cancel(); turn=s.turnId; State.turnId=turn; break;
@@ -173,6 +190,7 @@ namespace ModelSpace
         void Update() { if(manifest!=null) Tick(Time.unscaledTime); }
         void Cancel()
         {
+            if(hostEmotionMotion)hostEmotionMotion.Cancel();
             pending.Clear(); leases.Clear(); actions?.ReturnToIdle(); expressions?.Set("neutral",0); effects?.Stop();
             speech?.SetState("idle"); speech?.SetMouth(0); if(gaze) gaze.Attention=1;
             State.expression="neutral"; State.effect="";

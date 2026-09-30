@@ -178,6 +178,7 @@ namespace ModelSpace
             posture.OnSettled=()=>Emit("postureSettled");
             parameters=gameObject.AddComponent<CharacterParameters>();
             director.OnReceipt=r=> { receipt=r; Emit("characterReceipt"); receipt=null; };
+            director.OnHostMotionChanged=()=>Emit("hostMotionChanged");
             studio = GetComponent<CharacterStudioDriver>();
             if(studio && studio.environment) studio.environment.OnSettled=()=>Emit("environmentConfigured");
             viewCamera.rect = new Rect(0,0,1,1);
@@ -317,6 +318,7 @@ namespace ModelSpace
             int pinchReturns=inspection.Preview.PinchReturnCount;
             int previewReactions=inspection.Preview.ReactionCount;
             if(inspection.Step(Time.unscaledDeltaTime))Emit("inspectionReturned");
+            director.SetHostMotionInteraction(inspection.Active || inspection.Preparing || inspection.Preview.Active || inspection.Preview.Pinching);
             if(previewReactions!=inspection.Preview.ReactionCount)Emit(inspection.Preview.ReactionKind=="shake" ? "characterShaken" : "characterPinched");
             inspection.Ambient.Step(Time.unscaledDeltaTime,
                 ready && immersive && gesturesEnabled && !inspection.Active && !inspection.Preparing && !inspection.Preview.Active && !inspection.Preview.Pinching &&
