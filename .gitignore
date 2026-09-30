@@ -45,6 +45,10 @@ __pycache__/
 /unity/CharacterRuntime/Assets/Prefabs/Package_*.prefab*
 /unity/CharacterRuntime/Assets/Prefabs/HatsuneMiku.prefab*
 /unity/CharacterRuntime/Assets/Prefabs/RealWoman.prefab*
+/unity/CharacterRuntime/Assets/Resources/Characters/
+/unity/CharacterRuntime/Assets/Resources/Characters.meta
+# BuildIos.Setup regenerates the scene, including private avatar prefab overrides.
+/unity/CharacterRuntime/Assets/Scenes/ViewerScene.unity
 /ios/CharacterHost/Resources/CharacterCatalog.json
 
 # Generated character portraits/covers are rebuilt with the local model assets.

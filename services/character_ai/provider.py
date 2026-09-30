@@ -199,7 +199,7 @@ class Provider:
             response=await self.http.post(self.settings.host+'/api/v1/services/audio/tts/customization',headers=self.headers,json={
                 'model':'voice-enrollment','input':{'action':'create_voice','target_model':self.settings.tts_model,
                 'voice_prompt':profile['voice_prompt'],'preview_text':profile['preview_text'],
-                'prefix':'starryki' if character=='anime-kipfel' else 'starryma','language_hints':['zh']},
+                'prefix':'starry'+hashlib.sha256(character.encode()).hexdigest()[:4],'language_hints':['zh']},
                 'parameters':{'sample_rate':24000,'response_format':'wav'}})
             self.check(response); data=response.json(); output=data['output']
             voice['voice_id']=output['voice_id']

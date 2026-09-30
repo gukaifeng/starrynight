@@ -29,6 +29,7 @@ namespace ModelSpace
         public CharacterMorphTrack[] morphTracks=Array.Empty<CharacterMorphTrack>();
         public CharacterVisibility[] visibility=Array.Empty<CharacterVisibility>(),offVisibility=Array.Empty<CharacterVisibility>();
         public CharacterAIPerformanceHint ai;
+        public AvatarControl control;
     }
     [Serializable] public sealed class CharacterPerformanceProfile
     {
@@ -148,7 +149,13 @@ namespace ModelSpace
         public bool Supported => character && CharacterPerformanceContract.IsSupported(character.Manifest.performance);
         public bool Transitioning { get; private set; }
         public float GazeWeight => 1-poseWeight;
-        public string[] Selections => entries.Where(e=>e.selected).Select(e=>e.spec.id).ToArray();
+        public string[] Selections => entries.Where(e=>{
+            if(!string.IsNullOrEmpty(e.spec.control?.id)) {
+                var avatar=character?character.GetComponent<AvatarControlDriver>():null;
+                return avatar && Mathf.Abs(avatar.Get(e.spec.control.parameter)-e.spec.control.value)<.001f;
+            }
+            return e.selected;
+        }).Select(e=>e.spec.id).ToArray();
         // Includes the outgoing pose/expression until its blend completes.
         public float WeightFor(string[] groups,string[] options)
         {
@@ -218,6 +225,11 @@ namespace ModelSpace
         {
             if(!Supported)return "PERFORMANCE_UNSUPPORTED";
             var entry=entries.Find(e=>e.spec.id==id);if(entry==null)return "PERFORMANCE_OPTION_UNKNOWN";
+            if(!string.IsNullOrEmpty(entry.spec.control?.id)) {
+                var avatar=character.GetComponent<AvatarControlDriver>();
+                if(!avatar)return "AVATAR_CONTROL_UNAVAILABLE";
+                var error=avatar.Select(entry.spec.control.id,intensity);OnChanged?.Invoke();return error;
+            }
             bool selected=entry.spec.kind!="toggle" || intensity>=.5f;
             if(selected && entry.spec.kind!="toggle")
                 foreach(var other in entries)if(other.spec.group==entry.spec.group && other.spec.kind!="toggle")other.selected=false;
@@ -239,6 +251,8 @@ namespace ModelSpace
         {
             if(!Supported)return "PERFORMANCE_UNSUPPORTED";
             if(!string.IsNullOrEmpty(group) && !character.Manifest.performance.groups.Any(g=>g.id==group))return "PERFORMANCE_GROUP_UNKNOWN";
+            var avatar=character.GetComponent<AvatarControlDriver>();
+            if(avatar)avatar.Reset(string.IsNullOrEmpty(group)?"":character.Manifest.performance.options.First(o=>o.group==group).control?.group ?? "");
             foreach(var entry in entries)
                 if(string.IsNullOrEmpty(group) || entry.spec.group==group)
                 {entry.selected=entry.spec.defaultOn;entry.elapsed=0;entry.transientPlaying=false;if(entry.animation!=null && entry.selected && entry.spec.kind!="toggle") {entry.animation.time=0;entry.animation.enabled=true;}}

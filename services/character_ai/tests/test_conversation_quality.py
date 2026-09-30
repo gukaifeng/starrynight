@@ -187,5 +187,12 @@ def test_reviewed_mappings_match_installed_catalog():
         for asset in assets(model['id']):
             option=actual[asset['asset_id']]
             assert option['group']==asset['group'] and option['kind']==asset['source_kind']
-            assert option.get('clip') or option.get('morphs') or option.get('morphTracks') or option.get('visibility')
-            if option['kind']=='toggle':assert not asset['automatic']
+            control=option.get('control') or {}
+            assert option.get('clip') or option.get('morphs') or option.get('morphTracks') or option.get('visibility') or control.get('parameter')
+            if control.get('id'):
+                assert 'core.avatar-controls@1' in model['compatibility']['required']
+                assert control['id']==option['id'] and control['kind'] in ('toggle','button','slider')
+                if asset['automatic']:
+                    assert option['ai']['automatic'] is True and option['ai']['speechCompatible'] is True
+                    assert control['kind']!='slider'
+            elif option['kind']=='toggle':assert not asset['automatic']

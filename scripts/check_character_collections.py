@@ -34,7 +34,7 @@ def validate(resources=None, audit_path=None):
             assert all(i.startswith(c['modelID']+'/') for i in ids), 'Unscoped option ID'
             option_ids |= ids
         for voice in c['voices']:
-            assert voice['engine'] == 'melo-zh-v1' and .7 <= voice['speed'] <= 1.4
+            assert voice['engine'] in ('melo-zh-v1','aliyun-character-v1') and .7 <= voice['speed'] <= 1.4
         for track in c['music']:
             assert len(c['music']) >= 2, 'Each character needs at least two distinct songs'
             assert track.get('sourceModelID') == c['modelID'], 'Music source belongs to another role'

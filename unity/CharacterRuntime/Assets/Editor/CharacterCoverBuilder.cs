@@ -14,12 +14,12 @@ public static class CharacterCoverBuilder
     [Serializable] sealed class Catalog { public int schemaVersion; public Cover[] covers; }
     [Serializable] sealed class Cover
     {
-        public string runtimeID, asset, environmentID;
+        public string runtimeID, asset, environmentID,source,sourceSHA256;
         public float focusX, focusY, frameBottom, cameraYaw;
     }
     [Serializable] sealed class Evidence
     {
-        public string runtimeID, environmentID, asset;
+        public string runtimeID, environmentID, asset,source,sourceSHA256;
         public int width = 1024, height = 768;
         public Vector3 cameraPosition, focus;
     }
@@ -52,6 +52,16 @@ public static class CharacterCoverBuilder
         var source = Array.Find(viewer.characters,c=>c.modelId==cover.runtimeID);
         if(!source || !studio.environment.stages.Any(s=>s.Manifest.id==cover.environmentID))
             throw new Exception("CHARACTER_COVER_SOURCE_MISSING: "+cover.runtimeID);
+        if(cover.source=="author-supplied")
+        {
+            string folder=Path.Combine(Root,"ios/CharacterHost/Assets.xcassets",cover.asset+".imageset");
+            string file=Directory.GetFiles(folder,"source.*").Single();byte[] bytes=File.ReadAllBytes(file);
+            using(var sha=System.Security.Cryptography.SHA256.Create())
+                if(BitConverter.ToString(sha.ComputeHash(bytes)).Replace("-","").ToLowerInvariant()!=cover.sourceSHA256)throw new Exception("SOURCE_COVER_HASH_MISMATCH");
+            var art=new Texture2D(2,2);if(!art.LoadImage(bytes))throw new Exception("SOURCE_COVER_INVALID");
+            var evidence=new Evidence {runtimeID=cover.runtimeID,environmentID=cover.environmentID,asset=cover.asset,source=cover.source,sourceSHA256=cover.sourceSHA256,width=art.width,height=art.height};
+            UnityEngine.Object.DestroyImmediate(art);return evidence;
+        }
         GameObject copy = null, cameraObject = null;
         RenderTexture target = null; Texture2D pixels = null;
         var temporaryMeshes = new List<Mesh>(); var active = RenderTexture.active;

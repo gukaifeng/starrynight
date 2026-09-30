@@ -88,6 +88,7 @@ struct CharacterDetailsPanel: View {
     var performanceState: CharacterPerformanceState? = nil
     var onSelectPerformance: (String,Bool) -> Void = { _,_ in }
     var onResetPerformance: (String) -> Void = { _ in }
+    var onAdjustPerformance: (String,Double) -> Void = { _,_ in }
     var onPerformanceVisibility: (Bool) -> Void = { _ in }
     var onOpenCharacter: ((String,Bool) -> Void)? = nil
     var allowsAuthorNavigation = true
@@ -124,7 +125,7 @@ struct CharacterDetailsPanel: View {
                     .environment(\.softPanelDismiss,{ editorClose.request() }).transition(.opacity)
             } else if showingPerformance, let profile = model.performance, let performanceState {
                 CharacterPerformancePanel(model:model,profile:profile,state:performanceState,
-                    onSelect:onSelectPerformance,onReset:onResetPerformance,onVisibilityChanged:onPerformanceVisibility)
+                    onSelect:onSelectPerformance,onReset:onResetPerformance,onAdjust:onAdjustPerformance,onVisibilityChanged:onPerformanceVisibility)
                     .environment(\.softPanelCloseRequest,editorClose)
                     .environment(\.softPanelDismiss,{ editorClose.request() }).transition(.opacity)
             } else if showingCredits {

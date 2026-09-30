@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "jp.lilxyzw.liltoon": "file:../../../.local/dependencies/liltoon-2.3.4-source",
     "com.unity.burst": "file:../../../.local/dependencies/upm/com.unity.burst-1.8.24.tgz",
     "com.unity.cloud.gltfast": "file:../../../.local/dependencies/upm/com.unity.cloud.gltfast-6.16.1.tgz",
     "com.unity.collections": "file:../../../.local/dependencies/upm/com.unity.collections-2.4.3.tgz",

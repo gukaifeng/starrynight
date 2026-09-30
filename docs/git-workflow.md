@@ -21,7 +21,7 @@
 | 本地内容 | 原因与恢复入口 |
 | --- | --- |
 | `.local/`、`build/`、Unity Library/Temp、Xcode DerivedData | 下载缓存、语音权重与运行库、引擎导出、编译产物；用固定锁文件与构建脚本恢复 |
-| `character-packages/imported/`、Unity CharacterPackages、角色生成 Prefab | 可能含禁止公开分发的模型、贴图、原作动画与曲线；通过合法取得的源包本地重建 |
+| `character-packages/imported/`、Unity CharacterPackages、角色生成 Prefab、Resources/Characters、ViewerScene.unity | 可能含禁止公开分发的模型、贴图、原作动画与 Prefab 覆盖；通过合法取得的源包和 BuildIos.Setup 本地重建。场景留本机，不再公开跟踪 |
 | 历史 Miku/RealCharacter 制作资产与 MakeHuman 中间件资产 | 当前名册不再打包；历史制作脚本、来源与署名保留，生成资产不随源码上传 |
 | iOS `CharacterCatalog.json`、导入角色头像、封面与初始角色背景快照 | 由角色源数据生成，目录中也包含原作表现数据；Unity 构建工具重建 |
 | `docs/verification/` 新增原始截图、录像、日志、JSON 采样及源审计 | 大体积证据或包含角色源数据；保留 Markdown 决策、结果和复跑说明。早期已跟踪的普通基线证据仍保留 |
@@ -34,10 +34,11 @@
 
 ## 新机器恢复顺序
 
-当前 App 的两名默认角色需要用户自行提供合法取得的原始资源，因此 **仅克隆仓库不能直接构建出含这两位角色的完整 App**。已有开发机资源都保留，原有构建流程照常使用。
+当前发布名册内的第三方角色需要用户自行提供合法取得的原始资源，因此 **仅克隆仓库不能直接构建出含这些角色的完整 App**。已有开发机资源都保留。新批次来源锁为 `assets/characters/vrchat-library.lock.json`；旧两角色保留原专用转换管线。
 
 1. 安装与项目锁一致的 Unity 6000.3.25f1、iOS Build Support、Unity CLI、Xcode 和 Python 3.11，按个人资格完成 Unity 许可；参照 `docs/environment.md` 与项目 Unity CLI 技能。
 2. `python3 scripts/prepare_packages.py` 恢复固定 UPM 归档。Python 虚拟环境依赖分别在 `character-sdk/requirements.txt`、`scripts/vrchat/requirements.txt` 和 `services/character_ai/requirements.lock`；虚拟环境建在 `.local/`。
+   0.60 起另执行 `python3 scripts/prepare_liltoon.py` 与 `python3 scripts/prepare_vrc_reference_data.py`，恢复固定官方渲染包与私有 mask 数据。批量审计依赖另见 `scripts/vrchat/audit-requirements.txt`。
 3. v0.48起不再下载或打包离线语音模型。按[真实AI实施文档](design/2026-09-30-real-character-ai.md)准备私有Key、本机网关与客户端连接。音色绑定、SQLite和音频私有状态需要从原机器安全恢复；不能因为克隆仓库而重复付费设计音色。
 4. 提供与 VRChat 来源锁匹配的原 ZIP，严格按 [VRChat 导入技能](../.agents/skills/vrchat-character-import/SKILL.md)及其 `references/performances.md`、`references/natural-idle.md` 依次审计、隔离导入、采样原作表现、生成目录与物理数据、转换 XCP 并校验。审计报告和源采样也必须重建；不能只运行最后一步 converter。不要从公开仓库寻找付费源包。
 5. 恢复对应集合/背景/音乐数据后，由 `BuildIos.Setup` / 正常 Unity 导出流程生成当前角色 Prefab、场景、iOS 角色目录与头像/封面。当前名册以 `assets/characters/active-roster.json` 为准；首次恢复不能使用跳过 Setup 的故障恢复捷径。详细顺序及命令以导入技能和 `scripts/export_unity_ios.py` 为准。

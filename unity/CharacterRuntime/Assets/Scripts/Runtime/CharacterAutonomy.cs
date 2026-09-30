@@ -137,7 +137,8 @@ namespace ModelSpace
                 breath.time=player["Idle"].time%breath.length;State.poseBreathWeight=weight;
             }
             float suppression=performance?performance.WeightFor(profile.blink.suppressGroups,profile.blink.suppressOptions):0;
-            State.blinkSuppressed=suppression>.0001f;
+            var authored=character.GetComponent<AvatarControlDriver>();
+            State.blinkSuppressed=suppression>.0001f || (authored && !authored.AllowBlink);
             if(State.blinkSuppressed)
             {
                 blinkTime=-1;untilBlink=profile.blink.firstDelay;

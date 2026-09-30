@@ -12,11 +12,16 @@ struct CharacterPerformanceProfile: Decodable, Sendable {
         }
     }
     struct Option: Decodable, Identifiable, Sendable {
+        struct Control: Decodable, Sendable {
+            let id, kind, parameter: String
+            let minimum, maximum, initial: Double
+        }
         let id, group, label, kind: String
         let description: String?
         let duration: Double?
         let loop: Bool?
         let defaultOn: Bool?
+        let control: Control?
         var isToggle: Bool { kind == "toggle" }
     }
     let schemaVersion: Int

@@ -68,7 +68,7 @@ final class ConversationControlsTests:XCTestCase {
         app.waitForCharacter { $0["viewEditorOpen"] as? Bool == false }
         app.buttons["tab-discover"].tap()
         XCTAssertTrue(app.textFields["discoverSearch"].waitForExistence(timeout:8))
-        XCTAssertEqual(app.buttons.matching(NSPredicate(format:"identifier BEGINSWITH %@","discover-open-")).count,2)
+        XCTAssertGreaterThanOrEqual(app.buttons.matching(NSPredicate(format:"identifier BEGINSWITH %@","discover-open-")).count,2)
         app.buttons["discover-open-anime-mamehinata"].tap()
         app.buttons["profileChatButton"].tap()
         app.waitForCharacter({ $0["modelId"] as? String == "anime-mamehinata" && $0["idlePlaying"] as? Bool == true },timeout:30)

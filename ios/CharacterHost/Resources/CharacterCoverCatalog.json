@@ -8,7 +8,9 @@
       "focusX": 0.5,
       "focusY": 0.31,
       "frameBottom": 0.46,
-      "cameraYaw": 0
+      "cameraYaw": 0,
+      "source": "author-supplied",
+      "sourceSHA256": "977dd67807ac2fbade6186df52459afdd553ce4308d4079ad123e25ff136c94f"
     },
     {
       "runtimeID": "anime-mamehinata",
@@ -17,7 +19,31 @@
       "focusX": 0.5,
       "focusY": 0.31,
       "frameBottom": 0.46,
-      "cameraYaw": 0
+      "cameraYaw": 0,
+      "source": "author-supplied",
+      "sourceSHA256": "1c68a92b2ecea9676e013042806c41bb58802809be6bc8c49a9c9148de3520e5"
+    },
+    {
+      "runtimeID": "anime-chiffon",
+      "asset": "Cover_anime_chiffon",
+      "environmentID": "garden",
+      "focusX": 0.5,
+      "focusY": 0.3,
+      "frameBottom": 0.46,
+      "cameraYaw": 0,
+      "source": "author-supplied",
+      "sourceSHA256": "ec41194f5418bfb609b502b5c46338a5f183fdecdd7567908187efea03421d80"
+    },
+    {
+      "runtimeID": "anime-karin",
+      "asset": "Cover_anime_karin",
+      "environmentID": "sunroom",
+      "focusX": 0.5,
+      "focusY": 0.3,
+      "frameBottom": 0.46,
+      "cameraYaw": 0,
+      "source": "author-supplied",
+      "sourceSHA256": "c74da965e2e1c168fa35431be6c1c4158c31b97af617f1b7dc9dcfaec4d40d27"
     }
   ]
 }

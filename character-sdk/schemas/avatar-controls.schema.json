@@ -1,0 +1,174 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://starrynight.example/character-sdk/avatar-controls.schema.json",
+  "title": "XCP core.avatar-controls@1 / Mecanim portable controller data",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "profile": {
+      "const": "mecanim-portable-v1"
+    },
+    "parameters": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "kind": {
+            "enum": [
+              "float",
+              "int",
+              "bool",
+              "trigger"
+            ]
+          },
+          "initial": {
+            "type": "number"
+          },
+          "saved": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "kind",
+          "initial"
+        ],
+        "additionalProperties": true
+      },
+      "maxItems": 512
+    },
+    "controls": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/control"
+      },
+      "maxItems": 256
+    },
+    "controllers": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "maxItems": 8
+    },
+    "masks": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "maxItems": 64
+    },
+    "limitations": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "maxItems": 4096
+    },
+    "baselineFallbackMotions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-f0-9]{32}$"
+      },
+      "maxItems": 16
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "profile",
+    "parameters",
+    "controls",
+    "controllers",
+    "masks",
+    "limitations"
+  ],
+  "additionalProperties": true,
+  "$defs": {
+    "control": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "group": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "parameter": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "kind": {
+          "enum": [
+            "toggle",
+            "button",
+            "slider"
+          ]
+        },
+        "value": {
+          "type": "number"
+        },
+        "initial": {
+          "type": "number"
+        },
+        "minimum": {
+          "type": "number"
+        },
+        "maximum": {
+          "type": "number"
+        },
+        "gates": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "parameter": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "value": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "parameter",
+              "value"
+            ],
+            "additionalProperties": true
+          },
+          "maxItems": 16
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "group",
+        "parameter",
+        "kind",
+        "value",
+        "initial",
+        "minimum",
+        "maximum"
+      ],
+      "additionalProperties": true
+    }
+  }
+}

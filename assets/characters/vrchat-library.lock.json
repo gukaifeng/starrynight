@@ -1,0 +1,413 @@
+{
+  "schemaVersion": 1,
+  "usage": "private-local-preview-only",
+  "redistributionAllowed": false,
+  "inputs": [
+    {
+      "role": "torao",
+      "id": "anime-torao",
+      "version": "1.00",
+      "sourceSHA256": "2a8d0e13154b8852b1b83be57d8c4ca08bb324bda3404614f8c3810d034634e1",
+      "sourceArchive": "Torao_1.00.zip",
+      "prefab": "Assets/TeraiCountry/Torao/Parent/Torao Parent.prefab",
+      "status": "source-selected",
+      "selectedForBatchOne": false
+    },
+    {
+      "role": "airi",
+      "id": "anime-airi",
+      "version": "1.01",
+      "sourceSHA256": "6f822d02822b7e37f91d390cf3ff544cfbf6c8300f2c4003bec40fdf43fa3417",
+      "sourceArchive": "Airi Ver1.01.7z",
+      "prefab": "Assets/Kyubi closet/Airi/lilToon_Airi.prefab",
+      "status": "source-selected",
+      "selectedForBatchOne": false
+    },
+    {
+      "role": "azuki",
+      "id": "anime-azuki",
+      "version": "1.2.1",
+      "sourceSHA256": "d652d63a7195185f23f46396aebd3ddd8e17067288f6c4ac268067c5aeae184c",
+      "sourceArchive": "6654988Azuki_v1.2.1.zip",
+      "prefab": "Assets/EMOLab Avatars/Azuki/Azuki.prefab",
+      "status": "source-selected",
+      "selectedForBatchOne": false
+    },
+    {
+      "role": "chiffon",
+      "id": "anime-chiffon",
+      "version": "1.00",
+      "sourceSHA256": "d763aa4b76bd165015e49a62313ab3ae8d846bffffd165ea76c2723a7f75692b",
+      "sourceArchive": "5354471 Chiffon_v1.00_20240102.zip",
+      "prefab": "Assets/Amatousagi/Chiffon/Chiffon.prefab",
+      "status": "source-selected",
+      "selectedForBatchOne": true
+    },
+    {
+      "role": "cornet",
+      "id": "anime-cornet",
+      "version": "2.0.0",
+      "sourceSHA256": "3d17d5e3299edf55e2e02643f8608febd3fdc83a5d4db8eae4cec09b4f67325e",
+      "sourceArchive": "Cornet_v2.0.0.rar",
+      "prefab": "Assets/EMOLab Avatars/Cornet/Cornet.prefab",
+      "status": "source-selected",
+      "selectedForBatchOne": false
+    },
+    {
+      "role": "eku",
+      "id": "anime-eku",
+      "version": "1.1.1",
+      "sourceSHA256": "b1175337562365310c5d92879fb3658947a53a726ebb023a88d91e1d5b77715a",
+      "sourceArchive": "Eku本体_PC_v1_1_1.rar",
+      "prefab": "Assets/sep-neko-ya/Eku/Prefab/Eku.prefab",
+      "status": "source-selected",
+      "selectedForBatchOne": false
+    },
+    {
+      "role": "elusion",
+      "id": "anime-elusion",
+      "version": "1.2.9",
+      "sourceSHA256": "3aa9247e8b0a5aa085b5737e5a71298e0161c134d570061bc97c211085a36f0f",
+      "sourceArchive": "ELusion_Full_v1.2.9.zip",
+      "prefab": "Assets/ELusion/ELusion.prefab",
+      "status": "source-selected",
+      "selectedForBatchOne": false
+    },
+    {
+      "role": "fiona",
+      "id": "anime-fiona",
+      "version": "2.02",
+      "sourceSHA256": "f8482a71f5afca0efe6ff144e6a06a4619ca8670afbe7a4e72cead33fa4de9cb",
+      "sourceArchive": "4592568Fiona2.02.zip",
+      "prefab": "Assets/namekuji1337/Fiona/Prefab/Fiona.prefab",
+      "status": "source-selected",
+      "selectedForBatchOne": false
+    },
+    {
+      "role": "hikarun",
+      "id": "anime-hikarun",
+      "version": "1.0",
+      "sourceSHA256": "692764e2b59df49aec22e6c6ea0af189a3ada6e50828af3c4af47e8fe3827067",
+      "sourceArchive": "Hikarun_v1.0.zip",
+      "prefab": "Assets/KululuShippo/Hikarun3D/Hikarun.prefab",
+      "status": "source-selected",
+      "selectedForBatchOne": false
+    },
+    {
+      "role": "ichigo",
+      "id": "anime-ichigo",
+      "version": "1.03",
+      "sourceSHA256": "dc9d3037c7f34012c3a34adf184b9420ac620901153ff122cc94e1bbc69f718e",
+      "sourceArchive": "7328789ICHIGO.zip",
+      "prefab": "Assets/Hamini3Dbox/ICHIGO/ICHIGO_v1.03.prefab",
+      "status": "source-selected",
+      "selectedForBatchOne": false
+    },
+    {
+      "role": "kumaly",
+      "id": "anime-kumaly",
+      "version": "1.01",
+      "sourceSHA256": "c6aac99c800015cf23368bcf774e5ecb3cc73cd48b36b4e1f93a5019ca1f875b",
+      "sourceArchive": "KUMALY_ver1.01.rar",
+      "prefab": "Assets/KUMALY/Prefab/liltoon/KUMALY.prefab",
+      "status": "source-selected",
+      "selectedForBatchOne": false
+    },
+    {
+      "role": "karin",
+      "id": "anime-karin",
+      "version": "1.11",
+      "sourceSHA256": "d040f013f9038e9ec6167c98c5087ebee8d818a166e88ecb65b8733f0f088890",
+      "sourceArchive": "3470989Karin.zip",
+      "prefab": "Assets/Amatousagi/Karin/Karin.prefab",
+      "status": "source-selected",
+      "selectedForBatchOne": true
+    },
+    {
+      "role": "kikyo",
+      "id": "anime-kikyo",
+      "version": "1.04",
+      "sourceSHA256": "1561af4a98288cbd9da99eaa2022a0efb269bb850d6f4c39d173667a08250233",
+      "sourceArchive": "3681787Kikyo_ver1.04.zip",
+      "prefab": "Assets/Kikyo/Prefab/Kikyo_PB.prefab",
+      "status": "source-selected",
+      "selectedForBatchOne": false
+    },
+    {
+      "role": "kipfel",
+      "id": "anime-kipfel",
+      "version": "1.1.1",
+      "sourceSHA256": "496789394fede7375f669c73b5c5943fb4b8870c6bac0c9d324aecdf113c7c2e",
+      "sourceArchive": "Kipfel_1.1.1.zip",
+      "prefab": "Assets/MOCHIYAMA/Kipfel/Prefab/Kipfel.prefab",
+      "status": "source-selected",
+      "selectedForBatchOne": false
+    },
+    {
+      "role": "lasyusha",
+      "id": "anime-lasyusha",
+      "version": "1.11",
+      "sourceSHA256": "c2cc6225c2ba897ba11ea5bed77e9404a6c85e856ceb8a266d067b2440ea9765",
+      "sourceArchive": "4825073Lasyusha.rar",
+      "prefab": "Assets/KeenooSHOP/Lasyusha/Prefabs/Co1/Lasyusha_C1_Ver1.1.prefab",
+      "status": "source-selected",
+      "selectedForBatchOne": false
+    },
+    {
+      "role": "lime",
+      "id": "anime-lime",
+      "version": "1.00",
+      "sourceSHA256": "762ebc4eadf2a0cb933ac51aa29551a7a5ef14e78dad6dd0ce3967a0b140347d",
+      "sourceArchive": "4876459 Lime_v1.00.zip",
+      "prefab": "Assets/Amatousagi/Lime/Lime.prefab",
+      "status": "source-selected",
+      "selectedForBatchOne": false
+    },
+    {
+      "role": "mafuyu",
+      "id": "anime-mafuyu",
+      "version": "1.0.6",
+      "sourceSHA256": "b7aa0b7e678fbda4f2b7ccce9854a24ce64003cc4ce0690f8261f500a39a7e5b",
+      "sourceArchive": "Mafuyu_v1.0.6.zip",
+      "prefab": "Assets/PLUSONE/Mafuyu/Prefab/Mafuyu.prefab",
+      "status": "source-selected",
+      "selectedForBatchOne": false
+    },
+    {
+      "role": "maki",
+      "id": "anime-maki",
+      "version": "1.0",
+      "sourceSHA256": "d8b81fd930341bee8a99be7eae26361b471a8b1d9062248672ea8ad4e96cc761",
+      "sourceArchive": "Maki_VRC_ver1.0.zip",
+      "prefab": "Assets/Maki/prefabs/Maki.prefab",
+      "status": "source-selected",
+      "selectedForBatchOne": false
+    },
+    {
+      "role": "mao",
+      "id": "anime-mao",
+      "version": "1.0.7",
+      "sourceSHA256": "c55573c26a016bc553b77e421cc53e700f249225c9cf61ad64f5d17b0b56887a",
+      "sourceArchive": "6846646maov1.0.7.zip",
+      "prefab": "Assets/IKUSIA/mao/Prefab/mao.prefab",
+      "status": "source-selected",
+      "selectedForBatchOne": false
+    },
+    {
+      "role": "marycia",
+      "id": "anime-marycia",
+      "version": "1.5.1",
+      "sourceSHA256": "c8b312ba136edb5a662a7e98f197e97add3e26e461d2407a0e0ff0b653e81b7a",
+      "sourceArchive": "6305948Marycia_ver1.5.1.zip",
+      "prefab": "Assets/BeroarN/bn0010_Marycia/Prefab/bn0010_Marycia.prefab",
+      "status": "source-selected",
+      "selectedForBatchOne": false
+    },
+    {
+      "role": "mashu",
+      "id": "anime-mashu",
+      "version": "0.0.0",
+      "sourceSHA256": "875d5664b54a86b4209f84983e38eeb6ae34fbd9ca35e7de4b1d5c57d8e0bb0e",
+      "sourceArchive": "3878174mashu.zip",
+      "prefab": "Assets/mashu_0.0.0/prefabs/mashu_0.0.0.prefab",
+      "status": "source-selected",
+      "selectedForBatchOne": false
+    },
+    {
+      "role": "meiyun",
+      "id": "anime-meiyun",
+      "version": "2.0.1",
+      "sourceSHA256": "8d5a4caa6bb38100f09af4eb93a25859a66caa19f9de379ca007c9f79c25c943",
+      "sourceArchive": "4431242Meiyun.rar",
+      "prefab": "Assets/Nigerunaya/Meiyun/Prefab/Meiyun.prefab",
+      "status": "source-selected",
+      "selectedForBatchOne": false
+    },
+    {
+      "role": "milfy",
+      "id": "anime-milfy",
+      "version": "1.5.0",
+      "sourceSHA256": "4e283f439622d40b65f10afed45e6597efe16c9d76e2f360b17520ec447495f4",
+      "sourceArchive": "Milfy_v1.5.0.zip",
+      "prefab": "Assets/PLUSONE/Milfy/Prefab/Milfy.prefab",
+      "status": "source-selected",
+      "selectedForBatchOne": false
+    },
+    {
+      "role": "milltina",
+      "id": "anime-milltina",
+      "version": "1.00",
+      "sourceSHA256": "271d2fe8493bc1b7d62205d8c811018109a9ce0b0d767cb5228394d934979e7e",
+      "sourceArchive": "Milltina_ミルティナ__ver1.00_6538026.zip",
+      "prefab": "Assets/DOLOSart/Milltina/Milltina.prefab",
+      "status": "source-selected",
+      "selectedForBatchOne": false
+    },
+    {
+      "role": "mizuki",
+      "id": "anime-mizuki",
+      "version": "2.06",
+      "sourceSHA256": "ddb7f7388c80e5ed0a0f061c40b1db5792f0ec4a59ad0c12f5f83f89fec9c519",
+      "sourceArchive": "瑞希ver2.06.zip",
+      "prefab": "Assets/IKUSIA/mizuki/Prefab/liltoon/mizuki.prefab",
+      "status": "source-selected",
+      "selectedForBatchOne": false
+    },
+    {
+      "role": "nemesis",
+      "id": "anime-nemesis",
+      "version": "1.02",
+      "sourceSHA256": "fc3a425ce6a38217675bb1a5a9827aecb2a835478ceaf08e37cda8529fdfc727",
+      "sourceArchive": "5986971Nemesis_Full_ver_1_02.zip",
+      "prefab": "Assets/Nemesis/Nemesis_Full.prefab",
+      "status": "source-selected",
+      "selectedForBatchOne": false
+    },
+    {
+      "role": "nochica",
+      "id": "anime-nochica",
+      "version": "0.0.2",
+      "sourceSHA256": "f9d3b690981cf8513e6aa105155b96e8e1378d8ccabfe12390b823da356ed981",
+      "sourceArchive": "Nochica_0.0.2.zip",
+      "prefab": "Assets/Sisters!/Nochica/Prefabs/Nochica.prefab",
+      "status": "source-selected",
+      "selectedForBatchOne": false
+    },
+    {
+      "role": "nozomi",
+      "id": "anime-nozomi",
+      "version": "1.00",
+      "sourceSHA256": "446bf08d22830f8ac8878de1219ac85d33006da32f4fcdab25d9d702638b14e6",
+      "sourceArchive": "Nozomi_1.00.zip",
+      "prefab": "Assets/Nozomi/Nozomi_1.00.prefab",
+      "status": "source-selected",
+      "selectedForBatchOne": false
+    },
+    {
+      "role": "perula",
+      "id": "anime-perula",
+      "version": "1.0.3",
+      "sourceSHA256": "f17c2a72c02b793112b45ce18c404e2c948d6aa25da74e54952b03e7249ffbfd",
+      "sourceArchive": "5565569 Perula v1.0.3.rar",
+      "prefab": "Assets/Voidcat/Perula/Prefabs/Perula.prefab",
+      "status": "source-selected",
+      "selectedForBatchOne": false
+    },
+    {
+      "role": "plum",
+      "id": "anime-plum",
+      "version": "1.0.1",
+      "sourceSHA256": "d229b96cfb33c92d8013a325f57aa41e3bc4cfab827976ac35b99335fcf364d0",
+      "sourceArchive": "Plum_v1.0.1.rar",
+      "prefab": "Assets/Amatousagi/Plum/Plum.prefab",
+      "status": "source-selected",
+      "selectedForBatchOne": false
+    },
+    {
+      "role": "ramune",
+      "id": "anime-ramune",
+      "version": "1.1.0",
+      "sourceSHA256": "83cff6ba3fb7b1763325c29980ad9c044b6af5c89893daa5f43d0ff4a519d905",
+      "sourceArchive": "更新Ramune_v1.1.0.rar",
+      "prefab": "Assets/EMOLab Avatars/Ramune/GomenneRamuneChan/GomenneRamuneChan.prefab",
+      "status": "source-selected",
+      "selectedForBatchOne": false
+    },
+    {
+      "role": "rindo",
+      "id": "anime-rindo",
+      "version": null,
+      "sourceSHA256": "92bb3dd3b8c95371b73ba0b97374216157033f71f2305e7be4aee4c4f8d26dd5",
+      "sourceArchive": "RINDO_golfwear.zip",
+      "prefab": null,
+      "status": "missing-avatar-prefab",
+      "selectedForBatchOne": false
+    },
+    {
+      "role": "ririka",
+      "id": "anime-ririka",
+      "version": "1.0.4",
+      "sourceSHA256": "f4617ce6abdc98f027c59a161f0b3406432a785929447b8a8aea6f6a127ed07e",
+      "sourceArchive": "ririka_v1.0.4.zip",
+      "prefab": "Assets/IKUSIA/ririka/ririka.prefab",
+      "status": "source-selected",
+      "selectedForBatchOne": false
+    },
+    {
+      "role": "rurune",
+      "id": "anime-rurune",
+      "version": "1.1.3",
+      "sourceSHA256": "f94773215ce6f9330e660a4d3f6fc5f48ac990a1b8df29f93dce673ad2bd44c4",
+      "sourceArchive": "rurune_v1.1.3.zip",
+      "prefab": "Assets/IKUSIA/rurune/Prefab/rurune.prefab",
+      "status": "source-selected",
+      "selectedForBatchOne": false
+    },
+    {
+      "role": "shinano",
+      "id": "anime-shinano",
+      "version": "1.01.2",
+      "sourceSHA256": "c910c6a8c0a6c6ad22c7a25ba13f7f0b35f68572542af1867a367e4c4fc30152",
+      "sourceArchive": "Shinano_ver1.01.2.zip",
+      "prefab": "Assets/Shinano/Prefab/Shinano.prefab",
+      "status": "source-selected",
+      "selectedForBatchOne": false
+    },
+    {
+      "role": "shiratsume",
+      "id": "anime-shiratsume",
+      "version": "1.5",
+      "sourceSHA256": "143175db5580e7f058d835469ce0ae851075d0d6253bdb05f3dd4eff565103d8",
+      "sourceArchive": "6831821Shiratsume_1.5.zip",
+      "prefab": "Assets/HARUNOPUPU/Shiratsume/Prefab/Shiratsume_All.prefab",
+      "status": "source-selected",
+      "selectedForBatchOne": false
+    },
+    {
+      "role": "shizuku",
+      "id": "anime-shizuku",
+      "version": null,
+      "sourceSHA256": "855616cd420466afc159a3e8ec30b75b4978f39f2490ca2dc668b315720abb80",
+      "sourceArchive": "3828632shizuku.zip",
+      "prefab": "Assets/kuromaru9/shizuku/Prefabs/shizuku.prefab",
+      "status": "source-selected",
+      "selectedForBatchOne": false
+    },
+    {
+      "role": "sio",
+      "id": "anime-sio",
+      "version": null,
+      "sourceSHA256": "853c7f64df8184ed24ec940f089944879bfdf184640528c7395ec9cc6f0559e2",
+      "sourceArchive": "5650156Sio.zip",
+      "prefab": "Assets/Chocolate rice/0. Sio/Sio.prefab",
+      "status": "source-selected",
+      "selectedForBatchOne": false
+    },
+    {
+      "role": "siska",
+      "id": "anime-siska",
+      "version": "1.03",
+      "sourceSHA256": "afd6353a407f28649833a59fa7484e76d1efb728e3c15a9bbb159ca8f3b24fae",
+      "sourceArchive": "7543853Siska_v1.03.zip",
+      "prefab": "Assets/Siska/Prefab/Siska_v1.prefab",
+      "status": "source-selected",
+      "selectedForBatchOne": false
+    },
+    {
+      "role": "koharu",
+      "id": "anime-koharu",
+      "version": "1.0.0",
+      "sourceSHA256": "59aa1ebb24acb59d2412d58d482affe767f5eecca8081f8e675b8ada4ca9d0cf",
+      "sourceArchive": "け3Dモデル 下江コハル  ブルーアーカイブ（非公式ファンメイド）.zip",
+      "prefab": "Assets/Koharu/Models/Prefabs/koharu.prefab",
+      "status": "source-selected",
+      "selectedForBatchOne": false
+    }
+  ],
+  "dependencyVersions": {
+    "unity": "6000.3.25f1",
+    "lilToon": "2.3.4",
+    "vrchatReferenceMasks": "3.10.5"
+  },
+  "note": "Selection and source identity only. Inspection, candidate generation, activation and delivery are distinct stages. See import-batches.json and verification report."
+}

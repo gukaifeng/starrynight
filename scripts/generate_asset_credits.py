@@ -56,6 +56,7 @@ def generate_asset_credits(root: Path) -> dict[str, str]:
         notice = package_text(manifest_path.parent, manifest['license']['file'])
         package_notices.append('场景：' + manifest['display']['name'] + ' · ' + manifest['packageVersion'] + '\n' + notice)
     package_notices.append((resources / 'UnityToonCredits.txt').read_text(encoding='utf-8'))
+    package_notices.append((resources / 'LilToonCredits.txt').read_text(encoding='utf-8'))
     (resources / 'CharacterPackageCredits.txt').write_text('\n\n'.join(package_notices) + '\n', encoding='utf-8')
     (resources / 'CharacterSourceCredits.json').write_text(json.dumps(credits, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
     return credits

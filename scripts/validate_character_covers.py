@@ -4,6 +4,8 @@ import json
 import math
 from pathlib import Path
 import struct
+import hashlib
+from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]
 RESOURCES = ROOT / "ios/CharacterHost/Resources"
@@ -33,9 +35,12 @@ def main():
         folder = ASSETS / (cover["asset"] + ".imageset")
         entry = json.loads((folder / "Contents.json").read_text())["images"][0]
         data = (folder / entry["filename"]).read_bytes()
-        assert data[:8] == b"\x89PNG\r\n\x1a\n", f"{runtime_id}: missing PNG artwork"
-        width, height = struct.unpack(">II", data[16:24])
-        assert (width, height) == (1024, 768), f"{runtime_id}: unexpected cover resolution"
+        with Image.open(folder / entry['filename']) as artwork:
+            width,height=artwork.size;artwork.verify()
+        if cover.get('source')=='author-supplied':
+            assert min(width,height)>=256 and max(width,height)<=8192, f'{runtime_id}: source cover dimensions'
+            assert hashlib.sha256(data).hexdigest()==cover['sourceSHA256'], f'{runtime_id}: source cover changed'
+        else:assert (width,height)==(1024,768), f'{runtime_id}: unexpected render resolution'
         evidence = rendered[runtime_id]
         assert evidence["environmentID"] == cover["environmentID"] and evidence["asset"] == cover["asset"], f"{runtime_id}: stale rendering evidence"
         assert (evidence["width"], evidence["height"]) == (width, height)

@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Linq;
 using System.Runtime.InteropServices;
 using UnityEngine;
 
@@ -104,6 +105,9 @@ namespace ModelSpace
     {
         public Transform model;
         public ViewerCharacter[] characters;
+        public string[] resourceCharacterIDs=Array.Empty<string>();
+        Coroutine pendingCharacterLoad;
+        int characterLoadSequence;
         public Camera viewCamera;
         string activeModelId = "studio-robot";
         public string ActiveModelId => activeModelId;
@@ -210,7 +214,13 @@ namespace ModelSpace
         void SelectModel(string id, string request)
         {
             var selected = Array.Find(characters ?? Array.Empty<ViewerCharacter>(), c => c && c.modelId == id);
-            if (!selected) throw new ArgumentException("此构建未包含所选模型，请重新导出 Unity 工程");
+            if (!selected) {
+                if(!Array.Exists(resourceCharacterIDs,c=>c==id))throw new ArgumentException("此构建未包含所选模型，请重新导出 Unity 工程");
+                if(pendingCharacterLoad!=null)StopCoroutine(pendingCharacterLoad);
+                pendingCharacterLoad=StartCoroutine(LoadCharacter(id,request,++characterLoadSequence));return;
+            }
+            characterLoadSequence++;
+            if(pendingCharacterLoad!=null) {StopCoroutine(pendingCharacterLoad);pendingCharacterLoad=null;}
             if(!hasSelectedModel && selected == character) {
                 // Awake already bound the bundled default. Do not bind it a second time
                 // on the first host handshake; all user settings follow before reveal.
@@ -225,6 +235,44 @@ namespace ModelSpace
             InitializeModel(); Reframe(true);
             GetComponent<RenderPerformance>().Configure(Application.targetFrameRate, presentation);
             Emit("modelSelected", request);
+            if(Application.isPlaying && characters.Length>2)TrimCharacterCache(selected);
+        }
+        IEnumerator LoadCharacter(string id,string request,int sequence)
+        {
+            var load=Resources.LoadAsync<GameObject>("Characters/"+id);yield return load;
+            if(sequence!=characterLoadSequence)yield break;
+            pendingCharacterLoad=null;
+            if(Array.Exists(characters,c=>c && c.modelId==id)) {SelectModel(id,request);yield break;}
+            var asset=load.asset as GameObject;
+            if(!asset) {Emit("error",request,"角色资源未能加载");yield break;}
+            var instance=Instantiate(asset);instance.SetActive(false);
+            var actor=instance.GetComponent<ViewerCharacter>();
+            if(!actor || actor.modelId!=id) {Destroy(instance);Emit("error",request,"角色资源校验失败");yield break;}
+            var list=new System.Collections.Generic.List<ViewerCharacter>(characters.Where(c=>c));list.Add(actor);characters=list.ToArray();
+            SelectModel(id,request);
+        }
+        void TrimCharacterCache(ViewerCharacter keep)
+        {
+            var retained=characters.Where(c=>c && c!=keep).LastOrDefault();
+            foreach(var c in characters)if(c && c!=keep && c!=retained)Destroy(c.gameObject);
+            characters=retained?new[]{retained,keep}:new[]{keep};
+            StartCoroutine(ReleaseCharacterResources());
+        }
+        IEnumerator ReleaseCharacterResources() {yield return null;yield return Resources.UnloadUnusedAssets();}
+        IEnumerator PrewarmCharacter(BridgeCommand command)
+        {
+            string id=command.payload?.modelId;
+            if(!Array.Exists(resourceCharacterIDs,c=>c==id)) {Emit("modelPrewarmFailed",command.requestId,"MODEL_UNAVAILABLE");yield break;}
+            var load=Resources.LoadAsync<GameObject>("Characters/"+id);yield return load;
+            if(command.presentationId!=presentation)yield break;
+            var candidate=Array.Find(characters,c=>c && c.modelId==id);
+            if(!candidate && load.asset is GameObject asset)
+            {
+                var instance=Instantiate(asset);instance.SetActive(false);candidate=instance.GetComponent<ViewerCharacter>();
+                if(candidate) {characters=characters.Where(c=>c).Append(candidate).ToArray();if(characters.Length>2)TrimCharacterCache(character);}
+                else Destroy(instance);
+            }
+            Emit(candidate?"modelPrewarmed":"modelPrewarmFailed",command.requestId,candidate?id:"MODEL_UNAVAILABLE");
         }
         IEnumerator Start()
         {
@@ -603,7 +651,7 @@ namespace ModelSpace
                                 CharacterPortraitRenderer.Render(candidate,command.payload.studio,command.payload.parameters,command.payload.accent,false);
                                 Emit("modelPrewarmed",command.requestId,command.payload.modelId);
                             } catch(Exception error) { Emit("modelPrewarmFailed",command.requestId,error.Message); }
-                        } else Emit("modelPrewarmFailed",command.requestId,"MODEL_UNAVAILABLE");
+                        } else StartCoroutine(PrewarmCharacter(command));
                         break;
                     case "getState": if (ready) Emit("state", command.requestId); break;
                     case "resetView": ResetView(command.payload != null && command.payload.immediate, command.requestId, presentation); break;

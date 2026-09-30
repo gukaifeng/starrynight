@@ -19,10 +19,10 @@ public static class AnimeCharacterAdapter
     [Serializable] sealed class MaterialsData { public int schemaVersion;public string sourceProfile;public MaterialData[] materials; }
     public static void Prepare(ViewerCharacter character,string folder)
     {
-        if(!character.Manifest.Supports("core.secondary-motion@1"))return;
+        if(!character.Manifest.Supports("core.secondary-motion@1") && !character.Manifest.Supports("core.secondary-motion@2"))return;
         PrepareMaterials(character,folder);
         var data=JsonUtility.FromJson<SecondaryMotionData>(File.ReadAllText(folder+"/secondary-motion.json"));
-        if(data.schemaVersion!=1 || data.strands==null || data.strands.Length>128 || data.colliders==null || data.colliders.Length>64)
+        if((data.schemaVersion!=1 && data.schemaVersion!=2) || data.strands==null || data.strands.Length>(data.schemaVersion==2?512:128) || data.colliders==null || data.colliders.Length>(data.schemaVersion==2?256:64))
             throw new Exception("SECONDARY_MOTION_SCHEMA_INVALID");
         Transform Resolve(string path)
         {
@@ -71,6 +71,7 @@ public static class AnimeCharacterAdapter
     public static void PrepareMaterials(ViewerCharacter character,string folder)
     {
         var source=JsonUtility.FromJson<MaterialsData>(File.ReadAllText(folder+"/materials.json"));
+        if(source.schemaVersion==2) {PortableToonMaterialBuilder.Prepare(character.gameObject,folder);return;}
         if(source.schemaVersion!=1 || source.materials==null || source.materials.Length>32)throw new Exception("ANIME_MATERIAL_SCHEMA_INVALID");
         string target=folder+"/BakedMaterials";Directory.CreateDirectory(target);
         var materials=new System.Collections.Generic.Dictionary<string,Material>();
@@ -178,7 +179,8 @@ public sealed class AnimeTextureImport : AssetPostprocessor
         if(!assetPath.StartsWith("Assets/CharacterPackages/Imported/anime-",StringComparison.Ordinal) || !assetPath.Contains("/textures/"))return;
         var importer=(TextureImporter)assetImporter;
         bool normal=Path.GetFileName(assetPath).StartsWith("normal_",StringComparison.Ordinal);
-        importer.textureType=normal?TextureImporterType.NormalMap:TextureImporterType.Default;importer.sRGBTexture=!normal;importer.isReadable=false;
+        bool linear=Path.GetFileName(assetPath).StartsWith("linear_",StringComparison.Ordinal);
+        importer.textureType=normal?TextureImporterType.NormalMap:TextureImporterType.Default;importer.sRGBTexture=!normal && !linear;importer.isReadable=false;
         importer.mipmapEnabled=true;importer.filterMode=FilterMode.Trilinear;importer.anisoLevel=4;
         // Preserve authored 4K detail for close portraits; this never upscales a
         // smaller source. ASTC and mipmaps still govern mobile memory/bandwidth.

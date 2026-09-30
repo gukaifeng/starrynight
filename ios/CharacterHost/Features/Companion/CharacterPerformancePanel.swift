@@ -7,6 +7,7 @@ import Observation
     private(set) var modelID = ""
     private(set) var presentation = -1
     private(set) var selections = Set<String>()
+    private(set) var controlValues: [String:Double] = [:]
     private(set) var ready = false
     private(set) var transitioning = false
     private(set) var pendingID: String?
@@ -18,7 +19,7 @@ import Observation
 
     func begin(modelID: String, presentation: Int) {
         self.modelID = modelID; self.presentation = presentation
-        selections.removeAll(); ready = false; transitioning = false
+        selections.removeAll(); controlValues.removeAll(); ready = false; transitioning = false
         pendingID = nil; pendingOption = nil; error = nil
 #if DEBUG
         confirmedCounts.removeAll()
@@ -39,6 +40,12 @@ import Observation
            let selected = platform["performanceSelections"] as? [String] {
             selections = Set(selected); ready = true
             transitioning = platform["performanceTransitioning"] as? Bool ?? false
+            if let values=platform["avatarControlValues"] as? [[String:Any]] {
+                controlValues=Dictionary(values.compactMap { row -> (String,Double)? in
+                    guard let id=row["id"] as? String,let value=row["value"] as? Double else {return nil}
+                    return (id,value)
+                },uniquingKeysWith: { _,new in new })
+            }
         }
 #if DEBUG
         if let receipt=event["receipt"] as? [String:Any],receipt["eventName"] as? String == "performance.select",
@@ -59,6 +66,7 @@ struct CharacterPerformancePanel: View {
     let state: CharacterPerformanceState
     var onSelect: (String, Bool) -> Void
     var onReset: (String) -> Void
+    var onAdjust: (String, Double) -> Void = { _,_ in }
     var onVisibilityChanged: (Bool) -> Void = { _ in }
     @State private var selectedGroup = ""
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -101,7 +109,11 @@ struct CharacterPerformancePanel: View {
             ScrollView {
                 LazyVGrid(columns:[GridItem(.adaptive(minimum:138),spacing:7)],spacing:7) {
                     defaultButton
-                    ForEach(options) { option in optionButton(option) }
+                    ForEach(options) { option in
+                        if let control=option.control, control.kind == "slider" {
+                            AvatarControlSlider(option:option,control:control,confirmed:state.controlValues[option.id],enabled:canSelect,onAdjust:onAdjust)
+                        } else { optionButton(option) }
+                    }
                 }.padding(.horizontal,18).padding(.bottom,12)
             }.id(currentGroup).scrollIndicators(.hidden).accessibilityIdentifier("performanceOptions")
             if let error = state.error {
@@ -169,5 +181,25 @@ struct CharacterPerformancePanel: View {
             .accessibilityIdentifier("performanceOption-"+option.id)
             .accessibilityValue(pending ? "等待回应" : (selected ? "已选择" : "未选择"))
             .accessibilityHint(option.description ?? "")
+    }
+}
+
+private struct AvatarControlSlider: View {
+    let option: CharacterPerformanceProfile.Option
+    let control: CharacterPerformanceProfile.Option.Control
+    let confirmed: Double?
+    let enabled: Bool
+    let onAdjust: (String,Double) -> Void
+    @State private var value: Double = 0
+    @State private var editing = false
+    var body: some View {
+        VStack(alignment:.leading,spacing:5) {
+            Text(option.label).font(.system(size:12,weight:.medium)).lineLimit(2)
+            Slider(value:Binding(get:{value},set:{ value=$0; onAdjust(option.id,$0) }),in:0...1,onEditingChanged:{editing=$0})
+                .accessibilityIdentifier("performanceSlider-"+option.id)
+        }.padding(11).background(Theme.surface.opacity(0.56),in:RoundedRectangle(cornerRadius:12))
+            .disabled(!enabled)
+            .onAppear {value=confirmed ?? min(1,max(0,(control.initial-control.minimum)/max(0.0001,control.maximum-control.minimum)))}
+            .onChange(of:confirmed) { _,new in if !editing,let new {value=new} }
     }
 }

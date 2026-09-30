@@ -178,6 +178,12 @@
         "com.unity.modules.imgui": "1.0.0"
       }
     },
+    "jp.lilxyzw.liltoon": {
+      "version": "file:../../../.local/dependencies/liltoon-2.3.4-source",
+      "depth": 0,
+      "source": "local",
+      "dependencies": {}
+    },
     "com.unity.modules.animation": {
       "version": "1.0.0",
       "depth": 0,

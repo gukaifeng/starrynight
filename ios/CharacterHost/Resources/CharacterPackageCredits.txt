@@ -1,3 +1,89 @@
+戚风 · 3.0.0
+戚风 / Chiffon 1.00
+素材原作者：こまど / komado（あまとうさぎ）
+许可：Original author avatar terms — private local conversion
+固定来源：file:///Users/gukaifeng/Downloads/VRchat%E6%A8%A1%E5%9E%8B%E6%95%B4%E7%90%86_%E6%9C%80%E6%96%B0%E7%89%88%E6%9C%AC/Chiffon%E6%88%9A%E9%A3%8E_v1.00/5354471%20Chiffon_v1.00_20240102.zip
+本机个人预览素材：不得随公开版本或公开源码再分发；具体改作与分发权限见下方原模型许可。
+
+Private user-supplied avatar conversion. No public redistribution permission is implied.
+Source SHA256: d763aa4b76bd165015e49a62313ab3ae8d846bffffd165ea76c2723a7f75692b
+
+
+
+上游附加署名（原文，包含上游完整素材库说明）：
+# Private avatar candidate
+
+Original geometry, textures and character controls remain subject to their authors’ terms. The host uses the MIT-licensed lilToon renderer. VRChat scripts, SDK binaries, platform animations and arbitrary callbacks are not bundled.
+
+See portable-conversion.json and physics-source.json for explicit adaptation limits. This package has not passed device performance testing merely because it is sealed.
+
+
+原文件许可设置（保留原文）：
+{
+  "schemaVersion": 1,
+  "sourceVersion": "1.00",
+  "sourceSHA256": "d763aa4b76bd165015e49a62313ab3ae8d846bffffd165ea76c2723a7f75692b",
+  "sourceArchive": "5354471 Chiffon_v1.00_20240102.zip",
+  "prefab": "Assets/Amatousagi/Chiffon/Chiffon.prefab",
+  "variants": [
+    {
+      "package": 0,
+      "prefab": "Assets/Amatousagi/Chiffon/Chiffon.prefab"
+    }
+  ],
+  "baseline": {
+    "kind": "host-standing-adaptation",
+    "reason": "Source delegates its body baseline to the VRChat platform; no matching authored standing clip is present"
+  },
+  "localOnly": true
+}
+
+
+卡琳 · 3.0.0
+卡琳 / Karin 1.11
+素材原作者：こまど / komado（あまとうさぎ）
+许可：Original author avatar terms — private local conversion
+固定来源：file:///Users/gukaifeng/Downloads/VRchat%E6%A8%A1%E5%9E%8B%E6%95%B4%E7%90%86_%E6%9C%80%E6%96%B0%E7%89%88%E6%9C%AC/Karin%E5%8D%A1%E7%90%B3_v1.11/3470989Karin.zip
+本机个人预览素材：不得随公开版本或公开源码再分发；具体改作与分发权限见下方原模型许可。
+
+Private user-supplied avatar conversion. No public redistribution permission is implied.
+Source SHA256: d040f013f9038e9ec6167c98c5087ebee8d818a166e88ecb65b8733f0f088890
+
+
+
+上游附加署名（原文，包含上游完整素材库说明）：
+# Private avatar candidate
+
+Original geometry, textures and character controls remain subject to their authors’ terms. The host uses the MIT-licensed lilToon renderer. VRChat scripts, SDK binaries, platform animations and arbitrary callbacks are not bundled.
+
+See portable-conversion.json and physics-source.json for explicit adaptation limits. This package has not passed device performance testing merely because it is sealed.
+
+
+原文件许可设置（保留原文）：
+{
+  "schemaVersion": 1,
+  "sourceVersion": "1.11",
+  "sourceSHA256": "d040f013f9038e9ec6167c98c5087ebee8d818a166e88ecb65b8733f0f088890",
+  "sourceArchive": "3470989Karin.zip",
+  "prefab": "Assets/Amatousagi/Karin/Karin.prefab",
+  "variants": [
+    {
+      "package": 0,
+      "prefab": "Assets/Amatousagi/Karin/Karin.prefab"
+    },
+    {
+      "package": 0,
+      "prefab": "Assets/Amatousagi/Karin/Karin_kisekae.prefab"
+    }
+  ],
+  "baseline": {
+    "kind": "host-standing-adaptation",
+    "reason": "Source delegates its body baseline to the VRChat platform; no matching authored standing clip is present"
+  },
+  "localOnly": true
+}
+
+
 琪宝 · 2.2.0
 琪宝 / Kipfel 1.0.3 · もち山金魚
 素材原作者：もち山金魚 / MOCHIYAMA
@@ -278,4 +364,247 @@ Film Internal Utilities copyright © 2021 Unity Technologies ApS
 Licensed under the Unity Companion License for Unity-dependent projects--see [Unity Companion License](http://www.unity3d.com/legal/licenses/Unity_Companion_License). 
 
 Unless expressly provided otherwise, the Software under this license is made available strictly on an “AS IS” BASIS WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED. Please review the license for details on these and other terms and conditions.
+
+
+lilToon 2.3.4 — https://github.com/lilxyzw/lilToon/releases/tag/2.3.4
+
+MIT License
+
+Copyright (c) 2020-present lilxyzw
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+
+# Third Party Notices
+This package contains third-party software components governed by the license(s) indicated below:
+
+## Unlit_WF_ShaderSuite
+Component Name: Unlit_WF_ShaderSuite
+
+License Type: "MIT"
+
+[Unlit_WF_ShaderSuite License](https://github.com/whiteflare/Unlit_WF_ShaderSuite/blob/master/LICENSE)
+
+The MIT License
+
+Copyright 2018-2023 whiteflare.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
+to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
+and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+## GTAvaCrypt
+Component Name: GTAvaCrypt
+
+License Type: "MIT"
+
+[GTAvaCrypt License](https://github.com/rygo6/GTAvaCrypt/blob/master/LICENSE)
+
+MIT License
+
+Copyright (c) 2019 Ryan Goodrich
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+## PoiyomiToonShader
+Component Name: PoiyomiToonShader
+
+License Type: "MIT"
+
+[PoiyomiToonShader License](https://github.com/poiyomi/PoiyomiToonShader/blob/master/LICENSE)
+
+MIT License
+
+Copyright (c) 2023 Poiyomi Inc.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+# Other references
+These are not included in the asset or do not require a license to be listed, but will list licenses and articles for developers.
+
+## Arktoon-Shaders
+I referred to it in the early stages of development.
+
+Component Name: Arktoon-Shaders
+
+License Type: "MIT"
+
+[Arktoon-Shaders License](https://github.com/synqark/Arktoon-Shaders/blob/master/LICENSE)
+
+MIT License
+
+Copyright (c) 2018 synqark
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+## msdfgen
+Textures converted using this tool are available.
+
+Component Name: msdfgen
+
+License Type: "MIT"
+
+[msdfgen License](https://github.com/Chlumsky/msdfgen/blob/master/LICENSE.txt)
+
+MIT License
+
+Copyright (c) 2016 Viktor Chlumsky
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+## MToon
+I compared the parameters when creating the conversion feature.
+
+Component Name: MToon
+
+License Type: "MIT"
+
+[MToon License](https://github.com/Santarh/MToon/blob/master/LICENSE)
+
+MIT License
+
+Copyright (c) 2018 Masataka SUMI
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+## Article
+- [Physically Based Rendering in Filament](https://google.github.io/filament/Filament.html)
+- [視差オクルージョンマッピング(parallax occlution mapping) (コポコポ)](https://coposuke.hateblo.jp/entry/2019/01/20/043042)
+- [Udon AudioLink](https://github.com/llealloo/vrc-udon-audio-link)
+- [『崩壊3rd』開発者が語るアニメ風レンダリングの極意](https://learning.unity3d.jp/570/)
+- [Optimized inverse trigonometric function (seblagarde)](https://seblagarde.wordpress.com/2014/12/01/inverse-trigonometric-functions-gpu-optimization-for-amd-gcn-architecture/)
+- [Simplest Fastest 2D Hash](https://www.shadertoy.com/view/MdcfDj)
+- [sRGB Approximations for HLSL](http://chilliant.blogspot.com/2012/08/srgb-approximations-for-hlsl.html?m=1)
+- [【Unity】【シェーダ】使っていないけどシリアライズされてしまっているシェーダプロパティを削除する](https://light11.hatenadiary.com/entry/2018/12/04/224253)
+- [CoroutineHandler.cs](https://github.com/Unity-Technologies/EndlessRunnerSampleGame/blob/master/Assets/Scripts/CoroutineHandler.cs)
+
+## Assets
+- [Wooden Lounge HDRI • Poly Haven](https://polyhaven.com/a/wooden_lounge)
+
+Bundled VRC Light Volumes shader includes:
+
+MIT License
+
+Copyright (c) 2025 RED_SIM
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 

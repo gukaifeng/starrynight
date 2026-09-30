@@ -110,6 +110,102 @@
       "defaultEnvironment": "sunroom",
       "defaultVoice": "anime-mamehinata/natural",
       "defaultMusic": "anime-mamehinata/moon"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "app.starry.collections.anime-chiffon",
+      "version": "1.1.0",
+      "modelID": "anime-chiffon",
+      "modelPackageID": "app.starry.characters.anime-chiffon",
+      "modelPackageVersion": "3.0.0",
+      "actions": [],
+      "environments": [
+        "garden"
+      ],
+      "voices": [
+        {
+          "id": "anime-chiffon/natural",
+          "title": "自然聊",
+          "detail": "角色专属音色",
+          "engine": "aliyun-character-v1",
+          "speed": 1
+        }
+      ],
+      "music": [
+        {
+          "id": "anime-chiffon/moon",
+          "asset": "Music_anime_chiffon_moon",
+          "assetExtension": "caf",
+          "sourceModelID": "anime-chiffon",
+          "sha256": "7314f77dfb99a9c461f2d06f030df09c0f6c7dfb3e4ad6c2c914c3b1592997e3",
+          "duration": 27.04225,
+          "title": "花束与晚霞",
+          "detail": "轻柔钟音 · 花间夜话",
+          "symbol": "moon.stars"
+        },
+        {
+          "id": "anime-chiffon/breeze",
+          "asset": "Music_anime_chiffon_breeze",
+          "assetExtension": "caf",
+          "sourceModelID": "anime-chiffon",
+          "sha256": "82eef180d74681b4278baab908f7d93f2858e2b0b8c44e1a5f056a7e6ae839e3",
+          "duration": 22.58825,
+          "title": "一页粉色手账",
+          "detail": "柔和拨弦 · 轻风小记",
+          "symbol": "leaf"
+        }
+      ],
+      "defaultEnvironment": "garden",
+      "defaultVoice": "anime-chiffon/natural",
+      "defaultMusic": "anime-chiffon/moon"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "app.starry.collections.anime-karin",
+      "version": "1.1.0",
+      "modelID": "anime-karin",
+      "modelPackageID": "app.starry.characters.anime-karin",
+      "modelPackageVersion": "3.0.0",
+      "actions": [],
+      "environments": [
+        "sunroom"
+      ],
+      "voices": [
+        {
+          "id": "anime-karin/natural",
+          "title": "自然聊",
+          "detail": "角色专属音色",
+          "engine": "aliyun-character-v1",
+          "speed": 1
+        }
+      ],
+      "music": [
+        {
+          "id": "anime-karin/moon",
+          "asset": "Music_anime_karin_moon",
+          "assetExtension": "caf",
+          "sourceModelID": "anime-karin",
+          "sha256": "581e98fb571a39e002411397d60749ba147177b41a2ee2328f990c1fe126b083",
+          "duration": 28.65671875,
+          "title": "还没寄出的明信片",
+          "detail": "温暖钢琴 · 安静夜色",
+          "symbol": "moon"
+        },
+        {
+          "id": "anime-karin/breeze",
+          "asset": "Music_anime_karin_breeze",
+          "assetExtension": "caf",
+          "sourceModelID": "anime-karin",
+          "sha256": "fa7504f25b445c5b300320acd1e78c919317204356413b272968a2f2d0a7576d",
+          "duration": 21.57303125,
+          "title": "窗边的小发现",
+          "detail": "圆润木琴 · 轻快日常",
+          "symbol": "sun.max"
+        }
+      ],
+      "defaultEnvironment": "sunroom",
+      "defaultVoice": "anime-karin/natural",
+      "defaultMusic": "anime-karin/moon"
     }
   ]
 }

@@ -176,7 +176,7 @@ class ModelInteraction(Strict):
 
 class Request(Strict):
     request_id: UUID
-    character_id: Literal['anime-kipfel','anime-mamehinata']
+    character_id: str = Field(min_length=1,max_length=128,pattern=r'^[a-z][a-z0-9_.-]+$')
     text: str = Field(default='',max_length=500)
     trigger: Literal['user_message','appLaunch','firstLaunch','firstMeeting','characterSwitch','idle','story','model_shaken'] = 'user_message'
     interaction: ModelInteraction | None = None
@@ -189,6 +189,13 @@ class Request(Strict):
     wants_audio: bool = True
     progressive_reply: bool = False
     timeline_reply: bool = False
+
+    @field_validator('character_id')
+    @classmethod
+    def installed_character(cls,value):
+        from .profiles import PROFILES
+        if value not in PROFILES:raise ValueError('unknown character')
+        return value
 
     @field_validator('preferences','scene')
     @classmethod

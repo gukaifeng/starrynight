@@ -25,6 +25,7 @@ namespace ModelSpace
         float targetMouth, mouth;
         string state = "idle";
         bool companion;
+        AvatarControlDriver authored;
         Color tint = Color.white;
         Light[] lights;
         Color[] originalLightColors;
@@ -46,6 +47,7 @@ namespace ModelSpace
                 originalBackground = camera.backgroundColor;
             }
             var manifest=character.GetComponent<ViewerCharacter>().Manifest;
+            authored=character.GetComponent<AvatarControlDriver>();
             head=CharacterContract.Resolve(character,manifest.rig.head);
             proceduralHeadMotion=manifest.speech.proceduralHeadMotion;
             void Add(ShapeBinding binding,string id)
@@ -118,6 +120,7 @@ namespace ModelSpace
             mouth = Mathf.Lerp(mouth,companion ? targetMouth : 0,1-Mathf.Exp(-22*dt));
             for(int i=0;i<speechShapes.Count;i++)
             {
+                if(authored && !authored.AllowSpeech)continue;
                 var binding=speechShapes[i]; bool first=true;
                 for(int j=0;j<i;j++) if(speechShapes[j].skin==binding.skin && speechShapes[j].index==binding.index) { first=false; break; }
                 if(!first) continue;

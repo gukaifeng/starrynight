@@ -99,6 +99,7 @@ public static class CharacterPackageBuilder
             }
             ValidateBindings(character);
             AnimeCharacterAdapter.Prepare(character,folder);
+            if(manifest.Supports("core.avatar-controls@1"))PortableAvatarControllerBuilder.Prepare(character.gameObject,folder,player.GetClip("Idle"));
             var bounds=character.RestBounds(); character.transform.position=new Vector3(-bounds.center.x,-bounds.min.y,-bounds.center.z);
             FramingReview.BakeCharacter(character);
             PostureGroundingBuilder.Build(character);

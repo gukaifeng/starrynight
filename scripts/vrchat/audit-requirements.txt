@@ -1,0 +1,2 @@
+# OS libarchive performs ZIP / RAR / 7z decoding; no source code is executed.
+libarchive-c==5.3

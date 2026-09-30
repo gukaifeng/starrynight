@@ -17,7 +17,7 @@ async def run():
     # Only local, installed assets can be presented as capabilities.
     from services.character_ai.profiles import assets
     report={'turns':[]}
-    roles=[] if ARGS.asr_only else [('anime-kipfel','你好琪宝，今天想跟你安静待一会儿，一句话就好。'),('anime-mamehinata','豆日向，我刚烤好了第一块小饼干，一句话夸夸我吧。')]
+    roles=[] if ARGS.asr_only else [(role,'你好，今天想和你轻松聊聊。简单打个招呼，一句就好。') for role in (ARGS.characters or ['anime-kipfel','anime-mamehinata'])]
     async with httpx.AsyncClient(timeout=120) as client:
         for char,text in roles:
             rid=str(uuid.uuid4());body=dict(request_id=rid,character_id=char,text=text,available_assets=[a['asset_id'] for a in assets(char)],wants_audio=True)
@@ -36,7 +36,8 @@ async def run():
             assert script and audio and 'reply.error' not in packets and 'audio.error' not in packets
             # Store private content for diagnosis; no credentials and no public fixture.
             (Path(config['data_dir'])/('smoke-'+char+'.json')).write_text(json.dumps(script,ensure_ascii=False,indent=2))
-        async with websockets.connect('ws://127.0.0.1:8766/v1/asr/anime-kipfel',additional_headers=headers) as socket:
+        if not ARGS.skip_asr:
+          async with websockets.connect('ws://127.0.0.1:8766/v1/asr/anime-kipfel',additional_headers=headers) as socket:
             initial=json.loads(await socket.recv());assert initial['type']=='asr.ready',initial['type']
             fixture=ROOT/'scripts/tests/fixtures/sensevoice-zh.wav'
             with wave.open(str(fixture)) as wav:
@@ -60,7 +61,10 @@ async def run():
     print('PASS; private evidence and usage saved.',flush=True)
 
 if __name__=='__main__':
-    parser=argparse.ArgumentParser();parser.add_argument('--allow-paid',action='store_true');parser.add_argument('--asr-only',action='store_true');args=parser.parse_args();ARGS=args
-    if not args.allow_paid:raise SystemExit('No calls made. Real smoke requires --allow-paid.')
     import sys;sys.path.insert(0,str(ROOT))
+    from services.character_ai.profiles import PROFILES
+    parser=argparse.ArgumentParser();parser.add_argument('--allow-paid',action='store_true');parser.add_argument('--asr-only',action='store_true')
+    parser.add_argument('--characters',nargs='+',choices=sorted(PROFILES));parser.add_argument('--skip-asr',action='store_true');args=parser.parse_args();ARGS=args
+    if not args.allow_paid:raise SystemExit('No calls made. Real smoke requires --allow-paid.')
+    if args.characters and len(args.characters)>3:raise SystemExit('Use at most three paid smoke conversations in one batch.')
     asyncio.run(run())

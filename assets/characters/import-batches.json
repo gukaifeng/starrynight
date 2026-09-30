@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "pipelineVersion": "portable-avatar-1",
+  "compatibilityPolicy": "Every runtime change must revalidate the entire active roster. A batch becomes delivered only after an actual installation and recorded launch result.",
+  "batches": [
+    {
+      "id": "vrchat-20260930-01",
+      "status": "delivered",
+      "characters": [
+        "anime-chiffon",
+        "anime-karin"
+      ],
+      "retainedCharacters": [
+        "anime-kipfel",
+        "anime-mamehinata"
+      ],
+      "deferred": [
+        {
+          "id": "anime-ichigo",
+          "reason": "Referenced platform action/locomotion clips absent from source package; source controls must not silently resolve to empty motions."
+        }
+      ],
+      "appVersion": "0.60.0",
+      "buildNumber": 86,
+      "deliveredAt": "2026-09-30T18:20:09+08:00",
+      "device": "iPhone 17",
+      "deviceInstall": "passed",
+      "deviceLaunch": "passed",
+      "simulatorChecks": [
+        "VrchatBatch02: 1 passed",
+        "VrchatBatchLegacy: 2 passed"
+      ],
+      "deviceFrameRate": "not-measured",
+      "report": "docs/verification/vrchat-batch-import/README.md"
+    }
+  ]
+}

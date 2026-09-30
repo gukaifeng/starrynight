@@ -24,7 +24,7 @@ namespace ModelSpace
         public string CurrentAction { get; private set; } = "";
         public CharacterPosture Posture { get; set; }
         string restClip="Idle",playingClip="";
-        public bool IdlePlaying => animationPlayer && animationPlayer.enabled && animationPlayer.IsPlaying(restClip);
+        public bool IdlePlaying => (character && character.GetComponent<AvatarControlDriver>() && character.GetComponent<AvatarControlDriver>().animator.enabled) || (animationPlayer && animationPlayer.enabled && animationPlayer.IsPlaying(restClip));
         public float IdleTime => animationPlayer && animationPlayer[restClip]!=null ? animationPlayer[restClip].time : 0;
         public float IdleWeight => animationPlayer && animationPlayer[restClip]!=null ? animationPlayer[restClip].weight : 0;
         public string FramingClip => string.IsNullOrEmpty(CurrentAction) ? restClip : playingClip;
@@ -84,6 +84,10 @@ namespace ModelSpace
             animationPlayer[restClip].time = 0;
             animationPlayer.Play(restClip);
             animationPlayer.Sample();
+            // The portable avatar controller owns its layered baseline. Leaving
+            // a second Legacy player active would overwrite masks and poses.
+            var control=character.GetComponent<AvatarControlDriver>();
+            if(control) {animationPlayer.Stop();animationPlayer.enabled=false;control.animator.enabled=true;}
             if (secondaryMotion) secondaryMotion.ResetSimulation();
             var avatarMotion=character.GetComponent<AvatarSecondaryMotion>();
             if(avatarMotion) avatarMotion.ResetSimulation();

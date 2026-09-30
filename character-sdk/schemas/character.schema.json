@@ -528,6 +528,84 @@
         "actions"
       ],
       "additionalProperties": true
+    },
+    "avatarControl": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "group": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "parameter": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "kind": {
+          "enum": [
+            "toggle",
+            "button",
+            "slider"
+          ]
+        },
+        "value": {
+          "type": "number"
+        },
+        "initial": {
+          "type": "number"
+        },
+        "minimum": {
+          "type": "number"
+        },
+        "maximum": {
+          "type": "number"
+        },
+        "gates": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "parameter": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "value": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "parameter",
+              "value"
+            ],
+            "additionalProperties": true
+          },
+          "maxItems": 16
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "group",
+        "parameter",
+        "kind",
+        "value",
+        "initial",
+        "minimum",
+        "maximum"
+      ],
+      "additionalProperties": true
     }
   },
   "required": [
@@ -1221,6 +1299,9 @@
                   "automatic",
                   "speechCompatible"
                 ]
+              },
+              "control": {
+                "$ref": "#/$defs/avatarControl"
               }
             },
             "required": [

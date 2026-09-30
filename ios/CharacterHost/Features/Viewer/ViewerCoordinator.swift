@@ -695,6 +695,11 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
             overlay.portraits = portraits; overlay.library = library
             overlay.characterPerformance = characterPerformance
             overlay.onSelectPerformance = { [weak self] option,enabled in self?.selectPerformance(option,enabled:enabled) }
+            overlay.onAdjustPerformance = { [weak self] option,value in
+                guard let self, self.selectedModel.performance?.options.contains(where:{$0.id==option && $0.control?.kind=="slider"}) == true else {return}
+                self.endAIVisuals()
+                self.signal(CharacterIntent(eventName:"performance.select",target:option,intensity:min(1,max(0,value))))
+            }
             overlay.onResetPerformance = { [weak self] group in self?.resetPerformance(group:group) }
             overlay.onOpenCharacterFromDetails = { [weak self] id,customize in self?.openCharacter(id,customize:customize) }
             overlay.onDetailsClosed = { [weak self] in

@@ -116,6 +116,7 @@ public static class BuildIos
         var initial = receiver.characters.Single(c=>c.modelId==CharacterPackageBuilder.Roster.defaultCharacter);
         initial.gameObject.SetActive(true);
         receiver.model = initial.transform; receiver.viewCamera = camera;
+        CharacterResourceBuilder.Prepare(receiver);
         CharacterPackageBuilder.PrepareEffects();
         CharacterPackageBuilder.CatalogForHost(receiver.characters);
         EditorSceneManager.SaveScene(scene, ScenePath);

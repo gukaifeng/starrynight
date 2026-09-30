@@ -17,6 +17,7 @@ namespace ModelSpace
         CharacterExpressionDriver expressions; CharacterEffectDriver effects;
         CharacterPerformanceDriver performance;
         CharacterAutonomy autonomy;
+        AvatarControlDriver avatarControl;
         CharacterManifest manifest;
         int sequence,localSequence;
         string turn="";
@@ -24,6 +25,7 @@ namespace ModelSpace
         CharacterPlatformState state=new CharacterPlatformState();
         public CharacterPlatformState State { get { state.activeAction=actions?actions.CurrentAction:"";
             state.performanceSelections=performance?performance.Selections:Array.Empty<string>();
+            state.avatarControlValues=avatarControl?avatarControl.Values:Array.Empty<CharacterParameterValue>();
             state.performanceTransitioning=performance && performance.Transitioning;state.autonomy=autonomy?autonomy.State:null;return state; } private set { state=value; } }
         public void ClearPerformance() { if(autonomy)autonomy.Clear();if(performance)performance.Clear(); }
         public void Bind(ViewerCharacter character,CharacterActions actionSource,CompanionAvatarDriver speechSource,CharacterGaze gazeSource)
@@ -31,6 +33,7 @@ namespace ModelSpace
             if(autonomy)autonomy.Clear();
             if(manifest!=null) Cancel();
             manifest=character.Manifest; actions=actionSource; speech=speechSource; gaze=gazeSource;
+            avatarControl=character.GetComponent<AvatarControlDriver>();
             expressions=GetComponent<CharacterExpressionDriver>() ?? gameObject.AddComponent<CharacterExpressionDriver>();
             effects=GetComponent<CharacterEffectDriver>() ?? gameObject.AddComponent<CharacterEffectDriver>();
             performance=GetComponent<CharacterPerformanceDriver>() ?? gameObject.AddComponent<CharacterPerformanceDriver>();

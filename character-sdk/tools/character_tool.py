@@ -11,7 +11,7 @@ import zipfile
 
 CAPABILITIES = {'core.animation@1', 'core.gaze@1', 'core.expression@1', 'core.speech.amplitude@1',
                 'core.speech.viseme@1', 'core.interaction@1', 'core.effects@1', 'core.parameters@1',
-                'core.behavior@1', 'core.posture@1', 'core.secondary-motion@1', 'core.performance@1', 'core.performance@2', 'core.autonomy@1', 'legacy.human-studio@1'}
+                'core.behavior@1', 'core.posture@1', 'core.secondary-motion@1', 'core.secondary-motion@2', 'core.avatar-controls@1', 'core.performance@1', 'core.performance@2', 'core.autonomy@1', 'legacy.human-studio@1'}
 CHANNELS = {'body', 'expression', 'effect', 'gaze', 'posture'}
 MAX_BYTES = 256 * 1024 * 1024
 FORBIDDEN = {'.cs','.dll','.dylib','.so','.exe','.shader','.compute','.sh','.py','.js','.unitypackage'}
@@ -166,6 +166,8 @@ def validate(folder, builtin=False):
         if clip not in clip_names: raise ValueError('posture animation absent from GLB: '+clip)
     validate_performances(m, safe_path(root,m['source']['model']))
     validate_autonomy(m, safe_path(root,m['source']['model']))
+    from portable_avatar import validate as validate_avatar
+    validate_avatar(root,m,read_json,safe_path,inspect_glb)
     vertices=sum(doc['accessors'][p['attributes']['POSITION']]['count'] for mesh in doc.get('meshes',[]) for p in mesh['primitives'])
     primitives=sum(len(mesh['primitives']) for mesh in doc.get('meshes',[]))
     if vertices>300000 or primitives>32: raise ValueError('mobile source budget exceeded (300k vertices / 32 primitives)')

@@ -5,7 +5,7 @@ description: Inspect and convert user-supplied VRChat avatar archives into this 
 
 # VRChat 角色导入 XCP
 
-目标是保留角色的默认外观和原创表现，把独立资产转换为星夜可验证的角色数据包。需要扩展原作动作、表情、耳尾或穿搭时，读 [表现迁移参考](references/performances.md)，按 `core.performance@1` 导出。基础动作按用户要求和来源声明，不自动补通用九动作。`.unitypackage`、VRChat SDK、完整 FX Controller 都不是本项目的交付格式。
+目标是保留角色的默认外观和原创表现，把独立资产转换为星夜可验证的角色数据包。批量多作者来源或需要迁移完整原作控制图时，先读 [分批导入参考](references/batch-import.md)，使用 `core.avatar-controls@1` 与 `core.performance@2`。旧两角色的片段/曲线表现管线见 [表现迁移参考](references/performances.md)。基础动作按用户要求和来源声明，不自动补通用九动作。`.unitypackage`、VRChat SDK、源 FX Controller 文件不直接交付 App；审核后的数据图由宿主重建。
 
 以项目根目录为工作目录。先读 [compatibility.md](references/compatibility.md) 中与当前步骤相关的部分；XCP 字段和预算以 [角色制作规范](../../../docs/character-standard/02-model-production.md) 和 `character-sdk/schemas/` 为准。操作 Unity CLI 前另读本项目 [unity-cli 技能](../unity-cli/SKILL.md)，不要凭记忆编造 CLI 参数或同时启动多个写同一工程的 Editor。
 
@@ -16,9 +16,9 @@ description: Inspect and convert user-supplied VRChat avatar archives into this 
 - 默认外观以作者主 Prefab 为准，包括嵌套覆盖、激活状态、Renderer 开关、材质槽和默认 morph。裸 FBX 全部显示通常不是作者的角色成品。
 - 按证据报告阶段：静态审计 → 隔离导入检查 → GLB/XCP 转换 → 实际画面/交互 → 目标设备性能。前一阶段通过不能代替后一阶段；不把非零 `.anim` 数量当作可用身体动作数量。
 
-## 当前发布名册（0.47.0）
+## 发布名册与兼容
 
-实际打包由 `assets/characters/active-roster.json` 决定，目前只有琪宝、豆日向，默认琪宝。其他角色来源与历史资料仍在工作区，不代表还随 App 发布。导入新包后，只有用户要求将它上线时才更新名册及对应集合、封面；导出会校验实际场景与目录一致。不要为通过旧的 Luma/初音测试而重新加入已下架模型。
+实际打包由 `assets/characters/active-roster.json` 决定，默认琪宝；不要在技能中用固定数量代替名册。批次由 `assets/characters/import-batches.json` 记录，用户已要求一批完成即安装一批。其他角色来源、候选和历史资料仍在工作区，不代表已发布。公共运行时、标准、材质或交互升级必须兼容并回归全部已发布角色。不要为通过旧的 Luma/初音测试而重新加入已下架模型。
 
 原作表现入口已外置到聊天输入框上方右侧；声音按钮单击分项设置，定制页不再放音乐。位置按钮操作独立根变换，自动记住该账号/角色的最后状态，移除长按蓄力与方案列表，不构成作者待机／讲话动画，也不改角色源包；参考 [取景编辑及边界](../../../docs/verification/position-controls/README.md)。
 
@@ -63,7 +63,7 @@ python3 scripts/vrchat_physics.py \
 
 当前有一条已知 Mamehinata 独立 NameTag Prefab 引用未导入，故 physics 命令仅允许该精确路径；原值仍记录在报告，不能将它推广成忽略所有 unresolved。其他物理根/碰撞器解析失败仍停止。表现目录中豆日向 SunVisor 也因不在主 FBX 中过滤，不显示无效按钮。已转换主 FBX 的包上配饰保留，这个额外名牌和 VRC 平台功能不列为已支持。
 
-新增其他作者模型时：先扩展 stage specs，再依据 Inspector 增加 converter `ROLES` / `EXPRESSIONS`、材质与骨轴映射。当前两份 recipe 不是任意 ZIP 一键转换器。尤其不得照搬本例 2 倍米制转换、T-pose、局部碰撞坐标映射到未经检查的新模型。
+新增其他作者模型时使用批次参考中的通用 stage/portable 转换管线；现有 `ROLES` / `EXPRESSIONS` recipe 专用于旧两角色的兼容维护。它们不是任意 ZIP 一键转换器，尤其不得照搬本例 2 倍米制转换、T-pose、局部碰撞坐标映射到未经检查的新模型。
 
 ## 转换时守住的语义
 
@@ -89,7 +89,7 @@ python3 scripts/export_unity_ios.py --platform simulator
 bash scripts/build_host.sh
 ```
 
-生成角色目录后要同步 `CharacterCollections.json`、`CharacterCoverCatalog.json`，原始头像/封面用 Unity 真正渲染；`scripts/generate_asset_credits.py` 将包署名带入 iOS。新角色音乐必须独立创作/获得授权，在 soundscape 生成器登记后用 `--only ROLE` 增量生成，别覆盖旧角色的 CAF。现有 `VrchatImportReview` 是这两角色的回归入口，新增角色时扩展测试集合。
+生成角色目录后要同步 `CharacterCollections.json`、`CharacterCoverCatalog.json`，头像用 Unity 渲染；来源有合适封面时保留作者原图与哈希，缺封面才渲染生成；`scripts/generate_asset_credits.py` 将包署名带入 iOS。新角色音乐必须独立创作/获得授权，在 soundscape 生成器登记后用 `--only ROLE` 增量生成，别覆盖旧角色的 CAF。现有 `VrchatImportReview` 是这两角色的回归入口，新增角色时扩展测试集合。
 
 运行完整会话 UI 验证使用 `scripts/test_companion.sh`；现行两角色会话回归为 `ConversationControlsTests`，原作动作数据用 `VrchatOriginalMotionReview` 与 `CharacterPerformanceReview`；旧版 `VrchatCharacterTests` 的入口假设需按当前默认角色核对，方法筛选需带 `()`，必须核验实际执行不为零。手机只尝试一次安装，失败继续 iPhone 模拟器；不为等待手机中断开发。导出器的 catalog stamp 不能代替 GLB/贴图/sidecar 变更后的真正 Setup 和重新导出。
 
@@ -113,4 +113,4 @@ python3 scripts/check_export_content.py --platform simulator
 
 它仍运行 Validate，只跳过已成功完成的 Setup/缩略图；不是处理脚本编译错误、过期 GLB 或缺少资源的通用绕过方式。保留第一次失败日志和恢复结果。
 
-当前查看交互已更新至 0.45：横纵旋转均不限制角度/圈数，身体中轴固定；缩放平移仍有原始构图安全区约束，不随旋转自动改相机。声音只有各通道音量、0 静音。后续导入不得恢复旧角度限制、长按蓄力或总静音入口。详见 [表现与控制](references/performances.md)。
+当前位置编辑允许横向不限圈数、纵向 ±80°，身体中轴固定；非编辑模式的小幅单指旋转松手恢复，缩放平移仍受构图安全区约束。以现行代码和 [取景验证](../../../docs/verification/position-controls/README.md) 为准，导入不得恢复历史交互。声音只有各通道音量、0 静音，不恢复长按蓄力或总静音入口。

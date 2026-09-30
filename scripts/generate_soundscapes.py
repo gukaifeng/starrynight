@@ -22,6 +22,12 @@ SCALES = {'major':[0,2,4,5,7,9,11], 'minor':[0,2,3,5,7,8,10], 'lydian':[0,2,4,6,
 # Legacy option suffixes stay unchanged. Every score has its own melody,
 # harmony, rhythm, tempo and instrument recipe, not a renamed shared recording.
 SCORES = {
+ 'anime-chiffon':[
+  ('moon','花束与晚霞','轻柔钟音 · 花间夜话','moon.stars',52,'lydian',71,'glass',[0,3,5,1,4,2,5,0],[8,10,7,11,9,6,8,5]),
+  ('breeze','一页粉色手账','柔和拨弦 · 轻风小记','leaf',57,'major',85,'pluck',[1,0,4,5,2,3,0,4],[9,7,11,8,6,10,5,8])],
+ 'anime-karin':[
+  ('moon','还没寄出的明信片','温暖钢琴 · 安静夜色','moon',50,'major',67,'felt',[0,2,3,5,1,4,0,3],[11,8,6,9,7,10,5,7]),
+  ('breeze','窗边的小发现','圆润木琴 · 轻快日常','sun.max',55,'lydian',89,'wood',[3,1,5,0,4,2,3,0],[7,12,9,6,10,8,11,7])],
  'real-woman':[
   ('breeze','窗边暖茶','柔和钢琴 · 温暖从容','sun.haze',48,'major',76,'felt',[0,5,3,4,2,5,1,4],[9,8,6,7,5,4,8,7]),
   ('sea','海风来信','轻拨弦 · 平静海风','water.waves',53,'major',72,'pluck',[0,3,5,1,3,0,2,4],[7,9,8,5,6,8,4,7])],

@@ -130,7 +130,9 @@ struct CharacterCollection: Codable, Equatable, Sendable {
         voices.contains(where:{ $0.id == defaultVoice }) && music.contains(where:{ $0.id == defaultMusic }) &&
         Set(actions).isSubset(of:Set(model.actions.map(\.id))) &&
         Set(voices.map(\.id)).count == voices.count && Set(music.map(\.id)).count == music.count &&
-        voices.allSatisfy { $0.engine == "melo-zh-v1" && $0.speed.isFinite && (0.7...1.4).contains($0.speed) } &&
+        // Legacy saved collections still name the old offline provider. New
+        // collections declare the live AI voice service; both are readable.
+        voices.allSatisfy { ["melo-zh-v1", "aliyun-character-v1"].contains($0.engine) && $0.speed.isFinite && (0.7...1.4).contains($0.speed) } &&
         voices.allSatisfy { $0.id.hasPrefix(optionScope+"/") } &&
         music.allSatisfy { track in
             guard track.id.hasPrefix(optionScope+"/"), track.resourceURL != nil else { return false }
