@@ -68,7 +68,10 @@ struct CharacterFocusedArtwork:View {
                                 .init(color:.black,location:0.9),.init(color:.clear,location:1)],startPoint:.leading,endPoint:.trailing)
                         } else {Color.black}
                     }.offset(x:frame.minX,y:frame.minY)
-            }.frame(width:geometry.size.width,height:geometry.size.height).clipped()
+            // The foreground can be taller than the aperture. Centering this
+            // outer frame would shift the reviewed head crop upward a second
+            // time, cutting off ears/hats despite correct layout coordinates.
+            }.frame(width:geometry.size.width,height:geometry.size.height,alignment:.topLeading).clipped()
         }.accessibilityHidden(true)
     }
 }

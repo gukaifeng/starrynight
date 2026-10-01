@@ -191,6 +191,7 @@ final class CompanionSession {
         let id=UUID(uuidString:script.messageId)!
         activeScript=script;beginTurn()
         let message=CompanionMessage(id:id,role:"assistant",text:script.text,
+            speechDuration:opening.duration,speechSpeed:1,
             proactiveScene:"firstMeeting",aiScript:script,source:"bundled-opening-v1")
         replyReveal.begin(id,script:script)
         store.update(model.id) { record in

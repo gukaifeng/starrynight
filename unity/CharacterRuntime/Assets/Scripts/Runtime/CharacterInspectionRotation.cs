@@ -143,7 +143,15 @@ namespace ModelSpace
                 min.z=Mathf.Max(min.z,near-margin);max.z=Mathf.Min(max.z,far+margin);
                 if(max.z>min.z)result.SetMinMax(min,max);
             }
-            if(portraitFaceHeight>0 && input==portraitReference) {
+            // Author packages may widen the portrait (e.g. large ears). That
+            // changes X extent only; it must not turn the head solver back into
+            // the old waist-to-hat box and make a small character appear distant.
+            bool portraitRegion=Mathf.Approximately(input.center.x,portraitReference.center.x)
+                && Mathf.Approximately(input.center.y,portraitReference.center.y)
+                && Mathf.Approximately(input.center.z,portraitReference.center.z)
+                && Mathf.Approximately(input.size.y,portraitReference.size.y)
+                && Mathf.Approximately(input.size.z,portraitReference.size.z);
+            if(portraitFaceHeight>0 && portraitRegion) {
                 // Protect the actual head, not a shoulder-width/waist-height box.
                 // Long hair below the jaw and the torso may continue behind chat.
                 float jaw=portraitFace.y-portraitFaceHeight*.40f;

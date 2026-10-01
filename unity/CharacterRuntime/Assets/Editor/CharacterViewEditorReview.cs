@@ -65,6 +65,23 @@ public static class CharacterViewEditorReview
     }
     public static void ReviewAndExportSimulator() { BuildIos.Validate();Run();BuildIos.ExportPreparedSimulator(); }
     public static void ReviewAndExportDevice() { BuildIos.Validate();Run();BuildIos.ExportPreparedDevice(); }
+    public static void InspectPortraitMeshes()
+    {
+        EditorSceneManager.OpenScene("Assets/Scenes/ViewerScene.unity");
+        var viewer=UnityEngine.Object.FindFirstObjectByType<ViewerController>();
+        foreach(var source in viewer.characters) {
+            var instance=UnityEngine.Object.Instantiate(source.gameObject);instance.SetActive(true);
+            try {
+                var character=instance.GetComponent<ViewerCharacter>();character.ApplyContract();
+                var root=instance.transform;var edit=new CharacterInspectionRotation();edit.Bind(root);
+                var portrait=character.portrait;var region=portrait.Region(root);
+                edit.SetPortraitReference(region,portrait.Face(root),portrait.FaceHeight(root));
+                var method=typeof(CharacterInspectionRotation).GetMethod("PortraitEnvelope",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic);
+                var envelope=(Bounds)method.Invoke(edit,new object[]{region});
+                Debug.Log("PORTRAIT_MESH_DIAGNOSTIC "+character.modelId+" scale="+root.lossyScale+" face="+portrait.Face(root)+" faceHeight="+portrait.FaceHeight(root)+" input="+region+" head="+envelope+" widthScale="+character.Manifest.rig.portraitWidthScale);
+            } finally {UnityEngine.Object.DestroyImmediate(instance);}
+        }
+    }
     public static void Run()
     {
         report=new Report();EditorSceneManager.OpenScene("Assets/Scenes/ViewerScene.unity");
@@ -83,6 +100,9 @@ public static class CharacterViewEditorReview
                 var region=character.portrait!=null ? character.portrait.Region(root) : FramingMath.Region(character.RestBounds(),"conversation",false,character.conversationStart);
                 edit.Bind(root);actions.Initialize(root,camera,(a,b,c)=>{});
                 if(character.portrait!=null)edit.SetPortraitReference(region,character.portrait.Face(root),character.portrait.FaceHeight(root));
+                float authoredWidth=character.Manifest.rig.portraitWidthScale;
+                if(!float.IsFinite(authoredWidth) || authoredWidth<=0)authoredWidth=1;
+                region.size=new Vector3(region.size.x*Mathf.Clamp(authoredWidth,1,1.5f),region.size.y,region.size.z);
                 foreach(var size in sizes) {
                     edit.ResetImmediate();camera.aspect=size.x/size.y;
                     var safe=size.x<size.y ? new Rect(.025f,.08f,.95f,.83f) : new Rect(.09f,.1f,.82f,.85f);
@@ -101,6 +121,10 @@ public static class CharacterViewEditorReview
                     Check(smaller.scale<.9f,source.modelId+" "+size+" initial portrait must leave inward zoom room");
                     var initialHead=edit.Project(CharacterViewPose.Default);
                     Check(initialHead.yMax<=safe.yMax+.001f && initialHead.yMax>=safe.yMax-.02f,"head stays just below the hardware safe top");
+                    if(character.portrait!=null) {
+                        float faceFraction=character.portrait.FaceHeight(root)/(2*distance*Mathf.Tan(camera.fieldOfView*Mathf.Deg2Rad*.5f));
+                        Check(faceFraction>=.11f,"default portrait must not retreat into a distant full-body view: "+source.modelId+" "+size+" face="+faceFraction);
+                    }
                     ReviewPinch(edit,root,camera,source.modelId+" "+size);
                     // A fitted custom portrait can touch the edge already.
                     // It must still accept the first outward pull, without

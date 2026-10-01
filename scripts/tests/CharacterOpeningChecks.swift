@@ -24,18 +24,22 @@ import Foundation
         let model=ModelDescriptor.defaultCharacter,role=model.id
         let sound=CompanionSoundscape();sound.setVolume(0)
         let session=CompanionSession(store:store,model:model,soundscape:sound)
-        session.setSpeechVolume(0.6)
+        session.setSpeechVolume(0.6);sound.setVolume(0);sound.setActive(true)
         var visualCount=0
         session.onAIVisual={visualCount += $0.count}
         let entry=ConversationEntry(reason:.appLaunch,characterID:role,accountID:store.accountID)
         let start=Date();session.enterConversation(entry)
         try require(store.record(role).messages.count==1,"First meeting must append synchronously without network")
         try require(store.record(role).messages[0].source=="bundled-opening-v1","First meeting must be packaged")
+        let first=store.record(role).messages[0]
+        let opening=CharacterOpenings.find(first.aiScript!.openingID!)!
+        try require(first.speechDuration==opening.duration && first.speechSpeed==1,"Measured opening length must exist before audio starts")
         for _ in 0..<150 {
             if session.speech.playbackLevel>0 && visualCount>0 {break}
             try await Task.sleep(for:.milliseconds(20))
         }
         try require(session.speech.playbackLevel>0 && visualCount>=2,"Bundled speech must drive actual mixer and visual callbacks")
+        try require(session.speech.durations[first.id]==opening.duration,"Playback exposes the exact packaged duration immediately")
         let onset=Date().timeIntervalSince(start)
         session.enterConversation(entry)
         try require(store.record(role).messages.count==1,"Duplicate entry cannot draw a second opening")

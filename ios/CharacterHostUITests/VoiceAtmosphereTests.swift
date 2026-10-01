@@ -76,11 +76,13 @@ final class VoiceAtmosphereTests:XCTestCase {
         let evidence=XCTAttachment(string:result.label);evidence.lifetime = .keepAlways;add(evidence)
         let input=app.textViews["chatInput"]
         input.tap();input.typeText("Keep this typed draft")
+        let typedDraft=input.value as? String
+        XCTAssertFalse(typedDraft?.isEmpty ?? true)
         app.buttons["inputModeButton"].tap()
         XCTAssertTrue(app.buttons["holdToTalkButton"].waitForExistence(timeout:4))
         XCTAssertFalse(app.buttons["sendMessageButton"].exists)
         app.buttons["inputModeButton"].tap()
-        XCTAssertEqual(input.value as? String,"Keep this typed draft")
+        XCTAssertEqual(input.value as? String,typedDraft)
         app.buttons["fixtureVoiceEdit"].tap()
         let edit=app.textViews["voiceEditText"]
         XCTAssertTrue(edit.waitForExistence(timeout:5));XCTAssertEqual(edit.value as? String,"今天窗外下雨了")
@@ -89,13 +91,13 @@ final class VoiceAtmosphereTests:XCTestCase {
         capture("voice-edit-draft")
         app.buttons["sendVoiceEditButton"].tap()
         XCTAssertTrue(app.staticTexts.matching(identifier:"userMessage").matching(NSPredicate(format:"label CONTAINS %@","今天窗外下雨了")).firstMatch.waitForExistence(timeout:6))
-        XCTAssertEqual(input.value as? String,"Keep this typed draft","Voice edits cannot overwrite the keyboard draft")
+        XCTAssertEqual(input.value as? String,typedDraft,"Voice edits cannot overwrite the keyboard draft")
         app.buttons["fixtureVoiceEdit"].tap();app.buttons["取消语音消息"].tap()
         XCTAssertFalse(edit.exists)
         let before=app.staticTexts.matching(identifier:"userMessage").count
         app.buttons["fixtureVoiceSend"].tap()
         wait {app.staticTexts.matching(identifier:"userMessage").count==before+1}
-        XCTAssertEqual(input.value as? String,"Keep this typed draft")
+        XCTAssertEqual(input.value as? String,typedDraft)
     }
     @MainActor func testPhoneAndTabletCompositionMediaAndControls() {
         continueAfterFailure=false;XCUIDevice.shared.orientation = .portrait

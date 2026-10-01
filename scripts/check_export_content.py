@@ -31,8 +31,8 @@ if content.get('imageBackdropCatalogSha256') != hashlib.sha256(atmospheres.read_
 images = ROOT / 'ios/CharacterHost/Resources/Assets.xcassets'
 if content.get('autonomyRevision', 0) < 2:
     raise SystemExit('Unity export lacks visible natural idle v2; re-export this platform before building.')
-if content.get('inspectionGestureRevision', 0) < 13:
-    raise SystemExit('error: Unity export does not support temporary rotation / pinch and position editing v13. '
+if content.get('inspectionGestureRevision', 0) < 14:
+    raise SystemExit('error: Unity export does not support head-safe immersive framing / bidirectional zoom and position editing v14. '
                      f'Run: python3 scripts/export_unity_ios.py --platform {args.platform}; then rebuild CharacterHost. '
                      'An unchanged character catalog does not prove that the runtime supports new native gestures. '
                      'The previously installed app is unchanged.')
@@ -41,6 +41,6 @@ if content.get('nativeGestureRevision', 0) < 2 or content.get('immersionRevision
                      f'Run: python3 scripts/export_unity_ios.py --platform {args.platform}; then rebuild CharacterHost. '
                      'The previously installed app is unchanged.')
 print(f"Character API v1 / Environment API v1 catalog integrity PASS: {len(required)} characters, "
-      f"{len(json.loads(environment_catalog.read_text())['environments'])} environments; framing v8, gaze v1, portrait v1, immersion v2, native gestures v2, temporary rotation / pinch and position editing v13.")
+      f"{len(json.loads(environment_catalog.read_text())['environments'])} environments; framing v8, gaze v1, portrait v1, immersion v2, native gestures v2, head-safe immersive framing / bidirectional zoom and position editing v14.")
 
 validate_collections()

@@ -49,6 +49,7 @@ struct VoiceCaptureOverlay:View {
         .shadow(color:.black.opacity(0.22),radius:18,y:8)
         .animation(reduceMotion ? .linear(duration:0.12) : .easeInOut(duration:0.18),value:session.voiceInput.editArmed)
         .conversationHitRegion(.control,id:"voiceCapture",enabled:session.voiceInput.active)
+        .accessibilityElement(children:.contain)
         .accessibilityIdentifier("voiceCapturePanel")
     }
     private var capture:some View {

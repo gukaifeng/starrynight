@@ -240,6 +240,8 @@ private final class MicrophonePCM: @unchecked Sendable {
             let pcm=try await opening.pcm()
             try Task.checkCancellation()
             prepare(messageID,script:script)
+            let duration=Double(pcm.count)/48000
+            durations[messageID]=duration;durationSpeeds[messageID]=1;onDuration?(messageID,1,duration)
             try await accept(AIEvent(type:"segment.audio.started",beatId:"opening"))
             for offset in stride(from:0,to:pcm.count,by:12288) {
                 try Task.checkCancellation()

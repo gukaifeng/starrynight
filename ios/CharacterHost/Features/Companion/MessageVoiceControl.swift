@@ -10,6 +10,11 @@ struct MessageVoiceControl: View {
     private var speaking:Bool { active && session.speech.isSpeaking }
     private var measured:TimeInterval? {
         if session.speech.durationSpeeds[message.id] == session.effectiveVoiceSpeed { return session.speech.durations[message.id] }
+        // Older packaged introductions may predate persisted duration metadata.
+        // Their exact audio length is already known, even before first playback.
+        if let id=message.aiScript?.openingID,let opening=CharacterOpenings.find(id),opening.text==message.text {
+            return opening.duration
+        }
         return message.speechSpeed == session.effectiveVoiceSpeed ? message.speechDuration : nil
     }
     private var durationLabel:String {
