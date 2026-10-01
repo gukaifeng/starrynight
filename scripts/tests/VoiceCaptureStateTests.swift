@@ -66,6 +66,22 @@ import CoreGraphics
         voice.cancel();voice.begin()
         check(voice.text.isEmpty && !voice.resultReady && !voice.needsReview && !voice.editArmed,"Every capture starts clean")
 
+        for finalFirst in [false,true] {
+            voice.cancel();voice.begin();voice.partial("不发送的内容")
+            if finalFirst {_=voice.accept("完整的不发送内容")}
+            voice.armCancel(true)
+            check(voice.phase == .holding && voice.cancelArmed && !voice.editArmed,"Cancel hover never stops a held recording")
+            check(voice.release(edit:false)==nil && !voice.active && voice.text.isEmpty,"Cancel release discards recognized words")
+            check(voice.accept("迟到的最终内容")==nil,"Cancelled capture cannot send a late result")
+        }
+        voice.begin();voice.armCancel(true);voice.armEdit(true)
+        check(voice.editArmed && !voice.cancelArmed,"Moving from cancel to edit selects only editing")
+        voice.armCancel(true)
+        check(voice.cancelArmed && !voice.editArmed,"Moving back selects only cancellation")
+        voice.armCancel(false);voice.partial("仍然发送")
+        voice.release(edit:false)
+        check(voice.accept("仍然发送")=="仍然发送","Sliding out of both zones restores send-on-release")
+
         // Use the actual visible target, not a fixed distance from the input.
         for frame in [CGRect(x:42,y:628,width:306,height:46),CGRect(x:708,y:414,width:404,height:40)] {
             let inside=CGPoint(x:frame.midX,y:frame.midY)

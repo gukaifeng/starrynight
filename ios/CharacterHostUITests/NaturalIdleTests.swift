@@ -30,7 +30,7 @@ final class NaturalIdleTests: XCTestCase {
             XCTAssertGreaterThan(number(after,"clothTravel")-number(before,"clothTravel"),0.001)
             XCTAssertEqual(number(after,"poseBreathWeight"),0)
             capture(role+"-autonomous",app)
-            app.buttons["conversationPerformanceButton"].tap()
+            app.openCharacterPerformance()
             XCTAssertTrue(app.buttons["closeCharacterPerformance"].waitForExistence(timeout:8))
             app.buttons["performanceGroup-expression"].tap()
             let defaultExpression=app.buttons["performanceDefault-expression"]
@@ -61,11 +61,11 @@ final class NaturalIdleTests: XCTestCase {
                 return !selections.contains(expressionID) && selections.contains(poseID)
             }
             XCTAssertEqual(defaultExpression.value as? String,"已选择")
-            app.buttons["closeCharacterPerformance"].tap()
+            app.closeCharacterPerformance()
             refresh(app)
             app.waitForCharacter { self.autonomy($0)["blinkSuppressed"] as? Bool == false }
             capture(role+"-expression-restored-pose-retained",app)
-            app.buttons["conversationPerformanceButton"].tap()
+            app.openCharacterPerformance()
             app.buttons["performanceGroup-pose"].tap()
             app.buttons["performanceDefault-pose"].tap()
             app.waitForCharacter {
@@ -85,7 +85,7 @@ final class NaturalIdleTests: XCTestCase {
             XCTAssertEqual(app.buttons["performanceDefault-appearance"].value as? String,"已选择",
                            "Authored default-on accessories are part of the default state")
             app.buttons["performanceReset"].tap()
-            app.buttons["closeCharacterPerformance"].tap()
+            app.closeCharacterPerformance()
             refresh(app)
         }
     }

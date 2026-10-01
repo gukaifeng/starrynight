@@ -68,7 +68,7 @@ final class VrchatBatchTests:XCTestCase {
             start.press(forDuration:0.06,thenDragTo:app.coordinate(withNormalizedOffset:CGVector(dx:0.72,dy:0.34)),withVelocity:.slow,thenHoldForDuration:0.1)
             app.waitForCharacter {($0["previewRotationCount"] as? Int ?? 0)>before}
             capture(role+"-conversation",app)
-            app.buttons["conversationPerformanceButton"].tap()
+            app.openCharacterPerformance()
             XCTAssertTrue(app.buttons["closeCharacterPerformance"].waitForExistence(timeout:8))
             let group=app.buttons["performanceGroup-"+groupID]
             for _ in 0..<20 {
@@ -91,7 +91,7 @@ final class VrchatBatchTests:XCTestCase {
             app.buttons["performanceReset"].tap()
             app.waitForCharacter {!self.selections($0).contains(optionID)}
             XCTAssertFalse(app.staticTexts["performanceError"].exists)
-            app.buttons["closeCharacterPerformance"].tap()
+            app.closeCharacterPerformance()
         }
     }
     @MainActor func testBatchOneControlsAndMixedRosterReload() {
@@ -115,7 +115,7 @@ final class VrchatBatchTests:XCTestCase {
             let audio=(try? JSONSerialization.jsonObject(with:Data(value.utf8))) as? [String:Any] ?? [:]
             XCTAssertEqual(audio["collectionScope"] as? String,role)
             if role == "anime-chiffon" || role == "anime-karin" {
-                app.buttons["conversationPerformanceButton"].tap()
+                app.openCharacterPerformance()
                 XCTAssertTrue(app.buttons["closeCharacterPerformance"].waitForExistence(timeout:8))
                 let group=app.buttons["performanceGroup-menu-5a963eacb2279abe"]
                 for _ in 0..<5 {
@@ -130,7 +130,7 @@ final class VrchatBatchTests:XCTestCase {
                 app.buttons["performanceReset"].tap()
                 app.waitForCharacter { !self.selections($0).contains("gesture-left-2") && self.selections($0).contains("gesture-left-0") }
                 XCTAssertFalse(app.staticTexts["performanceError"].exists)
-                app.buttons["closeCharacterPerformance"].tap()
+                app.closeCharacterPerformance()
             }
         }
     }

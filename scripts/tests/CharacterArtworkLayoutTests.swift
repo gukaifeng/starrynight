@@ -16,11 +16,15 @@ for entry in catalog.covers {
    assert(hypot(p.x,p.y)<=size.width*0.461,entry.runtimeID+" clipped head in circle");checks+=1
   }}
  }
- for (size,banner) in [(CGSize(width:180,height:250),false),(CGSize(width:360,height:130),true),(CGSize(width:402,height:874),false),(CGSize(width:874,height:402),false)] {
+ for (size,banner) in [(CGSize(width:180,height:250),false),(CGSize(width:360,height:130),true),(CGSize(width:358,height:298.34),true),(CGSize(width:520,height:433.34),true),(CGSize(width:402,height:874),false),(CGSize(width:874,height:402),false)] {
   let f=CharacterArtworkLayout.frame(source:CGSize(width:1536,height:2048),target:size,head:entry.headBounds,circle:false,banner:banner)
   let b=entry.headBounds
   let r=CGRect(x:f.minX+b.x*f.width,y:f.minY+b.y*f.height,width:b.width*f.width,height:b.height*f.height)
-  assert(r.minX>=0 && r.minY>=0 && r.maxX<=size.width && r.maxY<=size.height,entry.runtimeID+" clipped cover head");checks+=1
+  assert(f.minX<=0.01 && f.minY<=0.01 && f.maxX>=size.width-0.01 && f.maxY>=size.height-0.01,entry.runtimeID+" cover has an uncovered edge");checks+=1
+  // A landscape aperture may be shorter than the head at aspect-fill scale.
+  // Preserve the whole head on each axis where the actual geometry allows it.
+  if r.width<=size.width {assert(r.minX>=(-0.01) && r.maxX<=size.width+0.01);checks+=1}
+  if r.height<=size.height*0.84 {assert(r.minY>=(-0.01) && r.maxY<=size.height+0.01);checks+=1}
  }
 }
 print("Artwork head-framing checks:",checks,"passed")

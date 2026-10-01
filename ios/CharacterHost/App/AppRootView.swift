@@ -54,9 +54,8 @@ private struct ConversationPreparingCover: View {
     }
     var body: some View {
         ZStack {
-            CharacterCover(model:model).opacity(0.3)
-                .mask(LinearGradient(colors:[.clear,.white,.white.opacity(0.2),.clear],
-                    startPoint:.top,endPoint:.bottom))
+            CharacterCover(model:model)
+                .overlay(alignment:.bottom) {LinearGradient(colors:[.clear,Theme.background.opacity(0.7)],startPoint:.top,endPoint:.bottom).frame(height:180)}
                 .allowsHitTesting(false)
                 .accessibilityIdentifier("conversationPreparingCover-"+model.id)
             VStack(alignment:.leading,spacing:0) {

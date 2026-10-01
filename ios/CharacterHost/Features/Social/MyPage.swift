@@ -254,6 +254,7 @@ private struct MyCreationsPanel<Content:View>:View {
 struct ProfileSettingsView: View {
     @Bindable var coordinator:ViewerCoordinator
     var onClose:()->Void
+    @State private var showingDeveloper = false
     @State private var showingChatDisplay = false
     @State private var showingNickname = false
     @State private var chatDisplayClose = SoftPanelCloseRequest()
@@ -262,7 +263,13 @@ struct ProfileSettingsView: View {
     private var motion:Animation { .easeInOut(duration:reduceMotion ? 0.1 : 0.25) }
     var body:some View {
         ZStack {
-            if showingNickname {
+            if showingDeveloper {
+#if STARRY_TEST_TOOLS
+                AppDeveloperPanel(coordinator:coordinator,onOpenCharacter:{id in onClose();coordinator.openCharacter(id)})
+                    .environment(\.softPanelCloseRequest,chatDisplayClose)
+                    .environment(\.softPanelDismiss,{chatDisplayClose.request()}).transition(.opacity)
+#endif
+            } else if showingNickname {
                 DefaultNicknamePanel(store:coordinator.companionStore)
                     .environment(\.softPanelCloseRequest,chatDisplayClose)
                     .environment(\.softPanelDismiss,{ chatDisplayClose.request() })
@@ -317,6 +324,17 @@ struct ProfileSettingsView: View {
                     NavigationLink { AboutView(embedded:true) } label: { Label("关于星夜",systemImage:"info.circle") }
                         .accessibilityIdentifier("aboutStarryButton")
                 }.listRowBackground(Theme.surface)
+#if STARRY_TEST_TOOLS
+                Section {
+                    Button {
+                        let nextClose=SoftPanelCloseRequest()
+                        nextClose.begin {withAnimation(motion) {showingDeveloper=false}}
+                        chatDisplayClose=nextClose
+                        withAnimation(motion) {showingDeveloper=true}
+                    } label: {Label("开发者页面",systemImage:"hammer")}
+                        .accessibilityIdentifier("openAppDeveloper")
+                }.listRowBackground(Theme.surface)
+#endif
                 if coordinator.account.isSignedIn && coordinator.account.cloudSession == nil {
                     Section("体验设置") {
                         Button { onClose(); coordinator.account.switchDemoIdentity() } label: {

@@ -8,7 +8,7 @@ final class ConversationControlsTests:XCTestCase {
         XCTAssertTrue(app.buttons["customizationButton"].waitForExistence(timeout:60))
         app.waitForCharacter { $0["modelId"] as? String == "anime-kipfel" && $0["nativeHeadHit"] as? String == "CharacterTouchSurface" }
         XCTAssertFalse(app.buttons["characterMuteButton"].exists)
-        XCTAssertTrue(app.buttons["conversationPerformanceButton"].exists)
+        XCTAssertFalse(app.buttons["conversationPerformanceButton"].exists)
         let sound=app.buttons["conversationSoundButton"]
         XCTAssertTrue(sound.exists)
         XCTAssertEqual(audio(app)["masterMuted"] as? Bool,false)
@@ -44,7 +44,7 @@ final class ConversationControlsTests:XCTestCase {
         refresh(app)
         XCTAssertEqual(app.characterRuntime["idlePlaying"] as? Bool,true)
         XCTAssertNotEqual(number(before,"idleTime"),number(app.characterRuntime,"idleTime"),"Original Idle clock must advance in a live app")
-        app.buttons["conversationPerformanceButton"].tap()
+        app.openCharacterPerformance()
         XCTAssertTrue(app.buttons["closeCharacterPerformance"].waitForExistence(timeout:8))
         chooseGroup("ears",app)
         let ear=app.buttons["performanceOption-kipfel-catear-pyoko-loop"]
@@ -60,7 +60,7 @@ final class ConversationControlsTests:XCTestCase {
         app.waitForCharacter { self.selections($0).contains("kipfel-afk-sleep-to-stand") }
         app.waitForCharacter({ !self.selections($0).contains("kipfel-afk-sleep-to-stand") && ($0["characterPlatform"] as? [String:Any])?["performanceTransitioning"] as? Bool == false },timeout:20)
         capture("source-one-shot-restored",app)
-        app.buttons["closeCharacterPerformance"].tap()
+        app.closeCharacterPerformance()
         refresh(app)
         app.buttons["characterPositionButton"].tap()
         XCTAssertTrue(app.buttons["closeCharacterViewEditor"].waitForExistence(timeout:8))

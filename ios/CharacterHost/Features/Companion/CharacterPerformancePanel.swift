@@ -71,6 +71,7 @@ import Observation
     }
 }
 
+#if STARRY_TEST_TOOLS
 struct CharacterPerformancePanel: View {
     let model: ModelDescriptor
     let profile: CharacterPerformanceProfile
@@ -232,3 +233,5 @@ private struct AvatarControlSlider: View {
             .onChange(of:confirmed) { _,new in if !editing,let new {value=new} }
     }
 }
+
+#endif

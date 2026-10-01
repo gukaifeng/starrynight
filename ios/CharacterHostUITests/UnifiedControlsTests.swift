@@ -2,6 +2,30 @@ import XCTest
 import UIKit
 
 extension XCUIApplication {
+    @MainActor func openCharacterDeveloper(file:StaticString = #filePath,line:UInt = #line) {
+        if buttons["closeCharacterDeveloper"].exists {return}
+        if !buttons["closeCharacterDetails"].exists {buttons["customizationButton"].tap()}
+        let entry=buttons["openCharacterDeveloper"]
+        for _ in 0..<8 {
+            if entry.isHittable {break}
+            scrollViews.firstMatch.swipeUp()
+        }
+        XCTAssertTrue(entry.isHittable,file:file,line:line);entry.tap()
+        XCTAssertTrue(buttons["closeCharacterDeveloper"].waitForExistence(timeout:5),file:file,line:line)
+    }
+    @MainActor func openCharacterPerformance(file:StaticString = #filePath,line:UInt = #line) {
+        openCharacterDeveloper(file:file,line:line)
+        buttons["profilePerformanceButton"].tap()
+        XCTAssertTrue(buttons["closeCharacterPerformance"].waitForExistence(timeout:5),file:file,line:line)
+    }
+    @MainActor func closeCharacterPerformance(returnToProfile:Bool=false) {
+        buttons["closeCharacterPerformance"].tap()
+        XCTAssertTrue(buttons["closeCharacterDeveloper"].waitForExistence(timeout:5))
+        buttons["closeCharacterDeveloper"].tap()
+        XCTAssertTrue(buttons["closeCharacterDetails"].waitForExistence(timeout:5))
+        if !returnToProfile {buttons["closeCharacterDetails"].tap()}
+    }
+
     @MainActor func openCustomization(_ section:String? = nil,file:StaticString = #filePath,line:UInt = #line) {
         if !buttons["closeCustomizationButton"].exists {
             XCTAssertTrue(buttons["customizationButton"].waitForExistence(timeout:60),file:file,line:line)

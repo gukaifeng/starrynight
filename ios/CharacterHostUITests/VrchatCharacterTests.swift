@@ -101,11 +101,7 @@ final class VrchatCharacterTests: XCTestCase {
             if let previousCharacterSelection {
                 XCTAssertFalse(defaults.contains(previousCharacterSelection),"A new character must not inherit another character's expression")
             }
-            app.buttons["customizationButton"].tap()
-            let entry = app.buttons["profilePerformanceButton"]
-            XCTAssertTrue(entry.waitForExistence(timeout:6))
-            if !entry.isHittable { app.scrollViews.firstMatch.swipeUp() }
-            entry.tap()
+            app.openCharacterPerformance()
             XCTAssertTrue(app.buttons["closeCharacterPerformance"].waitForExistence(timeout:6))
             XCTAssertFalse(app.buttons["closeCharacterDetails"].exists,"Performance must replace the page inside the same sheet")
             sameCamera(app,camera,includingPresentation:true)
@@ -157,7 +153,7 @@ final class VrchatCharacterTests: XCTestCase {
             app.waitForCharacter { self.selections($0).contains(retainedID) }
             previousCharacterSelection = retainedID
 
-            app.buttons["closeCharacterPerformance"].tap()
+            app.closeCharacterPerformance(returnToProfile:true)
             XCTAssertTrue(app.buttons["closeCharacterDetails"].waitForExistence(timeout:5))
             app.buttons["closeCharacterDetails"].tap()
             XCTAssertTrue(app.textViews["chatInput"].waitForExistence(timeout:6))

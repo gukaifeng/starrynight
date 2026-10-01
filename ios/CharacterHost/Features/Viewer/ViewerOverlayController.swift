@@ -302,6 +302,7 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
     var onDetailsClosed: (() -> Void)?
     private var nextCharacterAfterDetails: (String,Bool)?
     private var identityHost:UIHostingController<CharacterConversationIdentity>?
+    private let identityDiagnostics=CharacterIdentityDiagnostics()
     private let customizationButton = UIButton(type:.system)
     private var identityLeading:NSLayoutConstraint?
     private var identityContentWidth:NSLayoutConstraint?
@@ -363,18 +364,9 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
         view.isUserInteractionEnabled = false
         present(host,animated:true) { [weak self] in self?.animateLayout() }
     }
-    private func openConversationPerformance() {
-        guard let profile = model.performance, let characterPerformance else { return }
-        presentConversationPanel(height:302) {
-            CharacterPerformancePanel(model:model,profile:profile,state:characterPerformance,
-                onSelect:{ [weak self] id,on in self?.onSelectPerformance?(id,on) },
-                onReset:{ [weak self] group in self?.onResetPerformance?(group) },
-                onAdjust:{ [weak self] id,value in self?.onAdjustPerformance?(id,value) })
-        }
-    }
     private func openConversationSound() {
         guard let session = chatSession else { return }
-        presentConversationPanel(height:258) { ConversationSoundPanel(session:session) }
+        presentConversationPanel(height:216) { ConversationSoundPanel(session:session) }
     }
     private func resizePerformancePanel(_ visible:Bool) {
         guard let host = presentedViewController, !host.isBeingDismissed else { return }
@@ -413,7 +405,7 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
         // camera commands, so there may be no subsequent event to restore its JSON.
         if ProcessInfo.processInfo.arguments.contains("--ui-testing") { return }
 #endif
-        customizationButton.accessibilityValue = framing.summary
+        identityDiagnostics.value = framing.summary
     }
     func setRuntimeFraming(_ event: [String:Any]) {
 #if DEBUG
@@ -469,7 +461,7 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
         values["userMessageCount"] = chatSession?.record.messages.filter { $0.role == "user" }.count ?? 0
         if ProcessInfo.processInfo.arguments.contains("--ui-testing"),
            let data = try? JSONSerialization.data(withJSONObject:values,options:.sortedKeys) {
-            customizationButton.accessibilityValue = String(data:data,encoding:.utf8)
+            identityDiagnostics.value = String(data:data,encoding:.utf8)
         }
 #endif
     }
@@ -478,14 +470,14 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
         // Preparation finishes without a Unity event. Refresh its QA evidence
         // directly rather than waiting for a gesture to publish another frame.
         guard ProcessInfo.processInfo.arguments.contains("--ui-testing"),
-              let data=customizationButton.accessibilityValue?.data(using:.utf8),
+              let data=identityDiagnostics.value?.data(using:.utf8),
               var values=(try? JSONSerialization.jsonObject(with:data)) as? [String:Any] else {return}
         values["preparedReactionHits"]=chatSession?.preparedReactionHits ?? 0
         values["preparedInflightHits"]=chatSession?.preparedInflightHits ?? 0
         values["quickReplyCount"]=chatSession?.quickReplies.count ?? 0
         values["preparedReactionReady"]=chatSession?.preparedReactionReady ?? [:]
         if let updated=try? JSONSerialization.data(withJSONObject:values,options:.sortedKeys) {
-            customizationButton.accessibilityValue=String(data:updated,encoding:.utf8)
+            identityDiagnostics.value=String(data:updated,encoding:.utf8)
         }
 #endif
     }
@@ -538,6 +530,10 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
         if let host = chatHost { host.willMove(toParent:nil); host.view.removeFromSuperview(); host.removeFromParent() }
         if let host = identityHost { host.willMove(toParent:nil); host.view.removeFromSuperview(); host.removeFromParent() }
         identityHost = nil
+        customizationButton.isAccessibilityElement = session == nil
+        customizationButton.accessibilityElementsHidden = session != nil
+        customizationButton.accessibilityIdentifier = session == nil ? "customizationButton" : "identityLayoutAnchor"
+        customizationButton.isUserInteractionEnabled = session == nil
         backButton.isHidden = session != nil
         chatHost = nil; chatSession = session; chatEditing = false; chatComposerFrame = .zero
         (view as? TouchThroughView)?.messageRegions = [:]
@@ -556,7 +552,7 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
             atmosphere.safeAreaRegions=[];atmosphere.view.frame=view.bounds;atmosphere.view.autoresizingMask=[.flexibleWidth,.flexibleHeight]
             addChild(atmosphere);view.insertSubview(atmosphere.view,at:0);atmosphere.didMove(toParent:self);atmosphereHost=atmosphere
             session.onPreparationChanged = { [weak self] in self?.updatePreparationDiagnostics() }
-            let host = UIHostingController(rootView:CompanionChatView(session:session,onPerformance:{ [weak self] in self?.openConversationPerformance() },onSoundSettings:{ [weak self] in self?.openConversationSound() },onEditingChanged:{ [weak self] focused in
+            let host = UIHostingController(rootView:CompanionChatView(session:session,onSoundSettings:{ [weak self] in self?.openConversationSound() },onEditingChanged:{ [weak self] focused in
                 guard let self else { return }; self.chatEditing = focused
                 if !focused { self.view.endEditing(true) }; self.animateLayout()
             },onDisplayChanged:{ [weak self] in self?.animateLayout() },onMessageFrameChanged:{ [weak self] frame in
@@ -574,9 +570,9 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
             (view as? TouchThroughView)?.chatView = host.view
             (view as? TouchThroughView)?.characterTouchView = touchSurface
             if let portraits {
-                let identity = UIHostingController(rootView:CharacterConversationIdentity(session:session,portraits:portraits))
+                let identity = UIHostingController(rootView:CharacterConversationIdentity(session:session,portraits:portraits,library:library,diagnostics:identityDiagnostics,onDetails:{[weak self] in self?.openCustomization()}))
                 identity.view.backgroundColor = .clear; identity.view.isOpaque = false
-                identity.view.isUserInteractionEnabled = false; identity.view.accessibilityElementsHidden = true
+                identity.view.isUserInteractionEnabled = true; identity.view.accessibilityElementsHidden = false
                 identity.safeAreaRegions = []
                 addChild(identity); view.addSubview(identity.view); identity.didMove(toParent:self)
                 identity.view.translatesAutoresizingMaskIntoConstraints = false

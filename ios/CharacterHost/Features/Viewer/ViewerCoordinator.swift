@@ -813,10 +813,9 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
             }
             overlay.onResetPerformance = { [weak self] group in self?.resetPerformance(group:group) }
             overlay.onOpenCharacterFromDetails = { [weak self] id,customize in self?.openCharacter(id,customize:customize) }
-            overlay.onDetailsClosed = { [weak self] in
-                guard let self, !self.library.subscriptions.contains(self.selectedModel.id) else { return }
-                self.navigate(.home)
-            }
+            // Unsubscribing does not eject the current conversation. Its capsule
+            // offers subscribing again; the next tab entry follows the saved list.
+            overlay.onDetailsClosed = nil
             overlay.onBack = { [weak self] in self?.navigate(.discover) }
             overlay.onTabSelected = { [weak self] tab in self?.navigate(tab) }
             overlay.onPreviewStudio = { [weak self] value in self?.previewStudio(value) }

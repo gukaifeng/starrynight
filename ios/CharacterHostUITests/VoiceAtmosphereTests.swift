@@ -22,7 +22,7 @@ final class VoiceAtmosphereTests:XCTestCase {
         let origin=hold.coordinate(withNormalizedOffset:CGVector(dx:0.5,dy:0.5))
         // The deterministic ASR final arrives after 340ms, while this finger is
         // still held. The landing area sits immediately above the composer.
-        origin.press(forDuration:0.8,thenDragTo:origin.withOffset(CGVector(dx:0,dy:-80)),withVelocity:.slow,thenHoldForDuration:0.6)
+        origin.press(forDuration:0.8,thenDragTo:origin.withOffset(CGVector(dx:85,dy:-75)),withVelocity:.slow,thenHoldForDuration:0.6)
         let edit=app.textViews["voiceEditText"]
         XCTAssertTrue(edit.waitForExistence(timeout:5));XCTAssertEqual(edit.value as? String,"今天窗外下雨了")
         XCTAssertEqual(app.staticTexts.matching(identifier:"userMessage").count,0,"Sliding to edit cannot send an early ASR result")
@@ -32,6 +32,24 @@ final class VoiceAtmosphereTests:XCTestCase {
         hold.press(forDuration:1.2)
         wait {app.staticTexts.matching(identifier:"userMessage").count==1}
         XCTAssertFalse(edit.exists,"A release outside the target sends directly")
+    }
+    @MainActor func testHeldCancelDiscardsEarlyRecognitionAndPreservesTypedDraft() {
+        continueAfterFailure=false;XCUIDevice.shared.orientation = .portrait
+        let app=XCUIApplication();app.launchArguments=["--ui-testing","--voice-atmosphere-check"]
+        app.launch();defer {app.terminate()}
+        wait {app.staticTexts["voiceCoreResult"].exists && app.staticTexts["voiceCoreResult"].label.hasPrefix("PASS:")}
+        let input=app.textViews["chatInput"]
+        input.tap();input.typeText("Keep draft")
+        let draft=input.value as? String
+        app.buttons["inputModeButton"].tap()
+        let origin=app.buttons["holdToTalkButton"].coordinate(withNormalizedOffset:CGVector(dx:0.5,dy:0.5))
+        origin.press(forDuration:0.8,thenDragTo:origin.withOffset(CGVector(dx:-85,dy:-75)),withVelocity:.slow,thenHoldForDuration:0.5)
+        XCTAssertFalse(app.textViews["voiceEditText"].exists)
+        XCTAssertEqual(app.staticTexts.matching(identifier:"userMessage").count,0)
+        XCTAssertEqual(app.buttons["holdToTalkButton"].value as? String,"未录音")
+        app.buttons["inputModeButton"].tap()
+        XCTAssertEqual(input.value as? String,draft)
+        capture("cancelled-voice-keeps-draft")
     }
     @MainActor func testCaptureFailureKeepsHeldWordsForReview() {
         continueAfterFailure=false;XCUIDevice.shared.orientation = .portrait
@@ -136,9 +154,9 @@ final class VoiceAtmosphereTests:XCTestCase {
         XCUIDevice.shared.orientation = .portrait
         wait {app.frame.height>app.frame.width}
         app.openCustomization()
-        let effects=app.switches["atmosphereEffectsToggle"]
-        XCTAssertTrue(effects.waitForExistence(timeout:5));XCTAssertEqual(effects.value as? String,"1")
-        effects.tap();XCTAssertEqual(effects.value as? String,"0")
+        let effects=app.sliders["atmosphereLevelSlider"]
+        XCTAssertTrue(effects.waitForExistence(timeout:5));XCTAssertEqual(effects.value as? String,"适中")
+        effects.adjust(toNormalizedSliderPosition:0);XCTAssertEqual(effects.value as? String,"关闭")
         app.buttons["closeCustomizationButton"].tap();app.buttons["closeCharacterDetails"].tap()
         for role in ["anime-mamehinata","anime-chiffon","anime-karin","anime-kipfel"] {
             app.buttons["tab-discover"].tap()
@@ -150,7 +168,7 @@ final class VoiceAtmosphereTests:XCTestCase {
             wait {(self.audioState(app)["track"] as? String)==role+"/theme"}
             capture("scene-"+role)
         }
-        app.openCustomization();XCTAssertEqual(effects.value as? String,"0","Effects preference survives a role switch")
+        app.openCustomization();XCTAssertEqual(effects.value as? String,"关闭","Effects preference survives a role switch")
         app.buttons["closeCustomizationButton"].tap();app.buttons["closeCharacterDetails"].tap()
         app.buttons["tab-messages"].tap();capture("tablet-phone-messages")
         app.buttons["tab-mine"].tap();capture("tablet-phone-account")

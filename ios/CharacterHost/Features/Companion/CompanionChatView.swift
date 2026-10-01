@@ -19,7 +19,6 @@ private struct ConversationComposerFramePreference: PreferenceKey {
 
 struct CompanionChatView: View {
     @Bindable var session: CompanionSession
-    var onPerformance: (() -> Void)?
     var onSoundSettings: (() -> Void)?
     var onEditingChanged: ((Bool) -> Void)?
     var onDisplayChanged: (() -> Void)?
@@ -37,6 +36,7 @@ struct CompanionChatView: View {
     @State private var voiceMode=false
     @State private var voiceEditing=false
     @State private var voiceEditTarget=VoiceCaptureTouchTarget()
+    @State private var voiceCancelTarget=VoiceCaptureTouchTarget()
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     private var interfaceAnimation: Animation { reduceMotion ? .easeInOut(duration:0.18) : .spring(response:0.42,dampingFraction:0.9) }
@@ -68,10 +68,6 @@ struct CompanionChatView: View {
                         .transition(.opacity)
                 }
                 Spacer()
-                Button { editing = false; onPerformance?() } label: {
-                    Image(systemName:"sparkles").font(.system(size:14,weight:.regular))
-                        .frame(width:36,height:36).contentShape(Rectangle())
-                }.buttonStyle(.plain).accessibilityLabel("角色表现").accessibilityIdentifier("conversationPerformanceButton")
                 ConversationSoundButton(session:session,onSettings:{ editing = false; onSoundSettings?() })
             }.disabled(session.voiceInput.active).foregroundStyle(Theme.ink.opacity(0.56)).padding(.leading,22).padding(.trailing,23).frame(height:34)
             composer(compact:geometry.size.height < 300).zIndex(4)
@@ -207,7 +203,7 @@ struct CompanionChatView: View {
     }
     private var voiceHoldTitle:String {
         switch session.voiceInput.phase {
-        case .holding:return session.voiceInput.editArmed ? "松开，编辑文字" : "松开发送 · 上滑编辑"
+        case .holding:return session.voiceInput.cancelArmed ? "松开，取消发送" : (session.voiceInput.editArmed ? "松开，编辑文字" : "松开发送 · 上滑选择")
         case .finishing:return "正在整理…"
         default:return "按住说话"
         }
@@ -220,21 +216,22 @@ struct CompanionChatView: View {
                 withAnimation(interfaceAnimation) {voiceMode.toggle()}
             } label: {
                 Image(systemName:voiceMode ? "keyboard" : "waveform.circle")
-                    .font(.system(size:21,weight:.light)).foregroundStyle(Theme.ink.opacity(0.65))
+                    .font(.system(size:voiceMode ? 19 : 18,weight:.light)).foregroundStyle(Theme.ink.opacity(0.65))
                     .frame(width:44,height:44).contentShape(Rectangle())
             }.buttonStyle(.plain).disabled(session.voiceInput.active).padding(.leading,3)
                 .accessibilityLabel(voiceMode ? "切换键盘输入" : "切换语音输入").accessibilityIdentifier("inputModeButton")
             if voiceMode {
-                VoiceHoldSurface(title:voiceHoldTitle,active:session.voiceInput.phase == .holding,armed:session.voiceInput.editArmed,
+                VoiceHoldSurface(title:voiceHoldTitle,active:session.voiceInput.phase == .holding,armed:session.voiceInput.editArmed || session.voiceInput.cancelArmed,
                     onBegin:{
                         smartRepliesPresented=false
                         return session.beginVoiceInput()
                     },onMove:{point in
-                        let armed=voiceEditTarget.contains(point,armed:session.voiceInput.editArmed)
-                        session.voiceInput.armEdit(armed)
-                        return session.voiceInput.editArmed
-                    },onRelease:{session.finishVoiceInput(edit:session.voiceInput.editArmed)},
-                    onCancel:{session.cancelVoiceHold()},onAccessibleEdit:{session.finishVoiceInput(edit:true)})
+                        let cancel=voiceCancelTarget.contains(point,armed:session.voiceInput.cancelArmed)
+                        session.voiceInput.armCancel(cancel)
+                        session.voiceInput.armEdit(!cancel && voiceEditTarget.contains(point,armed:session.voiceInput.editArmed))
+                        return session.voiceInput.editArmed || session.voiceInput.cancelArmed
+                    },onRelease:{if session.voiceInput.cancelArmed {session.cancelVoiceInput()} else {session.finishVoiceInput(edit:session.voiceInput.editArmed)}},
+                    onCancel:{session.cancelVoiceHold()},onAccessibleEdit:{session.finishVoiceInput(edit:true)},onAccessibleCancel:{session.cancelVoiceInput()})
                     .frame(maxWidth:.infinity).frame(height:44)
                     .background(Theme.accent.opacity(session.voiceInput.phase == .holding ? 0.075 : 0),in:RoundedRectangle(cornerRadius:20,style:.continuous))
             } else {
@@ -277,8 +274,8 @@ struct CompanionChatView: View {
                     // pressing only fades it in, without mounting a new surface.
                     if voiceMode {
                         Color.clear.overlay(alignment:.bottom) {
-                            VoiceCaptureOverlay(session:session,editing:$voiceEditing,compact:compact,editTarget:voiceEditTarget)
-                                .padding(.horizontal,4).fixedSize(horizontal:false,vertical:true)
+                            VoiceCaptureOverlay(session:session,editing:$voiceEditing,compact:compact,editTarget:voiceEditTarget,cancelTarget:voiceCancelTarget)
+                                .frame(width:max(0,min(360,composer.size.width-40))).fixedSize(horizontal:false,vertical:true)
                                 .offset(y:-composer.size.height-12)
                         }
                         .opacity(session.voiceInput.active ? 1 : 0)
@@ -287,7 +284,7 @@ struct CompanionChatView: View {
                     }
                     if smartRepliesPresented && !session.voiceInput.active {
                         Color.clear.overlay(alignment:.bottom) {
-                            smartRepliesPanel.padding(.horizontal,22)
+                            smartRepliesPanel.frame(width:max(0,min(380,composer.size.width-48)))
                                 .fixedSize(horizontal:false,vertical:true)
                                 .offset(y:-composer.size.height-8)
                                 .transition(.opacity.combined(with:.offset(y:8)))
@@ -301,7 +298,7 @@ struct CompanionChatView: View {
     private var smartRepliesPanel:some View {
         VStack(alignment:.leading,spacing:5) {
             HStack {
-                Text("接着聊").font(.system(size:12,weight:.medium)).foregroundStyle(Theme.secondary)
+                Text("灵感回声").font(.system(size:12,weight:.medium)).foregroundStyle(Theme.secondary)
                 Spacer()
                 Button {withAnimation(interfaceAnimation) {smartRepliesPresented=false}} label: {
                     Image(systemName:"xmark").font(.system(size:10,weight:.medium)).frame(width:28,height:28)
@@ -331,6 +328,7 @@ struct CompanionChatView: View {
             .overlay(RoundedRectangle(cornerRadius:20).stroke(Theme.gradient.opacity(0.24),lineWidth:0.65))
             .shadow(color:.black.opacity(0.18),radius:16,y:5)
             .conversationHitRegion(.control,id:"smartRepliesPanel")
+            .accessibilityElement(children:.contain).accessibilityIdentifier("smartRepliesPanel")
     }
     private var canSend: Bool { !session.input.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty }
 

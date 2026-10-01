@@ -5,13 +5,15 @@ ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT_DIR"
 UNSIGNED=false
 DEVICE_ID=""
+GENERATE_ARGS=(--platform device)
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --unsigned) UNSIGNED=true; shift ;;
+    --distribution) GENERATE_ARGS+=(--distribution); shift ;;
     --device)
       if [ "$#" -lt 2 ] || [ -z "$2" ]; then echo 'Missing device identifier' >&2; exit 2; fi
       DEVICE_ID="$2"; shift 2 ;;
-    *) echo 'Usage: bash scripts/build_device.sh [--unsigned | --device DEVICE_ID]' >&2; exit 2 ;;
+    *) echo 'Usage: bash scripts/build_device.sh [--unsigned | --device DEVICE_ID] [--distribution]' >&2; exit 2 ;;
   esac
 done
 if $UNSIGNED && [ -n "$DEVICE_ID" ]; then
@@ -38,7 +40,7 @@ PY
   if [ -n "$DEVICE_ID" ]; then DESTINATION="platform=iOS,id=$DEVICE_ID"; fi
 fi
 python3 scripts/check_export_content.py --platform device
-python3 scripts/generate_host.py --platform device
+python3 scripts/generate_host.py "${GENERATE_ARGS[@]}"
 mkdir -p .local/logs
 BUILD_LOG=".local/logs/host-device-$(date +%Y%m%d-%H%M%S).log"
 echo "Building device Release; log: $BUILD_LOG"

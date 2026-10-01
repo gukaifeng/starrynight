@@ -1,0 +1,118 @@
+#if STARRY_TEST_TOOLS
+import SwiftUI
+
+/// These pages and their entry points are compiled out of distribution projects.
+struct CharacterDeveloperPanel:View {
+    let model:ModelDescriptor
+    let store:CompanionStore
+    var session:CompanionSession? = nil
+    var performanceState:CharacterPerformanceState? = nil
+    var onSelect:(String,Bool)->Void = {_,_ in}
+    var onReset:(String)->Void = {_ in}
+    var onAdjust:(String,Double)->Void = {_,_ in}
+    var onVisibility:(Bool)->Void = {_ in}
+    var onOpenConversation:()->Void = {}
+    @State private var destination:String?
+    @State private var childClose=SoftPanelCloseRequest()
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    private func open(_ value:String) {
+        childClose=SoftPanelCloseRequest()
+        childClose.begin {withAnimation(.easeInOut(duration:0.2)) {destination=nil}}
+        withAnimation(.easeInOut(duration:reduceMotion ? 0.1 : 0.25)) {destination=value}
+    }
+    var body:some View {
+        ZStack {
+            if destination == "ai" {
+                AIInspectionPanel(model:model,store:store,draft:session?.input ?? "")
+                    .environment(\.softPanelCloseRequest,childClose).environment(\.softPanelDismiss,{childClose.request()})
+                    .transition(.opacity)
+            } else if destination == "performance",let profile=model.performance,let state=performanceState {
+                CharacterPerformancePanel(model:model,profile:profile,state:state,onSelect:onSelect,onReset:onReset,
+                    onAdjust:onAdjust)
+                    .environment(\.softPanelCloseRequest,childClose).environment(\.softPanelDismiss,{childClose.request()})
+                    .transition(.opacity)
+            } else {
+                VStack(spacing:0) {
+                    PanelPageHeader("角色开发者 · "+model.name,backID:"closeCharacterDeveloper")
+                    ScrollView {
+                        VStack(alignment:.leading,spacing:14) {
+                            Text("开发构建专用").font(.system(size:11,weight:.medium)).foregroundStyle(Theme.accent)
+                            DeveloperEntry(title:"AI 设定检查",detail:"完整设定、提示词、上下文与实际请求",symbol:"curlybraces",id:"openAIInspector") {open("ai")}
+                            if performanceState != nil,model.performance != nil {
+                                DeveloperEntry(title:"角色表现",detail:"手动检查原生表情、动作和物理能力",symbol:"theatermasks",id:"profilePerformanceButton") {open("performance")}
+                            } else {
+                                DeveloperEntry(title:"角色表现",detail:"进入会话后，在开发者页面预览动作",symbol:"theatermasks",id:"developerOpenConversation",action:onOpenConversation)
+                            }
+                            VStack(alignment:.leading,spacing:8) {
+                                Text("资源与能力").font(.system(size:14,weight:.medium))
+                                Text("角色 ID：\(model.id)\n资源版本：\(model.packageVersion)\n动作选项：\(model.performance?.options.count ?? 0)\n能力分组：\(model.performance?.groups.map(\.label).joined(separator:"、") ?? "无")")
+                                    .font(.system(size:12,design:.monospaced)).textSelection(.enabled).foregroundStyle(Theme.secondary)
+                                Text("手动预览仅供开发检查；对话与场景触发保持自动运行。")
+                                    .font(.system(size:11)).foregroundStyle(Theme.secondary)
+                            }.padding(14).frame(maxWidth:.infinity,alignment:.leading).background(Theme.surface.opacity(0.55),in:RoundedRectangle(cornerRadius:16))
+                        }.padding(.horizontal,22).padding(.bottom,20)
+                    }.scrollIndicators(.hidden)
+                }.transition(.opacity)
+            }
+        }.foregroundStyle(Theme.ink).tint(Theme.accent).softPanelPageSurface()
+            .accessibilityElement(children:.contain).accessibilityIdentifier("characterDeveloperPanel")
+    }
+}
+
+struct AppDeveloperPanel:View {
+    let coordinator:ViewerCoordinator
+    var onOpenCharacter:(String)->Void
+    @State private var selected:ModelDescriptor?
+    @State private var childClose=SoftPanelCloseRequest()
+    var body:some View {
+        ZStack {
+            if let selected {
+                CharacterDeveloperPanel(model:selected,store:coordinator.companionStore,onOpenConversation:{onOpenCharacter(selected.id)})
+                    .environment(\.softPanelCloseRequest,childClose).environment(\.softPanelDismiss,{childClose.request()})
+                    .id(selected.id).transition(.opacity)
+            } else {
+                VStack(spacing:0) {
+                    PanelPageHeader("星夜开发者",backID:"closeAppDeveloper")
+                    ScrollView {
+                        VStack(alignment:.leading,spacing:14) {
+                            Text("开发构建 · 不随正式版本分发").font(.system(size:12,weight:.medium)).foregroundStyle(Theme.accent)
+                            VStack(alignment:.leading,spacing:8) {
+                                let info=Bundle.main.infoDictionary ?? [:]
+                                Text("版本 \(info["CFBundleShortVersionString"] as? String ?? "—") (\(info["CFBundleVersion"] as? String ?? "—"))")
+                                Text("\(UIDevice.current.systemName) \(UIDevice.current.systemVersion) · \(ModelDescriptor.all.count) 个内置角色")
+                                Text("AI 设定检查只读，不生成回复、不消耗模型用量。账号凭证和 API 密钥不会显示。")
+                            }.font(.system(size:12)).foregroundStyle(Theme.secondary).textSelection(.enabled)
+                            Text("角色检查").font(.system(size:15,weight:.medium)).padding(.top,8)
+                            ForEach(ModelDescriptor.all) {model in
+                                DeveloperEntry(title:model.name,detail:model.id,symbol:"person.crop.circle",id:"developerCharacter-"+model.id) {
+                                    childClose=SoftPanelCloseRequest()
+                                    childClose.begin {withAnimation(.easeInOut(duration:0.2)) {selected=nil}}
+                                    withAnimation(.easeInOut(duration:0.2)) {selected=model}
+                                }
+                            }
+                        }.padding(.horizontal,22).padding(.bottom,24)
+                    }.scrollIndicators(.hidden)
+                }.transition(.opacity)
+            }
+        }.foregroundStyle(Theme.ink).tint(Theme.accent).softPanelPageSurface(opaque:true)
+            .accessibilityElement(children:.contain).accessibilityIdentifier("appDeveloperPanel")
+    }
+}
+
+struct DeveloperEntry:View {
+    let title,detail,symbol,id:String
+    var action:()->Void
+    var body:some View {
+        Button(action:action) {
+            HStack(spacing:12) {
+                Image(systemName:symbol).frame(width:24).foregroundStyle(Theme.accent)
+                VStack(alignment:.leading,spacing:4) {
+                    Text(title).font(.system(size:14,weight:.medium))
+                    Text(detail).font(.system(size:11)).foregroundStyle(Theme.secondary).lineLimit(2)
+                }.frame(maxWidth:.infinity,alignment:.leading)
+                Image(systemName:"chevron.right").font(.system(size:10)).foregroundStyle(Theme.secondary)
+            }.padding(14).background(Theme.surface.opacity(0.6),in:RoundedRectangle(cornerRadius:15)).contentShape(Rectangle())
+        }.buttonStyle(.plain).accessibilityIdentifier(id)
+    }
+}
+#endif

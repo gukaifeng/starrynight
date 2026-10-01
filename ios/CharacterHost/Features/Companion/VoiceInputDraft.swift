@@ -10,6 +10,8 @@ import Observation
     var text:String {capture.text}
     var wantsEdit:Bool {capture.wantsEdit}
     var editArmed:Bool {capture.editArmed}
+    var cancelArmed:Bool {capture.cancelArmed}
+    func armCancel(_ value:Bool) {guard capture.cancelArmed != value else {return};capture.armCancel(value)}
     var resultReady:Bool {capture.resultReady}
     var needsReview:Bool {capture.needsReview}
     var active:Bool {capture.active}

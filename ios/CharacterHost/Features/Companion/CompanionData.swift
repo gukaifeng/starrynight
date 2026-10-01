@@ -15,7 +15,9 @@ struct CharacterProfile: Codable, Equatable, Sendable {
     // Optional for synthesized Codable compatibility with existing v0.3 archives.
     var voiceID: String? = nil
     var audio: CharacterAudioPreferences? = nil
-    var atmosphereEnabled:Bool? = nil // Older journals default to on.
+    var atmosphereEnabled:Bool? = nil // Legacy on/off is read until a level is chosen.
+    var atmosphereLevel:Int? = nil
+    var resolvedAtmosphereLevel:Int {min(4,max(0,atmosphereLevel ?? (atmosphereEnabled == false ? 0 : 2)))}
     var framing: CharacterFraming? = nil
     var studio: CharacterStudio? = nil
     var resolvedStudio: CharacterStudio { (studio ?? .recommended).normalized }

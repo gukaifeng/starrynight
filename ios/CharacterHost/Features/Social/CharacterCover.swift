@@ -56,18 +56,13 @@ struct CharacterFocusedArtwork:View {
         GeometryReader { geometry in
             let frame=CharacterArtworkLayout.frame(source:artwork.size,target:geometry.size,head:head,circle:circle,banner:banner)
             ZStack(alignment:.topLeading) {
-                // Wide profile headers need more room than the portrait source.
-                // A subdued backdrop fills the sides without cropping the head.
+                if circle {
                 Image(uiImage:artwork).resizable().scaledToFill()
                     .frame(width:geometry.size.width,height:geometry.size.height).clipped()
-                    .blur(radius:circle ? 4:18).saturation(0.65).brightness(-0.18)
+                    .blur(radius:4)
+                }
                 Image(uiImage:artwork).resizable().frame(width:frame.width,height:frame.height)
-                    .mask {
-                        if frame.width < geometry.size.width {
-                            LinearGradient(stops:[.init(color:.clear,location:0),.init(color:.black,location:0.1),
-                                .init(color:.black,location:0.9),.init(color:.clear,location:1)],startPoint:.leading,endPoint:.trailing)
-                        } else {Color.black}
-                    }.offset(x:frame.minX,y:frame.minY)
+                    .offset(x:frame.minX,y:frame.minY)
             // The foreground can be taller than the aperture. Centering this
             // outer frame would shift the reviewed head crop upward a second
             // time, cutting off ears/hats despite correct layout coordinates.

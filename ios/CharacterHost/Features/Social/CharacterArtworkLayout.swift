@@ -19,9 +19,20 @@ enum CharacterArtworkLayout {
             scale=min(target.width,target.height)*0.92/hypot(box.width,box.height)
             center=CGPoint(x:target.width/2,y:target.height/2)
         } else {
-            scale=min(target.width*0.92/box.width,target.height*(banner ? 0.84:0.64)/box.height)
-            center=CGPoint(x:target.width/2,y:target.height*(banner ? 0.08:0.055)+box.height*scale/2)
+            // Fill every edge with the actual artwork. Focal positioning keeps
+            // the head in view where the aperture permits, without side mattes.
+            let fill=max(target.width/source.width,target.height/source.height)
+            scale=max(fill,min(target.width*0.92/box.width,target.height*(banner ? 0.84:0.64)/box.height))
+            // Very wide/short apertures cannot contain the full head at fill
+            // scale. Center that crop lower on the head so a hat cannot replace
+            // the face. Normal portrait and profile apertures retain headroom.
+            let headHeight=box.height*scale
+            let headCenter=headHeight > target.height*0.92 ? target.height*0.53-headHeight*0.12 : target.height*(banner ? 0.08:0.055)+headHeight/2
+            center=CGPoint(x:target.width/2,y:headCenter)
         }
-        return CGRect(x:center.x-box.midX*scale,y:center.y-box.midY*scale,width:source.width*scale,height:source.height*scale)
+        let width=source.width*scale,height=source.height*scale
+        let x=center.x-box.midX*scale,y=center.y-box.midY*scale
+        return CGRect(x:circle ? x : min(0,max(target.width-width,x)),
+                      y:circle ? y : min(0,max(target.height-height,y)),width:width,height:height)
     }
 }

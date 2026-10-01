@@ -91,3 +91,23 @@ async def test_trace_contains_the_actual_request_and_never_headers(tmp_path):
     before=list(store.db.iterdump());record_request(settings,store,'u','anime-kipfel','plan',{})
     assert list(store.db.iterdump())==before
     await provider.close();store.db.close()
+
+
+def test_scene_previews_are_distinct_while_persona_is_shared(tmp_path):
+    settings=Settings(data_dir=tmp_path,paid_enabled=False)
+    store=Store(tmp_path/'db')
+    engine=Orchestrator(settings,store,None)
+    contexts=[];personas=[]
+    for trigger in ('user_message','appLaunch','characterSwitch','idle'):
+        request=Request(request_id=uuid.uuid4(),character_id='anime-kipfel',trigger=trigger,wants_audio=False)
+        result=report(settings,engine,'scene-review',request)
+        ids=[section['id'] for section in result['sections']]
+        assert len(ids)==len(set(ids))
+        sections={s['id']:s['content'] for s in result['sections']}
+        contexts.append(sections['context']);personas.append(sections['persona'])
+        assert sections['persona']!=sections['prompts']!=sections['context']
+        assert json.loads(sections['client'])['trigger']==trigger
+    assert len(set(contexts))==4
+    assert len(set(personas))==1
+    assert store.db.execute('SELECT count(*) FROM usage').fetchone()[0]==0
+    store.db.close()

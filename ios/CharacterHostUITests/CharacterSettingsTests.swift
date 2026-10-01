@@ -14,12 +14,16 @@ final class CharacterSettingsTests:XCTestCase {
         let publicShot=XCTAttachment(screenshot:app.screenshot());publicShot.name="public-character-card";publicShot.lifetime = .keepAlways;add(publicShot)
         let button=app.buttons["openAIInspector"]
 #if STARRY_TEST_TOOLS
+        app.openCharacterDeveloper()
         let scroll=app.scrollViews.firstMatch
         for _ in 0..<5 where !button.isHittable {scroll.swipeUp()}
         XCTAssertTrue(button.isHittable);button.tap()
+        XCTAssertTrue(app.buttons["aiInspectionSection-persona"].waitForExistence(timeout:20))
+        app.buttons["aiInspectionSection-persona"].tap()
         let persona=app.staticTexts["aiInspectionContent-persona"]
         XCTAssertTrue(persona.waitForExistence(timeout:20),app.staticTexts["aiInspectorError"].exists ? app.staticTexts["aiInspectorError"].label : "No complete persona")
         XCTAssertTrue(persona.label.contains("voice_prompt"));XCTAssertTrue(persona.label.contains("secrets"))
+        app.buttons["closeAIInspectionSection"].tap()
         XCTAssertTrue(app.buttons["copyAllAISettings"].isEnabled)
         app.buttons["copyAllAISettings"].tap()
         XCTAssertEqual(app.buttons["copyAllAISettings"].value as? String,"已复制")

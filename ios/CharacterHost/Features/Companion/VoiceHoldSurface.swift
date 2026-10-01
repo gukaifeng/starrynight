@@ -34,12 +34,13 @@ struct VoiceHoldSurface:UIViewRepresentable {
     var onRelease:()->Void
     var onCancel:()->Void
     var onAccessibleEdit:()->Void
+    var onAccessibleCancel:()->Void
 
     func makeUIView(context:Context)->HoldView {HoldView()}
     func updateUIView(_ view:HoldView,context:Context) {
         view.label.text=title;view.label.textColor=UIColor(Theme.ink).withAlphaComponent(active ? 0.95 : 0.76)
         view.onBegin=onBegin;view.onMove=onMove;view.onRelease=onRelease;view.onCancel=onCancel
-        view.onAccessibleEdit=onAccessibleEdit;view.active=active
+        view.onAccessibleEdit=onAccessibleEdit;view.onAccessibleCancel=onAccessibleCancel;view.active=active
         view.accessibilityValue=armed ? "松开后编辑" : (active ? "正在录音" : "未录音")
     }
     static func dismantleUIView(_ view:HoldView,coordinator:()) {view.cancelTouch()}
@@ -51,6 +52,7 @@ struct VoiceHoldSurface:UIViewRepresentable {
         var onRelease:(()->Void)?
         var onCancel:(()->Void)?
         var onAccessibleEdit:(()->Void)?
+        var onAccessibleCancel:(()->Void)?
         var active=false
         private var tracking=false
         private var armed=false
@@ -67,9 +69,9 @@ struct VoiceHoldSurface:UIViewRepresentable {
             let gesture=VoiceHoldGesture(target:self,action:#selector(track(_:)))
             addGestureRecognizer(gesture)
             isAccessibilityElement=true;accessibilityTraits = .button
-            accessibilityLabel="按住说话，上滑编辑，松开发送";accessibilityIdentifier="holdToTalkButton"
+            accessibilityLabel="按住说话，上滑选择取消或编辑，松开发送";accessibilityIdentifier="holdToTalkButton"
             accessibilityHint="双击开始或结束录音，也可以使用结束并编辑操作"
-            accessibilityCustomActions=[UIAccessibilityCustomAction(name:"结束并编辑",target:self,selector:#selector(accessibleEdit))]
+            accessibilityCustomActions=[UIAccessibilityCustomAction(name:"结束并编辑",target:self,selector:#selector(accessibleEdit)),UIAccessibilityCustomAction(name:"取消语音消息",target:self,selector:#selector(accessibleCancel))]
         }
         required init?(coder:NSCoder) {fatalError("init(coder:) has not been implemented")}
         @objc private func track(_ gesture:VoiceHoldGesture) {
@@ -95,6 +97,7 @@ struct VoiceHoldSurface:UIViewRepresentable {
         override func accessibilityActivate()->Bool {
             if active {onRelease?()} else {_=onBegin?()};return true
         }
+        @objc private func accessibleCancel()->Bool {onAccessibleCancel?();return true}
         @objc private func accessibleEdit()->Bool {onAccessibleEdit?();return true}
     }
 }

@@ -22,22 +22,19 @@ struct ConversationSoundPanel: View {
         VStack(spacing:0) {
             PanelPageHeader("声音 · " + session.record.profile.name,backID:"closeConversationSound")
             ScrollView {
-                VStack(spacing:9) {
+                VStack(spacing:4) {
                     VStack(spacing:0) {
-                        channel("朗读",symbol:"text.bubble",volume:Binding(get:{audio.speechVolume},set:{session.setSpeechVolume($0)}),id:"speech")
+                        channel("心声",symbol:"quote.bubble",volume:Binding(get:{audio.speechVolume},set:{session.setSpeechVolume($0)}),id:"speech")
                         separator
                         channel("背景音乐",symbol:"music.note",volume:Binding(get:{audio.volume},set:{audio.setVolume($0)}),id:"music")
-                    }.padding(.horizontal,12)
-                        .background(Theme.surface.opacity(0.30),in:RoundedRectangle(cornerRadius:16))
-                    HStack(spacing:8) {
-                        Image(systemName:"opticaldisc").font(.system(size:13,weight:.light))
-                        Text(audio.track?.title ?? "角色配乐").font(.system(size:12,weight:.medium)).lineLimit(1)
-                        Spacer()
-                    }.foregroundStyle(Theme.secondary).padding(.horizontal,12).frame(height:30)
-                    Text("音量滑至最左即静音 · 朗读时配乐自动轻下来")
-                        .font(.system(size:10)).foregroundStyle(Theme.secondary.opacity(0.72))
-                        .frame(maxWidth:.infinity,alignment:.leading).padding(.horizontal,12)
-                }.padding(.horizontal,18).padding(.bottom,12)
+                    }
+                    HStack(spacing:5) {
+                        Image(systemName:"opticaldisc").font(.system(size:10))
+                        Text(audio.track?.title ?? "专属配乐").lineLimit(1)
+                        Spacer(minLength:8)
+                        Text("滑至最左即静音")
+                    }.font(.system(size:10)).foregroundStyle(Theme.secondary.opacity(0.75))
+                }.padding(.horizontal,24).padding(.bottom,10)
             }.scrollIndicators(.hidden)
         }.softPanelPageSurface().foregroundStyle(Theme.ink).tint(Theme.accent).softSheetSurface()
     }
@@ -52,6 +49,6 @@ struct ConversationSoundPanel: View {
             Text(volume.wrappedValue == 0 ? "静音" : "\(Int((volume.wrappedValue*100).rounded()))%")
                 .font(.system(size:10).monospacedDigit()).foregroundStyle(Theme.secondary)
                 .frame(width:32,alignment:.trailing)
-        }.frame(minHeight:46)
+        }.frame(minHeight:42)
     }
 }

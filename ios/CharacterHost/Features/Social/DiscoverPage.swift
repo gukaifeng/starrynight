@@ -31,21 +31,21 @@ struct DiscoverPage: View {
     private func show(_ item:CharacterMarketItem) { details = item.model; showingDetails = true }
     var body:some View {
         VStack(spacing:0) {
-            NightHeader(title:"发现",subtitle:"探索角色，找到想聊下去的伙伴")
+            HStack { Text("发现").font(.system(size:25,weight:.semibold,design:.rounded)); Spacer(); Text("遇见心动的故事").font(.system(size:11)).foregroundStyle(Theme.secondary) }.padding(.horizontal,18).padding(.top,14).padding(.bottom,12)
             CatalogSearchField(placeholder:"搜角色、剧情或英语陪练",text:$query.text,
                 identifier:"discoverSearch",clearIdentifier:"clearDiscoverSearch")
-                .padding(.horizontal,24).padding(.bottom,10)
-            shelfBar.padding(.horizontal,24).padding(.bottom,5)
+                .padding(.horizontal,18).padding(.bottom,5)
+            shelfBar.padding(.horizontal,18).padding(.bottom,5)
             ScrollViewReader { proxy in
                 ScrollView {
-                    VStack(alignment:.leading,spacing:16) {
+                    VStack(alignment:.leading,spacing:10) {
                         Color.clear.frame(height:0).id("marketTop")
                         if showsFeatured { featuredShelf }
                         categoryBar
                         resultHeading
                         if items.isEmpty { emptyCatalog }
                         else {
-                            LazyVGrid(columns:[GridItem(.adaptive(minimum:145),spacing:12)],spacing:14) {
+                            LazyVGrid(columns:[GridItem(.adaptive(minimum:108),spacing:8)],spacing:10) {
                                 ForEach(items) { item in card(item) }
                             }.accessibilityIdentifier("marketCatalogGrid")
                         }
@@ -63,7 +63,7 @@ struct DiscoverPage: View {
                         }.buttonStyle(.plain).accessibilityIdentifier("marketCreateCharacter")
                             .padding(.top,4).padding(.bottom,20)
                         if let error = coordinator.library.error { Text(error).font(.caption).foregroundStyle(Theme.peach) }
-                    }.padding(.horizontal,24)
+                    }.padding(.horizontal,18)
                 }.scrollIndicators(.hidden).scrollDismissesKeyboard(.interactively)
                     .onChange(of:query) { _,_ in proxy.scrollTo("marketTop",anchor:.top) }
             }
@@ -82,14 +82,14 @@ struct DiscoverPage: View {
             }
     }
     private var shelfBar:some View {
-        HStack(spacing:22) {
+        HStack(spacing:20) {
             ForEach(MarketShelf.allCases) { shelf in
                 Button {
                     query.shelf = shelf
                 } label: {
                     Text(shelf.rawValue).font(.system(size:16,weight:query.shelf == shelf ? .semibold : .regular))
                         .foregroundStyle(query.shelf == shelf ? Theme.ink : Theme.secondary)
-                        .frame(height:40)
+                        .frame(height:36)
                         .overlay(alignment:.bottom) {
                             Capsule().fill(Theme.gradient).frame(width:18,height:2)
                                 .opacity(query.shelf == shelf ? 1 : 0)
@@ -113,45 +113,25 @@ struct DiscoverPage: View {
         }
     }
     private var featuredShelf:some View {
-        VStack(spacing:8) {
-            TabView(selection:$featuredIndex) {
-                ForEach(Array(featured.enumerated()),id:\.element.id) { index,item in
-                    Button { show(item) } label: {
-                        HStack(spacing:0) {
-                            VStack(alignment:.leading,spacing:8) {
-                                Label("星夜精选",systemImage:"sparkle").font(.system(size:10,weight:.medium))
-                                    .tracking(1).foregroundStyle(Theme.peach)
-                                Text(item.profile.name).font(.system(size:23,weight:.medium,design:.serif)).lineLimit(1)
-                                Text(CharacterPublicProfile.find(item.model.runtimeID)?.invitation ?? item.model.display.invitation).font(.system(size:11)).lineSpacing(3)
-                                    .foregroundStyle(Theme.secondary).lineLimit(2)
-                                Label("认识一下",systemImage:"arrow.up.right").font(.system(size:10,weight:.medium))
-                                    .foregroundStyle(Theme.accent).padding(.top,3)
-                            }.padding(.leading,18).padding(.vertical,15).frame(maxWidth:.infinity,alignment:.leading)
-                            CharacterCover(model:item.model,focalCrop:true)
-                                .mask(LinearGradient(colors:[.clear,.white,.white],startPoint:.leading,endPoint:.trailing))
-                                .frame(maxWidth:.infinity)
-                        }.frame(height:150).background(Theme.surface)
-                            .clipShape(RoundedRectangle(cornerRadius:20,style:.continuous))
-                            .overlay(RoundedRectangle(cornerRadius:20).strokeBorder(Theme.peach.opacity(0.16),lineWidth:0.5))
-                    }.buttonStyle(.plain).tag(index)
+        ScrollView(.horizontal) {
+            HStack(spacing:10) {
+                ForEach(featured) { item in
+                    Button {show(item)} label: {
+                        HStack(spacing:9) {
+                            CharacterCover(model:item.model).frame(width:44,height:52)
+                                .clipShape(RoundedRectangle(cornerRadius:10))
+                            VStack(alignment:.leading,spacing:4) {
+                                Text("精选 · "+item.profile.name).font(.system(size:12,weight:.medium)).lineLimit(1)
+                                Text(CharacterPublicProfile.find(item.model.runtimeID)?.occupation ?? item.categories.first ?? "星夜伙伴")
+                                    .font(.system(size:10)).foregroundStyle(Theme.secondary).lineLimit(1)
+                            }
+                            Image(systemName:"arrow.up.right").font(.system(size:9)).foregroundStyle(Theme.accent)
+                        }.padding(7).background(Theme.surface.opacity(0.7),in:RoundedRectangle(cornerRadius:14))
+                    }.buttonStyle(.plain).accessibilityIdentifier("marketFeatured-"+item.id)
                         .accessibilityLabel("精选，"+item.profile.name+"，查看资料")
-                        .accessibilityIdentifier("marketFeatured-"+item.id)
-                }
-            }.tabViewStyle(.page(indexDisplayMode:.never)).frame(height:150)
-                .accessibilityIdentifier("marketFeaturedShelf")
-            if featured.count > 1 {
-                HStack(spacing:5) {
-                    ForEach(featured.indices,id:\.self) { index in
-                        Button {
-                            withAnimation(reduceMotion ? nil : .easeInOut(duration:0.25)) { featuredIndex = index }
-                        } label: {
-                            Capsule().fill(Theme.accent.opacity(featuredIndex == index ? 0.8 : 0.22))
-                                .frame(width:featuredIndex == index ? 16 : 5,height:3).padding(.vertical,5)
-                        }.buttonStyle(.plain).accessibilityLabel("精选第\(index+1)位")
-                    }
                 }
             }
-        }
+        }.scrollIndicators(.hidden).accessibilityIdentifier("marketFeaturedShelf")
     }
     private var categoryBar:some View {
         ScrollView(.horizontal) {
@@ -206,26 +186,26 @@ struct DiscoverPage: View {
     private func card(_ item:CharacterMarketItem) -> some View {
         Button { show(item) } label: {
             VStack(alignment:.leading,spacing:0) {
-                CharacterCover(model:item.model).aspectRatio(4.0/3.0,contentMode:.fit)
+                CharacterCover(model:item.model).aspectRatio(0.94,contentMode:.fit)
                     .overlay(alignment:.topLeading) {
                         Text(item.categories.first ?? "3D 角色").font(.system(size:9,weight:.medium))
                             .padding(.horizontal,7).padding(.vertical,4)
-                            .background(Theme.background.opacity(0.7),in:Capsule()).padding(8)
+                            .background(Theme.background.opacity(0.7),in:Capsule()).padding(5)
                     }
                 VStack(alignment:.leading,spacing:5) {
-                    Text(item.profile.name).font(.system(size:14,weight:.semibold,design:.rounded)).lineLimit(1)
-                    Text(CharacterPublicProfile.find(item.model.runtimeID)?.invitation ?? item.model.display.invitation).font(.system(size:11)).foregroundStyle(Theme.secondary).lineLimit(1)
+                    Text(item.profile.name).font(.system(size:13,weight:.semibold,design:.rounded)).lineLimit(1)
+                    Text(CharacterPublicProfile.find(item.model.runtimeID)?.invitation ?? item.model.display.invitation).font(.system(size:10)).foregroundStyle(Theme.secondary).lineLimit(1)
                     HStack(spacing:4) {
                         Image(systemName:item.isCreatorWork ? "person.crop.circle" : "sparkle").font(.system(size:9))
                         Text(item.authorName).lineLimit(1)
                         Spacer(minLength:0)
                         Text("3D").font(.system(size:9,weight:.medium,design:.rounded)).foregroundStyle(Theme.peach)
                     }.font(.system(size:10)).foregroundStyle(Theme.secondary.opacity(0.8)).padding(.top,2)
-                }.padding(11).frame(maxWidth:.infinity,alignment:.leading)
+                }.padding(8).frame(maxWidth:.infinity,alignment:.leading)
             }.background(Theme.surface.opacity(Theme.panelOpacity))
-                .clipShape(RoundedRectangle(cornerRadius:17,style:.continuous))
-                .overlay(RoundedRectangle(cornerRadius:17).strokeBorder(Theme.line.opacity(0.28),lineWidth:0.5))
-                .contentShape(RoundedRectangle(cornerRadius:17))
+                .clipShape(RoundedRectangle(cornerRadius:13,style:.continuous))
+                .overlay(RoundedRectangle(cornerRadius:13).strokeBorder(Theme.line.opacity(0.28),lineWidth:0.5))
+                .contentShape(RoundedRectangle(cornerRadius:13))
         }.buttonStyle(.plain).accessibilityIdentifier("discover-open-"+item.id)
             .accessibilityLabel("查看"+item.profile.name+"的资料，"+item.categories.joined(separator:"、")+"，作者"+item.authorName)
     }

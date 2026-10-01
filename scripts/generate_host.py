@@ -22,7 +22,9 @@ test_tool_config=ROOT/'.local/character-ai-client/TestTools.json'
 test_tools=os.environ.get('STARRY_TEST_TOOLS', '1' if test_tool_config.exists() and json.loads(test_tool_config.read_text()).get('enabled') else '0')=='1'
 parser = argparse.ArgumentParser()
 parser.add_argument('--platform', choices=['simulator', 'device'], default='simulator')
+parser.add_argument('--distribution', action='store_true', help='Exclude developer UI and private AI inspection resources')
 args = parser.parse_args()
+if args.distribution: test_tools=False
 sdk = 'iphonesimulator' if args.platform == 'simulator' else 'iphoneos'
 ios = ROOT / 'ios'
 # Keep the physical-device workspace stable while simulator builds/tests run.
@@ -65,6 +67,7 @@ for path in sorted((ios/'CharacterHost').rglob('*')):
         source_refs.append(ref); resource_build.append(buildfile(relative,ref))
         continue
     if not path.is_file() or path.name == 'Info.plist': continue
+    if not test_tools and ('Developer' in path.parts or path.name == 'AIInspectionPanel.swift'): continue
     if path.name.startswith('Music_') and path.stem not in active_music: continue
     types={'.swift':'sourcecode.swift','.mm':'sourcecode.cpp.objcpp','.h':'sourcecode.c.h','.png':'image.png','.txt':'text','.json':'text.json','.wav':'audio.wav','.pcm':'file','.caf':'audio.caf','.storyboard':'file.storyboard'}
     if path.suffix not in types: continue
@@ -122,7 +125,8 @@ frameworks=obj('frameworks','PBXFrameworksBuildPhase',buildActionMask='214748364
 embed=obj('embed','PBXCopyFilesBuildPhase',buildActionMask='2147483647',dstPath='',dstSubfolderSpec='10',name='Embed Frameworks',files=[buildfile('embed-unity',framework,settings={'ATTRIBUTES':['CodeSignOnCopy','RemoveHeadersOnCopy']})],runOnlyForDeploymentPostprocessing='0')
 content_check=obj('check-content','PBXShellScriptBuildPhase',buildActionMask='2147483647',files=[],inputPaths=[],outputPaths=[],
     name='Check character content',runOnlyForDeploymentPostprocessing='0',shellPath='/bin/sh',alwaysOutOfDate='1',
-    shellScript=f'set -e\npython3 "${{SRCROOT}}/../scripts/check_export_content.py" --platform {args.platform}\n'
+    shellScript='set -e\nif [ "${ACTION:-}" = install ] && echo "${SWIFT_ACTIVE_COMPILATION_CONDITIONS:-}" | /usr/bin/grep -q STARRY_TEST_TOOLS; then\n  echo "error: Developer tools cannot be archived. Regenerate with scripts/generate_host.py --platform device --distribution."\n  exit 1\nfi\n'
+        f'python3 "${{SRCROOT}}/../scripts/check_export_content.py" --platform {args.platform}\n'
         'python3 "${SRCROOT}/../scripts/prepare_character_openings.py" --check\n')
 settings={'PRODUCT_NAME':'$(TARGET_NAME)','PRODUCT_BUNDLE_IDENTIFIER':'com.modelspace.viewer',
     'PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]':'$(MODELSPACE_DEVICE_BUNDLE_IDENTIFIER)',
@@ -136,7 +140,7 @@ settings={'PRODUCT_NAME':'$(TARGET_NAME)','PRODUCT_BUNDLE_IDENTIFIER':'com.model
     'FRAMEWORK_SEARCH_PATHS':['$(inherited)','$(BUILT_PRODUCTS_DIR)'],
     'OTHER_LDFLAGS':['$(inherited)','-lc++','-framework','CoreML','-framework','Accelerate'],
     'GCC_ENABLE_CPP_EXCEPTIONS':'YES',
-    'CODE_SIGN_STYLE':'Automatic','CURRENT_PROJECT_VERSION':'101','MARKETING_VERSION':'0.74.0',
+    'CODE_SIGN_STYLE':'Automatic','CURRENT_PROJECT_VERSION':'102','MARKETING_VERSION':'0.75.0',
     'ENABLE_USER_SCRIPT_SANDBOXING':'NO','SUPPORTS_MACCATALYST':'NO','SWIFT_EMIT_LOC_STRINGS':'YES',
     'ARCHS':'arm64','ENABLE_DEBUG_DYLIB':'NO','ASSETCATALOG_COMPILER_APPICON_NAME':'AppIcon'}
 target=obj('host-target','PBXNativeTarget',name='CharacterHost',productName='CharacterHost',productType='com.apple.product-type.application',productReference=app,

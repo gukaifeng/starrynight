@@ -90,6 +90,14 @@ enum VoiceAtmosphereChecks {
         let recovered=CompanionStore(storageURL:failed.url,arguments:[])
         check(recovered.record("role").messages.count==1 && recovered.record("role").profile.atmosphereEnabled==false,"Retry saves the pending message and per-role atmosphere choice")
         check(ModelDescriptor.defaultCharacter.conversationProfile(preserving:recovered.record("role").profile).atmosphereEnabled==false,"Opening a character preserves the effects preference")
+        check(recovered.record("role").profile.resolvedAtmosphereLevel==0,"Legacy disabled atmosphere migrates to zero")
+        check(CharacterProfile(name:"默认").resolvedAtmosphereLevel==2,"New profiles default to medium")
+        failed.update("role") {$0.profile.atmosphereLevel=4}
+        await CompanionPersistence.flush()
+        let levelRestored=CompanionStore(storageURL:failed.url,arguments:[]).record("role").profile
+        check(levelRestored.resolvedAtmosphereLevel==4,"Explicit level overrides legacy disabled state and persists")
+        check(ModelDescriptor.defaultCharacter.conversationProfile(preserving:levelRestored).resolvedAtmosphereLevel==4,"Reopening retains character-specific atmosphere level")
+        check(failed.record("another-role").profile.resolvedAtmosphereLevel==2,"One character cannot change another's atmosphere")
         do {
             let library=try CharacterLibraryTests.run()
             return "PASS: \(checks) voice lifecycle, motion gating and asynchronous journal checks; "+library

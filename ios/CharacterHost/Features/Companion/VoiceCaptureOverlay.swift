@@ -31,15 +31,16 @@ struct VoiceCaptureOverlay:View {
     @Binding var editing:Bool
     var compact=false
     var editTarget:VoiceCaptureTouchTarget?
+    var cancelTarget:VoiceCaptureTouchTarget?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     private var recording:Bool {session.voiceInput.phase != .editing}
-    private var shape:RoundedRectangle {RoundedRectangle(cornerRadius:compact ? 20 : 26,style:.continuous)}
+    private var shape:RoundedRectangle {RoundedRectangle(cornerRadius:compact ? 18 : 22,style:.continuous)}
     var body:some View {
-        VStack(spacing:compact ? 8 : 12) {
+        VStack(spacing:8) {
             if recording { capture } else { editor }
         }
-        .padding(compact ? 12 : 18).frame(maxWidth:440)
+        .padding(12).frame(maxWidth:360)
         .foregroundStyle(Theme.ink)
         .background {
             if reduceTransparency {shape.fill(Theme.surface)}
@@ -47,13 +48,14 @@ struct VoiceCaptureOverlay:View {
         }
         .overlay(shape.stroke(LinearGradient(colors:[Theme.accent.opacity(0.25),Theme.ink.opacity(0.04)],startPoint:.topLeading,endPoint:.bottomTrailing),lineWidth:0.75).allowsHitTesting(false))
         .shadow(color:.black.opacity(0.22),radius:18,y:8)
-        .animation(reduceMotion ? .linear(duration:0.12) : .easeInOut(duration:0.18),value:session.voiceInput.editArmed)
+        .animation(reduceMotion ? nil : .easeInOut(duration:0.15),value:session.voiceInput.editArmed)
+        .animation(reduceMotion ? nil : .easeInOut(duration:0.15),value:session.voiceInput.cancelArmed)
         .conversationHitRegion(.control,id:"voiceCapture",enabled:session.voiceInput.active)
         .accessibilityElement(children:.contain)
         .accessibilityIdentifier("voiceCapturePanel")
     }
     private var capture:some View {
-        VStack(spacing:compact ? 8 : 12) {
+        VStack(spacing:8) {
             if !compact {
                 HStack(spacing:7) {
                     Circle().fill(Theme.accent.opacity(0.8)).frame(width:4,height:4)
@@ -64,27 +66,17 @@ struct VoiceCaptureOverlay:View {
                         .font(.system(size:11)).foregroundStyle(Theme.ink.opacity(0.4))
                 }
             }
-            CaptureWave(speech:session.speech).frame(height:compact ? 20 : 28)
+            CaptureWave(speech:session.speech).frame(height:compact ? 16 : 20)
             Text(transcript)
-                .font(.system(size:compact ? 14 : 15)).lineSpacing(3).lineLimit(compact ? 1 : 2)
-                .frame(maxWidth:.infinity).frame(height:compact ? 22 : 42)
+                .font(.system(size:14)).lineSpacing(3).lineLimit(compact ? 1 : 2)
+                .frame(maxWidth:.infinity).frame(height:compact ? 20 : 36)
                 .multilineTextAlignment(.center).foregroundStyle(Theme.ink.opacity(session.voiceInput.text.isEmpty ? 0.46 : 0.9))
                 .accessibilityIdentifier("liveVoiceTranscript")
             if session.voiceInput.phase != .finishing {
-                HStack(spacing:8) {
-                    Image(systemName:session.voiceInput.editArmed ? "pencil.line" : "chevron.up")
-                        .font(.system(size:12,weight:.medium)).frame(width:16)
-                    Text(session.voiceInput.editArmed ? "松开，编辑文字" : "上滑到这里编辑")
-                        .font(.system(size:13,weight:.medium))
+                HStack(spacing:10) {
+                    landingZone(cancel:true)
+                    landingZone(cancel:false)
                 }
-                .frame(maxWidth:.infinity).frame(height:compact ? 40 : 46)
-                .foregroundStyle(session.voiceInput.editArmed ? Theme.ink : Theme.secondary)
-                .background(Theme.accent.opacity(session.voiceInput.editArmed ? 0.2 : 0.055),in:RoundedRectangle(cornerRadius:15,style:.continuous))
-                .overlay(RoundedRectangle(cornerRadius:15,style:.continuous).stroke(Theme.accent.opacity(session.voiceInput.editArmed ? 0.48 : 0.08),lineWidth:0.75))
-                .background {if let editTarget {VoiceEditTargetAnchor(target:editTarget)}}
-                .accessibilityElement(children:.ignore).accessibilityLabel("上滑编辑区域")
-                .accessibilityValue(session.voiceInput.editArmed ? "已选中，松开编辑" : "未选中")
-                .accessibilityIdentifier("voiceEditTarget")
             } else {
                 HStack(spacing:8) {
                     ProgressView().controlSize(.mini)
@@ -96,6 +88,22 @@ struct VoiceCaptureOverlay:View {
                 }.frame(height:compact ? 40 : 46)
             }
         }.allowsHitTesting(session.voiceInput.phase != .holding)
+    }
+    private func landingZone(cancel:Bool)->some View {
+        let armed=cancel ? session.voiceInput.cancelArmed : session.voiceInput.editArmed
+        let tint=cancel ? Theme.peach : Theme.accent
+        return HStack(spacing:6) {
+            Image(systemName:cancel ? "xmark" : "pencil.line").font(.system(size:11,weight:.medium))
+            Text(armed ? (cancel ? "松开取消" : "松开编辑") : (cancel ? "上滑取消" : "上滑编辑"))
+                .font(.system(size:12,weight:.medium))
+        }.frame(maxWidth:.infinity).frame(height:40)
+            .foregroundStyle(armed ? tint : Theme.secondary)
+            .background(tint.opacity(armed ? 0.2 : 0.055),in:RoundedRectangle(cornerRadius:12))
+            .overlay(RoundedRectangle(cornerRadius:12).stroke(tint.opacity(armed ? 0.48 : 0.08),lineWidth:0.75))
+            .background {if let target=cancel ? cancelTarget : editTarget {VoiceEditTargetAnchor(target:target)}}
+            .accessibilityElement(children:.ignore).accessibilityLabel(cancel ? "上滑取消区域" : "上滑编辑区域")
+            .accessibilityValue(armed ? "已选中，松开确认" : "未选中")
+            .accessibilityIdentifier(cancel ? "voiceCancelTarget" : "voiceEditTarget")
     }
     private var transcript:String {
         if !session.voiceInput.text.isEmpty {return session.voiceInput.text}

@@ -9,14 +9,16 @@ struct VoiceCaptureState {
     private(set) var text=""
     private(set) var wantsEdit=false
     private(set) var editArmed=false
+    private(set) var cancelArmed=false
     private(set) var resultReady=false
     private(set) var needsReview=false
     private var userEdited=false
     var active:Bool {phase != .idle}
     mutating func begin() {
-        text="";wantsEdit=false;editArmed=false;resultReady=false;needsReview=false;userEdited=false;phase = .holding
+        text="";wantsEdit=false;editArmed=false;cancelArmed=false;resultReady=false;needsReview=false;userEdited=false;phase = .holding
     }
-    mutating func armEdit(_ value:Bool) {guard phase == .holding else {return};editArmed=value}
+    mutating func armEdit(_ value:Bool) {guard phase == .holding else {return};editArmed=value;if value {cancelArmed=false}}
+    mutating func armCancel(_ value:Bool) {guard phase == .holding else {return};cancelArmed=value;if value {editArmed=false}}
     mutating func partial(_ value:String) {
         guard active,!resultReady,!userEdited else {return};text=clean(value)
     }
@@ -26,6 +28,7 @@ struct VoiceCaptureState {
     /// Finger release owns the decision. A completed ASR request is not a release.
     @discardableResult mutating func release(edit:Bool) -> String? {
         guard phase == .holding else {return nil}
+        if cancelArmed {cancel();return nil}
         wantsEdit=edit || needsReview;editArmed=false
         if wantsEdit {phase = .editing;return nil}
         phase = .finishing
@@ -37,7 +40,7 @@ struct VoiceCaptureState {
         if !userEdited {text=clean(value)}
         return phase == .finishing ? consume() : nil
     }
-    mutating func cancel() {phase = .idle;text="";wantsEdit=false;editArmed=false;resultReady=false;needsReview=false;userEdited=false}
+    mutating func cancel() {phase = .idle;text="";wantsEdit=false;editArmed=false;cancelArmed=false;resultReady=false;needsReview=false;userEdited=false}
     mutating func recover(_ partial:String) {
         guard active else {return}
         needsReview=true;resultReady=true

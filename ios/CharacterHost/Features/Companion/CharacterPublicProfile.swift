@@ -21,7 +21,10 @@ struct CharacterPublicProfile: Codable, Sendable, Identifiable {
 }
 
 struct AIInspectionReport:Decodable,Sendable {
-    struct Section:Decodable,Sendable,Identifiable {let id,title,detail,content:String}
+    struct Section:Decodable,Sendable,Identifiable {
+        let id,title,detail,content:String
+        var isEmpty:Bool { ["", "{}", "[]", "null"].contains(content.trimmingCharacters(in:.whitespacesAndNewlines)) }
+    }
     let version:Int
     let characterId,capturedAt:String
     var sections:[Section]

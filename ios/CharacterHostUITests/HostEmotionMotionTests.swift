@@ -17,7 +17,7 @@ final class HostEmotionMotionTests:XCTestCase {
             search.tap();search.typeText(role);app.buttons["discover-open-anime-"+role].tap()
             XCTAssertTrue(app.buttons["profileChatButton"].waitForExistence(timeout:8));app.buttons["profileChatButton"].tap()
             app.waitForCharacter({$0["modelId"] as? String == "anime-"+role && self.motion($0)["supported"] as? Bool == true},timeout:60)
-            app.buttons["conversationPerformanceButton"].tap()
+            app.openCharacterPerformance()
             XCTAssertTrue(app.buttons["hostEmotionMotionTab"].waitForExistence(timeout:8))
             app.buttons["hostEmotionMotionTab"].tap()
             let toggle=app.switches["hostEmotionMotionToggle"]
@@ -64,10 +64,10 @@ final class HostEmotionMotionTests:XCTestCase {
                 let selections=($0["characterPlatform"] as? [String:Any])?["performanceSelections"] as? [String] ?? []
                 return selections.contains("gesture-left-2") && self.motion($0)["enabled"] as? Bool == false
             }
-            app.buttons["performanceReset"].tap();app.buttons["closeCharacterPerformance"].tap()
+            app.buttons["performanceReset"].tap();app.closeCharacterPerformance()
         }
         // Return to the pilot tab and leave the experiment enabled for review.
-        app.buttons["conversationPerformanceButton"].tap();app.buttons["hostEmotionMotionTab"].tap()
+        app.openCharacterPerformance();app.buttons["hostEmotionMotionTab"].tap()
         app.switches["hostEmotionMotionToggle"].tap()
         app.waitForCharacter {self.motion($0)["enabled"] as? Bool == true}
     }

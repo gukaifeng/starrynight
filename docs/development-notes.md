@@ -1243,3 +1243,11 @@ iPhone 17 模拟器已能输出 SpringBoard 截图，但 `simctl bootstatus -b` 
 - **iPhone 17 已成功安装并启动 0.74.0（101）**，安装 14:03、启动 14:06，设备读回版本一致，Release 严格验签通过。没有卸载应用或清空真实聊天记录。构建日志 `host-device-20261001-140035.log`，回执 `.local/checks/character-openings/device-{install,launch,app}-final-101.json`。
 
 本轮自动化验证无付费 AI/ASR/TTS 请求，正常手机启动后的既有回访逻辑仍按实际使用调用服务。实现、失败处理、复跑方法与验证范围见 [0.74 完成验收](verification/character-openings/README.md) 和 [按住说话验证](verification/voice-hold/README.md)。
+
+## 2026-10-01 · 0.75.0（102）沉浸式界面与开发工具
+
+完成封面/加载背景铺满、三列紧凑发现页、胶囊内订阅、紧凑语音取消/编辑控件、灵感回声和声音窗口。氛围改为每角色五档“氛围浓淡”，默认适中明显增强，旧关闭值迁移为零。
+
+应用与角色各有编译隔离的开发者页面；AI 全量检查和手动角色表现集中在其中。检查详情明确分区身份与空记录，提示场景预览只改变上下文/请求、不改变共用人格。分发生成参数排除检查资源，开发构建禁止直接 Archive。验证过程中修复了胶囊重复无障碍元素、取消订阅踢出会话、开发子页缩放导致快速点击失效、短横幅只剩帽子、Bash 3 空参数数组等实际问题。
+
+iPhone 17 已安装启动 0.75.0（102），未清除用户会话。页面操作、语音、构图与检查服务测试及边界见 [验收记录](verification/immersive-controls/README.md)，构建开关和迁移方式见 [设计文档](design/2026-10-01-immersive-controls-and-developer-tools.md)。不将模拟器通过或真机启动描述为 120 FPS 验收。
