@@ -33,7 +33,10 @@ class Store:
         CREATE TABLE IF NOT EXISTS reaction_drafts(id TEXT PRIMARY KEY,owner TEXT,character TEXT,kind TEXT,context_key TEXT,status TEXT,data TEXT,created REAL,expires REAL);
         CREATE INDEX IF NOT EXISTS reaction_drafts_pool ON reaction_drafts(owner,character,context_key,kind,status,expires);
         CREATE TABLE IF NOT EXISTS quick_reply_sets(owner TEXT,character TEXT,source TEXT,context_key TEXT,data TEXT,expires REAL,PRIMARY KEY(owner,character));
+        CREATE TABLE IF NOT EXISTS conversation_resets(owner TEXT,character TEXT,id TEXT,created REAL,version INTEGER NOT NULL DEFAULT 0,PRIMARY KEY(owner,character,id));
         ''')
+        if 'version' not in {row['name'] for row in self.db.execute('PRAGMA table_info(conversation_resets)')}:
+            self.db.execute('ALTER TABLE conversation_resets ADD COLUMN version INTEGER NOT NULL DEFAULT 0')
         self.db.commit()
         if not self.get('migration','system','reply-novelty-v1'):
             with self.db:

@@ -71,8 +71,9 @@ class TurnStreams:
         if self.active.get(key, (None, None))[1] is job:
             self.active.pop(key, None)
 
-    async def start(self, key, request_id, source, replace=True):
+    async def start(self, key, request_id, source, replace=True, validate=None):
         async with self.lock(key):
+            if validate:validate()
             current = self.active.get(key)
             if current and current[1].task.done():
                 self.release(key, current[1]); current = None
@@ -81,6 +82,7 @@ class TurnStreams:
                     raise HTTPException(409, 'TURN_IN_PROGRESS', headers={'Retry-After': '1'})
                 await current[1].close()
                 self.release(key, current[1])
+            if validate:validate() # Cleanup awaited; deletion may have begun meanwhile.
             if len(self.active) >= self.capacity:
                 raise HTTPException(503, 'SERVER_BUSY', headers={'Retry-After': '1'})
             job = StreamJob(source(), lambda item: self.release(key, item))

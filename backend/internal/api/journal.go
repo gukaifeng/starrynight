@@ -17,6 +17,14 @@ type MessagePath struct {
 }
 
 func (s *Server) journalRoutes() {
+	type ResetInput struct {
+		CharacterPath
+		ResetID string `query:"reset_id" format:"uuid" required:"true"`
+	}
+	register(s, "DELETE", "/v1/conversations/{character}", "delete-conversation-and-memory", true, func(ctx context.Context, in *ResetInput) (*Output[store.ConversationReset], error) {
+		v, e := s.Store.ResetConversation(ctx, principal(ctx).ID, in.Character, in.ResetID)
+		return output(v, e)
+	})
 	register(s, "DELETE", "/v1/conversations/{character}/messages", "clear-conversation-messages", true, func(ctx context.Context, in *CharacterPath) (*Output[OK], error) {
 		return output(OK{true}, s.Store.ClearMessages(ctx, principal(ctx).ID, in.Character))
 	})
@@ -58,18 +66,19 @@ func (s *Server) journalRoutes() {
 	type MessageInput struct {
 		MessagePath
 		Body struct {
-			ExpectedVersion int64          `json:"expected_version" minimum:"0"`
-			Role            string         `json:"role" enum:"user,assistant"`
-			Text            string         `json:"text" maxLength:"32000"`
-			CreatedAt       time.Time      `json:"created_at"`
-			Data            map[string]any `json:"data"`
+			ExpectedVersion   int64          `json:"expected_version" minimum:"0"`
+			Role              string         `json:"role" enum:"user,assistant"`
+			Text              string         `json:"text" maxLength:"32000"`
+			CreatedAt         time.Time      `json:"created_at"`
+			ConversationReset string         `json:"conversation_reset,omitempty" maxLength:"36"`
+			Data              map[string]any `json:"data"`
 		}
 	}
 	register(s, "PUT", "/v1/conversations/{character}/messages/{id}", "save-message", true, func(ctx context.Context, in *MessageInput) (*Output[store.Message], error) {
 		if in.Body.CreatedAt.After(time.Now().Add(24*time.Hour)) || in.Body.CreatedAt.Year() < 2000 {
 			return nil, huma.Error422UnprocessableEntity("invalid created_at")
 		}
-		v, e := s.Store.PutMessage(ctx, principal(ctx).ID, store.Message{ID: in.ID, CharacterID: in.Character, Role: in.Body.Role, Text: in.Body.Text, CreatedAt: in.Body.CreatedAt, Data: in.Body.Data}, in.Body.ExpectedVersion)
+		v, e := s.Store.PutMessage(ctx, principal(ctx).ID, store.Message{ID: in.ID, CharacterID: in.Character, Role: in.Body.Role, Text: in.Body.Text, CreatedAt: in.Body.CreatedAt, Data: in.Body.Data}, in.Body.ExpectedVersion, in.Body.ConversationReset)
 		return output(v, e)
 	})
 	for _, entry := range []struct{ path, kind string }{{"memories", "memory"}, {"moments", "moment"}} {
@@ -90,12 +99,13 @@ func (s *Server) journalRoutes() {
 		type EntryInput struct {
 			MessagePath
 			Body struct {
-				ExpectedVersion int64          `json:"expected_version" minimum:"0"`
-				Data            map[string]any `json:"data"`
+				ExpectedVersion   int64          `json:"expected_version" minimum:"0"`
+				Data              map[string]any `json:"data"`
+				ConversationReset string         `json:"conversation_reset,omitempty" maxLength:"36"`
 			}
 		}
 		register(s, "PUT", "/v1/conversations/{character}/"+path+"/{id}", "save-"+kind, true, func(ctx context.Context, in *EntryInput) (*Output[store.Entry], error) {
-			v, e := s.Store.PutEntry(ctx, principal(ctx).ID, store.Entry{ID: in.ID, CharacterID: in.Character, Kind: kind, Data: in.Body.Data}, in.Body.ExpectedVersion)
+			v, e := s.Store.PutEntry(ctx, principal(ctx).ID, store.Entry{ID: in.ID, CharacterID: in.Character, Kind: kind, Data: in.Body.Data}, in.Body.ExpectedVersion, in.Body.ConversationReset)
 			return output(v, e)
 		})
 		type DeleteEntryInput struct {

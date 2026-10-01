@@ -16,12 +16,13 @@ from .public_profiles import public_profile
 from .inspection import report as inspection_report
 from .reaction_pool import ReactionPool
 from .schemas import PreparationRequest,QuickReplyRequest
+from .openings import OpeningRegistration,register as register_opening
 
 def create_app(settings=None,provider=None):
     settings=settings or Settings.load();store=Store(settings.data_dir/'state.sqlite3')
     provider=provider or Provider(settings,store);engine=Orchestrator(settings,store,provider)
     reactions=ReactionPool(engine);engine.reactions=reactions
-    busy=set(); turns=TurnStreams()
+    busy=set(); resetting=set(); turns=TurnStreams()
     @asynccontextmanager
     async def lifespan(app):
         async def warmup():
@@ -51,6 +52,10 @@ def create_app(settings=None,provider=None):
         if key in busy:raise HTTPException(409,'AUDIO_INPUT_BUSY')
         if len(busy)>=4:raise HTTPException(503,'SERVER_BUSY')
         busy.add(key)
+    def check_reset(who,character,body):
+        if (who,character) in resetting:raise HTTPException(409,'CONVERSATION_RESETTING')
+        row=store.db.execute('SELECT id FROM conversation_resets WHERE owner=? AND character=? ORDER BY version DESC,created DESC LIMIT 1',(who,character)).fetchone()
+        if body.conversation_reset != (row['id'] if row else ''):raise HTTPException(409,'CONVERSATION_RESET_REQUIRED')
     @app.get('/health')
     async def health():return dict(status='ok',protocol=1,revision=5,paid_calls=False)
     @app.get('/v1/status')
@@ -73,16 +78,25 @@ def create_app(settings=None,provider=None):
     @app.post('/v1/conversations/{character}/messages')
     async def messages(character:str,body:Request,request:HTTPRequest):
         who=owner(request.headers)
+        check_reset(who,character,body)
         if character!=body.character_id:raise HTTPException(400,'CHARACTER_MISMATCH')
         if body.trigger in ('user_message','story') and not body.text.strip():raise HTTPException(400,'EMPTY_MESSAGE')
         mode=request.headers.get('x-starry-reply-mode')
         if mode in ('progressive-v1','timeline-v2'):body.progressive_reply=True
         if mode=='timeline-v2':body.timeline_reply=True
         body.parallel_performance=body.timeline_reply and request.headers.get('x-starry-performance-mode')=='parallel-v1'
-        return await turns.start(who+':'+character,str(body.request_id),lambda: engine.reply(who,body),replace=body.trigger!='idle')
+        return await turns.start(who+':'+character,str(body.request_id),lambda: engine.reply(who,body),replace=body.trigger!='idle',validate=lambda:check_reset(who,character,body))
+    @app.post('/v1/conversations/{character}/opening')
+    async def opening(character:str,body:OpeningRegistration,request:HTTPRequest):
+        who=owner(request.headers);check_reset(who,character,body)
+        if character not in PROFILES:raise HTTPException(404)
+        try:register_opening(store,who,character,body)
+        except ValueError:raise HTTPException(422,'UNKNOWN_OPENING') from None
+        return dict(accepted=True)
     @app.post('/v1/conversations/{character}/reactions/prepare')
     async def prepare_reactions(character:str,body:PreparationRequest,request:HTTPRequest):
         who=owner(request.headers)
+        check_reset(who,character,body)
         if character!=body.character_id:raise HTTPException(400,'CHARACTER_MISMATCH')
         return reactions.prepare(who,body)
     @app.post('/v1/conversations/{character}/reactions/pause')
@@ -101,10 +115,14 @@ def create_app(settings=None,provider=None):
         who=owner(request.headers)
         row=store.db.execute("SELECT data FROM messages WHERE id=? AND owner=? AND character=? AND role='assistant'",(str(message_id),who,character)).fetchone()
         if not row:raise HTTPException(404,'MESSAGE_NOT_FOUND')
-        return await turns.start(who+':'+character,'audio:'+str(message_id),lambda: engine.audio(who,character,json.loads(row[0]),True))
+        def still_available():
+            if (who,character) in resetting:raise HTTPException(409,'CONVERSATION_RESETTING')
+            if not store.db.execute('SELECT 1 FROM messages WHERE owner=? AND character=? AND id=?',(who,character,str(message_id))).fetchone():raise HTTPException(404,'MESSAGE_NOT_FOUND')
+        return await turns.start(who+':'+character,'audio:'+str(message_id),lambda: engine.audio(who,character,json.loads(row[0]),True),validate=still_available)
     @app.post('/v1/conversations/{character}/suggestions/{operation}')
     async def suggestions(character:str,operation:str,body:QuickReplyRequest,request:HTTPRequest):
         who=owner(request.headers)
+        check_reset(who,character,body)
         if character!=body.character_id:raise HTTPException(400,'CHARACTER_MISMATCH')
         if operation=='prepare':return reactions.quick.prepare(who,body)
         if operation=='status':return reactions.quick.status(who,body)
@@ -138,6 +156,32 @@ def create_app(settings=None,provider=None):
             store.db.execute("DELETE FROM records WHERE kind='response_focus' AND owner=? AND character=?",(who,character))
             store.db.execute("DELETE FROM records WHERE kind='idle_presence' AND owner=? AND character=?",(who,character))
         return dict(cleared=True)
+    @app.delete('/v1/conversations/{character}')
+    async def delete_conversation(character:str,request:HTTPRequest,reset_id:UUID,reset_version:int=0):
+        who=owner(request.headers);scope=(who,character);identifier=str(reset_id)
+        if character not in PROFILES:raise HTTPException(404)
+        if reset_version<0:raise HTTPException(422,'INVALID_RESET_VERSION')
+        current=store.db.execute('SELECT id,version FROM conversation_resets WHERE owner=? AND character=? ORDER BY version DESC,created DESC LIMIT 1',scope).fetchone()
+        if current and current['version']>0 and current['version']>=reset_version:
+            return dict(cleared=True,reset_id=current['id'],version=current['version'])
+        if store.db.execute('SELECT 1 FROM conversation_resets WHERE owner=? AND character=? AND id=?',(who,character,identifier)).fetchone():
+            return dict(cleared=True,reset_id=current['id'] if current else identifier,version=current['version'] if current else reset_version)
+        if scope in resetting:raise HTTPException(409,'CONVERSATION_RESETTING')
+        resetting.add(scope)
+        try:
+            await clear_messages(character,request)
+            for key,job in list(reactions.jobs.items()):
+                if job.owner==who and job.request.character_id==character:reactions.jobs.pop(key,None)
+            reactions.leases.pop(scope,None);reactions.quick.targets.pop(scope,None)
+            # clear_messages joins/cancels active producers before this atomic
+            # erase. No new generation can start until the epoch is installed.
+            with store.db:
+                for table in ('memories','records','asset_usage','quick_reply_sets'):
+                    store.db.execute(f'DELETE FROM {table} WHERE owner=? AND character=?',scope)
+                import time
+                store.db.execute('INSERT INTO conversation_resets VALUES(?,?,?,?,?)',(who,character,identifier,time.time(),reset_version))
+            return dict(cleared=True,reset_id=identifier,version=reset_version)
+        finally:resetting.discard(scope)
     @app.websocket('/v1/asr/{character}')
     async def asr(socket:WebSocket,character:str):
         key=None

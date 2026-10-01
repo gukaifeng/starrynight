@@ -86,7 +86,7 @@ func (s *Store) Document(ctx context.Context, user, kind, character string) (Doc
 	}
 	return out, e
 }
-func (s *Store) PatchDocument(ctx context.Context, user, kind, character string, expected int64, patch map[string]any) (Document, error) {
+func (s *Store) PatchDocument(ctx context.Context, user, kind, character string, expected int64, patch map[string]any, reset ...string) (Document, error) {
 	var out Document
 	e := s.write(ctx, user, func(tx pgx.Tx) error {
 		table := "settings"
@@ -94,6 +94,9 @@ func (s *Store) PatchDocument(ctx context.Context, user, kind, character string,
 		args := []any{user}
 		resource := "settings"
 		if kind == "preference" {
+			if e := checkConversationReset(ctx, tx, user, character, reset); e != nil {
+				return e
+			}
 			if e := accessible(ctx, tx, user, character); e != nil {
 				return e
 			}

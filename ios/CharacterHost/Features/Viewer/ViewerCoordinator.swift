@@ -66,6 +66,9 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
     }
     private func prepareEntry(_ model:ModelDescriptor,trigger:String,delay:Double) {
         cancelEntryPreparation()
+        // First meetings are already in the app, including voice/performance.
+        guard !ConversationGreetingPolicy.shouldIntroduce(companionStore.record(model.id)) else {return}
+        guard companionStore.record(model.id).pendingDeletionID==nil else {return}
         guard CharacterAI.reactionPreparationEnabled,
               !(companionStore.accountID=="guest" && companionStore.guestLimitReached) else {return}
         let owner=companionStore.accountID
@@ -151,6 +154,11 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
         library.activate(id,existing:companionStore.currentRecords,adoptingGuest:adoptingGuest)
         if platformSync == nil {
             platformSync = AccountSync(account:account,store:companionStore,library:library)
+            platformSync?.onConversationReset = { [weak self] id in
+                guard let self else {return}
+                if self.companion?.model.id==id {self.companion?.stop();self.companion?.clearMessageFocus()}
+                self.cancelEntryPreparation()
+            }
             account.onFirstSync = { [weak self] in
                 guard let self,self.selectedTab == .home,
                       let id=self.library.lastCharacter,id != self.selectedModel.id else{return}
@@ -343,6 +351,25 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
         prepareEntry(model,trigger:greetingReason == .appLaunch ? "appLaunch" : "characterSwitch",delay:0)
         applyPendingMessage()
         openViewer(model,asCompanion:true)
+    }
+    func deleteConversation(_ id:String) async throws {
+        let owner=companionStore.accountID
+        let reset=companionStore.record(id).pendingDeletionID ?? UUID().uuidString.lowercased()
+        if companion?.model.id==id {companion?.stop();companion?.clearMessageFocus()}
+        cancelEntryPreparation()
+        await platformSync?.suspendForDeletion()
+        defer {platformSync?.resumeAfterDeletion()}
+        guard owner==companionStore.accountID else {throw CancellationError()}
+        // Persist the nonce before any network change. A partial failure blocks
+        // new turns/outbox uploads and a retry completes the same deletion.
+        try companionStore.applyCloudBatch {companionStore.update(id){$0.pendingDeletionID=reset}}
+        let confirmed=try await CharacterAI(accountID:owner,characterID:id).deleteConversation(resetID:reset)
+        guard owner==companionStore.accountID else {throw CancellationError()}
+        let messages=companionStore.record(id).messages
+        try companionStore.applyCloudBatch {companionStore.update(id){$0.resetConversation(confirmed.resetID,version:confirmed.version)}}
+        SpeechClipCache.shared.removeConversation(scope:owner+"|"+id,messages:messages)
+        _ = library.hideConversation(id,latestMessage:nil)
+        NotificationCenter.default.post(name:.accountDataChanged,object:nil)
     }
     private func configureAppearance(_ profile: CharacterProfile, immediate: Bool = false) {
         send("configureCompanion",payload:["accent":profile.accent,"ambience":profile.ambience])

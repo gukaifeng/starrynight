@@ -75,3 +75,5 @@ __pycache__/
 # SDK archives are reproducible from the tracked SDK source and examples.
 /docs/character-standard/deliverables/
 /docs/environment-standard/deliverables/
+# Generated opening voices stay local with the licensed character media.
+ios/CharacterHost/Resources/Opening_*.pcm

@@ -16,8 +16,15 @@ struct CharacterAvatar: View {
                     Circle().stroke(Theme.accent.opacity(0.55),lineWidth:1).padding(-4)
                 } else { AvatarVoiceRipples().padding(-1).allowsHitTesting(false) }
             }
-            Image(uiImage:portraits.image(model,profile:profile) ?? UIImage(named:model.thumbnail+"Portrait") ?? UIImage(named:model.thumbnail) ?? UIImage())
-                .resizable().scaledToFill().frame(width:size,height:size)
+            Group {
+                if let definition=CharacterCoverDefinition.find(model),let head=definition.headBounds,
+                   let cover=UIImage(named:definition.asset) {
+                    CharacterFocusedArtwork(artwork:cover,head:head,circle:true)
+                } else {
+                    Image(uiImage:portraits.image(model,profile:profile) ?? UIImage(named:model.thumbnail+"Portrait") ?? UIImage(named:model.thumbnail) ?? UIImage())
+                        .resizable().scaledToFill()
+                }
+            }.frame(width:size,height:size)
                 .clipShape(Circle()).overlay(Circle().stroke(Theme.accent.opacity(0.24),lineWidth:0.7))
                 .offset(y:floatingEnabled && !reduceMotion && floating ? -1 : 0)
         }.frame(width:size,height:size).accessibilityHidden(true)

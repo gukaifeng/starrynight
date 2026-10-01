@@ -34,7 +34,10 @@ type UpdateCharacterInput struct {
 }
 type PreferenceInput struct {
 	IDInput
-	Body Mutation
+	Body struct {
+		Mutation
+		ConversationReset string `json:"conversation_reset,omitempty" maxLength:"36"`
+	}
 }
 type DeleteVersionInput struct {
 	IDInput
@@ -69,7 +72,7 @@ func (s *Server) catalogRoutes() {
 		return output(v, e)
 	})
 	register(s, "PATCH", "/v1/characters/{id}/preferences", "patch-character-preferences", true, func(ctx context.Context, in *PreferenceInput) (*Output[store.Document], error) {
-		v, e := s.Store.PatchDocument(ctx, principal(ctx).ID, "preference", in.ID, in.Body.ExpectedVersion, in.Body.Patch)
+		v, e := s.Store.PatchDocument(ctx, principal(ctx).ID, "preference", in.ID, in.Body.ExpectedVersion, in.Body.Patch, in.Body.ConversationReset)
 		return output(v, e)
 	})
 	register(s, "GET", "/v1/authors/{id}", "get-author", false, func(ctx context.Context, in *IDInput) (*Output[store.Author], error) {

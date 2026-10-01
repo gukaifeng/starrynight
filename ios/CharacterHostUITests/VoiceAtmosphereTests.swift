@@ -2,6 +2,51 @@ import XCTest
 import UIKit
 
 final class VoiceAtmosphereTests:XCTestCase {
+    @MainActor func testBundledFirstMeetingAndPersistentReset() {
+        let app=XCUIApplication();app.launchArguments=["--ui-testing","--opening-check"]
+        app.launch();defer{app.terminate()}
+        let result=app.staticTexts["openingCheckResult"]
+        wait {result.exists && (result.label.hasPrefix("PASS:") || result.label.hasPrefix("FAIL:"))}
+        XCTAssertTrue(result.label.hasPrefix("PASS:"),result.label)
+        let evidence=XCTAttachment(string:result.label);evidence.lifetime = .keepAlways;add(evidence)
+    }
+
+    @MainActor func testHoldSurvivesEarlyRecognitionAndReleasesIntoEditor() {
+        continueAfterFailure=false;XCUIDevice.shared.orientation = .portrait
+        let app=XCUIApplication();app.launchArguments=["--ui-testing","--voice-atmosphere-check"]
+        app.launch();defer {app.terminate()}
+        wait {app.staticTexts["voiceCoreResult"].exists && app.staticTexts["voiceCoreResult"].label.hasPrefix("PASS:")}
+        app.buttons["inputModeButton"].tap()
+        let hold=app.buttons["holdToTalkButton"]
+        XCTAssertTrue(hold.waitForExistence(timeout:5))
+        let origin=hold.coordinate(withNormalizedOffset:CGVector(dx:0.5,dy:0.5))
+        // The deterministic ASR final arrives after 340ms, while this finger is
+        // still held. The landing area sits immediately above the composer.
+        origin.press(forDuration:0.8,thenDragTo:origin.withOffset(CGVector(dx:0,dy:-80)),withVelocity:.slow,thenHoldForDuration:0.6)
+        let edit=app.textViews["voiceEditText"]
+        XCTAssertTrue(edit.waitForExistence(timeout:5));XCTAssertEqual(edit.value as? String,"今天窗外下雨了")
+        XCTAssertEqual(app.staticTexts.matching(identifier:"userMessage").count,0,"Sliding to edit cannot send an early ASR result")
+        capture("voice-release-to-edit")
+        app.buttons["取消语音消息"].tap()
+        XCTAssertTrue(hold.waitForExistence(timeout:5))
+        hold.press(forDuration:1.2)
+        wait {app.staticTexts.matching(identifier:"userMessage").count==1}
+        XCTAssertFalse(edit.exists,"A release outside the target sends directly")
+    }
+    @MainActor func testCaptureFailureKeepsHeldWordsForReview() {
+        continueAfterFailure=false;XCUIDevice.shared.orientation = .portrait
+        let app=XCUIApplication();app.launchArguments=["--ui-testing","--voice-atmosphere-check","--voice-capture-error"]
+        app.launch();defer {app.terminate()}
+        wait {app.staticTexts["voiceCoreResult"].exists && app.staticTexts["voiceCoreResult"].label.hasPrefix("PASS:")}
+        app.buttons["inputModeButton"].tap()
+        app.buttons["holdToTalkButton"].press(forDuration:1.2)
+        let edit=app.textViews["voiceEditText"]
+        XCTAssertTrue(edit.waitForExistence(timeout:5));XCTAssertEqual(edit.value as? String,"今天窗外下雨了")
+        XCTAssertEqual(app.staticTexts.matching(identifier:"userMessage").count,0,"An interrupted recording requires review")
+        edit.tap();edit.typeText("!")
+        app.buttons["sendVoiceEditButton"].tap()
+        wait {app.staticTexts.matching(identifier:"userMessage").count==1}
+    }
     @MainActor func testCompactVoiceEditingWithLandscapeKeyboard() {
         continueAfterFailure=false;XCUIDevice.shared.orientation = .landscapeLeft
         let app=XCUIApplication();app.launchArguments=["--ui-testing","--voice-atmosphere-check"]
@@ -32,7 +77,7 @@ final class VoiceAtmosphereTests:XCTestCase {
         let input=app.textViews["chatInput"]
         input.tap();input.typeText("Keep this typed draft")
         app.buttons["inputModeButton"].tap()
-        XCTAssertTrue(app.staticTexts["holdToTalkButton"].waitForExistence(timeout:4))
+        XCTAssertTrue(app.buttons["holdToTalkButton"].waitForExistence(timeout:4))
         XCTAssertFalse(app.buttons["sendMessageButton"].exists)
         app.buttons["inputModeButton"].tap()
         XCTAssertEqual(input.value as? String,"Keep this typed draft")
@@ -76,7 +121,7 @@ final class VoiceAtmosphereTests:XCTestCase {
             capture("keyboard-\(orientation.rawValue)")
             app.buttons["inputModeButton"].tap()
             wait {!app.keyboards.firstMatch.exists}
-            XCTAssertTrue(app.staticTexts["holdToTalkButton"].isHittable)
+            XCTAssertTrue(app.buttons["holdToTalkButton"].isHittable)
             app.buttons["inputModeButton"].tap()
             XCTAssertTrue((input.value as? String ?? "").contains("draft"))
             app.buttons["conversationSoundButton"].tap()

@@ -72,6 +72,13 @@ final class CompanionSession {
     @ObservationIgnored private var preparedNickname:String
     @ObservationIgnored private var activeScript: AIScript?
     @ObservationIgnored private var performedBeats = Set<String>()
+    @ObservationIgnored private var registeredOpening:String?
+    private func registerOpeningContext() async throws {
+        guard let script=record.messages.first(where:{$0.aiScript?.openingID != nil})?.aiScript,
+              registeredOpening != script.messageId else {return}
+        try await api.registerOpening(script,resetID:record.conversationResetID ?? "")
+        try Task.checkCancellation();registeredOpening=script.messageId
+    }
     var record: CharacterRecord {
         var value = store.record(model.id)
         value.profile = model.conversationProfile(preserving:value.profile)
@@ -79,6 +86,7 @@ final class CompanionSession {
     }
     func requestLogin() { dismissKeyboardRequest += 1; onLoginRequested?() }
     private func allowReply() -> Bool {
+        guard record.pendingDeletionID==nil else {notice="上次删除尚未完成，请在消息页重试删除。";return false}
         if isGuest && store.guestLimitReached { requestLogin(); return false }; return true
     }
     var muted: Bool { soundscape.speechVolume <= 0 }
@@ -118,8 +126,9 @@ final class CompanionSession {
         }
         speech.onCaptureCancelled = { [weak self] in self?.voiceInput.cancel() }
         speech.onCaptureRecovery = { [weak self] text in
-            self?.voiceInput.recover(text);self?.notice="连接暂时中断，已保留识别文字，可以修改后发送。"
+            self?.voiceInput.recover(text)
         }
+        speech.onPartial = { [weak self] text in self?.voiceInput.partial(text) }
         speech.onTranscript = { [weak self] text in
             guard let self else {return}
             if let ready=self.voiceInput.accept(text) {self.sendVoiceText(ready)}
@@ -142,6 +151,7 @@ final class CompanionSession {
     }
     func enterConversation(_ entry: ConversationEntry) {
         guard entry.characterID == model.id, entry.accountID == ownerID, store.accountID == ownerID else { return }
+        guard record.pendingDeletionID==nil else {notice="上次删除尚未完成，请在消息页重试删除。";return}
         refreshAddressPreferences()
         guard ConversationGreetingPolicy.shouldGreet(record,entry:entry) else {
             scheduleReactionPreparation();scheduleIdle();return
@@ -164,10 +174,48 @@ final class CompanionSession {
     private func deliverPendingGreeting() {
         guard let entry = pendingGreeting, !characterEditorPresented, store.accountID == ownerID else { return }
         pendingGreeting = nil
-        guard ConversationGreetingPolicy.shouldGreet(record,entry:entry), !generating, !speech.isRecording, !speech.isBusy, !speech.isSpeaking else { return }
+        guard ConversationGreetingPolicy.shouldGreet(record,entry:entry), !voiceInput.active, !generating, !speech.isRecording, !speech.isBusy, !speech.isSpeaking else { return }
+        if ConversationGreetingPolicy.shouldIntroduce(record) {
+            guard let opening=CharacterOpenings.random(for:model.runtimeID) else {
+                notice="这个角色的初次见面内容尚未打包。";return
+            }
+            playOpening(opening,entry:entry);return
+        }
         let context = ConversationGreetingContext.make(reason:entry.reason,record:record,
             hasMetAnyone:store.currentRecords.values.contains { $0.greeting != nil || !$0.messages.isEmpty })
         generate("",trigger:context.scene,entry:entry)
+    }
+    private func playOpening(_ opening:CharacterOpening,entry:ConversationEntry) {
+        stop();notice=nil
+        let current=token,script=opening.script(characterID:model.id)
+        let id=UUID(uuidString:script.messageId)!
+        activeScript=script;beginTurn()
+        let message=CompanionMessage(id:id,role:"assistant",text:script.text,
+            proactiveScene:"firstMeeting",aiScript:script,source:"bundled-opening-v1")
+        replyReveal.begin(id,script:script)
+        store.update(model.id) { record in
+            record.messages.append(message)
+            record.greeting=ConversationGreetingHistory(count:1,lastDate:Date(),lastText:script.text,lastEntryID:entry.id)
+        }
+        // Record once before playback, so rapid remounts and interruption never
+        // draw another first-meeting variant. Later greetings remain contextual AI.
+        task=Task { @MainActor [weak self] in
+            guard let self else {return}
+            do {
+                if muted {playSilentVisuals(script);revealSilently(script)}
+                else {_ = try await speech.cachedReplay(script,messageID:id);replyReveal.finish()}
+                guard token==current,store.accountID==ownerID else {return}
+                emit("state.idle");scheduleIdle()
+                // Preparation is for future interactions, never for this opening.
+                scheduleReactionPreparation(delay:1);scheduleQuickReplies(script)
+            } catch {
+                guard token==current,!Task.isCancelled else {return}
+                speech.stop();playSilentVisuals(script);replyReveal.finish();emit("state.idle")
+                // Missing package media is a build error. Never silently replace
+                // a first meeting with a paid/network-generated greeting.
+                notice="这份角色的开场语音尚未打包，文字与表情仍可查看。"
+            }
+        }
     }
     func send(quickReplyID:String? = nil) {
         let text = String(input.trimmingCharacters(in:.whitespacesAndNewlines).prefix(500))
@@ -187,17 +235,26 @@ final class CompanionSession {
         let draft=input;input=option.text;send(quickReplyID:option.id)
         if !draft.isEmpty {input=draft}
     }
-    func beginVoiceInput() {
-        guard !characterEditorPresented,allowReply() else {return}
-        stop(preservePreparation:true);voiceInput.begin();speech.startRecording()
+    @discardableResult func beginVoiceInput() -> Bool {
+        guard !voiceInput.active,!characterEditorPresented,allowReply() else {return false}
+        stop(preservePreparation:true);voiceInput.begin();speech.startRecording();return true
     }
     func finishVoiceInput(edit:Bool) {
         guard voiceInput.phase == .holding else {return}
-        voiceInput.release(edit:edit);speech.finishRecording()
+        let ready=voiceInput.release(edit:edit)
+        speech.finishRecording()
+        if let ready {sendVoiceText(ready)}
     }
     func cancelVoiceInput() {voiceInput.cancel();speech.stop()}
+    func cancelVoiceHold() {
+        guard voiceInput.phase == .holding else {return}
+        // An interrupted touch never sends. Keep already recognized words for review.
+        speech.stop()
+        if voiceInput.text.isEmpty {voiceInput.cancel()}
+        else {voiceInput.recover(voiceInput.text);voiceInput.release(edit:true)}
+    }
     func sendVoiceText(_ text:String) {
-        let draft=input;voiceInput.cancel();input=text;send()
+        let draft=input;voiceInput.cancel();speech.stop();input=text;send()
         if !draft.isEmpty {input=draft}
     }
     func beginStory(_ story: CompanionStory,replay: Bool = false) {
@@ -240,9 +297,10 @@ final class CompanionSession {
     static func requestBody(store:CompanionStore,model:ModelDescriptor,text:String,trigger:String)->[String:Any] {
         let record=store.record(model.id)
         let p = record.together.preferences.normalized
-        var recent = record.messages.filter { $0.source == "cloud-v1" }
+        var recent = record.messages.filter { $0.source == "cloud-v1" || $0.source == "bundled-opening-v1" }
         if recent.last?.role == "user", recent.last?.text == text { recent.removeLast() }
         return ["request_id":UUID().uuidString,"character_id":model.id,"text":text,"trigger":trigger,
+            "conversation_reset":record.conversationResetID ?? "",
             "preferences":["nickname":store.effectiveNickname(for:model.id),"nicknameSource":store.nicknameSource(for:model.id),
                            "aboutMe":p.aboutMe,"relationship":p.relationship,"responseStyle":p.responseStyle,"avoidedTopics":p.avoidedTopics],
             "memories":record.memories.suffix(100).map { ["id":$0.id.uuidString,"text":$0.text] },
@@ -259,7 +317,7 @@ final class CompanionSession {
     func reactToModelInteraction(kind:String,intensity:Double) {
         guard ["shake","pinch_out","pinch_in"].contains(kind),intensity.isFinite else {return}
         guard !inspectionActive,!characterEditorPresented,store.accountID==ownerID,
-              !(isGuest && store.guestLimitReached),!speech.isRecording,shakeTask==nil else {return}
+              !(isGuest && store.guestLimitReached),!voiceInput.active,!speech.isRecording,shakeTask==nil else {return}
         if kind=="shake" {shakeReactions+=1} else {pinchReactions+=1}
         lastModelInteraction=kind
         // Physical play interrupts current playback instead of waiting up to
@@ -268,6 +326,7 @@ final class CompanionSession {
             interaction:["kind":kind,"intensity":min(1,max(0,intensity))])
     }
     private func generate(_ text: String,trigger: String,entry: ConversationEntry? = nil,interaction:[String:Any]? = nil,quickReplyID:String? = nil) {
+        guard record.pendingDeletionID==nil else {return}
         stop(preservePreparation:true);quickReplies=[];quickReplySource=nil
         let current = token; generating = true; beginTurn(); emit("state.thinking")
         var body=requestBody(text,trigger:trigger)
@@ -288,6 +347,7 @@ final class CompanionSession {
             }
             defer {audio.cancel()}
             do {
+                try await registerOpeningContext()
                 try await api.events(path:"/v1/conversations/"+model.id+"/messages",body:body) { [weak self] event in
                     guard let self, current == self.token, self.store.accountID == self.ownerID else { throw CancellationError() }
                     switch event.type {
@@ -383,7 +443,7 @@ final class CompanionSession {
         idleTask = Task { @MainActor [weak self] in
             try? await Task.sleep(for:.seconds(Int.random(in:150...240)))
             guard !Task.isCancelled, let self, !self.generating, !self.speech.isRecording, !self.speech.isBusy,
-                  !self.speech.isSpeaking, self.input.isEmpty, !self.characterEditorPresented else { return }
+                  !self.speech.isSpeaking, !self.voiceInput.active, self.input.isEmpty, !self.characterEditorPresented else { return }
             self.generate("",trigger:"idle")
         }
     }
@@ -397,8 +457,9 @@ final class CompanionSession {
                 // after it ends. Foreground events can adopt in-flight work.
                 try await Task.sleep(for:.seconds(delay))
                 guard let self,self.token==current,self.store.accountID==self.ownerID,
-                      !self.generating,!self.speech.isRecording,self.input.isEmpty else {return}
+                      !self.generating,!self.voiceInput.active,!self.speech.isRecording,self.input.isEmpty else {return}
                 let body=self.requestBody("",trigger:"idle")
+                try await self.registerOpeningContext()
                 self.reactionPreparationLease=body["request_id"] as? String
                 var status=try await self.api.prepareReactions(body)
                 for _ in 0..<60 {
@@ -434,6 +495,7 @@ final class CompanionSession {
             defer {if self.token==current {self.quickRepliesLoading=false}}
             do {
                 var body=self.requestBody("",trigger:"idle");body["source_message_id"]=script.messageId
+                try await self.registerOpeningContext()
                 var response=try await self.api.quickReplies(body,prepare:true)
                 for _ in 0..<30 {
                     guard !Task.isCancelled,self.token==current,self.store.accountID==self.ownerID,

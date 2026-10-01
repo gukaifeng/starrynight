@@ -1,16 +1,5 @@
 import SwiftUI
 
-private struct VoiceArch:Shape {
-    var compact=false
-    func path(in rect:CGRect)->Path {
-        var path=Path();path.move(to:CGPoint(x:0,y:rect.height))
-        let shoulder:CGFloat=compact ? 18 : 56
-        path.addLine(to:CGPoint(x:0,y:shoulder))
-        path.addQuadCurve(to:CGPoint(x:rect.width,y:shoulder),control:CGPoint(x:rect.midX,y:compact ? -6 : -42))
-        path.addLine(to:CGPoint(x:rect.width,y:rect.height));path.closeSubpath();return path
-    }
-}
-
 private struct CaptureWave:View {
     @Bindable var speech:CloudSpeech
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -23,7 +12,7 @@ private struct CaptureWave:View {
                     for index in 0...96 {
                         let x=Double(index)/96
                         let envelope=pow(sin(x * .pi),1.8)
-                        let amplitude=3+Double(speech.inputLevel)*19
+                        let amplitude=2+Double(speech.inputLevel)*Double(size.height*0.4-2)
                         let y=size.height/2+sin(x * .pi*5-time*4+Double(layer)*0.6)*envelope*amplitude*(1-Double(layer)*0.21)
                         let point=CGPoint(x:x*size.width,y:y)
                         if index==0 {line.move(to:point)} else {line.addLine(to:point)}
@@ -35,28 +24,102 @@ private struct CaptureWave:View {
     }
 }
 
+/// A quiet floating panel: fixed recording geometry, a live line, and one clear
+/// landing area. Only releasing over that area enters the text editor.
 struct VoiceCaptureOverlay:View {
     @Bindable var session:CompanionSession
     @Binding var editing:Bool
     var compact=false
+    var editTarget:VoiceCaptureTouchTarget?
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    private var recording:Bool {session.voiceInput.phase != .editing}
+    private var shape:RoundedRectangle {RoundedRectangle(cornerRadius:compact ? 20 : 26,style:.continuous)}
     var body:some View {
-        VStack(spacing:compact ? 5 : 10) {
-            if session.voiceInput.phase == .editing {
-              if !compact {
-                HStack {
-                    Text("确认一下，再说给她听").font(.system(size:13,weight:.medium))
+        VStack(spacing:compact ? 8 : 12) {
+            if recording { capture } else { editor }
+        }
+        .padding(compact ? 12 : 18).frame(maxWidth:440)
+        .foregroundStyle(Theme.ink)
+        .background {
+            if reduceTransparency {shape.fill(Theme.surface)}
+            else {shape.fill(.ultraThinMaterial).overlay(shape.fill(Theme.background.opacity(0.76)))}
+        }
+        .overlay(shape.stroke(LinearGradient(colors:[Theme.accent.opacity(0.25),Theme.ink.opacity(0.04)],startPoint:.topLeading,endPoint:.bottomTrailing),lineWidth:0.75).allowsHitTesting(false))
+        .shadow(color:.black.opacity(0.22),radius:18,y:8)
+        .animation(reduceMotion ? .linear(duration:0.12) : .easeInOut(duration:0.18),value:session.voiceInput.editArmed)
+        .conversationHitRegion(.control,id:"voiceCapture",enabled:session.voiceInput.active)
+        .accessibilityIdentifier("voiceCapturePanel")
+    }
+    private var capture:some View {
+        VStack(spacing:compact ? 8 : 12) {
+            if !compact {
+                HStack(spacing:7) {
+                    Circle().fill(Theme.accent.opacity(0.8)).frame(width:4,height:4)
+                    Text(session.voiceInput.needsReview ? "松开后确认文字" : (session.voiceInput.resultReady ? "语音已收好" : "正在聆听"))
+                        .font(.system(size:11,weight:.medium)).foregroundStyle(Theme.secondary)
                     Spacer()
-                    Button {session.cancelVoiceInput();editing=false} label: {Image(systemName:"xmark").font(.system(size:11)).frame(width:36,height:36)}
-                        .accessibilityLabel("取消语音消息")
+                    Text(session.voiceInput.phase == .holding ? "松开发送" : "正在整理")
+                        .font(.system(size:11)).foregroundStyle(Theme.ink.opacity(0.4))
                 }
-              }
-              // Keep this text view's identity when keyboard/rotation changes
-              // the available height, preserving focus and marked IME text.
-              HStack(alignment:.center,spacing:6) {
-                ChatComposerInput(text:Binding(get:{session.voiceInput.text},set:{session.voiceInput.text=$0}),isFocused:$editing,
+            }
+            CaptureWave(speech:session.speech).frame(height:compact ? 20 : 28)
+            Text(transcript)
+                .font(.system(size:compact ? 14 : 15)).lineSpacing(3).lineLimit(compact ? 1 : 2)
+                .frame(maxWidth:.infinity).frame(height:compact ? 22 : 42)
+                .multilineTextAlignment(.center).foregroundStyle(Theme.ink.opacity(session.voiceInput.text.isEmpty ? 0.46 : 0.9))
+                .accessibilityIdentifier("liveVoiceTranscript")
+            if session.voiceInput.phase != .finishing {
+                HStack(spacing:8) {
+                    Image(systemName:session.voiceInput.editArmed ? "pencil.line" : "chevron.up")
+                        .font(.system(size:12,weight:.medium)).frame(width:16)
+                    Text(session.voiceInput.editArmed ? "松开，编辑文字" : "上滑到这里编辑")
+                        .font(.system(size:13,weight:.medium))
+                }
+                .frame(maxWidth:.infinity).frame(height:compact ? 40 : 46)
+                .foregroundStyle(session.voiceInput.editArmed ? Theme.ink : Theme.secondary)
+                .background(Theme.accent.opacity(session.voiceInput.editArmed ? 0.2 : 0.055),in:RoundedRectangle(cornerRadius:15,style:.continuous))
+                .overlay(RoundedRectangle(cornerRadius:15,style:.continuous).stroke(Theme.accent.opacity(session.voiceInput.editArmed ? 0.48 : 0.08),lineWidth:0.75))
+                .background {if let editTarget {VoiceEditTargetAnchor(target:editTarget)}}
+                .accessibilityElement(children:.ignore).accessibilityLabel("上滑编辑区域")
+                .accessibilityValue(session.voiceInput.editArmed ? "已选中，松开编辑" : "未选中")
+                .accessibilityIdentifier("voiceEditTarget")
+            } else {
+                HStack(spacing:8) {
+                    ProgressView().controlSize(.mini)
+                    Text("正在确认最后一句").font(.system(size:12)).foregroundStyle(Theme.secondary)
+                    Spacer()
+                    Button("取消") {session.cancelVoiceInput()}
+                        .font(.system(size:12)).frame(minWidth:44,minHeight:40)
+                        .accessibilityLabel("取消语音消息")
+                }.frame(height:compact ? 40 : 46)
+            }
+        }.allowsHitTesting(session.voiceInput.phase != .holding)
+    }
+    private var transcript:String {
+        if !session.voiceInput.text.isEmpty {return session.voiceInput.text}
+        if session.voiceInput.needsReview {return session.speech.error ?? "这次没有听清，松开后可以输入文字"}
+        return session.speech.isBusy ? "正在打开麦克风…" : "轻声说，我在听"
+    }
+    private var editor:some View {
+        VStack(spacing:compact ? 5 : 10) {
+            if !compact {
+                HStack {
+                    Text("确认一下，再发给她").font(.system(size:13,weight:.medium))
+                    Spacer()
+                    Button {session.cancelVoiceInput();editing=false} label: {
+                        Image(systemName:"xmark").font(.system(size:11)).frame(width:36,height:36)
+                    }.accessibilityLabel("取消语音消息")
+                }
+            }
+            // The editor opens on release with the current partial text. A late
+            // ASR final may improve it only until the user starts correcting it.
+            HStack(alignment:.center,spacing:6) {
+                ChatComposerInput(text:Binding(get:{session.voiceInput.text},set:{session.voiceInput.edit($0)}),isFocused:$editing,
                     fontSize:15,foreground:UIColor(Theme.ink),accent:UIColor(Theme.accent),maxLines:compact ? 2 : 4,isEnabled:true,
                     onSend:{send()},identifier:"voiceEditText")
-                    .frame(minHeight:40).padding(compact ? 8 : 12).background(Theme.ink.opacity(0.055),in:RoundedRectangle(cornerRadius:14))
+                    .frame(minHeight:40).padding(compact ? 8 : 12)
+                    .background(Theme.ink.opacity(0.055),in:RoundedRectangle(cornerRadius:14))
                 if compact {
                     Button {send()} label: {Image(systemName:"arrow.up").font(.system(size:16,weight:.medium)).frame(width:40,height:44)}
                         .disabled(session.voiceInput.text.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty)
@@ -64,32 +127,21 @@ struct VoiceCaptureOverlay:View {
                     Button {session.cancelVoiceInput();editing=false} label: {Image(systemName:"xmark").font(.system(size:12)).frame(width:32,height:44)}
                         .accessibilityLabel("取消语音消息")
                 }
-              }
-              if !compact {
-                Button {send()} label: {
-                    Text("发送").font(.system(size:14,weight:.medium)).frame(maxWidth:.infinity).padding(.vertical,12)
-                        .background(Theme.accent.opacity(0.2),in:Capsule())
-                }.disabled(session.voiceInput.text.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty)
-                    .accessibilityIdentifier("sendVoiceEditButton")
-              }
-            } else {
-                Label(session.voiceInput.wantsEdit ? "松开后编辑文字" : "上滑到这里，转文字编辑",systemImage:"pencil.line")
-                    .font(.system(size:12,weight:.medium)).padding(.horizontal,16).padding(.vertical,9)
-                    .background(Theme.ink.opacity(session.voiceInput.wantsEdit ? 0.18 : 0.055),in:Capsule())
-                    .accessibilityIdentifier("voiceEditTarget")
-                CaptureWave(speech:session.speech).frame(height:compact ? 30 : 48)
-                Text(session.speech.recordingTranscript.isEmpty ? (session.speech.isBusy ? "正在准备…" : "正在聆听") : session.speech.recordingTranscript)
-                    .font(.system(size:15)).lineSpacing(5).lineLimit(compact ? 2 : 3).frame(maxWidth:.infinity,minHeight:compact ? 26 : 40)
-                    .multilineTextAlignment(.center).accessibilityIdentifier("liveVoiceTranscript")
-                if session.voiceInput.phase == .finishing {ProgressView().controlSize(.small)}
             }
-        }.padding(.horizontal,compact ? 12 : 24).padding(.top,compact ? 24 : 38).padding(.bottom,compact ? 10 : 18)
-            .frame(maxWidth:480).foregroundStyle(Theme.ink)
-            .background(.ultraThinMaterial,in:VoiceArch(compact:compact))
-            .background(Theme.background.opacity(0.76),in:VoiceArch(compact:compact))
-            .overlay(VoiceArch(compact:compact).stroke(Theme.gradient.opacity(0.23),lineWidth:0.6))
-            .shadow(color:.black.opacity(0.18),radius:22,y:8)
-            .conversationHitRegion(.control,id:"voiceCapture")
+            if !compact {
+                HStack {
+                    Text(session.voiceInput.needsReview ? (session.speech.error ?? "已保留识别文字，请确认后发送") :
+                        (session.voiceInput.resultReady ? "可以修改识别出的文字" : "还在整理最后一句，可以先修改"))
+                        .font(.system(size:11)).lineLimit(2).foregroundStyle(Theme.secondary)
+                    Spacer(minLength:8)
+                    Button {send()} label: {
+                        Text("发送").font(.system(size:14,weight:.medium)).padding(.horizontal,20).frame(height:40)
+                            .background(Theme.accent.opacity(0.16),in:Capsule())
+                    }.disabled(session.voiceInput.text.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty)
+                        .accessibilityIdentifier("sendVoiceEditButton")
+                }
+            }
+        }
     }
     private func send() {editing=false;session.sendVoiceText(session.voiceInput.text)}
 }

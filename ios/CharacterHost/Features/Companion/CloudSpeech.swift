@@ -14,7 +14,7 @@ private final class ConversionInput: @unchecked Sendable {
 }
 private final class MicrophonePCM: @unchecked Sendable {
     private let queue=DispatchQueue(label:"app.starry.microphone",qos:.userInitiated)
-    private let engine = AVAudioEngine()
+    private var engine:AVAudioEngine?
     private var converter: AVAudioConverter?
     private var tapped=false
     func start(_ receive: @escaping @Sendable (Data,Float) -> Void) async throws {
@@ -26,6 +26,9 @@ private final class MicrophonePCM: @unchecked Sendable {
         }
     }
     private func startEngine(_ receive: @escaping @Sendable (Data,Float) -> Void) throws {
+        // Audio hardware construction can block too, not only engine.start().
+        // Create and destroy the entire engine on the same audio queue.
+        let engine=AVAudioEngine();self.engine=engine
         let input = engine.inputNode
         let source = input.outputFormat(forBus:0)
         guard source.sampleRate > 0, let target = AVAudioFormat(commonFormat:.pcmFormatInt16,sampleRate:16000,channels:1,interleaved:true),
@@ -47,7 +50,10 @@ private final class MicrophonePCM: @unchecked Sendable {
         tapped=true
         engine.prepare(); try engine.start()
     }
-    private func stopEngine() { if tapped {engine.inputNode.removeTap(onBus:0);tapped=false};engine.stop();converter=nil }
+    private func stopEngine() {
+        if tapped {engine?.inputNode.removeTap(onBus:0);tapped=false}
+        engine?.stop();engine=nil;converter=nil
+    }
     func stop() { queue.async { [self] in stopEngine() } }
 }
 
@@ -111,6 +117,8 @@ private final class MicrophonePCM: @unchecked Sendable {
         }
     }
     @objc nonisolated private func interrupted(_ note: Notification) {
+        if note.name == AVAudioSession.interruptionNotification,
+           (note.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt) != AVAudioSession.InterruptionType.began.rawValue {return}
         Task { @MainActor [weak self] in self?.stop();self?.onCaptureCancelled?() }
     }
     func check() async { ready = await api.check(); status = ready ? "声音已连接" : "请检查 AI 服务连接" }
@@ -228,6 +236,18 @@ private final class MicrophonePCM: @unchecked Sendable {
         }
     }
     func cachedReplay(_ script: AIScript, messageID: UUID) async throws -> Bool {
+        if let id=script.openingID,let opening=CharacterOpenings.find(id) {
+            let pcm=try await opening.pcm()
+            try Task.checkCancellation()
+            prepare(messageID,script:script)
+            try await accept(AIEvent(type:"segment.audio.started",beatId:"opening"))
+            for offset in stride(from:0,to:pcm.count,by:12288) {
+                try Task.checkCancellation()
+                try await accept(AIEvent(type:"segment.audio.chunk",data:pcm.subdata(in:offset..<min(offset+12288,pcm.count)).base64EncodedString()))
+            }
+            try await accept(AIEvent(type:"segment.audio.ready",beatId:"opening"))
+            finish();return true
+        }
         let keys = script.beats.filter { $0.hasAudio }.map { $0.beatId }
         let cached = keys.map { SpeechClipCache.shared.data(SpeechClipCache.shared.key(scope:cacheScope,text:script.messageId+"|"+$0,speed:1)) }
         guard !keys.isEmpty, cached.allSatisfy({ $0 != nil }) else { return false }
@@ -258,11 +278,29 @@ private final class MicrophonePCM: @unchecked Sendable {
         stop(); error = nil; let current = generation
         recordingTranscript="";inputLevel=0;recordingEnded=false
         isRecording=true;isBusy=true;status="正在打开麦克风";onState?("listening")
+        #if DEBUG && targetEnvironment(simulator)
+        // Deterministic gesture regression: the provider finishes while the
+        // finger is still down. Never requests microphone/network/paid AI.
+        let arguments=ProcessInfo.processInfo.arguments
+        if arguments.contains("--ui-testing"),arguments.contains("--voice-atmosphere-check"),!arguments.contains("--live-ai") {
+            recording=Task { @MainActor [weak self] in
+                do {try await Task.sleep(for:.milliseconds(120))} catch {return}
+                guard let self,current==generation else {return}
+                recordingTranscript="今天窗外";onPartial?(recordingTranscript);isBusy=false
+                do {try await Task.sleep(for:.milliseconds(220))} catch {return}
+                guard current==generation else {return}
+                recordingTranscript="今天窗外下雨了";onPartial?(recordingTranscript)
+                if arguments.contains("--voice-capture-error") {failRecording("测试连接中断，文字已保留。")}
+                else {stop();onTranscript?("今天窗外下雨了")}
+            }
+            return
+        }
+        #endif
         recording = Task { @MainActor [weak self] in
             guard let self else { return }
             let allowed=await AVAudioApplication.requestRecordPermission()
             guard current==generation else {return}
-            guard allowed else {stop();error="请在系统设置中允许麦克风权限。";return}
+            guard allowed else {failRecording("请在系统设置中允许麦克风权限。");return}
             guard !recordingEnded else {stop();onCaptureCancelled?();return}
             do {
                 let socket = try api.socket(nickname:nickname?() ?? ""); self.socket = socket; socket.resume()
@@ -300,13 +338,17 @@ private final class MicrophonePCM: @unchecked Sendable {
                             do {
                                 for try await chunk in stream { try Task.checkCancellation(); try await socket.send(.data(chunk)) }
                                 try await socket.send(.string("{\"type\":\"finish\"}"))
-                            } catch { if !Task.isCancelled { self?.stop(); self?.error = "上传语音失败，请重试。" } }
+                            } catch {
+                                guard let self,current==generation,!Task.isCancelled else {return}
+                                failRecording("上传语音中断，已保留识别文字。")
+                            }
                         }
                     case "asr.partial", "asr.final":
                         recordingTranscript=String((event.text ?? "").prefix(500));onPartial?(recordingTranscript)
                     case "asr.completed":
-                        let text = event.text ?? ""; stop()
-                        if text.isEmpty { error = "没有听清，请再说一次。" } else { onTranscript?(String(text.prefix(500))) }
+                        let text = event.text ?? ""
+                        if text.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty {failRecording("没有听清，可以重新说一次或输入文字。")}
+                        else {stop();onTranscript?(String(text.prefix(500)))}
                         return
                     case "asr.error": throw AIConnectionError.remote("ASR_FAILED")
                     default: break
@@ -314,7 +356,7 @@ private final class MicrophonePCM: @unchecked Sendable {
                 }
             } catch {
                 guard current == generation, !Task.isCancelled else { return }
-                stop(); self.error = (error as? AIConnectionError)?.errorDescription ?? "语音识别连接中断，请重试。"
+                failRecording((error as? AIConnectionError)?.errorDescription ?? "语音识别连接中断，已保留识别文字。")
             }
         }
     }
@@ -330,13 +372,12 @@ private final class MicrophonePCM: @unchecked Sendable {
         recordingTimeout=Task { @MainActor [weak self] in
             do {try await Task.sleep(for:.seconds(seconds))} catch {return}
             guard let self,current==generation else {return}
-            let partial=recordingTranscript
-            stop()
-            // Preserve a partial transcription for correction; never send an
-            // incomplete network result without the user's review.
-            if !partial.isEmpty {onCaptureRecovery?(partial)}
-            else {error="语音连接超时，请稍后重试。"}
+            failRecording("语音连接超时，可以修改已识别的文字。")
         }
+    }
+    private func failRecording(_ message:String) {
+        let partial=recordingTranscript
+        stop();error=message;onCaptureRecovery?(partial)
     }
     func stop() {
         generation = UUID(); recording?.cancel(); recording = nil; upload?.cancel(); upload = nil

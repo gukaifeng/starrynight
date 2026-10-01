@@ -199,7 +199,10 @@ namespace ModelSpace
             posture.Bind(character,actions);
             bounds = character.RestBounds();
             neutralFaceHeight=character.portrait?.FaceHeight(character.transform) ?? 0;
-            if(neutralFaceHeight>0) {neutralFace=character.portrait.Face(character.transform);neutralPortrait=character.portrait.Region(character.transform);}
+            if(neutralFaceHeight>0) {
+                neutralFace=character.portrait.Face(character.transform);neutralPortrait=character.portrait.Region(character.transform);
+                inspection.SetPortraitReference(neutralPortrait,neutralFace,neutralFaceHeight);
+            }
             companion.Bind(model, viewCamera);
             if (studio) { studio.Bind(character); studio.Configure(new StudioSettings()); }
             gaze.Bind(model, viewCamera, actions);

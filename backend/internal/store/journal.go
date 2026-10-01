@@ -139,10 +139,13 @@ func (s *Store) Messages(ctx context.Context, user, char, query string, after in
 	}
 	return out, rows.Err()
 }
-func (s *Store) PutMessage(ctx context.Context, user string, m Message, expected int64) (Message, error) {
+func (s *Store) PutMessage(ctx context.Context, user string, m Message, expected int64, reset ...string) (Message, error) {
 	var out Message
 	e := s.write(ctx, user, func(tx pgx.Tx) error {
 		if e := ensureConversation(ctx, tx, user, m.CharacterID); e != nil {
+			return e
+		}
+		if e := checkConversationReset(ctx, tx, user, m.CharacterID, reset); e != nil {
 			return e
 		}
 		old, e := scanMessage(tx.QueryRow(ctx, `SELECT `+messageCols+` FROM messages WHERE user_id=$1 AND character_id=$2 AND id=$3`, user, m.CharacterID, m.ID))
@@ -195,9 +198,12 @@ func (s *Store) Entries(ctx context.Context, user, char, kind, after string, lim
 	}
 	return page, rows.Err()
 }
-func (s *Store) PutEntry(ctx context.Context, user string, v Entry, expected int64) (Entry, error) {
+func (s *Store) PutEntry(ctx context.Context, user string, v Entry, expected int64, reset ...string) (Entry, error) {
 	e := s.write(ctx, user, func(tx pgx.Tx) error {
 		if e := ensureConversation(ctx, tx, user, v.CharacterID); e != nil {
+			return e
+		}
+		if e := checkConversationReset(ctx, tx, user, v.CharacterID, reset); e != nil {
 			return e
 		}
 		var old int64

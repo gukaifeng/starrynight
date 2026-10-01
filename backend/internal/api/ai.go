@@ -19,8 +19,16 @@ var aiProfile = regexp.MustCompile(`^/v1/ai/characters/([a-zA-Z0-9_-]{1,120})/pr
 var aiInspector = regexp.MustCompile(`^/v1/ai/testing/characters/([a-zA-Z0-9_-]{1,120})/inspector$`)
 var aiReactions = regexp.MustCompile(`^/v1/ai/conversations/([a-zA-Z0-9_-]{1,120})/reactions/(?:prepare|pause|status)$`)
 var aiSuggestions = regexp.MustCompile(`^/v1/ai/conversations/([a-zA-Z0-9_-]{1,120})/suggestions/(?:prepare|status)$`)
+var aiReset = regexp.MustCompile(`^/v1/ai/conversations/([a-zA-Z0-9_-]{1,120})$`)
+var aiOpening = regexp.MustCompile(`^/v1/ai/conversations/([a-zA-Z0-9_-]{1,120})/opening$`)
 
 func aiRoute(method, path, environment string) (character string, allowed bool) {
+	if match := aiOpening.FindStringSubmatch(path); match != nil {
+		return match[1], method == http.MethodPost
+	}
+	if match := aiReset.FindStringSubmatch(path); match != nil {
+		return match[1], method == http.MethodDelete
+	}
 	if path == "/v1/ai/status" {
 		return "", method == http.MethodGet
 	}
@@ -58,6 +66,8 @@ func (s *Server) documentAIRoutes() {
 		{"POST", "/v1/ai/conversations/{character}/reactions/status", "ai-reaction-status", "Read-only availability for the current context; does not start generation."},
 		{"POST", "/v1/ai/conversations/{character}/messages/{message}/audio", "ai-audio", "SSE audio replay for an existing worker message."},
 		{"DELETE", "/v1/ai/conversations/{character}/messages", "ai-clear-context", "Clear worker context. Account archive has its own clear endpoint."},
+		{"DELETE", "/v1/ai/conversations/{character}", "ai-delete-conversation", "Erase worker conversation and memories; requires reset_id UUID query. Idempotent."},
+		{"POST", "/v1/ai/conversations/{character}/opening", "ai-register-opening", "Register an already-played bundled first meeting. No paid model invocation."},
 		{"GET", "/v1/ai/asr/{character}", "ai-asr", "WebSocket upgrade for ASR; stream protocol remains owned by the AI worker."},
 	} {
 		op := &huma.Operation{Method: route.method, Path: route.path, OperationID: route.id, Description: route.description, Tags: []string{"AI worker"}, Security: []map[string][]string{{"session": {}}}, Responses: map[string]*huma.Response{"200": {Description: "Worker response; SSE where documented"}, "401": {Description: "Session required"}, "503": {Description: "Worker unconfigured or unavailable"}}}
@@ -65,6 +75,12 @@ func (s *Server) documentAIRoutes() {
 			if strings.Contains(route.path, "{"+name+"}") {
 				op.Parameters = append(op.Parameters, &huma.Param{Name: name, In: "path", Required: true, Schema: &huma.Schema{Type: "string"}})
 			}
+		}
+		if route.id == "ai-delete-conversation" {
+			minimum := float64(0)
+			op.Parameters = append(op.Parameters,
+				&huma.Param{Name: "reset_id", In: "query", Required: true, Schema: &huma.Schema{Type: "string", Format: "uuid"}},
+				&huma.Param{Name: "reset_version", In: "query", Schema: &huma.Schema{Type: "integer", Minimum: &minimum}, Description: "Monotonic version returned by the account conversation reset."})
 		}
 		if route.id == "ai-asr" {
 			op.Responses["101"] = &huma.Response{Description: "Switching protocols"}

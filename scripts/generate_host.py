@@ -66,18 +66,18 @@ for path in sorted((ios/'CharacterHost').rglob('*')):
         continue
     if not path.is_file() or path.name == 'Info.plist': continue
     if path.name.startswith('Music_') and path.stem not in active_music: continue
-    types={'.swift':'sourcecode.swift','.mm':'sourcecode.cpp.objcpp','.h':'sourcecode.c.h','.png':'image.png','.txt':'text','.json':'text.json','.wav':'audio.wav','.caf':'audio.caf','.storyboard':'file.storyboard'}
+    types={'.swift':'sourcecode.swift','.mm':'sourcecode.cpp.objcpp','.h':'sourcecode.c.h','.png':'image.png','.txt':'text','.json':'text.json','.wav':'audio.wav','.pcm':'file','.caf':'audio.caf','.storyboard':'file.storyboard'}
     if path.suffix not in types: continue
     relative=str(path.relative_to(ios))
     ref=obj(relative,'PBXFileReference',lastKnownFileType=types[path.suffix],path=relative,sourceTree='<group>')
     source_refs.append(ref)
     if path.suffix in ('.swift','.mm'): source_build.append(buildfile(relative,ref))
-    elif path.suffix in ('.png','.txt','.json','.wav', '.caf','.storyboard'): resource_build.append(buildfile(relative,ref))
+    elif path.suffix in ('.png','.txt','.json','.wav','.pcm', '.caf','.storyboard'): resource_build.append(buildfile(relative,ref))
 
 # Run the same pure Swift checks in the iOS runtime when local macOS executables
 # cannot launch. The SceneDelegate entry is DEBUG + simulator + explicit flag only.
 if args.platform == 'simulator':
-    for test_name in ['VoiceAtmosphereFixture', 'ReplyFlowFixture', 'ConversationGestureFixture', 'ConversationPresentationFixture', 'ChatComposerInputTests', 'CloudSpeechPlaybackTests', 'CompanionExperienceTests', 'ConversationGreetingTests', 'ConversationExportTests', 'CharacterLibraryTests', 'AuthorSubscriptionTests', 'CacheStorageTests', 'CharacterViewPresetTests', 'MarketplaceCoreTests']:
+    for test_name in ['CharacterOpeningChecks', 'VoiceAtmosphereFixture', 'ReplyFlowFixture', 'ConversationGestureFixture', 'ConversationPresentationFixture', 'ChatComposerInputTests', 'CloudSpeechPlaybackTests', 'CompanionExperienceTests', 'ConversationGreetingTests', 'ConversationExportTests', 'CharacterLibraryTests', 'AuthorSubscriptionTests', 'CacheStorageTests', 'CharacterViewPresetTests', 'MarketplaceCoreTests']:
         relative=f'../scripts/tests/{test_name}.swift'
         ref=obj(relative,'PBXFileReference',lastKnownFileType='sourcecode.swift',path=relative,sourceTree='<group>')
         source_refs.append(ref); source_build.append(buildfile(relative,ref))
@@ -122,7 +122,8 @@ frameworks=obj('frameworks','PBXFrameworksBuildPhase',buildActionMask='214748364
 embed=obj('embed','PBXCopyFilesBuildPhase',buildActionMask='2147483647',dstPath='',dstSubfolderSpec='10',name='Embed Frameworks',files=[buildfile('embed-unity',framework,settings={'ATTRIBUTES':['CodeSignOnCopy','RemoveHeadersOnCopy']})],runOnlyForDeploymentPostprocessing='0')
 content_check=obj('check-content','PBXShellScriptBuildPhase',buildActionMask='2147483647',files=[],inputPaths=[],outputPaths=[],
     name='Check character content',runOnlyForDeploymentPostprocessing='0',shellPath='/bin/sh',alwaysOutOfDate='1',
-    shellScript=f'python3 "${{SRCROOT}}/../scripts/check_export_content.py" --platform {args.platform}\n')
+    shellScript=f'set -e\npython3 "${{SRCROOT}}/../scripts/check_export_content.py" --platform {args.platform}\n'
+        'python3 "${SRCROOT}/../scripts/prepare_character_openings.py" --check\n')
 settings={'PRODUCT_NAME':'$(TARGET_NAME)','PRODUCT_BUNDLE_IDENTIFIER':'com.modelspace.viewer',
     'PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]':'$(MODELSPACE_DEVICE_BUNDLE_IDENTIFIER)',
     'INFOPLIST_FILE':'CharacterHost/Info.plist','SWIFT_VERSION':'6.0','SWIFT_OBJC_BRIDGING_HEADER':'CharacterHost/Bridge/CharacterHost-Bridging-Header.h',
@@ -135,7 +136,7 @@ settings={'PRODUCT_NAME':'$(TARGET_NAME)','PRODUCT_BUNDLE_IDENTIFIER':'com.model
     'FRAMEWORK_SEARCH_PATHS':['$(inherited)','$(BUILT_PRODUCTS_DIR)'],
     'OTHER_LDFLAGS':['$(inherited)','-lc++','-framework','CoreML','-framework','Accelerate'],
     'GCC_ENABLE_CPP_EXCEPTIONS':'YES',
-    'CODE_SIGN_STYLE':'Automatic','CURRENT_PROJECT_VERSION':'98','MARKETING_VERSION':'0.71.0',
+    'CODE_SIGN_STYLE':'Automatic','CURRENT_PROJECT_VERSION':'100','MARKETING_VERSION':'0.73.0',
     'ENABLE_USER_SCRIPT_SANDBOXING':'NO','SUPPORTS_MACCATALYST':'NO','SWIFT_EMIT_LOC_STRINGS':'YES',
     'ARCHS':'arm64','ENABLE_DEBUG_DYLIB':'NO','ASSETCATALOG_COMPILER_APPICON_NAME':'AppIcon'}
 target=obj('host-target','PBXNativeTarget',name='CharacterHost',productName='CharacterHost',productType='com.apple.product-type.application',productReference=app,

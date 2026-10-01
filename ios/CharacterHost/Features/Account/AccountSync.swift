@@ -18,6 +18,13 @@ import UIKit
     private var owner = ""
     private var task:Task<Void,Never>?
     private var running=false
+    private var deletionSuspended=false
+    var onConversationReset:((String)->Void)?
+    func suspendForDeletion() async {
+        deletionSuspended=true
+        let previous=task;previous?.cancel();await previous?.value
+    }
+    func resumeAfterDeletion() {deletionSuspended=false;schedule(immediate:true)}
     private var again=false
     private var applying=false
     private var failures=0
@@ -58,6 +65,7 @@ import UIKit
         try JSONEncoder().encode(state).write(to:file,options:[.atomic,.completeFileProtectionUntilFirstUserAuthentication])
     }
     func schedule(immediate:Bool=false) {
+        guard !deletionSuspended else {return}
         guard !owner.isEmpty,account.cloudSession?.user.id==owner,store.accountID==owner else{return}
         if running{again=true;return}
         task?.cancel();task=Task { [weak self] in
@@ -76,6 +84,10 @@ import UIKit
         try ensure(captured);return result
     }
     private func synchronize() async {
+        guard !deletionSuspended else {return}
+        guard !store.currentRecords.values.contains(where:{$0.pendingDeletionID != nil}) else {
+            account.syncStatus="删除尚未完成 · 请在消息页重试";return
+        }
         guard !running else{return};running=true;again=false
         var retryDelay:Double?
         defer {
@@ -103,11 +115,17 @@ import UIKit
                 guard case .array(let changes)=page.object?["items"] else{throw PlatformError.invalidResponse}
                 // Snapshot after the network await, so edits made while waiting
                 // are included in the three-way comparison.
-                let pending=try pendingValues(),previous=state
+                var pending=try pendingValues();let previous=state
                 do {
                     try store.applyCloudBatch {
                         for change in changes {
-                            if let remote=normalize(change){try receive(remote,pending:pending)}
+                            if let remote=normalize(change){
+                                try receive(remote,pending:pending)
+                                if remote.kind=="conversation_reset",remote.version >= (store.record(remote.id).conversationResetVersion ?? 0) {
+                                    let prefixes=["message:","memory:","moment:"].map{$0+remote.id+"/"}
+                                    pending=pending.filter{!prefixes.contains(where:$0.key.hasPrefix) && $0.key != "preference:"+remote.id}
+                                }
+                            }
                             state.cursor=max(state.cursor,int(change,"revision"))
                         }
                     }
@@ -244,7 +262,7 @@ import UIKit
         guard let c=change.object,let kind=c["kind"]?.string,let id=c["resource_id"]?.string,let data=c["data"] else{return nil}
         var body=data;let version=int(data,"version")
         switch kind {
-        case "conversation_clear":break
+        case "conversation_clear","conversation_reset":break
         case "account":body=data.object?["profile"] ?? .object([:])
         case "profile","settings","preference","author","memory","moment":body=data.object?["data"] ?? .object([:])
         case "conversation":body = .object(["hidden":data.object?["hidden"] ?? .bool(false),"pinned":data.object?["pinned"] ?? .bool(false)])
@@ -265,6 +283,25 @@ import UIKit
     }
     private func receive(_ remote:Remote,pending:[String:JSONValue])throws{
         let k=key(remote.kind,remote.id),new=remote.deleted ? JSONValue.null:remote.body
+        let role=remote.id.split(separator:"/",maxSplits:1).first.map(String.init) ?? remote.id
+        if store.record(role).pendingDeletionID != nil,
+           ["message","memory","moment","preference","conversation_clear","conversation_reset"].contains(remote.kind) {return}
+        if remote.kind=="conversation_reset",let reset=remote.body.object?["reset_id"]?.string {
+            guard remote.version >= (store.record(remote.id).conversationResetVersion ?? 0) else {return}
+            applying=true;defer{applying=false}
+            if store.record(remote.id).conversationResetID != reset {
+                onConversationReset?(remote.id)
+                SpeechClipCache.shared.removeConversation(scope:owner+"|"+remote.id,messages:store.record(remote.id).messages)
+                store.update(remote.id){$0.resetConversation(reset,version:remote.version)}
+            } else if remote.version > (store.record(remote.id).conversationResetVersion ?? 0) {
+                store.update(remote.id){$0.conversationResetVersion=remote.version}
+            }
+            let prefixes=["message:","memory:","moment:"].map{$0+remote.id+"/"}
+            state.shadows=state.shadows.filter{!prefixes.contains(where:$0.key.hasPrefix)}
+            state.conflicts=state.conflicts.filter{!prefixes.contains(where:$0.key.hasPrefix) && $0.key != "preference:"+remote.id}
+            if store.error != nil {throw CocoaError(.fileWriteUnknown)}
+            return
+        }
         if remote.kind=="conversation_clear" {
             applying=true;defer{applying=false}
             let prefix="message:"+remote.id+"/"
@@ -337,13 +374,17 @@ import UIKit
     }
     private func push(_ k:String,body:JSONValue,version:Int)async throws->JSONValue{
         let (kind,id)=split(k);var value=body.object ?? [:];let expected=JSONValue.number(Double(version))
+        let role=id.split(separator:"/",maxSplits:1).first.map(String.init) ?? id
+        if ["message","memory","moment","preference","conversation"].contains(kind),store.record(role).pendingDeletionID != nil {throw CancellationError()}
         switch kind{
         case "subscription","follow":return try await call(body == .null ? "DELETE":"PUT","/v1/me/"+(kind=="subscription" ? "subscriptions/":"follows/")+id)
         case "settings","author","preference":
             let path=kind=="preference" ? "/v1/characters/\(id)/preferences" : "/v1/me/"+(kind=="author" ? "author":"settings")
             // RFC 7396 only sends changed fields. Unknown future fields survive.
             let patch=AccountSyncMerge.diff(old:state.shadows[k]?.body ?? .object([:]),new:body)
-            return try await call("PATCH",path,.object(["expected_version":expected,"patch":patch]))
+            var mutation:[String:JSONValue]=["expected_version":expected,"patch":patch]
+            if kind=="preference" {mutation["conversation_reset"] = .string(store.record(id).conversationResetID ?? "")}
+            return try await call("PATCH",path,.object(mutation))
         case "character":
             if body == .null{return try await call("DELETE","/v1/characters/\(id)?version=\(version)")}
             if version==0{value["id"] = .string(id);return try await call("POST","/v1/characters",.object(value))}
@@ -355,6 +396,7 @@ import UIKit
             let path="/v1/conversations/\(parts[0])/\(suffix)/\(parts[1])"
             if body == .null{return try await call("DELETE",path+"?version=\(version)")}
             if kind != "message"{value=["data":body]};value["expected_version"]=expected
+            value["conversation_reset"] = .string(store.record(parts[0]).conversationResetID ?? "")
             return try await call("PUT",path,.object(value))
         }
     }

@@ -30,6 +30,7 @@ def install():
         # Review focal points against the generated image, not the requested
         # prompt: a large hat shifts Kipfel's actual eye line toward the middle.
         entries[role].update(source='bailian-generated',sourceSHA256=receipts['cover']['sha256'],focusY=recipe.get('coverFocusY',0.4),avatar='Avatar_'+role.replace('-','_'))
+        if 'headBounds' in recipe:entries[role]['headBounds']=recipe['headBounds']
         unity=ROOT/'unity/CharacterRuntime/Assets/Resources/Atmospheres'/role
         unity.mkdir(parents=True,exist_ok=True);shutil.copyfile(folder/'background.png',unity/'background.png')
         media.append(dict(id=role,title=recipe['title'],background='Atmospheres/'+role+'/background',effect=recipe['effect'],palette=recipe['palette'],density=recipe['density'],backgroundSHA256=receipts['background']['sha256'],imageModel=receipts['background']['model']))

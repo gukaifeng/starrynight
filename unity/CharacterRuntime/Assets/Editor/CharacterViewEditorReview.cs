@@ -82,6 +82,7 @@ public static class CharacterViewEditorReview
                 var root=instance.transform;var position=root.position;var rotation=root.rotation;var scale=root.localScale;
                 var region=character.portrait!=null ? character.portrait.Region(root) : FramingMath.Region(character.RestBounds(),"conversation",false,character.conversationStart);
                 edit.Bind(root);actions.Initialize(root,camera,(a,b,c)=>{});
+                if(character.portrait!=null)edit.SetPortraitReference(region,character.portrait.Face(root),character.portrait.FaceHeight(root));
                 foreach(var size in sizes) {
                     edit.ResetImmediate();camera.aspect=size.x/size.y;
                     var safe=size.x<size.y ? new Rect(.025f,.08f,.95f,.83f) : new Rect(.09f,.1f,.82f,.85f);
@@ -94,6 +95,12 @@ public static class CharacterViewEditorReview
                     camera.transform.SetPositionAndRotation(focus-cameraRotation*Vector3.forward*distance,cameraRotation);
                     var cameraPosition=camera.transform.position;
                     edit.SetProjection(camera,region,safe);
+                    var larger=edit.Constrain(new CharacterViewPose{scale=1.20f});
+                    var smaller=edit.Constrain(new CharacterViewPose{scale=.75f});
+                    Check(larger.scale>=1.199f,source.modelId+" "+size+" initial portrait must leave outward zoom room");
+                    Check(smaller.scale<.9f,source.modelId+" "+size+" initial portrait must leave inward zoom room");
+                    var initialHead=edit.Project(CharacterViewPose.Default);
+                    Check(initialHead.yMax<=safe.yMax+.001f && initialHead.yMax>=safe.yMax-.02f,"head stays just below the hardware safe top");
                     ReviewPinch(edit,root,camera,source.modelId+" "+size);
                     // A fitted custom portrait can touch the edge already.
                     // It must still accept the first outward pull, without
@@ -133,7 +140,7 @@ public static class CharacterViewEditorReview
                     Check(Near(edit.Current,saved),"temporary launch/layout constraints do not overwrite saved intent");
                     edit.Begin(camera.transform.right);edit.ResetDraft();Tick(edit);Check(edit.Current.IsDefault,"reset exact default");
                     foreach(float yaw in new[]{-1080f,-450f,0f,450f,1080f})foreach(float pitch in new[]{-720f,-90f,0f,90f,720f})
-                    foreach(float zoom in new[]{.78f,1.28f})foreach(float move in new[]{-.45f,.45f}) {
+                    foreach(float zoom in new[]{.50f,.78f,1.28f})foreach(float move in new[]{-.45f,.45f}) {
                         edit.Load(new CharacterViewPose{yaw=yaw,pitch=pitch,scale=zoom,x=move,y=-move});
                         for(int frame=0;frame<45;frame++) {
                             edit.RestoreFrame();edit.Step(1f/60);edit.ApplyFrame();
@@ -145,7 +152,7 @@ public static class CharacterViewEditorReview
                             Check(edit.Scale>=.4f && edit.Scale<=1.28f,"bounded scale");
                         }
                         var fitted=edit.Current;fitted.yaw=fitted.pitch=0;
-                        Check(edit.Project(fitted).height>=safe.height*.3f,"portrait stays at least 30% of the safe viewport: "+source.modelId+" "+size+" "+edit.ProjectedEnvelope+" scale="+edit.Scale);
+                        Check(edit.Project(fitted).height>=safe.height*(character.portrait!=null ? .14f:.3f),"protected head/wider portrait remains readable at minimum zoom: "+source.modelId+" "+size+" "+edit.ProjectedEnvelope+" scale="+edit.Scale);
                     }
                     edit.Load(CharacterViewPose.Default);edit.Close();Tick(edit);
                     Check(edit.Current.IsDefault && root.position==position && root.localScale==scale && Quaternion.Angle(root.rotation,rotation)<.05f,"restore original root");

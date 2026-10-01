@@ -1,4 +1,9 @@
 import Foundation
+struct ConversationResetReceipt:Decodable,Sendable {
+    let resetID:String
+    let version:Int
+    enum CodingKeys:String,CodingKey {case resetID="reset_id",version}
+}
 struct AIQuickReply:Decodable,Identifiable {
     let id:String
     let text:String
@@ -17,6 +22,7 @@ struct AIScript: Codable, Sendable {
     var beats: [AIBeat]
     var idleDecision: String?
     var memorySuggestions: [String]?
+    var openingID: String? = nil
 }
 struct AIBeat: Codable, Sendable, Identifiable {
     var beatId: String
@@ -156,6 +162,7 @@ private final class AINoRedirect: NSObject, URLSessionTaskDelegate, Sendable {
     /// of login UI and the account persistence implementation.
     static var authenticatedRequest: ((String,String) throws -> URLRequest?)?
     static var clearAccountArchive: ((String,String) async throws -> Void)?
+    static var deleteAccountConversation: ((String,String,String) async throws -> Int)?
     private struct Connection: Decodable { let baseURL, clientToken: String }
     private let connection: Connection?
     let accountID: String
@@ -244,6 +251,26 @@ private final class AINoRedirect: NSObject, URLSessionTaskDelegate, Sendable {
             throw AIConnectionError.server((response as? HTTPURLResponse)?.statusCode ?? 0)
         }
         try await Self.clearAccountArchive?(accountID,characterID)
+    }
+    func deleteConversation(resetID:String) async throws -> ConversationResetReceipt {
+        // PostgreSQL assigns the authoritative monotonic epoch for signed-in
+        // accounts. The worker rejects a delayed older reset from another device.
+        let version=try await Self.deleteAccountConversation?(accountID,characterID,resetID) ?? 0
+        try Task.checkCancellation()
+        var request=try request("/v1/conversations/"+characterID+"?reset_id="+resetID+"&reset_version=\(version)",paid:false)
+        request.httpMethod="DELETE";request.timeoutInterval=20
+        let (data,response)=try await session.data(for:request)
+        guard (response as? HTTPURLResponse)?.statusCode==200 else {
+            throw AIConnectionError.http((response as? HTTPURLResponse)?.statusCode ?? 0,body:data)
+        }
+        try Task.checkCancellation()
+        return try JSONDecoder().decode(ConversationResetReceipt.self,from:data)
+    }
+    func registerOpening(_ script:AIScript,resetID:String) async throws {
+        guard let id=script.openingID else {return}
+        struct Acknowledgement:Decodable,Sendable {let accepted:Bool}
+        let _:Acknowledgement=try await configuration("/v1/conversations/"+characterID+"/opening",body:[
+            "opening_id":id,"message_id":script.messageId,"conversation_reset":resetID])
     }
     func events(path: String, body: [String:Any]?, consume: (AIEvent) async throws -> Void) async throws {
         var request = try request(path); request.httpMethod = "POST"

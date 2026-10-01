@@ -32,6 +32,11 @@ final class AccountStore {
             guard let remote=PlatformAPI.shared.activeSession,remote.user.id==account else{return}
             _ = try await PlatformAPI.shared.request("DELETE","/v1/conversations/"+character+"/messages",token:remote.token)
         }
+        CharacterAI.deleteAccountConversation = { account,character,reset in
+            guard let remote=PlatformAPI.shared.activeSession,remote.user.id==account else{return 0}
+            let receipt=try await PlatformAPI.shared.request("DELETE","/v1/conversations/"+character+"?reset_id="+reset,token:remote.token)
+            return Int(receipt.object?["version"]?.number ?? 0)
+        }
         isolatedTest = arguments.contains("--ui-testing") || defaults != .standard
         var key = "xiaoban.demo-account.v1"
 #if DEBUG

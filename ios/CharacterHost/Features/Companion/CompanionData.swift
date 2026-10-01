@@ -77,7 +77,15 @@ struct CharacterRecord: Codable, Sendable {
     var experiences: CompanionExperiences? = nil
     var viewLibrary: CharacterViewLibrary? = nil // Decode v0.43, clear after migration.
     var viewPose: CharacterViewPose? = nil
+    var conversationResetID:String? = nil
+    var conversationResetVersion:Int? = nil
+    var pendingDeletionID:String? = nil
     var lastViewPose: CharacterViewPose { (viewPose ?? viewLibrary?.selected ?? .original).normalized }
+    mutating func resetConversation(_ id:String,version:Int=0) {
+        messages=[];memories=[];greeting=nil
+        experiences=CompanionExperiences(preferences:together.preferences)
+        conversationResetID=id;conversationResetVersion=version;pendingDeletionID=nil
+    }
 }
 struct ConversationGreetingHistory: Codable, Sendable {
     var count: Int

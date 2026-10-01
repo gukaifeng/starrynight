@@ -50,6 +50,17 @@ import CryptoKit
     func beginClearing() {
         clearing = true; generation = UUID(); memory.removeAllObjects()
     }
+    func removeConversation(scope:String,messages:[CompanionMessage]) {
+        generation=UUID() // Retire in-flight inserts before removing owned clips.
+        for message in messages {
+            guard let script=message.aiScript else {continue}
+            for beat in script.beats {
+                let value=key(scope:scope,text:script.messageId+"|"+beat.beatId,speed:1)
+                memory.removeObject(forKey:value as NSString)
+                try? FileManager.default.removeItem(at:directory.appendingPathComponent(value+".wav"))
+            }
+        }
+    }
     func endClearing() {
         memory.removeAllObjects(); generation = UUID(); clearing = false
     }

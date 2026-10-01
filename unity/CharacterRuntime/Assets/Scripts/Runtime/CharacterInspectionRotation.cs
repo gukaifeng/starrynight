@@ -15,16 +15,23 @@ namespace ModelSpace
     // latest view per account/character; rotation never silently pans or zooms.
     public sealed class CharacterInspectionRotation
     {
-        public const int Revision=13;
+        public const int Revision=14;
         public const float TurnFramingReserve=1.10f;
         public const float HoldSeconds=1, MaximumPitch=80;
-        public const float MinimumScale=.78f,MaximumScale=1.28f,MaximumTranslation=.45f;
+        public const float MinimumScale=.50f,MaximumScale=1.28f,MaximumTranslation=.45f;
         Transform model;
         Camera camera;
         Bounds region;
         Vector3[] portraitPoints;
         Bounds portraitInput,portraitResult;
         bool portraitCached;
+        Vector3 portraitFace;
+        float portraitFaceHeight;
+        Bounds portraitReference;
+        public void SetPortraitReference(Bounds envelope,Vector3 face,float faceHeight) {
+            portraitReference=envelope;portraitFace=face;portraitFaceHeight=faceHeight;
+            portraitCached=false;fitCached=false;
+        }
         Rect safe=new Rect(0,0,1,1),fitSafe;
         Bounds fitRegion;
         Matrix4x4 fitCamera;
@@ -69,6 +76,7 @@ namespace ModelSpace
             ResetImmediate();model=target;camera=null;hasProjection=false;fitCached=false;committed=CharacterViewPose.Default;
             PeakYaw=LastReleasedYaw=PeakPitch=LastReleasedPitch=0;Count=RejectedCount=ReturnCount=0;
             rotationOnly=false;bodyPivotLocal=Vector3.zero;portraitPoints=null;portraitCached=false;
+            portraitFaceHeight=0;
             if(model) {
                 var character=model.GetComponent<ViewerCharacter>();
                 var neck=character ? CharacterContract.Resolve(model,character.Manifest.rig.neck) : null;
@@ -135,34 +143,51 @@ namespace ModelSpace
                 min.z=Mathf.Max(min.z,near-margin);max.z=Mathf.Min(max.z,far+margin);
                 if(max.z>min.z)result.SetMinMax(min,max);
             }
+            if(portraitFaceHeight>0 && input==portraitReference) {
+                // Protect the actual head, not a shoulder-width/waist-height box.
+                // Long hair below the jaw and the torso may continue behind chat.
+                float jaw=portraitFace.y-portraitFaceHeight*.40f;
+                var headMin=new Vector3(float.PositiveInfinity,float.PositiveInfinity,float.PositiveInfinity);
+                var headMax=new Vector3(float.NegativeInfinity,float.NegativeInfinity,float.NegativeInfinity);
+                int headPoints=0;
+                foreach(var point in portraitPoints ?? Array.Empty<Vector3>()) {
+                    if(point.y<jaw || point.y>input.max.y || point.x<input.min.x || point.x>input.max.x)continue;
+                    headMin=Vector3.Min(headMin,point);headMax=Vector3.Max(headMax,point);headPoints++;
+                }
+                if(headPoints>20) {
+                    float margin=portraitFaceHeight*.035f;
+                    headMin-=Vector3.one*margin;headMax+=Vector3.one*margin;
+                    result.SetMinMax(headMin,headMax);
+                }
+            }
             portraitCached=true;portraitInput=input;portraitResult=result;return result;
         }
-        // Keep the existing close portrait size. Reserve a little headroom from
-        // the first frame; opening the editor must not reframe the character.
+        // Compose the close upper-body portrait before frame one. Head geometry
+        // leaves editor zoom room; opening the editor itself never reframes.
         public void ComposePortrait(Bounds portrait,Vector3 face,Quaternion rotation,float aspect,float fov,Rect viewport,
             ref Vector3 focus,ref float distance)
         {
             var envelope=PortraitEnvelope(portrait);
-            viewport.height-=Mathf.Min(.05f,viewport.height*.06f);
             float tangent=Mathf.Tan(fov*Mathf.Deg2Rad*.5f);
-            float left=(2*viewport.xMin-1)*tangent*aspect,right=(2*viewport.xMax-1)*tangent*aspect;
-            float bottom=(2*viewport.yMin-1)*tangent,top=(2*viewport.yMax-1)*tangent;
-            float faceSlope=(2*.62f-1)*tangent;
+            float top=(2*viewport.yMax-1)*tangent;
+            // Reserve the complete +28% editor range before showing frame one.
+            // Translation at larger scales can keep the head under the safe top.
+            var enlarged=new Bounds(envelope.center,envelope.size*MaximumScale);
+            FramingMath.Compose(enlarged,rotation,aspect,fov,1,.03f,viewport,out _,out var reserveDistance);
+            distance=Mathf.Max(distance,reserveDistance);
+            focus=envelope.center-rotation*Vector3.right*((2*viewport.center.x-1)*tangent*aspect*distance);
             var inverse=Quaternion.Inverse(rotation);
-            // Retreat around a fixed face anchor rather than pushing a tall-eared
-            // character's face down into the chat. Accessories retain headroom.
+            float shift=float.NegativeInfinity;
             for(int i=0;i<8;i++) {
-                var p=inverse*(FramingMath.Corner(envelope,i)-face);
-                distance=Mathf.Max(distance,Mathf.Max((p.x-right*p.z)/Mathf.Max(.001f,right),
-                    (left*p.z-p.x)/Mathf.Max(.001f,-left)));
-                distance=Mathf.Max(distance,Mathf.Max((p.y-top*p.z)/Mathf.Max(.001f,top-faceSlope),
-                    (bottom*p.z-p.y)/Mathf.Max(.001f,faceSlope-bottom)));
+                var p=inverse*(FramingMath.Corner(envelope,i)-focus)+Vector3.forward*distance;
+                shift=Mathf.Max(shift,p.y-top*p.z);
             }
-            focus=face-rotation*Vector3.up*(distance*faceSlope);
+            // Hardware-safe frame already includes the native 10pt hair margin.
+            // Don't add a second percentage margin that leaves a large empty sky.
+            focus+=rotation*Vector3.up*shift;
         }
         public void ConstrainComposition(Bounds portrait,Quaternion rotation,float aspect,float fov,Rect viewport,ref Vector3 focus,ref float distance) {
             var envelope=PortraitEnvelope(portrait);
-            viewport.height-=Mathf.Min(.05f,viewport.height*.06f);
             float tan=Mathf.Tan(fov*Mathf.Deg2Rad*.5f);
             float left=(2*viewport.xMin-1)*tan*aspect,right=(2*viewport.xMax-1)*tan*aspect;
             float bottom=(2*viewport.yMin-1)*tan,top=(2*viewport.yMax-1)*tan;
@@ -300,15 +325,16 @@ namespace ModelSpace
             }
             // On a side view or a narrow safe window the fit ceiling changes. The
             // floor follows it, so a saved view cannot become a tiny figure on a
-            // different phone. The normal portrait still has the .78 floor.
+            // different phone. Half size permits an intentional wider body view.
             float minimum=Mathf.Min(MinimumScale,maximum.scale*.8f);
             p.scale=Mathf.Clamp(p.scale,minimum,maximum.scale);
             Intervals(p,out var low,out var high);
             p.x=Mathf.Clamp(p.x,low.x,Mathf.Max(low.x,high.x));p.y=Mathf.Clamp(p.y,low.y,Mathf.Max(low.y,high.y));
             // A ratio alone is not a perceptual minimum after screen adaptation.
-            // Raise the floor until the portrait occupies 30% of the safe height.
+            // A protected head can be 14% tall for a wider view; a legacy full
+            // portrait box keeps the previous 30% perceptual floor.
             for(int i=0;enforceMinimum && i<8;i++) {
-                float height=Project(p).height,minimumHeight=safe.height*.3f;
+                float height=Project(p).height,minimumHeight=safe.height*(portraitFaceHeight>0 ? .14f:.3f);
                 if(height>=minimumHeight || p.scale>=maximum.scale-.00001f)break;
                 p.scale=Mathf.Min(maximum.scale,p.scale*minimumHeight/Mathf.Max(.01f,height)+.0005f);
                 Intervals(p,out low,out high);

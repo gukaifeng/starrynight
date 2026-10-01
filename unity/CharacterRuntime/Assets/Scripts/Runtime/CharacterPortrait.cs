@@ -26,10 +26,10 @@ namespace ModelSpace
             out Vector3 focus,out float distance)
         {
             float tangent=Mathf.Tan(fov*Mathf.Deg2Rad*.5f);
-            // On narrow phones the face occupies about a quarter of the screen;
+            // Aim for an intimate upper-body view on narrow phones;
             // wide windows retain a less aggressive framing. Final hardware-safe
             // constraints may retreat for unusually large ears/headwear.
-            float fraction=Mathf.Lerp(.27f,.34f,Mathf.InverseLerp(.6f,1.8f,aspect));
+            float fraction=Mathf.Lerp(.34f,.40f,Mathf.InverseLerp(.6f,1.8f,aspect));
             distance=Mathf.Max(near*3,faceHeight/(2*tangent*fraction*FramingMath.Size(size)));
             focus=face-rotation*Vector3.up*(distance*2*tangent*.18f);
         }

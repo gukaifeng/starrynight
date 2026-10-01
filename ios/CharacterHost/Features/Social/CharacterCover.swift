@@ -8,6 +8,7 @@ struct CharacterCoverDefinition: Decodable {
     let environmentID: String
     let focusX: CGFloat
     let focusY: CGFloat
+    let headBounds:CharacterHeadBounds?
 
     private struct Catalog: Decodable { let schemaVersion: Int; let covers: [CharacterCoverDefinition] }
     private static let catalog: [String: CharacterCoverDefinition] = {
@@ -29,6 +30,9 @@ struct CharacterCover: View {
     var body: some View {
         GeometryReader { geometry in
             if let artwork, artwork.size.width > 0, artwork.size.height > 0 {
+                if let head=definition?.headBounds {
+                    CharacterFocusedArtwork(artwork:artwork,head:head,banner:focalCrop)
+                } else {
                 let scale = max(geometry.size.width/artwork.size.width,geometry.size.height/artwork.size.height)
                 let width = artwork.size.width*scale, height = artwork.size.height*scale
                 let focalX = focalCrop ? definition?.focusX ?? 0.5 : 0.5
@@ -37,7 +41,34 @@ struct CharacterCover: View {
                 let y = min(0,max(geometry.size.height-height,geometry.size.height/2-height*focalY))
                 Image(uiImage:artwork).resizable().frame(width:width,height:height)
                     .offset(x:x,y:y)
+                }
             } else { Theme.surface }
         }.clipped().accessibilityHidden(true)
+    }
+}
+
+struct CharacterFocusedArtwork:View {
+    let artwork:UIImage
+    let head:CharacterHeadBounds
+    var circle=false
+    var banner=false
+    var body:some View {
+        GeometryReader { geometry in
+            let frame=CharacterArtworkLayout.frame(source:artwork.size,target:geometry.size,head:head,circle:circle,banner:banner)
+            ZStack(alignment:.topLeading) {
+                // Wide profile headers need more room than the portrait source.
+                // A subdued backdrop fills the sides without cropping the head.
+                Image(uiImage:artwork).resizable().scaledToFill()
+                    .frame(width:geometry.size.width,height:geometry.size.height).clipped()
+                    .blur(radius:circle ? 4:18).saturation(0.65).brightness(-0.18)
+                Image(uiImage:artwork).resizable().frame(width:frame.width,height:frame.height)
+                    .mask {
+                        if frame.width < geometry.size.width {
+                            LinearGradient(stops:[.init(color:.clear,location:0),.init(color:.black,location:0.1),
+                                .init(color:.black,location:0.9),.init(color:.clear,location:1)],startPoint:.leading,endPoint:.trailing)
+                        } else {Color.black}
+                    }.offset(x:frame.minX,y:frame.minY)
+            }.frame(width:geometry.size.width,height:geometry.size.height).clipped()
+        }.accessibilityHidden(true)
     }
 }

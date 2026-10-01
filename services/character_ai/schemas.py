@@ -179,6 +179,7 @@ class ModelInteraction(Strict):
 
 class Request(Strict):
     request_id: UUID
+    conversation_reset: str = Field(default='',max_length=36)
     character_id: str = Field(min_length=1,max_length=128,pattern=r'^[a-z][a-z0-9_.-]+$')
     text: str = Field(default='',max_length=500)
     trigger: Literal['user_message','appLaunch','firstLaunch','firstMeeting','characterSwitch','idle','story','model_shaken','model_pinched'] = 'user_message'
