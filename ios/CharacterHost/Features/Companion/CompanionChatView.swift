@@ -219,7 +219,7 @@ struct CompanionChatView: View {
             }.buttonStyle(.plain).disabled(session.voiceInput.active).padding(.leading,3)
                 .accessibilityLabel(voiceMode ? "切换键盘输入" : "切换语音输入").accessibilityIdentifier("inputModeButton")
             if voiceMode {
-                VoiceHoldSurface(title:voiceHoldTitle,active:session.voiceInput.phase == .holding,armed:session.voiceInput.editArmed || session.voiceInput.cancelArmed,
+                VoiceHoldSurface(title:voiceHoldTitle,active:session.voiceInput.phase == .holding,armed:session.voiceInput.editArmed || session.voiceInput.cancelArmed,fontSize:chatFontSize,
                     onBegin:{
                         session.quickReplyPanelPresented=false
                         return session.beginVoiceInput()
@@ -230,8 +230,9 @@ struct CompanionChatView: View {
                         return session.voiceInput.editArmed || session.voiceInput.cancelArmed
                     },onRelease:{if session.voiceInput.cancelArmed {session.cancelVoiceInput()} else {session.finishVoiceInput(edit:session.voiceInput.editArmed)}},
                     onCancel:{session.cancelVoiceHold()},onAccessibleEdit:{session.finishVoiceInput(edit:true)},onAccessibleCancel:{session.cancelVoiceInput()})
-                    .frame(maxWidth:.infinity).frame(height:44)
+                    .frame(maxWidth:.infinity).frame(height:ComposerPromptStyle.height(chatFontSize))
                     .background(Theme.accent.opacity(session.voiceInput.phase == .holding ? 0.075 : 0),in:RoundedRectangle(cornerRadius:20,style:.continuous))
+                    .padding(.leading,2).padding(.trailing,4)
             } else {
                 ChatComposerInput(text:$session.input,isFocused:$editing,fontSize:chatFontSize,
                                   foreground:UIColor(Theme.ink),accent:UIColor(Theme.accent),
@@ -239,7 +240,7 @@ struct CompanionChatView: View {
                     .frame(maxWidth:.infinity)
                     .overlay(alignment:.topLeading) {
                         if session.input.isEmpty {
-                            Text("想和你说…").font(.system(size:chatFontSize)).foregroundStyle(Theme.ink.opacity(0.35))
+                            Text("想和你说…").font(ComposerPromptStyle.font(chatFontSize)).foregroundStyle(ComposerPromptStyle.color)
                                 .allowsHitTesting(false).accessibilityHidden(true)
                         }
                     }.padding(.leading,2).padding(.trailing,4).padding(.vertical,12)

@@ -140,7 +140,7 @@ settings={'PRODUCT_NAME':'$(TARGET_NAME)','PRODUCT_BUNDLE_IDENTIFIER':'com.model
     'FRAMEWORK_SEARCH_PATHS':['$(inherited)','$(BUILT_PRODUCTS_DIR)'],
     'OTHER_LDFLAGS':['$(inherited)','-lc++','-framework','CoreML','-framework','Accelerate'],
     'GCC_ENABLE_CPP_EXCEPTIONS':'YES',
-    'CODE_SIGN_STYLE':'Automatic','CURRENT_PROJECT_VERSION':'104','MARKETING_VERSION':'0.77.0',
+    'CODE_SIGN_STYLE':'Automatic','CURRENT_PROJECT_VERSION':'105','MARKETING_VERSION':'0.78.0',
     'ENABLE_USER_SCRIPT_SANDBOXING':'NO','SUPPORTS_MACCATALYST':'NO','SWIFT_EMIT_LOC_STRINGS':'YES',
     'ARCHS':'arm64','ENABLE_DEBUG_DYLIB':'NO','ASSETCATALOG_COMPILER_APPICON_NAME':'AppIcon'}
 target=obj('host-target','PBXNativeTarget',name='CharacterHost',productName='CharacterHost',productType='com.apple.product-type.application',productReference=app,

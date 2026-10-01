@@ -66,7 +66,7 @@ struct CharacterViewEditorPanel: View {
             }
             AtmosphereLevelSlider(level:Binding(get:{session.record.profile.resolvedAtmosphereLevel},set:{value in
                 session.store.update(session.model.id) {$0.profile.atmosphereLevel=value;$0.profile.atmosphereEnabled=value>0}
-            })).frame(height:32)
+            })).frame(height:38)
             HStack {Text("关闭");Spacer();Text("绚烂")}.font(.system(size:10)).foregroundStyle(Theme.secondary)
         }.tint(Theme.accent)
     }

@@ -7,15 +7,26 @@ final class ConversationPolishTests:XCTestCase {
         let app=XCUIApplication()
         app.launchArguments=["--ui-testing","--companion-testing","--auth-testing","--test-ready-delay=14"]
         app.launch();defer {app.terminate()}
-        let loading=app.otherElements["preparingIdentityCapsule"]
+        let loading=app.buttons["preparingIdentityButton"]
         XCTAssertTrue(loading.waitForExistence(timeout:10))
+        let artwork=app.otherElements["conversationPreparingArtwork"]
+        XCTAssertTrue(artwork.exists)
+        XCTAssertEqual(artwork.frame.minY,app.frame.minY,accuracy:1)
+        XCTAssertEqual(artwork.frame.height,app.frame.height,accuracy:1)
+        XCTAssertLessThanOrEqual(artwork.frame.minX,app.frame.minX)
+        XCTAssertGreaterThanOrEqual(artwork.frame.maxX,app.frame.maxX)
         let frame=loading.frame
         XCTAssertEqual(frame.minX,16,accuracy:1)
         XCTAssertEqual(frame.height,44,accuracy:1)
         loading.coordinate(withNormalizedOffset:CGVector(dx:0.35,dy:0.5)).tap()
+        let hint=app.staticTexts["preparingIdentityHint"]
+        XCTAssertTrue(hint.waitForExistence(timeout:3))
+        XCTAssertGreaterThan(hint.frame.minY,loading.frame.maxY)
+        XCTAssertEqual(loading.frame,frame,"Hint overlays the cover without moving its capsule")
         XCTAssertFalse(app.buttons["closeCharacterDetails"].exists)
         XCTAssertFalse(app.buttons["customizationButton"].exists)
-        capture("dimmed-loading-shared-capsule")
+        capture("full-screen-breathing-loading-hint")
+        wait {!hint.exists}
         XCTAssertTrue(app.buttons["customizationButton"].waitForExistence(timeout:60))
         let live=app.otherElements["conversationIdentityCapsule"]
         XCTAssertTrue(live.exists)
@@ -62,13 +73,16 @@ final class ConversationPolishTests:XCTestCase {
             slider.adjust(toNormalizedSliderPosition:value)
             wait {slider.value as? String == name}
         }
-        capture("continuous-atmosphere-thumb")
+        // Taps between stops must choose a marked stop during the interaction.
+        slider.coordinate(withNormalizedOffset:CGVector(dx:0.32,dy:0.5)).tap()
+        wait {slider.value as? String == "轻盈"}
+        capture("marked-discrete-atmosphere-thumb")
         slider.adjust(toNormalizedSliderPosition:0.5)
         app.buttons["closeCharacterViewEditor"].tap()
         app.openConversationSettings("atmosphere")
         XCTAssertEqual(slider.value as? String,"适中")
     }
-    @MainActor func testSwipeDeleteStaysRevealedUntilCancelAndHideStillWorks() {
+    @MainActor func testRightSwipeInlineActionsAndDeletionConfirmation() {
         continueAfterFailure=false;XCUIDevice.shared.orientation = .portrait
         let app=XCUIApplication();app.launchArguments=["--ui-testing","--companion-testing","--auth-testing"]
         app.launch();defer {app.terminate()}
@@ -76,20 +90,26 @@ final class ConversationPolishTests:XCTestCase {
         app.buttons["tab-messages"].tap()
         let row=app.buttons["message-anime-kipfel"],remove=app.buttons["deleteConversation-anime-kipfel"]
         XCTAssertTrue(row.waitForExistence(timeout:6));let initial=row.frame
-        for leading in [true,false] {
-            if leading {row.swipeRight()} else {row.swipeLeft()}
-            XCTAssertTrue(remove.waitForExistence(timeout:5));XCTAssertTrue(remove.isHittable)
-            let redPoint=CGPoint(x:remove.frame.minX+9,y:remove.frame.minY+9)
-            assertRed(at:redPoint,app:app)
-            capture(leading ? "right-swipe-red-delete" : "left-swipe-red-delete")
-            remove.tap()
-            XCTAssertTrue(app.alerts["删除对话和记忆？"].waitForExistence(timeout:5))
-            assertRed(at:redPoint,app:app) // Still red behind the alert, not an auto-closed row.
-            capture("deletion-confirmation-keeps-reveal")
-            app.alerts.buttons["取消"].firstMatch.tap()
-            wait {!remove.exists && abs(row.frame.minX-initial.minX)<1}
-            XCTAssertTrue(row.exists)
-        }
+        row.swipeLeft()
+        XCTAssertFalse(remove.exists,"Leftward swipes never reveal conversation actions")
+        XCTAssertEqual(row.frame,initial)
+        row.swipeRight()
+        XCTAssertTrue(remove.waitForExistence(timeout:5));XCTAssertTrue(remove.isHittable)
+        let hide=app.buttons["hideConversation-anime-kipfel"]
+        XCTAssertGreaterThanOrEqual(hide.frame.minX,row.frame.maxX)
+        XCTAssertGreaterThan(remove.frame.minX,hide.frame.maxX)
+        XCTAssertEqual(remove.frame.maxX,initial.maxX,accuracy:1)
+        XCTAssertEqual(row.frame.minX,initial.minX,accuracy:1)
+        let redPoint=CGPoint(x:remove.frame.minX+9,y:remove.frame.minY+9)
+        assertRed(at:redPoint,app:app)
+        capture("right-swipe-inline-actions")
+        remove.tap()
+        XCTAssertTrue(app.alerts["删除对话和记忆？"].waitForExistence(timeout:5))
+        assertRed(at:redPoint,app:app)
+        capture("deletion-confirmation-keeps-inline-actions")
+        app.alerts.buttons["取消"].firstMatch.tap()
+        wait {!remove.exists && abs(row.frame.width-initial.width)<1}
+        XCTAssertTrue(row.exists)
         row.swipeRight()
         app.buttons["hideConversation-anime-kipfel"].tap()
         XCTAssertTrue(app.buttons["undoHideConversation"].waitForExistence(timeout:5))
@@ -97,6 +117,25 @@ final class ConversationPolishTests:XCTestCase {
         app.buttons["undoHideConversation"].tap()
         XCTAssertTrue(row.waitForExistence(timeout:5))
         row.tap();XCTAssertTrue(app.buttons["customizationButton"].waitForExistence(timeout:12))
+    }
+    @MainActor func testComposerPromptsShareLayoutAcrossInputModes() {
+        continueAfterFailure=false;XCUIDevice.shared.orientation = .portrait
+        let app=XCUIApplication();app.launchArguments=["--ui-testing","--voice-atmosphere-check"]
+        app.launch();defer {app.terminate()}
+        let input=app.textViews["chatInput"],mode=app.buttons["inputModeButton"]
+        XCTAssertTrue(input.waitForExistence(timeout:10))
+        let frame=input.frame,toggle=mode.frame
+        capture("composer-keyboard-prompt")
+        mode.tap()
+        let hold=app.buttons["holdToTalkButton"]
+        XCTAssertTrue(hold.waitForExistence(timeout:5))
+        XCTAssertEqual(hold.frame.minX,frame.minX,accuracy:1)
+        XCTAssertEqual(hold.frame.midY,frame.midY,accuracy:1)
+        XCTAssertEqual(hold.frame.width,frame.width,accuracy:1)
+        XCTAssertEqual(mode.frame,toggle)
+        capture("composer-hold-prompt")
+        mode.tap();XCTAssertTrue(input.waitForExistence(timeout:5))
+        XCTAssertEqual(input.frame,frame)
     }
     @MainActor private func assertRed(at point:CGPoint,app:XCUIApplication,file:StaticString=#filePath,line:UInt=#line) {
         guard let image=XCUIScreen.main.screenshot().image.cgImage else {XCTFail("Screenshot missing",file:file,line:line);return}

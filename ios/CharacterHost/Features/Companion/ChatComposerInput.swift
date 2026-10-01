@@ -1,6 +1,13 @@
 import SwiftUI
 import UIKit
 
+@MainActor enum ComposerPromptStyle {
+    static func font(_ size:CGFloat)->Font {.system(size:size,weight:.regular)}
+    static func uiFont(_ size:CGFloat)->UIFont {.systemFont(ofSize:size,weight:.regular)}
+    static var color:Color {Theme.ink.opacity(0.44)}
+    static func height(_ size:CGFloat)->CGFloat {ceil(uiFont(size).lineHeight)+24}
+}
+
 /// A wrapping chat input with a real Send action. SwiftUI's vertical TextField
 /// changes the Return key's label, but still consumes Return as a line break.
 struct ChatComposerInput: UIViewRepresentable {

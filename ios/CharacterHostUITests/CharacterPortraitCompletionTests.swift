@@ -51,7 +51,7 @@ final class CharacterPortraitCompletionTests:XCTestCase {
         }
         app.buttons["tab-messages"].tap()
         let row=app.buttons["message-anime-plum"]
-        XCTAssertTrue(row.waitForExistence(timeout:8));row.swipeLeft()
+        XCTAssertTrue(row.waitForExistence(timeout:8));row.swipeRight()
         app.buttons["deleteConversation-anime-plum"].tap()
         XCTAssertTrue(app.alerts["删除对话和记忆？"].waitForExistence(timeout:5))
         capture("conversation-delete-confirmation",app)

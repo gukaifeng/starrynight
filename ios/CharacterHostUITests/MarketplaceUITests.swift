@@ -54,7 +54,7 @@ final class MarketplaceUITests:XCTestCase {
         app.buttons["tab-messages"].tap()
         let row = app.buttons["message-anime-kipfel"]
         XCTAssertTrue(row.waitForExistence(timeout:8))
-        row.swipeLeft()
+        row.swipeRight()
         let hide = app.buttons["hideConversation-anime-kipfel"]
         XCTAssertTrue(hide.waitForExistence(timeout:3)); hide.tap()
         XCTAssertFalse(row.exists)
@@ -69,7 +69,7 @@ final class MarketplaceUITests:XCTestCase {
         app.buttons["restoreConversation-anime-kipfel"].tap()
         app.buttons["closeHiddenConversations"].tap()
         XCTAssertTrue(row.waitForExistence(timeout:5))
-        row.swipeLeft(); app.buttons["hideConversation-anime-kipfel"].tap()
+        row.swipeRight(); app.buttons["hideConversation-anime-kipfel"].tap()
         app.buttons["undoHideConversation"].tap()
         XCTAssertTrue(row.exists)
     }

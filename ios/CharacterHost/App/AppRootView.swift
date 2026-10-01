@@ -6,7 +6,17 @@ struct AppRootView: View {
     var body: some View {
         ZStack {
             NightBackdrop()
-            if coordinator.bundledBackdropVisible && coordinator.visibleShellTab == .home {
+            if coordinator.stageLoadingVisible {
+                // Artwork belongs to the full window, while the identity and
+                // dock below keep the same safe-area layout as the live scene.
+                GeometryReader { geometry in
+                    CharacterCover(model:coordinator.selectedModel)
+                        .frame(width:geometry.size.width,height:geometry.size.height).clipped()
+                        .overlay {LoadingBreathingScrim().accessibilityHidden(true)}
+                }.ignoresSafeArea().allowsHitTesting(false)
+                    .accessibilityElement(children:.ignore).accessibilityLabel("角色加载封面")
+                    .accessibilityIdentifier("conversationPreparingArtwork")
+            } else if coordinator.bundledBackdropVisible && coordinator.visibleShellTab == .home {
                 GeometryReader { geometry in
                     if geometry.size.height > geometry.size.width {
                         Image("FirstCompanionBackdrop").resizable().scaledToFill()
@@ -47,6 +57,9 @@ struct AppRootView: View {
 /// existing local transcript are read here; no network request or fake reply.
 private struct ConversationPreparingCover: View {
     let coordinator: ViewerCoordinator
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var hintVisible=false
+    @State private var hintTask:Task<Void,Never>?
     private var model: ModelDescriptor { coordinator.selectedModel }
     private var profile: CharacterProfile { coordinator.profile(for:model) }
     private var lastMessage: CompanionMessage? {
@@ -54,18 +67,9 @@ private struct ConversationPreparingCover: View {
     }
     var body: some View {
         ZStack {
-            CharacterCover(model:model)
-                .overlay {
-                    LinearGradient(stops:[.init(color:.black.opacity(0.58),location:0),
-                        .init(color:.black.opacity(0.16),location:0.30),
-                        .init(color:.black.opacity(0.22),location:0.55),
-                        .init(color:.black.opacity(0.85),location:1)],startPoint:.top,endPoint:.bottom)
-                }
-                .allowsHitTesting(false)
-                .accessibilityIdentifier("conversationPreparingCover-"+model.id)
             VStack(alignment:.leading,spacing:0) {
                 CharacterIdentityCapsule(model:model,profile:profile,interactive:false,
-                    portraits:coordinator.portraits,library:coordinator.library)
+                    portraits:coordinator.portraits,library:coordinator.library,onPreparingTap:showHint)
                     .frame(width:CharacterIdentityCapsule.fittingWidth(for:profile.name),height:44)
                     .padding(.top,8).padding(.horizontal,16)
                 Spacer(minLength:24)
@@ -84,8 +88,34 @@ private struct ConversationPreparingCover: View {
                     Text("\(profile.name)正在来到你身边")
                         .font(.system(size:12)).foregroundStyle(Theme.secondary)
                 }.frame(maxWidth:.infinity).padding(.bottom,28)
+            }.overlay(alignment:.topLeading) {
+                if hintVisible {
+                    HStack(alignment:.top,spacing:7) {
+                        Image(systemName:"sparkle").font(.system(size:12,weight:.light)).foregroundStyle(Theme.peach).padding(.top,2)
+                        Text("马上就能见面啦，\n准备好后，再点这里认识我吧。")
+                            .font(.system(size:12)).lineSpacing(3).foregroundStyle(Theme.ink.opacity(0.88))
+                    }.padding(.horizontal,12).padding(.vertical,10).fixedSize(horizontal:true,vertical:true)
+                        .background(.ultraThinMaterial,in:RoundedRectangle(cornerRadius:14))
+                        .overlay(RoundedRectangle(cornerRadius:14).stroke(Theme.ink.opacity(0.10),lineWidth:0.5))
+                        .shadow(color:.black.opacity(0.12),radius:10,y:4)
+                        .accessibilityElement(children:.combine).accessibilityIdentifier("preparingIdentityHint")
+                        .padding(.leading,16).padding(.top,60)
+                        .transition(.opacity.combined(with:.offset(y:reduceMotion ? 0 : -4)))
+                        .allowsHitTesting(false)
+                }
             }
-        }.accessibilityElement(children:.contain).accessibilityIdentifier("conversationPreparing")
+        }.frame(maxWidth:.infinity,maxHeight:.infinity,alignment:.topLeading)
+            .accessibilityElement(children:.contain).accessibilityIdentifier("conversationPreparing")
+            .onDisappear {hintTask?.cancel()}
+            .onChange(of:model.id) {hintTask?.cancel();hintVisible=false}
+    }
+    private func showHint() {
+        hintTask?.cancel()
+        withAnimation(.easeInOut(duration:reduceMotion ? 0.15 : 0.28)) {hintVisible=true}
+        hintTask=Task { @MainActor in
+            do {try await Task.sleep(for:.seconds(4))} catch {return}
+            withAnimation(.easeInOut(duration:0.3)) {hintVisible=false}
+        }
     }
 }
 private struct ConversationLanding: View {

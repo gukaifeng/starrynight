@@ -29,6 +29,7 @@ struct VoiceHoldSurface:UIViewRepresentable {
     var title:String
     var active:Bool
     var armed:Bool
+    var fontSize:CGFloat=15
     var onBegin:()->Bool
     var onMove:(CGPoint)->Bool
     var onRelease:()->Void
@@ -38,7 +39,8 @@ struct VoiceHoldSurface:UIViewRepresentable {
 
     func makeUIView(context:Context)->HoldView {HoldView()}
     func updateUIView(_ view:HoldView,context:Context) {
-        view.label.text=title;view.label.textColor=UIColor(Theme.ink).withAlphaComponent(active ? 0.95 : 0.76)
+        view.label.text=title;view.label.font=ComposerPromptStyle.uiFont(fontSize)
+        view.label.textColor=active ? UIColor(Theme.ink).withAlphaComponent(0.95) : UIColor(ComposerPromptStyle.color)
         view.onBegin=onBegin;view.onMove=onMove;view.onRelease=onRelease;view.onCancel=onCancel
         view.onAccessibleEdit=onAccessibleEdit;view.onAccessibleCancel=onAccessibleCancel;view.active=active
         view.accessibilityValue=armed ? "松开后编辑" : (active ? "正在录音" : "未录音")
@@ -61,11 +63,11 @@ struct VoiceHoldSurface:UIViewRepresentable {
         override init(frame:CGRect) {
             super.init(frame:frame)
             backgroundColor = .clear;isOpaque=false;isMultipleTouchEnabled=true
-            label.font = .systemFont(ofSize:15,weight:.medium);label.textAlignment = .center
+            label.font = ComposerPromptStyle.uiFont(15);label.textAlignment = .left
             label.adjustsFontSizeToFitWidth=true;label.minimumScaleFactor=0.8
             label.translatesAutoresizingMaskIntoConstraints=false;addSubview(label)
-            NSLayoutConstraint.activate([label.leadingAnchor.constraint(equalTo:leadingAnchor,constant:4),
-                label.trailingAnchor.constraint(equalTo:trailingAnchor,constant:-4),label.centerYAnchor.constraint(equalTo:centerYAnchor)])
+            NSLayoutConstraint.activate([label.leadingAnchor.constraint(equalTo:leadingAnchor),
+                label.trailingAnchor.constraint(equalTo:trailingAnchor),label.centerYAnchor.constraint(equalTo:centerYAnchor)])
             let gesture=VoiceHoldGesture(target:self,action:#selector(track(_:)))
             addGestureRecognizer(gesture)
             isAccessibilityElement=true;accessibilityTraits = .button

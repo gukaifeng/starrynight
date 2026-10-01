@@ -79,11 +79,26 @@ struct CharacterIdentityCapsule: View {
     var interactive=true
     let portraits: CharacterPortraitStore
     let library:CharacterLibrary
+    var onPreparingTap:(()->Void)? = nil
     var diagnostics:CharacterIdentityDiagnostics? = nil
     var onDetails:()->Void = {}
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     private var subscribed:Bool {library.subscriptions.contains(model.id)}
-    var body: some View {
+    @ViewBuilder var body: some View {
+        if interactive {
+            capsule.accessibilityElement(children:.contain)
+                .accessibilityIdentifier("conversationIdentityCapsule")
+        } else if let onPreparingTap {
+            Button(action:onPreparingTap) {capsule.accessibilityHidden(true)}
+                .buttonStyle(.plain).accessibilityLabel(profile.name+"，正在准备会话，轻点查看提示")
+                .accessibilityIdentifier("preparingIdentityButton")
+        } else {
+            capsule.allowsHitTesting(false).accessibilityElement(children:.ignore)
+                .accessibilityLabel(profile.name+"，正在准备会话")
+                .accessibilityIdentifier("preparingIdentityCapsule")
+        }
+    }
+    private var capsule:some View {
         HStack(spacing:0) {
             if interactive {
                 Button(action:onDetails) {identityLabel}
@@ -106,10 +121,6 @@ struct CharacterIdentityCapsule: View {
             .overlay(Capsule().stroke(LinearGradient(colors:[.white.opacity(0.16),.white.opacity(0.035)],
                 startPoint:.topLeading,endPoint:.bottomTrailing),lineWidth:0.5).frame(height:36).allowsHitTesting(false))
             .shadow(color:.black.opacity(0.12),radius:7,y:3)
-            .allowsHitTesting(interactive)
-            .accessibilityElement(children:interactive ? .contain : .ignore)
-            .accessibilityLabel(interactive ? "" : profile.name+"，正在准备会话")
-            .accessibilityIdentifier(interactive ? "conversationIdentityCapsule" : "preparingIdentityCapsule")
     }
     private var identityLabel:some View {
         HStack(spacing:7) {
