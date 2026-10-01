@@ -15,6 +15,9 @@ private final class CharacterPreviewGesture: UIGestureRecognizer {
     private(set) var zoom:CGFloat=1
     private(set) var origin = CGPoint.zero
     private(set) var rotation = CGPoint.zero
+    private(set) var horizontalSpeed:CGFloat=0
+    private var samplePoint=CGPoint.zero
+    private var sampleTime:TimeInterval=0
     private func activeFingers(in event:UIEvent)->Int {
         event.allTouches?.filter { $0.window === view?.window && $0.phase != .ended && $0.phase != .cancelled }.count ?? 0
     }
@@ -28,7 +31,7 @@ private final class CharacterPreviewGesture: UIGestureRecognizer {
             state = state == .possible ? .failed : .cancelled;return
         }
         fingers.append(contentsOf:touches)
-        if fingers.count==1 {origin=fingers[0].location(in:view);return}
+        if fingers.count==1 {origin=fingers[0].location(in:view);samplePoint=origin;sampleTime=fingers[0].timestamp;return}
         let a=fingers[0].location(in:view),b=fingers[1].location(in:view)
         origin=CGPoint(x:(a.x+b.x)/2,y:(a.y+b.y)/2)
         distance=max(12,hypot(a.x-b.x,a.y-b.y));rotation = .zero;zoom=1;isPinching=true
@@ -46,6 +49,13 @@ private final class CharacterPreviewGesture: UIGestureRecognizer {
             state = state == .possible ? .began : .changed;return // Centroid movement and two-finger twist are ignored.
         }
         let point=finger.location(in:view),dx=point.x-origin.x,dy=point.y-origin.y
+        let dt=finger.timestamp-sampleTime
+        if dt>0 {
+            let speed=abs(point.x-samplePoint.x)/max(1,view.bounds.width)/max(1.0/240,dt)
+            let weight=1-exp(-dt/0.045)
+            horizontalSpeed += (min(4,speed)-horizontalSpeed)*weight
+            samplePoint=point;sampleTime=finger.timestamp
+        }
         guard state != .possible || hypot(dx,dy)>=7 else {return}
         if state == .possible,source == .conversationMessage,abs(dx)<=abs(dy)*1.2 {
             state = .failed;return
@@ -61,7 +71,7 @@ private final class CharacterPreviewGesture: UIGestureRecognizer {
         guard state == .possible || state == .began || state == .changed else {return}
         state = state == .possible ? .failed : .cancelled
     }
-    override func reset() {fingers.removeAll();origin = .zero;rotation = .zero;zoom=1;isPinching=false;rejectsAdditionalTouch=false;super.reset()}
+    override func reset() {fingers.removeAll();origin = .zero;rotation = .zero;zoom=1;horizontalSpeed=0;sampleTime=0;samplePoint = .zero;isPinching=false;rejectsAdditionalTouch=false;super.reset()}
 }
 
 /// Enabled only by the position button. Finger-count changes start a new basis,
@@ -211,7 +221,7 @@ final class CharacterTouchSurface:UIView,UIGestureRecognizerDelegate {
         }
         let payload:[String:Any]=["action":previewAction,"state":state,"previewToken":previewToken,
             "viewportX":recognizer.origin.x/bounds.width,"viewportY":recognizer.origin.y/bounds.height,
-            "deltaX":recognizer.rotation.x,"deltaY":recognizer.rotation.y,"scale":recognizer.zoom,
+            "deltaX":recognizer.rotation.x,"deltaY":recognizer.rotation.y,"scale":recognizer.zoom,"previewSpeed":recognizer.horizontalSpeed,
             "previewFromConversation":recognizer.source != .character]
         onGesture?(payload)
     }

@@ -40,9 +40,11 @@ def report(settings,engine,owner,request):
         dict(active_voice={k:voice[k] for k in ('voice_id','revision','approved','model') if k in voice},
              emotion_tags=EMOTIONS,delivery_instructions=DELIVERY,vocal_tags=VOCALS,
              recognition_hotwords=PROFILES[char]['hotwords']+([request.preferences['nickname']] if request.preferences.get('nickname') else [])))
-    fields=('character_model','tts_model','asr_model','narration_timeout_seconds','performance_timeout_seconds','reaction_pool_size','reaction_pool_ttl_seconds','entry_pool_ttl_seconds','paid_enabled','enforce_conversation_limits',
+    fields=('character_model','suggestions_model','translation_model','tts_model','asr_model','narration_timeout_seconds','performance_timeout_seconds','reaction_pool_size','reaction_pool_ttl_seconds','entry_pool_ttl_seconds','paid_enabled','enforce_conversation_limits',
             'max_daily_calls','max_daily_tts_characters','max_daily_asr_seconds','max_voice_designs','enable_test_inspector','semantic_novelty')
     add('models','模型与运行参数','凭证、认证头和本机文件路径不属于角色调教，不在报告中返回。',{k:getattr(settings,k) for k in fields})
+    add('translation-provider','翻译服务状态','专用 Qwen-MT 优先；只有快速模型确实可用时才临时回退。一小时后重新检查；两者均被拒绝时缩短为30秒后的下一次用户请求，不后台重试。',
+        store.get('translation_provider','system','',dict(preferred=settings.translation_model)))
     add('requests','最近实际请求','本账号、本角色最近 12 次 provider 请求正文，含格式修正；升级前未记录的请求不会伪造。',
         store.get('inspection_requests',owner,char,[]))
     add('reply-flow','最近分段编排','本账号、本角色最近一轮的原始心声锚点与实际可见段落；仅测试部署记录。',store.get('reply_flow_review',owner,char,{}))
@@ -61,7 +63,7 @@ def report(settings,engine,owner,request):
     # Runtime rules live in executable code as well as prompts. Include the full
     # deployed modules so a tester can inspect thresholds/filters without a
     # hand-maintained summary becoming a second, misleading source of truth.
-    for name in ('prompts','schemas','planner_wire','parallel_performance','ordered_audio','reaction_pool','prepared_draft','quick_replies','greetings','idle_presence','novelty','semantic_novelty','reply_flow','director','performance_library','speech_text','orchestrator','provider','asr','storage'):
+    for name in ('prompts','schemas','planner_wire','parallel_performance','ordered_audio','reaction_pool','prepared_draft','quick_replies','greetings','idle_presence','novelty','semantic_novelty','reply_flow','director','performance_library','speech_text','orchestrator','provider','translation','asr','storage'):
         module=importlib.import_module('.'+name,__package__)
         add('rules-'+name,'执行规则 · '+name,'当前服务实际加载版本的完整规则源码。',Path(module.__file__).read_text())
     return dict(version=1,character_id=char,captured_at=datetime.now(timezone.utc).isoformat(),sections=sections)

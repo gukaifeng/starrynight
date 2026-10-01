@@ -13,7 +13,7 @@ namespace ModelSpace
         // Optional for older hosts; new hosts send the framing lock independently of head taps.
         public bool framingGesturesEnabled = true;
         public bool nativeGestures;
-        public float deltaX, deltaY, translationX, translationY, scale = 1;
+        public float deltaX, deltaY, translationX, translationY, previewSpeed, scale = 1;
         public int inspectionToken,previewToken;
         public bool previewFromConversation;
         public CharacterViewPose inspectionPose;
@@ -478,13 +478,13 @@ namespace ModelSpace
                        value.viewportX>=0 && value.viewportX<=1 && value.viewportY>=0 && value.viewportY<=1 &&
                        (value.previewFromConversation || HitDisplayedModel(new Vector2(value.viewportX*Screen.width,(1-value.viewportY)*Screen.height)))) {
                         if(pinching) {inspection.Preview.BeginPinch();inspection.Preview.Pinch(value.scale);Emit("previewPinchBegan");}
-                        else {inspection.Preview.Begin();inspection.Preview.Move(value.deltaX,value.deltaY);Emit("previewRotationBegan");}
+                        else {inspection.Preview.Begin();inspection.Preview.Move(value.deltaX,value.deltaY,value.previewSpeed);Emit("previewRotationBegan");}
                     }
                     else Emit(pinching ? "previewPinchRejected" : "previewRotationRejected");
                 }
                 else if(value.previewToken==previewToken) {
                     if(value.state=="changed") {
-                        if(pinching)inspection.Preview.Pinch(value.scale);else inspection.Preview.Move(value.deltaX,value.deltaY);
+                        if(pinching)inspection.Preview.Pinch(value.scale);else inspection.Preview.Move(value.deltaX,value.deltaY,value.previewSpeed);
                         ScheduleState();
                     }
                     else if(value.state=="ended" || value.state=="cancelled") {

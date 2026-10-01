@@ -1,7 +1,7 @@
 import random, math, time, re
 from .profiles import assets
 
-FALLBACK={'shy_smile':['soft_smile','neutral'],'teasing_smile':['soft_smile','neutral'],
+FALLBACK={'thinking':['confused','soft_smile','neutral'],'shy_smile':['soft_smile','neutral'],'teasing_smile':['soft_smile','neutral'],
  'bright_smile':['soft_smile','neutral'],'worried':['thinking','neutral'],
  'excited':['bright_smile','soft_smile','neutral'],'proud':['confident','teasing_smile','neutral'],
  'nod':['idle'],'shake_head':['idle'],'wave':['open_hands','idle'],'cover_mouth':['idle'],
@@ -23,6 +23,17 @@ ALIASES = dict(smile='soft_smile',happy='bright_smile',cheerful='bright_smile',c
                victory='peace',v_sign='peace',ear_twitch='ear_wiggle',wag_tail='tail_wag')
 EMOTION_FACE = dict(happy='bright_smile',sad='sad',surprised='surprised',serious='serious',worried='worried',
                     curious='thinking',confused='confused',excited='excited',playful='teasing_smile')
+
+def spoken_face(beat,dominant='neutral'):
+    """Ground expressive speech metadata in existing author-defined faces."""
+    if not beat.dialogue:return EMOTION_FACE.get(dominant,'neutral')
+    speech=beat.dialogue.speech
+    if speech.emotion in ('sad','surprised','serious','worried'):return EMOTION_FACE[speech.emotion]
+    if speech.delivery=='hesitant':return 'thinking'
+    if speech.delivery=='teasing':return 'teasing_smile'
+    if speech.delivery in ('soft','gentle','whisper') and speech.emotion in ('neutral','happy'):return 'soft_smile'
+    if any(v.event in ('giggle','laugh') for v in beat.vocal_events):return 'teasing_smile'
+    return EMOTION_FACE.get(speech.emotion,EMOTION_FACE.get(dominant,'neutral'))
 
 def visible_narration(value):
     """Read-time compatibility for old saved literary appearance descriptions."""
@@ -78,8 +89,7 @@ class Director:
         # A typed speech emotion is reliable fallback evidence; don't discard it
         # just because the planner left its separate performance at the default.
         if automatic_fill and performance.expression_intent=='neutral':
-            emotion=beat.dialogue.speech.emotion if beat.dialogue else 'neutral'
-            performance.expression_intent=EMOTION_FACE.get(emotion,EMOTION_FACE.get(dominant_emotion,'neutral'))
+            performance.expression_intent=spoken_face(beat,dominant_emotion)
             if performance.expression_intent=='neutral' and trigger in ('appLaunch','firstLaunch','firstMeeting','characterSwitch'):
                 performance.expression_intent='soft_smile'
         library=[a for a in assets(character) if a['enabled'] and a['asset_id'] in available and a.get('speech_compatible',True)]
@@ -140,6 +150,12 @@ class Director:
             if not occupied.get(group):add(group,offset=index*100,automatic=True)
         if beat.dialogue and len(beat.dialogue.text)>=10:
             second=min(4200,max(2200,len(beat.dialogue.text)*65))
+            if automatic_fill and beat.dialogue.speech.delivery=='hesitant':
+                # Resolve a brief pause into a softer expression where the
+                # avatar provides one. Never invent skeletal movements.
+                for a in library:
+                    if a['kind']=='expression' and a['intent']=='soft_smile' and a.get('automatic',True):
+                        add(a['group'],'soft_smile',second);break
             for index,group in enumerate(groups[:8]):add(group,offset=second+index*120,automatic=True)
         cues.sort(key=lambda c:c['offset_ms'])
         face=next((c['asset'] for c in cues if c['asset']['kind']=='expression'),None)

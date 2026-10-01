@@ -8,6 +8,7 @@ private final class TouchThroughView: UIView {
     var messageRegions: [String:ConversationHitRegion] = [:]
     var capturesInspection = false
     weak var inspectionEntry:UIView?
+    weak var viewingEntry:UIView?
     weak var inspectionDock:UIView?
     weak var inspectionPanel:UIView?
     var inspectionPassesBody = true
@@ -35,7 +36,7 @@ private final class TouchThroughView: UIView {
         return messageRegions.values.contains(where:{$0.kind == .message && $0.frame.contains(point)}) ? .message : nil
     }
     func previewOrigin(at point:CGPoint,target:UIView?)->CharacterPreviewOrigin? {
-        if let chatView,messageFrame.contains(chatView.convert(point,from:self)) {
+        if let chatView,chatView.isUserInteractionEnabled,chatView.alpha>0.01,messageFrame.contains(chatView.convert(point,from:self)) {
             switch conversationHit(at:chatView.convert(point,from:self)) {
             case .control:return nil
             case .message:return .conversationMessage
@@ -46,14 +47,14 @@ private final class TouchThroughView: UIView {
            target === characterTouchView || target.isDescendant(of:characterTouchView) {return .character}
         return nil
     }
-    func updateScrims(chat: CGRect?, stage: CGRect, editing: Bool, duration: TimeInterval) {
+    func updateScrims(chat: CGRect?, stage: CGRect, editing: Bool, duration: TimeInterval, viewingOnly:Bool=false) {
         let color = UIColor(Theme.background)
         let solid = UIAccessibility.isReduceTransparencyEnabled || ThemeSettings.shared.solid
         let sideChat = AdaptiveViewerLayout.sideBySide(bounds.size) && chat != nil
         // Spread the veil across the whole conversation, with a gentle slope at both ends.
         // The landscape keyboard keeps its side column without whitening the character's face.
         let start = chat.map { sideChat ? max(0,$0.maxY-90) : max(0,$0.minY-16) } ?? max(0,stage.maxY-48)
-        let opacity: CGFloat = solid ? 1 : (editing ? 0.36 : 0.80)
+        let opacity: CGFloat = viewingOnly ? 0 : solid ? 1 : (editing ? 0.36 : 0.80)
         sideScrim.startPoint = CGPoint(x:0,y:0.5); sideScrim.endPoint = CGPoint(x:1,y:0.5)
         let sideStart = max(0,(chat?.minX ?? bounds.width)-80)
         update(sideScrim,frame:CGRect(x:sideStart,y:0,width:max(1,bounds.width-sideStart),height:bounds.height),
@@ -83,7 +84,7 @@ private final class TouchThroughView: UIView {
     }
     override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
         if capturesInspection, let characterTouchView {
-            for panel in [inspectionEntry,inspectionDock].compactMap({$0}) where !panel.isHidden && panel.alpha>0.01 {
+            for panel in [inspectionEntry,viewingEntry,inspectionDock].compactMap({$0}) where !panel.isHidden && panel.alpha>0.01 {
                 let local=panel.convert(point,from:self)
                 if panel.bounds.contains(local),let hit=panel.hitTest(local,with:event) { return hit }
             }
@@ -132,6 +133,8 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
     private let viewEditor = CharacterViewEditor()
     private var viewEditorHost:LanguageHostingController<CharacterViewEditorPanel>?
     private let positionButton=UIButton(type:.system)
+    private let viewingButton=UIButton(type:.system)
+    private var viewingOnly=false
     private var positionSessions:[Int:(session:CompanionSession,account:String)]=[:]
     var onLoadCharacterView:((CharacterViewPose,Bool)->Void)?
     func loadSavedCharacterView(immediate:Bool) {
@@ -159,6 +162,33 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
         positionButton.accessibilityValue=editing ? viewEditor.section.title : L10n.text("位置、声音与氛围")
         positionButton.accessibilityIdentifier=editing ? "closeCharacterViewEditor" : "characterPositionButton"
         positionButton.isHidden=chatSession == nil
+        updateViewingButton()
+    }
+    private func updateViewingButton() {
+        var config=UIButton.Configuration.plain()
+        config.title=L10n.text(viewingOnly ? "聊天" : "静赏")
+        config.image=UIImage(systemName:viewingOnly ? "text.bubble" : "viewfinder",withConfiguration:UIImage.SymbolConfiguration(pointSize:12,weight:.regular))
+        config.imagePadding=4;config.contentInsets = .zero
+        config.baseForegroundColor=UIColor(Theme.ink).withAlphaComponent(viewingOnly ? 0.8 : 0.56)
+        config.titleTextAttributesTransformer=UIConfigurationTextAttributesTransformer { input in
+            var value=input;value.font = .systemFont(ofSize:11,weight:.medium);return value
+        }
+        viewingButton.configuration=config
+        viewingButton.isHidden=chatSession == nil
+        viewingButton.accessibilityIdentifier="characterViewingButton"
+        viewingButton.accessibilityLabel=L10n.text(viewingOnly ? "回到聊天" : "静赏角色")
+        viewingButton.accessibilityValue=viewingOnly ? "on" : "off"
+        viewingButton.accessibilityHint=L10n.text("隐藏或显示聊天与输入区域，保留角色位置和声音")
+    }
+    @objc private func toggleViewing() {
+        guard gestureInputAvailable,let session=chatSession else {return}
+        UISelectionFeedbackGenerator().selectionChanged()
+        if session.voiceInput.active {session.cancelVoiceInput()}
+        session.dismissKeyboardRequest += 1;session.quickReplyPanelPresented=false;view.endEditing(true)
+        viewingOnly.toggle();updateViewingButton()
+        // Keep the hosting controller/session alive: speech, streaming replies,
+        // history position and unsent input are not tied to this visual toggle.
+        animateLayout()
     }
     @objc private func languageChanged() {
         updatePositionButton()
@@ -466,6 +496,7 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
         values["atmosphereIntensity"] = chatSession?.atmosphereIntensity
         values["positionAnimationSamples"] = positionAnimationSamples
         values["viewPoseSaved"] = chatSession?.record.lastViewPose.payload
+        values["viewingOnly"] = viewingOnly
         if let host=viewEditorHost {
             values["viewEditorFrame"] = ["x":host.view.frame.minX,"y":host.view.frame.minY,"width":host.view.frame.width,"height":host.view.frame.height]
         }
@@ -564,7 +595,7 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
         customizationButton.accessibilityIdentifier = session == nil ? "customizationButton" : "identityLayoutAnchor"
         customizationButton.isUserInteractionEnabled = session == nil
         backButton.isHidden = session != nil
-        chatHost = nil; chatSession = session; chatEditing = false; chatComposerFrame = .zero
+        chatHost = nil; chatSession = session; chatEditing = false; chatComposerFrame = .zero;viewingOnly=false
         (view as? TouchThroughView)?.messageRegions = [:]
         // Only the visible identity occupies the upper-left touch area. Keeping
         // the old wide centered hit target here would swallow model gestures.
@@ -683,6 +714,9 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
         positionButton.addTarget(self,action:#selector(togglePositionEditor),for:.touchUpInside)
         positionButton.accessibilityHint=L10n.text("调整角色位置、心声音量、背景音乐与氛围效果")
         view.addSubview(positionButton)
+        viewingButton.addTarget(self,action:#selector(toggleViewing),for:.touchUpInside)
+        view.addSubview(viewingButton)
+        (view as? TouchThroughView)?.viewingEntry=viewingButton
         (view as? TouchThroughView)?.inspectionEntry=positionButton
         touchSurface.onGesture = { [weak self] value in self?.onNativeGesture?(value) }
         touchSurface.frame=view.bounds;touchSurface.autoresizingMask=[.flexibleWidth,.flexibleHeight]
@@ -696,7 +730,7 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
         touchSurface.observeEditing(in:view) { [weak self] point,target in
             guard let self,self.viewEditor.isOpen,self.viewEditor.section == .position,self.gestureInputAvailable,self.view.isUserInteractionEnabled else {return false}
             if (self.view as? TouchThroughView)?.inspectionPanelOwns(point) == true {return false}
-            for excluded in [self.positionButton,self.dockHost?.view].compactMap({$0}) where !excluded.isHidden && excluded.alpha>0.01 {
+            for excluded in [self.positionButton,self.viewingButton,self.dockHost?.view].compactMap({$0}) where !excluded.isHidden && excluded.alpha>0.01 {
                 if excluded.bounds.contains(excluded.convert(point,from:self.view)) {return false}
             }
             return true
@@ -844,7 +878,7 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
         if viewEditor.isOpen {
             guard gestureInputAvailable,presentedViewController==nil else {return false}
             let point=touch.location(in:view)
-            for excluded in [viewEditorHost?.view,positionButton,dockHost?.view].compactMap({$0}) where !excluded.isHidden && excluded.alpha>0.01 {
+            for excluded in [viewEditorHost?.view,positionButton,viewingButton,dockHost?.view].compactMap({$0}) where !excluded.isHidden && excluded.alpha>0.01 {
                 if excluded.bounds.contains(excluded.convert(point,from:view)) {return false}
             }
             // Only a completed tap dismisses. Panning or pinching outside the
@@ -925,6 +959,8 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
         let safe = view.safeAreaInsets
         // Match the capsule's actual centre, including its safe-area constraints.
         positionButton.frame=CGRect(x:size.width-safe.right-54,y:customizationButton.frame.midY-22,width:44,height:44)
+        viewingButton.frame=CGRect(x:positionButton.frame.minX-64,y:positionButton.frame.minY,width:60,height:44)
+        view.bringSubviewToFront(viewingButton)
         view.bringSubviewToFront(positionButton)
         var insets = AdaptiveViewerLayout.Insets(top:safe.top,left:safe.left,bottom:safe.bottom,right:safe.right)
         // Composition belongs to the character, not to the current sheet, keyboard
@@ -963,7 +999,7 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
             let frame = layout.chat
             let stableStage = AdaptiveViewerLayout.conversation(size,inset:stageInsets,keyboard:nil).stage
             viewport = AdaptiveViewerLayout.normalized(stableStage,in:size)
-            let obscured = editingPanel || viewEditor.isOpen
+            let obscured = editingPanel || viewEditor.isOpen || viewingOnly
             let alpha: CGFloat = obscured ? 0 : 1
             if host.view.frame != frame || host.view.alpha != alpha {
                 let changes = { host.view.frame = frame; host.view.alpha = alpha }
@@ -989,7 +1025,7 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
         }
         (view as? TouchThroughView)?.inspectionDock=dockHost?.view
         let stage = CGRect(x:viewport.minX*size.width,y:(1-viewport.maxY)*size.height,width:viewport.width*size.width,height:viewport.height*size.height)
-        (view as? TouchThroughView)?.updateScrims(chat:chatRect ?? (viewEditor.isOpen ? chatHost?.view.frame : nil),stage:stage,editing:editingPanel || viewEditor.isOpen,duration:duration)
+        (view as? TouchThroughView)?.updateScrims(chat:chatRect ?? (viewEditor.isOpen ? chatHost?.view.frame : nil),stage:stage,editing:editingPanel || viewEditor.isOpen,duration:duration,viewingOnly:viewingOnly && !viewEditor.isOpen && !editingPanel)
         stageProbe.frame = stage
 #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("--ui-testing") {
@@ -998,7 +1034,7 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
 #endif
 #if DEBUG
         let touchTop = max(stage.minY,view.safeAreaInsets.top + 76)
-        let touchBottom = min(stage.maxY,editingPanel || side ? stage.maxY : (chatHost?.view.frame.minY ?? stage.maxY))
+        let touchBottom = min(stage.maxY,editingPanel || side || viewingOnly ? stage.maxY : (chatHost?.view.frame.minY ?? stage.maxY))
         gestureProbe.frame = CGRect(x:stage.minX+12,y:touchTop,width:max(0,stage.width-24),height:max(0,touchBottom-touchTop-12))
 #endif
         // Use the window's system safe area rather than any child-controller inset

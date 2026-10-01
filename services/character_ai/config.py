@@ -14,6 +14,7 @@ class Settings:
     character_model: str = 'qwen-plus-character'
     # Suggestions predict the user's next turn; they do not role-play the avatar.
     suggestions_model: str = 'qwen-turbo'
+    translation_model: str = 'qwen-mt-flash'
     tts_model: str = 'qwen-audio-3.1-tts-flash'
     asr_model: str = 'fun-asr-realtime'
     max_daily_calls: int = 60

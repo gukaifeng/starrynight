@@ -4,7 +4,7 @@ final class ConversationGestureTests:XCTestCase {
     @MainActor private func launch()->XCUIApplication {
         continueAfterFailure=false
         let app=XCUIApplication()
-        app.launchArguments=["--ui-testing","--companion-testing","--auth-testing","--conversation-gesture-fixture"]
+        app.launchArguments=["--ui-testing","--companion-testing","--auth-testing","--conversation-gesture-fixture","-starry.app.language.v1","zh-Hans"]
         app.launch()
         XCTAssertTrue(app.buttons["customizationButton"].waitForExistence(timeout:65))
         app.waitForCharacter {($0["inspectionGestureRevision"] as? Int ?? 0)>=11}
