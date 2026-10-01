@@ -189,6 +189,7 @@ final class AuthorSubscriptionUITests: XCTestCase {
         XCTAssertTrue(app.buttons["customizationButton"].waitForExistence(timeout:65))
         app.buttons["customizationButton"].tap()
         XCTAssertTrue(app.buttons["characterSubscribeButton"].waitForExistence(timeout:5)); app.buttons["characterSubscribeButton"].tap()
+        app.alerts.buttons.matching(identifier:"取消订阅").firstMatch.tap()
         app.buttons["closeCharacterDetails"].tap()
         XCTAssertTrue(app.buttons["emptyStateAction"].waitForExistence(timeout:12)); capture("10-no-subscriptions")
         tab(app,"messages"); XCTAssertTrue(app.buttons["emptyStateAction"].waitForExistence(timeout:5))

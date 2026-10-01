@@ -7,9 +7,16 @@ private final class TouchThroughView: UIView {
     var messageFrame = CGRect.zero
     var messageRegions: [String:ConversationHitRegion] = [:]
     var capturesInspection = false
-    weak var inspectionReset:UIView?
     weak var inspectionEntry:UIView?
     weak var inspectionDock:UIView?
+    weak var inspectionPanel:UIView?
+    var inspectionPassesBody = true
+    func inspectionPanelOwns(_ point:CGPoint)->Bool {
+        guard let panel=inspectionPanel,!panel.isHidden,panel.alpha>0.01 else {return false}
+        let local=panel.convert(point,from:self)
+        let reset=CGRect(x:panel.bounds.width-108,y:49,width:100,height:44)
+        return panel.bounds.contains(local) && (!inspectionPassesBody || local.y<50 || reset.contains(local))
+    }
     private let bottomScrim = CAGradientLayer()
     private let sideScrim = CAGradientLayer()
     private let fadeStops = (0...16).map { CGFloat($0) / 16 }
@@ -76,9 +83,12 @@ private final class TouchThroughView: UIView {
     }
     override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
         if capturesInspection, let characterTouchView {
-            for panel in [inspectionReset,inspectionEntry,inspectionDock].compactMap({$0}) where !panel.isHidden && panel.alpha>0.01 {
+            for panel in [inspectionEntry,inspectionDock].compactMap({$0}) where !panel.isHidden && panel.alpha>0.01 {
                 let local=panel.convert(point,from:self)
                 if panel.bounds.contains(local),let hit=panel.hitTest(local,with:event) { return hit }
+            }
+            if inspectionPanelOwns(point),let panel=inspectionPanel {
+                return panel.hitTest(panel.convert(point,from:self),with:event)
             }
             return characterTouchView.hitTest(characterTouchView.convert(point,from:self),with:event)
         }
@@ -122,7 +132,6 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
     private let viewEditor = CharacterViewEditor()
     private var viewEditorHost:UIHostingController<CharacterViewEditorPanel>?
     private let positionButton=UIButton(type:.system)
-    private let resetPositionButton=UIButton(type:.system)
     private var positionSessions:[Int:(session:CompanionSession,account:String)]=[:]
     var onLoadCharacterView:((CharacterViewPose,Bool)->Void)?
     func loadSavedCharacterView(immediate:Bool) {
@@ -144,10 +153,10 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
     }
     private func updatePositionButton() {
         let editing=viewEditor.isOpen
-        positionButton.setImage(UIImage(systemName:editing ? "checkmark" : "move.3d",withConfiguration:UIImage.SymbolConfiguration(pointSize:15,weight:.regular)),for:.normal)
+        positionButton.setImage(UIImage(systemName:editing ? "xmark" : "slider.horizontal.3",withConfiguration:UIImage.SymbolConfiguration(pointSize:15,weight:.regular)),for:.normal)
         positionButton.tintColor=UIColor(Theme.ink).withAlphaComponent(editing ? 0.84:0.56)
-        positionButton.accessibilityLabel=editing ? "结束位置调整" : "修改角色位置"
-        positionButton.accessibilityValue=editing ? "编辑中" : "已记住最后位置"
+        positionButton.accessibilityLabel=editing ? "收起会话设置" : "会话设置"
+        positionButton.accessibilityValue=editing ? viewEditor.section.title : "位置、声音与氛围"
         positionButton.accessibilityIdentifier=editing ? "closeCharacterViewEditor" : "characterPositionButton"
         positionButton.isHidden=chatSession == nil
     }
@@ -171,14 +180,17 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
         viewCommand("reset")
     }
     private func showViewEditor() {
-        guard viewEditorHost == nil,chatSession != nil else {return}
+        guard viewEditorHost == nil,let session=chatSession else {return}
         viewEditor.isOpen=true;viewEditor.status="";viewEditor.moving=false
-        let host=UIHostingController(rootView:CharacterViewEditorPanel(editor:viewEditor))
+        viewEditor.section = .position
+        let host=UIHostingController(rootView:CharacterViewEditorPanel(editor:viewEditor,session:session,onSection:{[weak self] section in
+            self?.selectConversationSetting(section)
+        },onReset:{[weak self] in self?.resetPosition()}))
         host.view.backgroundColor = .clear;host.view.isOpaque=false;host.safeAreaRegions=[]
         host.view.alpha=0
         addChild(host);view.addSubview(host.view);host.didMove(toParent:self);viewEditorHost=host
-        host.view.addSubview(resetPositionButton)
-        (view as? TouchThroughView)?.inspectionReset=resetPositionButton
+        (view as? TouchThroughView)?.inspectionPanel=host.view
+        (view as? TouchThroughView)?.inspectionPassesBody=true
         chatSession?.dismissKeyboardRequest += 1;view.endEditing(true)
         customizationButton.isUserInteractionEnabled=false;updatePositionButton()
         // Resolve the final chat-centred frame while invisible, outside an animation.
@@ -201,6 +213,15 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
         }
 #endif
     }
+    private func selectConversationSetting(_ section:CharacterViewEditor.Section) {
+        guard viewEditor.isOpen,viewEditor.section != section else {return}
+        // Finish a transform before transferring the touch region to a slider.
+        // Keep the same Unity inspection token and pose across all three tabs.
+        touchSurface.cancelCurrentAdjustment()
+        viewEditor.section=section
+        (view as? TouchThroughView)?.inspectionPassesBody=section == .position
+        updatePositionButton();animateLayout()
+    }
     private func closeViewEditor() {
         guard viewEditor.isOpen else {return}
         touchSurface.endEditing()
@@ -211,7 +232,8 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
         viewEditor.isOpen=false;viewEditor.moving=false;setInspectionCapture(false)
         customizationButton.isUserInteractionEnabled=true;updatePositionButton()
         guard let host=viewEditorHost else {return}
-        viewEditorHost=nil;(view as? TouchThroughView)?.inspectionReset=nil
+        viewEditorHost=nil
+        (view as? TouchThroughView)?.inspectionPanel=nil
         host.willMove(toParent:nil);host.view.isUserInteractionEnabled=false
         UIView.animate(withDuration:motionDuration,delay:0,options:[.beginFromCurrentState,.allowUserInteraction]) {
             host.view.alpha=0;host.view.transform=UIAccessibility.isReduceMotionEnabled ? .identity : CGAffineTransform(translationX:0,y:12)
@@ -364,10 +386,6 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
         view.isUserInteractionEnabled = false
         present(host,animated:true) { [weak self] in self?.animateLayout() }
     }
-    private func openConversationSound() {
-        guard let session = chatSession else { return }
-        presentConversationPanel(height:216) { ConversationSoundPanel(session:session) }
-    }
     private func resizePerformancePanel(_ visible:Bool) {
         guard let host = presentedViewController, !host.isBeingDismissed else { return }
         // Make room to see the character's performance, without touching Unity's camera.
@@ -435,6 +453,11 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
         values["outsideKeyboardTouches"] = outsideKeyboardTouches
         values["inspectionChatLocked"] = chatSession?.inspectionActive ?? false
         values["viewEditorOpen"] = viewEditor.isOpen
+        values["conversationSetting"] = viewEditor.section.rawValue
+        if let evidence=chatSession?.soundscape.accessibilityEvidence.data(using:.utf8) {
+            values["sound"] = try? JSONSerialization.jsonObject(with:evidence)
+        }
+        values["atmosphereLevel"] = chatSession?.record.profile.resolvedAtmosphereLevel
         values["positionAnimationSamples"] = positionAnimationSamples
         values["viewPoseSaved"] = chatSession?.record.lastViewPose.payload
         if let host=viewEditorHost {
@@ -552,7 +575,7 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
             atmosphere.safeAreaRegions=[];atmosphere.view.frame=view.bounds;atmosphere.view.autoresizingMask=[.flexibleWidth,.flexibleHeight]
             addChild(atmosphere);view.insertSubview(atmosphere.view,at:0);atmosphere.didMove(toParent:self);atmosphereHost=atmosphere
             session.onPreparationChanged = { [weak self] in self?.updatePreparationDiagnostics() }
-            let host = UIHostingController(rootView:CompanionChatView(session:session,onSoundSettings:{ [weak self] in self?.openConversationSound() },onEditingChanged:{ [weak self] focused in
+            let host = UIHostingController(rootView:CompanionChatView(session:session,onEditingChanged:{ [weak self] focused in
                 guard let self else { return }; self.chatEditing = focused
                 if !focused { self.view.endEditing(true) }; self.animateLayout()
             },onDisplayChanged:{ [weak self] in self?.animateLayout() },onMessageFrameChanged:{ [weak self] frame in
@@ -651,17 +674,9 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
     override func viewDidLoad() {
         super.viewDidLoad()
         positionButton.addTarget(self,action:#selector(togglePositionEditor),for:.touchUpInside)
-        positionButton.accessibilityHint="打开后单指旋转，双指缩放和移动；自动记住最后状态"
+        positionButton.accessibilityHint="调整角色位置、心声音量、背景音乐与氛围效果"
         view.addSubview(positionButton)
         (view as? TouchThroughView)?.inspectionEntry=positionButton
-        var resetConfig=UIButton.Configuration.plain()
-        resetConfig.title="恢复默认";resetConfig.image=UIImage(systemName:"arrow.counterclockwise",withConfiguration:UIImage.SymbolConfiguration(pointSize:11))
-        resetConfig.imagePadding=4;resetConfig.baseForegroundColor=UIColor(Theme.ink).withAlphaComponent(0.82)
-        resetConfig.titleTextAttributesTransformer=UIConfigurationTextAttributesTransformer { attributes in
-            var result=attributes;result.font=UIFont.systemFont(ofSize:11,weight:.medium);return result
-        }
-        resetPositionButton.configuration=resetConfig;resetPositionButton.accessibilityIdentifier="resetCharacterView"
-        resetPositionButton.addTarget(self,action:#selector(resetPosition),for:.touchUpInside)
         touchSurface.onGesture = { [weak self] value in self?.onNativeGesture?(value) }
         touchSurface.frame=view.bounds;touchSurface.autoresizingMask=[.flexibleWidth,.flexibleHeight]
         view.insertSubview(touchSurface,at:0)
@@ -672,8 +687,9 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
             return scroll.isDescendant(of:chat)
         })
         touchSurface.observeEditing(in:view) { [weak self] point,target in
-            guard let self,self.viewEditor.isOpen,self.gestureInputAvailable,self.view.isUserInteractionEnabled else {return false}
-            for excluded in [self.resetPositionButton,self.positionButton,self.dockHost?.view].compactMap({$0}) where !excluded.isHidden && excluded.alpha>0.01 {
+            guard let self,self.viewEditor.isOpen,self.viewEditor.section == .position,self.gestureInputAvailable,self.view.isUserInteractionEnabled else {return false}
+            if (self.view as? TouchThroughView)?.inspectionPanelOwns(point) == true {return false}
+            for excluded in [self.positionButton,self.dockHost?.view].compactMap({$0}) where !excluded.isHidden && excluded.alpha>0.01 {
                 if excluded.bounds.contains(excluded.convert(point,from:self.view)) {return false}
             }
             return true
@@ -935,12 +951,11 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
             viewport = CGRect(x:0,y:(size.height-bottom)/size.height,width:1,height:max(70,bottom-top)/size.height)
         }
         if let host=viewEditorHost,let chat=chatHost?.view.frame {
-            let width=min(CGFloat(268),chat.width-32)
-            let height:CGFloat=90
+            let width=min(CGFloat(320),chat.width-32)
+            let height=CGFloat(viewEditor.section.height)
             let bottom=size.height-safe.bottom-70
             host.view.bounds=CGRect(x:0,y:0,width:width,height:height)
             host.view.center=CGPoint(x:chat.midX,y:max(safe.top+height/2+8,min(bottom-height/2,chat.midY)))
-            resetPositionButton.frame=CGRect(x:width-102,y:1,width:94,height:44)
             view.bringSubviewToFront(host.view)
             view.bringSubviewToFront(positionButton)
         }

@@ -144,20 +144,20 @@ final class VoiceAtmosphereTests:XCTestCase {
             XCTAssertTrue(app.buttons["holdToTalkButton"].isHittable)
             app.buttons["inputModeButton"].tap()
             XCTAssertTrue((input.value as? String ?? "").contains("draft"))
-            app.buttons["conversationSoundButton"].tap()
+            app.openConversationSettings("sound")
             XCTAssertTrue(app.sliders["musicSoundVolume"].waitForExistence(timeout:5))
             XCTAssertFalse(app.buttons["chooseSoundTrack"].exists)
             XCTAssertTrue(app.sliders["speechSoundVolume"].isHittable)
             capture("sound-\(orientation.rawValue)")
-            app.buttons["closeConversationSound"].tap()
+            app.buttons["closeCharacterViewEditor"].tap()
         }
         XCUIDevice.shared.orientation = .portrait
         wait {app.frame.height>app.frame.width}
-        app.openCustomization()
+        app.openConversationSettings("atmosphere")
         let effects=app.sliders["atmosphereLevelSlider"]
         XCTAssertTrue(effects.waitForExistence(timeout:5));XCTAssertEqual(effects.value as? String,"适中")
         effects.adjust(toNormalizedSliderPosition:0);XCTAssertEqual(effects.value as? String,"关闭")
-        app.buttons["closeCustomizationButton"].tap();app.buttons["closeCharacterDetails"].tap()
+        app.buttons["closeCharacterViewEditor"].tap()
         for role in ["anime-mamehinata","anime-chiffon","anime-karin","anime-kipfel"] {
             app.buttons["tab-discover"].tap()
             let card=app.buttons["discover-open-"+role]
@@ -168,14 +168,13 @@ final class VoiceAtmosphereTests:XCTestCase {
             wait {(self.audioState(app)["track"] as? String)==role+"/theme"}
             capture("scene-"+role)
         }
-        app.openCustomization();XCTAssertEqual(effects.value as? String,"关闭","Effects preference survives a role switch")
-        app.buttons["closeCustomizationButton"].tap();app.buttons["closeCharacterDetails"].tap()
+        app.openConversationSettings("atmosphere");XCTAssertEqual(effects.value as? String,"关闭","Effects preference survives a role switch")
+        app.buttons["closeCharacterViewEditor"].tap()
         app.buttons["tab-messages"].tap();capture("tablet-phone-messages")
         app.buttons["tab-mine"].tap();capture("tablet-phone-account")
     }
     @MainActor private func audioState(_ app:XCUIApplication)->[String:Any] {
-        let text=app.buttons["conversationSoundButton"].value as? String ?? "{}"
-        return (try? JSONSerialization.jsonObject(with:Data(text.utf8))) as? [String:Any] ?? [:]
+        return app.characterAudio
     }
     @MainActor private func wait(_ condition:@escaping ()->Bool) {
         XCTAssertEqual(XCTWaiter.wait(for:[XCTNSPredicateExpectation(predicate:NSPredicate {_,_ in MainActor.assumeIsolated {condition()}},object:nil)],timeout:20),.completed)

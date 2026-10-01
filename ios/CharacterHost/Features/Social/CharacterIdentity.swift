@@ -55,10 +55,9 @@ private struct AvatarVoiceRipples: View {
 @MainActor @Observable final class CharacterIdentityDiagnostics {var value:String?}
 
 struct CharacterConversationIdentity: View {
-    private static let scale:CGFloat = 0.875
     static func fittingWidth(for name:String) -> CGFloat {
-        let text = (name as NSString).size(withAttributes:[.font:UIFont.systemFont(ofSize:16*scale,weight:.medium)]).width
-        return ceil(text + (32+10+10+16)*scale + 60)
+        let text = (name as NSString).size(withAttributes:[.font:UIFont.systemFont(ofSize:13,weight:.medium)]).width
+        return ceil(text + 24 + 7 + 8 + 7 + 46 + 0.5)
     }
     let session: CompanionSession
     let portraits: CharacterPortraitStore
@@ -70,29 +69,29 @@ struct CharacterConversationIdentity: View {
     var body: some View {
         HStack(spacing:0) {
             Button(action:onDetails) {
-                HStack(spacing:8) {
+                HStack(spacing:7) {
                     CharacterAvatar(model:session.model,profile:session.record.profile,portraits:portraits,
-                        size:28,floatingEnabled:false,speaking:session.speech.isSpeaking)
-                    Text(session.record.profile.name).font(.system(size:14,weight:.medium)).lineLimit(1)
+                        size:24,floatingEnabled:false,speaking:session.speech.isSpeaking)
+                    Text(session.record.profile.name).font(.system(size:13,weight:.medium)).lineLimit(1)
                         .foregroundStyle(Theme.ink.opacity(0.9)).minimumScaleFactor(0.85)
-                }.padding(.leading,9).padding(.trailing,8).frame(height:44).contentShape(Rectangle())
+                }.padding(.leading,8).padding(.trailing,7).frame(height:44).contentShape(Rectangle())
             }.buttonStyle(.plain).accessibilityIdentifier("customizationButton")
                 .accessibilityLabel(session.record.profile.name+"，查看角色资料")
                 .accessibilityValue(diagnostics.value ?? "")
             Rectangle().fill(Theme.ink.opacity(0.13)).frame(width:0.5,height:13)
             if subscribed {
                 Text("已订阅").font(.system(size:10)).foregroundStyle(Theme.ink.opacity(0.38))
-                    .frame(width:54,height:44).accessibilityIdentifier("capsuleSubscribed")
+                    .frame(width:46,height:44).accessibilityIdentifier("capsuleSubscribed")
             } else {
                 Button {library.subscribe(session.model.id,true)} label: {
                     Text("+ 订阅").font(.system(size:11,weight:.medium)).foregroundStyle(Theme.accent.opacity(0.85))
-                        .frame(width:54,height:44).contentShape(Rectangle())
+                        .frame(width:46,height:44).contentShape(Rectangle())
                 }.buttonStyle(.plain).accessibilityIdentifier("capsuleSubscribeButton")
                     .accessibilityLabel("订阅"+session.record.profile.name)
             }
-        }.background(Theme.surface.opacity(reduceTransparency ? 1 : Theme.controlOpacity),in:Capsule())
+        }.background { Capsule().fill(Theme.surface.opacity(reduceTransparency ? 1 : Theme.controlOpacity)).frame(height:36) }
             .overlay(Capsule().stroke(LinearGradient(colors:[.white.opacity(0.16),.white.opacity(0.035)],
-                startPoint:.topLeading,endPoint:.bottomTrailing),lineWidth:0.5).allowsHitTesting(false))
+                startPoint:.topLeading,endPoint:.bottomTrailing),lineWidth:0.5).frame(height:36).allowsHitTesting(false))
             .shadow(color:.black.opacity(0.12),radius:7,y:3)
             .frame(maxWidth:.infinity,maxHeight:.infinity,alignment:.leading)
     }
@@ -123,6 +122,7 @@ struct CharacterDetailsPanel: View {
     @State private var showingAuthor = false
     @State private var showingCredits = false
     @State private var showingDeveloper = false
+    @State private var confirmingUnsubscribe = false
     @State private var loadedPublicProfile:CharacterPublicProfile?
     @State private var editorClose = SoftPanelCloseRequest()
     @Environment(\.softPanelCloseRequest) private var close
@@ -164,6 +164,10 @@ struct CharacterDetailsPanel: View {
             } else { introduction.transition(.opacity) }
         }.foregroundStyle(Theme.ink).tint(Theme.accent).softSheetSurface()
             .softPanelPageSurface(opaque:!showsLiveCharacter)
+            .alert("取消订阅「" + profile.name + "」？",isPresented:$confirmingUnsubscribe) {
+                Button("保留订阅",role:.cancel) {}
+                Button("取消订阅",role:.destructive) { library.subscribe(model.id,false) }
+            } message: { Text("角色将从订阅列表移除，聊天记录和共同记忆仍会保留。") }
             .onAppear { close?.beforeClose = { editorClose.beforeClose?() ?? true } }
             .onDisappear { close?.beforeClose = nil }
             .task(id:model.id) {
@@ -300,7 +304,10 @@ struct CharacterDetailsPanel: View {
         editorClose.begin { withAnimation(motion,back) }
     }
     private var subscriptionButton:some View {
-        Button { library.subscribe(model.id,!subscribed) } label: {
+        Button {
+            if subscribed { confirmingUnsubscribe = true }
+            else { library.subscribe(model.id,true) }
+        } label: {
             ProfileRelationshipLabel(title:subscribed ? "已订阅" : "订阅",selected:subscribed)
         }.buttonStyle(.plain).accessibilityIdentifier("characterSubscribeButton")
             .accessibilityValue(subscribed ? "已订阅" : "未订阅")

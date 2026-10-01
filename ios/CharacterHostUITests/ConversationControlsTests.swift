@@ -9,13 +9,13 @@ final class ConversationControlsTests:XCTestCase {
         app.waitForCharacter { $0["modelId"] as? String == "anime-kipfel" && $0["nativeHeadHit"] as? String == "CharacterTouchSurface" }
         XCTAssertFalse(app.buttons["characterMuteButton"].exists)
         XCTAssertFalse(app.buttons["conversationPerformanceButton"].exists)
-        let sound=app.buttons["conversationSoundButton"]
+        let sound=app.buttons["characterPositionButton"]
         XCTAssertTrue(sound.exists)
         XCTAssertEqual(audio(app)["masterMuted"] as? Bool,false)
-        sound.tap()
-        XCTAssertTrue(app.buttons["closeConversationSound"].waitForExistence(timeout:8))
+        app.openConversationSettings("sound")
+        XCTAssertTrue(app.buttons["closeCharacterViewEditor"].waitForExistence(timeout:8))
         app.sliders["speechSoundVolume"].adjust(toNormalizedSliderPosition:0)
-        app.buttons["closeConversationSound"].tap()
+        app.buttons["closeCharacterViewEditor"].tap()
         let input=app.textViews["chatInput"]
         input.tap(); input.typeText("saved draft 42")
         XCTAssertFalse(app.buttons["dismissChatKeyboardButton"].exists)
@@ -25,15 +25,15 @@ final class ConversationControlsTests:XCTestCase {
         XCTAssertEqual(XCTWaiter.wait(for:[XCTNSPredicateExpectation(predicate:hidden,object:nil)],timeout:5),.completed)
         XCTAssertEqual(input.value as? String,"saved draft 42")
         capture("keyboard-dismissed-draft-kept",app)
-        sound.tap()
-        XCTAssertTrue(app.buttons["closeConversationSound"].waitForExistence(timeout:8))
+        app.openConversationSettings("sound")
+        XCTAssertTrue(app.buttons["closeCharacterViewEditor"].waitForExistence(timeout:8))
         XCTAssertEqual(app.switches.count,0)
         app.sliders["speechSoundVolume"].adjust(toNormalizedSliderPosition:0)
         app.sliders["speechSoundVolume"].adjust(toNormalizedSliderPosition:0.45)
         app.sliders["musicSoundVolume"].adjust(toNormalizedSliderPosition:0.20)
         app.sliders["speechSoundVolume"].adjust(toNormalizedSliderPosition:0)
         capture("sound-settings",app)
-        app.buttons["closeConversationSound"].tap()
+        app.buttons["closeCharacterViewEditor"].tap()
         XCTAssertTrue(sound.waitForExistence(timeout:8))
         XCTAssertEqual(audio(app)["enabled"] as? Bool,true)
         XCTAssertEqual(audio(app)["masterMuted"] as? Bool,false)
@@ -88,8 +88,7 @@ final class ConversationControlsTests:XCTestCase {
     private func number(_ d:[String:Any],_ k:String)->Double { (d[k] as? NSNumber)?.doubleValue ?? -1 }
     private func selections(_ d:[String:Any])->[String] { (d["characterPlatform"] as? [String:Any])?["performanceSelections"] as? [String] ?? [] }
     @MainActor private func audio(_ app:XCUIApplication)->[String:Any] {
-        let raw=app.buttons["conversationSoundButton"].value as? String ?? "{}"
-        return (try? JSONSerialization.jsonObject(with:Data(raw.utf8))) as? [String:Any] ?? [:]
+        return app.characterAudio
     }
     @MainActor private func capture(_ name:String,_ app:XCUIApplication) {
         let image=XCTAttachment(screenshot:XCUIScreen.main.screenshot());image.name=name;image.lifetime = .keepAlways;add(image)

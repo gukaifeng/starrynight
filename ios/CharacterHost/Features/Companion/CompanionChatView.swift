@@ -19,7 +19,6 @@ private struct ConversationComposerFramePreference: PreferenceKey {
 
 struct CompanionChatView: View {
     @Bindable var session: CompanionSession
-    var onSoundSettings: (() -> Void)?
     var onEditingChanged: ((Bool) -> Void)?
     var onDisplayChanged: (() -> Void)?
     var onMessageFrameChanged: ((CGRect) -> Void)?
@@ -54,8 +53,8 @@ struct CompanionChatView: View {
           VStack(spacing:0) {
             messages.simultaneousGesture(TapGesture().onEnded { editing = false }).zIndex(2)
             if geometry.size.height >= 360 && session.record.messages.isEmpty && !editing && !session.generating { topics.opacity(session.voiceInput.active ? 0 : 1).allowsHitTesting(!session.voiceInput.active).transition(.opacity.combined(with:.move(edge:.bottom))) }
-            HStack(spacing:2) {
-                if let text = session.notice ?? session.store.error ?? session.speech.error {
+            if let text = session.notice ?? session.store.error ?? session.speech.error {
+              HStack(spacing:2) {
                     HStack(spacing:5) {
                         Text(text).font(.system(size:11)).lineLimit(2)
                             .accessibilityLabel(text)
@@ -66,10 +65,9 @@ struct CompanionChatView: View {
                         .frame(maxHeight:32).background(Theme.peach.opacity(0.1),in:RoundedRectangle(cornerRadius:10))
                         .accessibilityIdentifier("chatNotice").conversationHitRegion(.control,id:"chatNotice")
                         .transition(.opacity)
-                }
                 Spacer()
-                ConversationSoundButton(session:session,onSettings:{ editing = false; onSoundSettings?() })
-            }.disabled(session.voiceInput.active).foregroundStyle(Theme.ink.opacity(0.56)).padding(.leading,22).padding(.trailing,23).frame(height:34)
+              }.disabled(session.voiceInput.active).foregroundStyle(Theme.ink.opacity(0.56)).padding(.horizontal,22).frame(height:34)
+            }
             composer(compact:geometry.size.height < 300).zIndex(4)
 
           }
@@ -255,7 +253,7 @@ struct CompanionChatView: View {
                     .foregroundStyle(Theme.gradient.opacity(smartRepliesPresented ? 1 : 0.66))
                     .frame(width:42,height:44).contentShape(Rectangle())
             }.buttonStyle(.plain).disabled(session.voiceInput.active)
-                .accessibilityLabel("智能回复").accessibilityIdentifier("smartReplyButton")
+                .accessibilityLabel("快捷回复").accessibilityIdentifier("smartReplyButton")
         }.padding(.trailing,4).padding(.vertical,2)
             .conversationHitRegion(.control,id:"chatComposer")
             .background(Theme.surface.opacity(reduceTransparency ? 1 : Theme.controlOpacity),in:RoundedRectangle(cornerRadius:25,style:.continuous))
@@ -284,7 +282,7 @@ struct CompanionChatView: View {
                     }
                     if smartRepliesPresented && !session.voiceInput.active {
                         Color.clear.overlay(alignment:.bottom) {
-                            smartRepliesPanel.frame(width:max(0,min(380,composer.size.width-48)))
+                            smartRepliesPanel.frame(width:max(0,min(308,composer.size.width-64)))
                                 .fixedSize(horizontal:false,vertical:true)
                                 .offset(y:-composer.size.height-8)
                                 .transition(.opacity.combined(with:.offset(y:8)))
@@ -296,14 +294,14 @@ struct CompanionChatView: View {
 
     }
     private var smartRepliesPanel:some View {
-        VStack(alignment:.leading,spacing:5) {
+        VStack(alignment:.leading,spacing:3) {
             HStack {
-                Text("灵感回声").font(.system(size:12,weight:.medium)).foregroundStyle(Theme.secondary)
+                Text("快捷回复").font(.system(size:11,weight:.medium)).foregroundStyle(Theme.secondary)
                 Spacer()
                 Button {withAnimation(interfaceAnimation) {smartRepliesPresented=false}} label: {
                     Image(systemName:"xmark").font(.system(size:10,weight:.medium)).frame(width:28,height:28)
-                }.buttonStyle(.plain).accessibilityLabel("关闭智能回复")
-            }.padding(.leading,8)
+                }.buttonStyle(.plain).accessibilityLabel("关闭快捷回复")
+            }.padding(.leading,7)
             if session.quickReplies.isEmpty {
                 HStack(spacing:9) {
                     if session.quickRepliesLoading {ProgressView().controlSize(.small)}
@@ -317,15 +315,15 @@ struct CompanionChatView: View {
                     editing=false;session.clearMessageFocus();scrollState.returnToLatest();session.sendSuggested(option)
                 } label: {
                     HStack(spacing:10) {
-                        Text(option.text).font(.system(size:14)).lineLimit(2).multilineTextAlignment(.leading)
+                        Text(option.text).font(.system(size:13)).lineLimit(2).multilineTextAlignment(.leading)
                         Spacer(minLength:4)
                         Image(systemName:"arrow.up.right").font(.system(size:10,weight:.medium)).foregroundStyle(Theme.secondary.opacity(0.7))
-                    }.padding(.horizontal,12).padding(.vertical,10).frame(maxWidth:.infinity,alignment:.leading)
+                    }.padding(.horizontal,10).padding(.vertical,8).frame(maxWidth:.infinity,minHeight:40,alignment:.leading)
                         .background(Theme.ink.opacity(index==0 ? 0.075 : 0.035),in:RoundedRectangle(cornerRadius:12))
                 }.buttonStyle(.plain).accessibilityLabel(option.text).accessibilityIdentifier("smartReplyOption-\(index)")
             }
-        }.padding(9).background(Theme.surface.opacity(reduceTransparency ? 1 : 0.96),in:RoundedRectangle(cornerRadius:20))
-            .overlay(RoundedRectangle(cornerRadius:20).stroke(Theme.gradient.opacity(0.24),lineWidth:0.65))
+        }.padding(7).background(Theme.surface.opacity(reduceTransparency ? 1 : 0.96),in:RoundedRectangle(cornerRadius:17))
+            .overlay(RoundedRectangle(cornerRadius:17).stroke(Theme.gradient.opacity(0.24),lineWidth:0.65))
             .shadow(color:.black.opacity(0.18),radius:16,y:5)
             .conversationHitRegion(.control,id:"smartRepliesPanel")
             .accessibilityElement(children:.contain).accessibilityIdentifier("smartRepliesPanel")

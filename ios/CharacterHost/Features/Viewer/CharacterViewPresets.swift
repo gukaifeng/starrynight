@@ -49,6 +49,13 @@ struct CharacterViewLibrary: Codable, Sendable {
 
 // Legacy library is decoded only to migrate the last selected view from v0.43.
 @Observable @MainActor final class CharacterViewEditor {
+    enum Section:String,CaseIterable {
+        case position,sound,atmosphere
+        var title:String {switch self {case .position:"位置";case .sound:"声音";case .atmosphere:"氛围"}}
+        var symbol:String {switch self {case .position:"move.3d";case .sound:"speaker.wave.1";case .atmosphere:"sparkles"}}
+        var height:Double {switch self {case .position:132;case .sound:182;case .atmosphere:154}}
+    }
+    var section = Section.position
     var pose = CharacterViewPose.original
     var moving = false
     var isOpen = false

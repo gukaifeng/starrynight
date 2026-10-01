@@ -26,29 +26,45 @@ struct CharacterAtmosphere:Decodable {
 struct CharacterAtmosphereView:View {
     let session:CompanionSession
     let activity:AtmosphereActivity
+    @State private var blend:AtmosphereBlend
+    @State private var settled=true
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     private var recipe:CharacterAtmosphere? {CharacterAtmosphere.all.first {$0.id==session.model.runtimeID}}
+    init(session:CompanionSession,activity:AtmosphereActivity) {
+        self.session=session;self.activity=activity
+        _blend=State(initialValue:AtmosphereBlend(level:session.record.profile.resolvedAtmosphereLevel))
+    }
     var body:some View {
-        if let recipe,session.record.profile.resolvedAtmosphereLevel > 0 {
+        if let recipe {
             TimelineView(.animation(minimumInterval:ProcessInfo.processInfo.isLowPowerModeEnabled ? 1/20 : 1/30,
-                paused:!activity.active || reduceMotion)) {timeline in
+                paused:!activity.active || (settled && (reduceMotion || blend.target==0)))) {timeline in
                 Canvas(rendersAsynchronously:true) {context,size in
-                    draw(context:context,size:size,time:reduceMotion ? 12 : timeline.date.timeIntervalSinceReferenceDate,recipe:recipe)
+                    let now=timeline.date.timeIntervalSinceReferenceDate
+                    draw(context:context,size:size,time:reduceMotion ? 12 : now,recipe:recipe,amount:blend.value(at:now))
                 }
             }.allowsHitTesting(false).accessibilityHidden(true)
+                .onChange(of:session.record.profile.resolvedAtmosphereLevel) {_,level in
+                    blend.retarget(level:level,at:Date.timeIntervalSinceReferenceDate);settled=false
+                }
+                .task(id:session.record.profile.resolvedAtmosphereLevel) {
+                    // SwiftUI cancels this single settling task on retarget/disappear.
+                    do {try await Task.sleep(for:.seconds(AtmosphereBlend.settlingDuration))}
+                    catch {return}
+                    settled=true
+                }
         }
     }
-    private func draw(context:GraphicsContext,size:CGSize,time:Double,recipe:CharacterAtmosphere) {
+    private func draw(context:GraphicsContext,size:CGSize,time:Double,recipe:CharacterAtmosphere,amount:Double) {
         let colors=recipe.colors
-        guard !colors.isEmpty else {return}
-        let level=session.record.profile.resolvedAtmosphereLevel
-        let amount=[0.0,0.5,1.0,1.5,2.0][level]
+        guard !colors.isEmpty,amount>0.0001 else {return}
         // Medium is roughly three times the previous density. Bound the budget
         // on large screens and low-power devices; never allocate per-particle timers.
         let area=min(1.65,max(0.85,sqrt(size.width*size.height/(402*874))))
         let budget=ProcessInfo.processInfo.isLowPowerModeEnabled ? 96 : 180
-        let count=reduceMotion ? Int(12*amount) : min(budget,Int(110*min(1.2,max(0.4,recipe.density))*amount*area))
-        for index in 0..<count {
+        let count=reduceMotion ? 12*amount : min(Double(budget),110*min(1.2,max(0.4,recipe.density))*amount*area)
+        for index in 0..<(reduceMotion ? 24 : budget) {
+            let visibility=AtmosphereBlend.visibility(index:index,count:count)
+            guard visibility>0.0001 else {continue}
             let seed=Double(index)*2.39996323
             let depth=Double(index%3+1)/3
             let duration=24+Double(index%7)*4
@@ -59,7 +75,7 @@ struct CharacterAtmosphereView:View {
             let face=abs(x/size.width-0.5)<0.19 && y/size.height<0.55
             let alpha=(0.3+depth*0.35)*(face ? 0.48 : 1)*min(1,max(0,(0.88-y/size.height)*4))
             let color=colors[index%colors.count]
-            var layer=context;layer.opacity=alpha
+            var layer=context;layer.opacity=alpha*visibility
             layer.translateBy(x:x,y:y)
             if recipe.effect=="petal" && index%3 != 0 {
                 layer.rotate(by:.radians(time*0.3+seed))

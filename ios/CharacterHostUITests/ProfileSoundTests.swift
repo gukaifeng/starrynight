@@ -58,19 +58,19 @@ final class ProfileSoundTests:XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing","--companion-testing","--auth-testing"]
         app.launch()
-        let sound = app.buttons["conversationSoundButton"]
+        let sound = app.buttons["characterPositionButton"]
         XCTAssertTrue(sound.waitForExistence(timeout:65))
-        sound.tap()
+        app.openConversationSettings("sound")
         XCTAssertTrue(app.sliders["speechSoundVolume"].waitForExistence(timeout:5))
         XCTAssertEqual(app.sliders.count,2)
         XCTAssertFalse(app.sliders["effectsSoundVolume"].exists)
         app.sliders["speechSoundVolume"].adjust(toNormalizedSliderPosition:0)
         app.sliders["musicSoundVolume"].adjust(toNormalizedSliderPosition:0)
         capture("05-sound-two-channels-muted")
-        app.buttons["closeConversationSound"].tap()
+        app.buttons["closeCharacterViewEditor"].tap()
         XCTAssertEqual(audio(app)["masterMuted"] as? Bool,true)
-        sound.tap(); app.sliders["musicSoundVolume"].adjust(toNormalizedSliderPosition:0.3)
-        app.buttons["closeConversationSound"].tap()
+        app.openConversationSettings("sound"); app.sliders["musicSoundVolume"].adjust(toNormalizedSliderPosition:0.3)
+        app.buttons["closeCharacterViewEditor"].tap()
         let playing = NSPredicate { _,_ in MainActor.assumeIsolated {
             self.audio(app)["playing"] as? Bool == true && self.audio(app)["masterMuted"] as? Bool == false
         } }
@@ -90,13 +90,12 @@ final class ProfileSoundTests:XCTestCase {
         app.waitForCharacter { $0["modelId"] as? String == "anime-mamehinata" }
         XCTAssertEqual(audio(app)["speechVolume"] as? Double,1,"A different character keeps its own volume")
         XCTAssertEqual(audio(app)["volume"] as? Double ?? -1,0.28,accuracy:0.001)
-        sound.tap(); XCTAssertTrue(app.sliders["speechSoundVolume"].waitForExistence(timeout:5))
+        app.openConversationSettings("sound"); XCTAssertTrue(app.sliders["speechSoundVolume"].waitForExistence(timeout:5))
         XCTAssertEqual(app.sliders.count,2)
         capture("06-sound-other-character")
     }
     @MainActor private func audio(_ app:XCUIApplication)->[String:Any] {
-        let value = app.buttons["conversationSoundButton"].value as? String ?? "{}"
-        return (try? JSONSerialization.jsonObject(with:Data(value.utf8))) as? [String:Any] ?? [:]
+        return app.characterAudio
     }
     @MainActor private func capture(_ name:String) {
         let item = XCTAttachment(screenshot:XCUIScreen.main.screenshot())

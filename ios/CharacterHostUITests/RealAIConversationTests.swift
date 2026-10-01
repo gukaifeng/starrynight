@@ -66,10 +66,10 @@ final class RealAIConversationTests: XCTestCase {
         waitForRealVoice(app)
         capture("real-ai-mamehinata-greeting",app)
         XCTAssertEqual(app.characterRuntime["modelId"] as? String,"anime-mamehinata")
-        app.buttons["conversationSoundButton"].tap()
+        app.openConversationSettings("sound")
         XCTAssertTrue(app.sliders["speechSoundVolume"].waitForExistence(timeout:8))
         app.sliders["speechSoundVolume"].adjust(toNormalizedSliderPosition:0)
-        app.buttons["closeConversationSound"].tap()
+        app.buttons["closeCharacterViewEditor"].tap()
         let beforeMutedPerformance=app.characterRuntime["confirmedPerformanceCounts"] as? [String:Int] ?? [:]
         field.tap();field.typeText("开心地笑一笑，摇摇尾巴吧。只说一句话就好。")
         app.buttons["sendMessageButton"].tap()
@@ -79,9 +79,9 @@ final class RealAIConversationTests: XCTestCase {
             return changed.contains { ["dogtail-upwag","dogtail-updown"].contains($0) } && changed.contains { $0.hasPrefix("f-") }
         },timeout:70)
         capture("real-ai-muted-original-expression-and-tail",app)
-        app.buttons["conversationSoundButton"].tap()
+        app.openConversationSettings("sound")
         app.sliders["speechSoundVolume"].adjust(toNormalizedSliderPosition:0.45)
-        app.buttons["closeConversationSound"].tap()
+        app.buttons["closeCharacterViewEditor"].tap()
         let previous=app.staticTexts.matching(identifier:"assistantMessage").allElementsBoundByIndex.map(\.label)
         let previousGreetings=app.characterRuntime["greetingCount"] as? Int ?? 0
         app.terminate()
@@ -127,7 +127,7 @@ final class RealAIConversationTests: XCTestCase {
             XCTAssertGreaterThan(choice.frame.minY,app.buttons["customizationButton"].frame.maxY)
         }
         capture("smart-replies-fully-visible-above-input",app)
-        app.buttons["关闭智能回复"].tap()
+        app.buttons["关闭快捷回复"].tap()
         XCTAssertTrue(app.buttons["smartReplyOption-0"].waitForNonExistence(timeout:3))
         XCTAssertTrue(input.isHittable)
     }

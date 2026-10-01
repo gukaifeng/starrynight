@@ -126,7 +126,7 @@ final class CharacterViewEditorTests:XCTestCase {
                 XCTAssertLessThanOrEqual(c.frame.maxX,app.frame.maxX);XCTAssertLessThanOrEqual(c.frame.maxY,app.frame.maxY)
             }
             let frame=app.characterRuntime["viewEditorFrame"] as? [String:Double] ?? [:]
-            XCTAssertLessThanOrEqual(frame["height"] ?? 999,94)
+            XCTAssertLessThanOrEqual(frame["height"] ?? 999,136)
         }
         controlsInsideWindow();capture("compact-position-portrait",app)
         XCUIDevice.shared.orientation = .landscapeLeft
@@ -168,6 +168,9 @@ final class CharacterViewEditorTests:XCTestCase {
         app.terminate();app.launchArguments += ["--keep-companion-data","--keep-auth-data"];app.launch();ready(app)
         app.waitForCharacter {abs((self.pose($0)["yaw"] ?? 0)-(after["yaw"] ?? 1))<0.1}
         open(app);capture("position-restored-on-launch",app)
+        app.openConversationSettings("sound")
+        app.openConversationSettings("atmosphere")
+        app.openConversationSettings("position")
         app.buttons["resetCharacterView"].tap()
         app.waitForCharacter {self.number($0,"inspectionYaw")==0 && self.number($0,"inspectionScale")==1}
         app.buttons["closeCharacterViewEditor"].tap()
@@ -191,19 +194,16 @@ final class CharacterViewEditorTests:XCTestCase {
         app.buttons["closeCharacterViewEditor"].tap()
         app.waitForCharacter {$0["viewEditorOpen"] as? Bool == false}
         XCTAssertEqual(pose(app.characterRuntime)["scale"] ?? 0,last["scale"] ?? 1,accuracy:0.002)
-        let sound=app.buttons["conversationSoundButton"]
-        sound.tap()
-        XCTAssertTrue(app.buttons["closeConversationSound"].waitForExistence(timeout:8))
+        let sound=app.buttons["characterPositionButton"]
+        app.openConversationSettings("sound")
+        XCTAssertTrue(app.buttons["closeCharacterViewEditor"].waitForExistence(timeout:8))
         XCTAssertEqual(app.switches.count,0,"Volumes are the sole sound controls")
         app.sliders["speechSoundVolume"].adjust(toNormalizedSliderPosition:0.42)
         app.sliders["musicSoundVolume"].adjust(toNormalizedSliderPosition:0.18)
-        app.buttons["conversationMusicPicker"].tap()
-        let track=app.buttons.matching(NSPredicate(format:"identifier BEGINSWITH %@","musicTrack-")).allElementsBoundByIndex.last
-        XCTAssertNotNil(track);track?.tap()
         capture("compact-sound-settings",app)
-        app.buttons["closeConversationSound"].tap()
-        XCTAssertTrue(sound.waitForExistence(timeout:8));sound.tap()
-        XCTAssertTrue(app.buttons["closeConversationSound"].waitForExistence(timeout:8))
+        app.buttons["closeCharacterViewEditor"].tap()
+        XCTAssertTrue(sound.waitForExistence(timeout:8));app.openConversationSettings("sound")
+        XCTAssertTrue(app.buttons["closeCharacterViewEditor"].waitForExistence(timeout:8))
         XCTAssertEqual(app.switches.count,0)
         // XCTest's normalized iOS 26 slider synthesis can stop ~6% short.
         // Exercise the requested real drag all the way past the track endpoint.
@@ -215,14 +215,14 @@ final class CharacterViewEditorTests:XCTestCase {
                 thenDragTo:app.coordinate(withNormalizedOffset:.zero).withOffset(CGVector(dx:30,dy:frame.midY)),withVelocity:.slow,thenHoldForDuration:0.15)
         }
         capture("compact-sound-zero-volumes",app)
-        app.buttons["closeConversationSound"].tap()
+        app.buttons["closeCharacterViewEditor"].tap()
         func audio()->[String:Any] {
-            (try? JSONSerialization.jsonObject(with:Data((sound.value as? String ?? "{}").utf8))) as? [String:Any] ?? [:]
+            app.characterAudio
         }
         XCTAssertEqual(audio()["volume"] as? Double,0);XCTAssertEqual(audio()["speechVolume"] as? Double,0)
         XCTAssertEqual(audio()["playing"] as? Bool,false)
-        sound.tap();app.sliders["musicSoundVolume"].adjust(toNormalizedSliderPosition:0.30)
-        app.buttons["closeConversationSound"].tap()
+        app.openConversationSettings("sound");app.sliders["musicSoundVolume"].adjust(toNormalizedSliderPosition:0.30)
+        app.buttons["closeCharacterViewEditor"].tap()
         XCTAssertEqual(audio()["playing"] as? Bool,true,"Raising volume starts music without any hidden enable switch")
     }
     @MainActor func testFreeYawBoundedPitchAndReload() {

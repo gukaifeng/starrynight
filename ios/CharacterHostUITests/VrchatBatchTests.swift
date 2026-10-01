@@ -58,8 +58,7 @@ final class VrchatBatchTests:XCTestCase {
                     return autonomy["enabled"] as? Bool == true && (autonomy["blinkCount"] as? Int ?? 0)>0
                 },timeout:15)
             }
-            let audioText=app.buttons["conversationSoundButton"].value as? String ?? "{}"
-            let audio=(try? JSONSerialization.jsonObject(with:Data(audioText.utf8))) as? [String:Any] ?? [:]
+            let audio=app.characterAudio
             XCTAssertEqual(audio["collectionScope"] as? String,role)
             XCTAssertEqual(audio["track"] as? String,role+"/theme")
             XCTAssertEqual((audio["availableTrackIDs"] as? [String])?.count,1)
@@ -111,8 +110,7 @@ final class VrchatBatchTests:XCTestCase {
             app.buttons["profileChatButton"].tap()
             app.waitForCharacter({ $0["modelId"] as? String == role && $0["idlePlaying"] as? Bool == true },timeout:45)
             capture(role+"-conversation",app)
-            let value=app.buttons["conversationSoundButton"].value as? String ?? "{}"
-            let audio=(try? JSONSerialization.jsonObject(with:Data(value.utf8))) as? [String:Any] ?? [:]
+            let audio=app.characterAudio
             XCTAssertEqual(audio["collectionScope"] as? String,role)
             if role == "anime-chiffon" || role == "anime-karin" {
                 app.openCharacterPerformance()
