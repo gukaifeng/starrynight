@@ -17,3 +17,4 @@
 - 关键决策、问题与处理、真实验证结果写入 `docs/`，记录重点而非流水账。说明模拟器、数值审查和真机性能测试的区别。
 - 每个主要环节先检查有无适用且可靠的技能；不为使用技能而安装无关工具。Unity 操作读 `.agents/skills/unity-cli/SKILL.md`；VRChat 资产导入和能力迁移读 `.agents/skills/vrchat-character-import/SKILL.md`。
 - 保持原始用户提供模型不变，转换和生成结果写入约定目录。当前发布名册以 `assets/characters/active-roster.json` 为准。
+- 用户于 2026-10-01 要求后续避免调用图片生成模型；复用现有图片资源，不因构建、测试或角色调整自动重新生图。语音及对话调用仍按实际需要控制用量。

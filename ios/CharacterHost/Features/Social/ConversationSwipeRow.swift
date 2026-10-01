@@ -14,7 +14,6 @@ struct ConversationSwipeRow<Content:View>:View {
     @ViewBuilder var content:()->Content
     @State private var dragging:CGFloat?
     @State private var origin:CGFloat=0
-    @State private var axis=0
     @State private var ignoreTapUntil=Date.distantPast
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     private let revealWidth:CGFloat=144
@@ -31,7 +30,7 @@ struct ConversationSwipeRow<Content:View>:View {
                 else {onOpen()}
             } label: {content().frame(maxWidth:.infinity,alignment:.leading)}
                 .frame(maxWidth:.infinity).clipped().contentShape(Rectangle())
-                .buttonStyle(.plain).accessibilityIdentifier("message-"+id)
+                .buttonStyle(ConversationRowButtonStyle()).accessibilityIdentifier("message-"+id)
                 .allowsHitTesting(!locked)
             if reveal>0.1 {
                 HStack(spacing:6) {
@@ -47,32 +46,81 @@ struct ConversationSwipeRow<Content:View>:View {
                     .allowsHitTesting(progress>0.95 && !locked).accessibilityHidden(progress<0.95)
                     .zIndex(1)
             }
-        }.clipped().contentShape(Rectangle()).simultaneousGesture(revealGesture)
+        }.clipped().contentShape(Rectangle())
+            .background(ConversationRowPan(enabled:!locked,
+                onChange:{translation,began in
+                    ignoreTapUntil=Date().addingTimeInterval(0.3)
+                    if began {origin=reveal;dragging=origin;revealedID=id}
+                    dragging=min(revealWidth,max(0,origin-translation))
+                },onEnd:{translation,velocity,cancelled in
+                    ignoreTapUntil=Date().addingTimeInterval(0.3)
+                    withAnimation(motion) {
+                        revealedID=(cancelled ? origin : origin-translation-velocity*0.18)>revealWidth*0.5 ? id : nil
+                        dragging=nil
+                    }
+                }))
             .accessibilityElement(children:.contain)
             .accessibilityAction(named:Text("不显示"),onHide)
             .accessibilityAction(named:Text("删除对话和记忆"),onDelete)
     }
-    private var revealGesture:some Gesture {
-        DragGesture(minimumDistance:12,coordinateSpace:.global).onChanged {value in
-                guard !locked else {return}
-                ignoreTapUntil=Date().addingTimeInterval(0.3)
-                if axis==0 {
-                    guard abs(value.translation.width)>abs(value.translation.height)*1.2,
-                          reveal>0 || value.translation.width<0 else {axis=2;return}
-                    axis=1;origin=reveal;dragging=origin
-                    withAnimation(motion) {revealedID=id}
+}
+
+/// Conversation rows keep their appearance while a finger rests or scrolls.
+struct ConversationRowButtonStyle:ButtonStyle {
+    func makeBody(configuration:Configuration)->some View {configuration.label}
+}
+
+/// Reject vertical motion while UIKit is still deciding which recognizer owns
+/// the touch. Returning from SwiftUI DragGesture.onChanged is already too late.
+private struct ConversationRowPan:UIViewRepresentable {
+    var enabled:Bool
+    var onChange:(CGFloat,Bool)->Void
+    var onEnd:(CGFloat,CGFloat,Bool)->Void
+    func makeUIView(context:Context)->Anchor {Anchor()}
+    func updateUIView(_ view:Anchor,context:Context) {view.options=self;view.install();view.pan.isEnabled=enabled}
+    static func dismantleUIView(_ view:Anchor,coordinator:()) {view.detach()}
+    final class Anchor:UIView,UIGestureRecognizerDelegate {
+        var options:ConversationRowPan?
+        weak var scroll:UIScrollView?
+        lazy var pan:UIPanGestureRecognizer = {
+            let value=UIPanGestureRecognizer(target:self,action:#selector(changed(_:)))
+            value.maximumNumberOfTouches=1;value.delegate=self;return value
+        }()
+        init() {super.init(frame:.zero);isUserInteractionEnabled=false}
+        required init?(coder:NSCoder) {fatalError("init(coder:) has not been implemented")}
+        override func didMoveToWindow() {super.didMoveToWindow();install()}
+        override func didMoveToSuperview() {super.didMoveToSuperview();install()}
+        func detach() {scroll?.removeGestureRecognizer(pan);scroll=nil}
+        func install() {
+            guard window != nil else {detach();return}
+            var ancestor=superview
+            while let view=ancestor {
+                if let owner=view as? UIScrollView {
+                    guard scroll !== owner else {return}
+                    detach();scroll=owner;owner.addGestureRecognizer(pan)
+                    owner.panGestureRecognizer.require(toFail:pan);return
                 }
-                guard axis==1 else {return}
-                dragging=min(revealWidth,max(0,origin-value.translation.width))
-            }.onEnded {value in
-                defer {axis=0}
-                ignoreTapUntil=Date().addingTimeInterval(0.3)
-                guard axis==1,!locked else {dragging=nil;return}
-                let predicted=origin-value.predictedEndTranslation.width
-                withAnimation(motion) {
-                    revealedID=predicted>revealWidth*0.5 ? id : nil
-                    dragging=nil
-                }
+                ancestor=view.superview
             }
+        }
+        func gestureRecognizer(_ gestureRecognizer:UIGestureRecognizer,shouldReceive touch:UITouch)->Bool {
+            options?.enabled == true && bounds.contains(touch.location(in:self))
+        }
+        override func gestureRecognizerShouldBegin(_ gestureRecognizer:UIGestureRecognizer)->Bool {
+            let delta=pan.translation(in:window)
+            // Consume either horizontal direction, including a rightward drag
+            // on a closed row, so releasing it cannot become a button tap.
+            // The row clamps that drag to zero; vertical motion still fails
+            // before recognition and belongs to the scroll view.
+            return options?.enabled == true && abs(delta.x)>abs(delta.y)*1.2
+        }
+        @objc func changed(_ gesture:UIPanGestureRecognizer) {
+            let x=gesture.translation(in:window).x
+            switch gesture.state {
+            case .began,.changed:options?.onChange(x,gesture.state == .began)
+            case .ended,.cancelled:options?.onEnd(x,gesture.velocity(in:window).x,gesture.state != .ended)
+            default:break
+            }
+        }
     }
 }

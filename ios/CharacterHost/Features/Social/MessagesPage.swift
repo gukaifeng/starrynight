@@ -103,7 +103,7 @@ struct MessagesPage: View {
                                 onOpen:{coordinator.openCharacter(model.id)},onHide:{hide(model)},onDelete:{confirmDeletion(model)}) {row(model)}
                         }
                     }.padding(.horizontal,24)
-                }.scrollIndicators(.hidden).scrollDismissesKeyboard(.interactively)
+                }.scrollIndicators(.hidden).scrollDismissesKeyboard(.interactively).accessibilityIdentifier("messageList")
             }
             if let error = coordinator.library.error { Text(LocalizedStringKey(error)).font(.caption).foregroundStyle(Theme.peach).padding(12) }
             if deleting {ProgressView("正在清空对话与记忆").font(.caption).padding(12)}

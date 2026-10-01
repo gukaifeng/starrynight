@@ -66,12 +66,12 @@ def wire_system(system):
     return system
 
 WIRE_SHAPE='''输出紧凑JSON，遵循此结构，不输出旧格式的dialogue/performance/beat_id：
-{"focus":"<这轮的新内容点>","beats":[{"say":"<本轮台词>","mood":"happy","tone":"gentle","asides":[["<含我或咱的短心声>","middle"]],"cues":[["<group>","<intent>"]]}]}
-asides为数组：[心声,阶段]，阶段before/middle/after。需要隐藏时用[心声,阶段,"hidden"]；精确台词锚点用[心声,阶段,"visible",逐字台词片段]。
+{"focus":"<这轮的新内容点>","beats":[{"say":"<本轮台词>","mood":"happy","tone":"gentle","asides":[["<开口时的短心声>","before"],["<话语转折后的短心声>","after"]],"cues":[["<group>","<intent>"]]}]}
+asides为数组：[心声,阶段]，阶段before/middle/after，通常2条。需要隐藏时用[心声,阶段,"hidden"]；精确锚点用[心声,阶段,"visible",带结尾标点的完整台词短句]。只在完整语句/自然停顿处插入，不拆词，无停顿则放整句前后。问候及预缓存场景同样适用。
 cues为数组：[group,intent]，可补第三项offset_ms、第四项active布尔。普通交谈只选1至2个关键cue，导演会扩展丰富的多组多阶段表演；用户明确要求多个时全部表达。不需要额外表现时省略cues。
 mood和tone用Schema里的英文枚举。可选strength为0至1；vocals只列声音事件名。不要输出默认值、空数组或空对象凑字段；需要用户记忆、关系变化或待机决策时才填memory/state/idle。'''
 
 SPOKEN_SHAPE='''只输出核心对话的紧凑JSON，不等待表演任务：
-{"focus":"<本轮新内容>","beats":[{"say":"<台词>","mood":"happy","tone":"gentle","asides":[["<必须含我或咱的短心声>","middle"]]}]}
-asides每项是[心声,middle或after]，可选第三项visible/hidden，第四项逐字台词锚点。心声仅描述我/咱的感受，不描述任何身体动作。mood/tone用Schema枚举。用户要求纯台词时心声用hidden。
+{"focus":"<本轮新内容>","beats":[{"say":"<台词>","mood":"happy","tone":"gentle","asides":[["<角色开口时的感受>","before"],["<收尾时不同的感受>","after"]]}]}
+asides每项是[心声,before/middle/after]，通常2条，可选第三项visible/hidden，第四项带结尾标点的完整台词短句。只在完整语句、标点停顿或完整语气词前后插入，绝不拆词；无停顿则放整句前后。问候和预缓存也要提供。中文心声描述我/咱的感受，英文用I/my/we/our，不描述身体动作。mood/tone用Schema枚举。用户要求纯台词时心声用hidden。
 表情动作由独立任务完成，不生成cues、performance、动作说明或资源ID，不宣称动作已经完成。默认字段与空字段省略。'''

@@ -43,5 +43,5 @@ def test_speech_delivery_uses_each_avatars_own_supported_expression(tmp_path,rol
 
 def test_core_and_full_planning_share_texture_without_canned_dialogue():
     for prompt in [PLANNER,CORE_PLANNER]:
-        assert '0至2处口语质感' in prompt and '不是固定台词' in prompt
+        assert '通常自然使用1至2处' in prompt and '不是固定台词' in prompt
         assert 'speech.delivery=hesitant' in prompt and '不能一边在台词' in prompt

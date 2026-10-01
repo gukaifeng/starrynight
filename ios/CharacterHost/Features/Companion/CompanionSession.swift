@@ -222,7 +222,7 @@ final class CompanionSession {
         activeScript=script;beginTurn()
         let message=CompanionMessage(id:id,role:"assistant",text:script.text,
             speechDuration:opening.duration,speechSpeed:1,
-            proactiveScene:"firstMeeting",aiScript:script,source:"bundled-opening-v1")
+            proactiveScene:"firstMeeting",aiScript:script,source:opening.parts == nil ? "bundled-opening-v1" : "bundled-opening-v2")
         replyReveal.begin(id,script:script)
         store.update(model.id) { record in
             record.messages.append(message)

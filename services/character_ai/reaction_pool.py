@@ -7,7 +7,7 @@ from .speech_text import audio_key
 from .storage import dump
 from .greetings import ENTRY_TRIGGERS
 from .prepared_draft import PreparedDraft
-from . import idle_presence
+from . import idle_presence,reply_flow
 
 REACTIONS={'shake':'model_shaken','pinch_in':'model_pinched','pinch_out':'model_pinched'}
 SCENARIOS={**REACTIONS,'idle':'idle','first_meeting':'firstMeeting','app_launch':'appLaunch','return':'characterSwitch'}
@@ -66,7 +66,7 @@ class ReactionPool:
         from .profiles import PROFILES
         # v4 adds conversational pauses/delivery and corresponding expression
         # selection. Retire only unspoken drafts; archive/audio remain intact.
-        value=[4,idle_presence.REVISION,request.character_id,self.has_met(owner,request),PROFILES[request.character_id],voice.get('voice_id'),request.preferences,
+        value=[4,reply_flow.REVISION,idle_presence.REVISION,request.character_id,self.has_met(owner,request),PROFILES[request.character_id],voice.get('voice_id'),request.preferences,
                [m.model_dump() for m in request.memories],sorted(request.available_assets),{k:v for k,v in request.scene.items() if k!='time'},history]
         return hashlib.sha256(json.dumps(value,ensure_ascii=False,sort_keys=True).encode()).hexdigest()
 

@@ -11,12 +11,16 @@ import Foundation
         try require(!CharacterAI.reactionPreparationEnabled && !CharacterAI.smartReplyPreparationEnabled,"Fixture must disable paid preparation")
         for model in ModelDescriptor.all {
             for index in 1...3 {
-                guard let opening=CharacterOpenings.find(model.runtimeID+"-\(index)") else {
+                guard let opening=CharacterOpenings.find(model.runtimeID+"-v2-\(index)") else {
                     throw NSError(domain:"OpeningChecks",code:2,userInfo:[NSLocalizedDescriptionKey:"Missing opening for "+model.id])
                 }
                 let pcm=try await opening.pcm()
                 try require(abs(Double(pcm.count)/48000-(opening.duration ?? 0))<0.001,"Bundled audio duration mismatch")
                 try require(opening.visuals.count>=2,"Opening needs real visual cues")
+                let parts=opening.script(characterID:model.id).beats[0].parts ?? []
+                try require(parts.filter {$0.kind == "thought" && $0.isVisible}.count==2,"Every introduction needs two visible inner asides")
+                try require(parts.filter {$0.kind == "dialogue"}.map(\.text).joined()==opening.text,"Aside composition must preserve every spoken character")
+                try require(CharacterOpenings.find(model.runtimeID+"-\(index)")?.audioReady == true,"Old first-meeting audio must remain replayable")
             }
         }
         let folder=FileManager.default.temporaryDirectory.appendingPathComponent("opening-fixture-\(UUID())")
@@ -30,7 +34,7 @@ import Foundation
         let entry=ConversationEntry(reason:.appLaunch,characterID:role,accountID:store.accountID)
         let start=Date();session.enterConversation(entry)
         try require(store.record(role).messages.count==1,"First meeting must append synchronously without network")
-        try require(store.record(role).messages[0].source=="bundled-opening-v1","First meeting must be packaged")
+        try require(store.record(role).messages[0].source=="bundled-opening-v2","First meeting must use the revised package")
         let first=store.record(role).messages[0]
         let opening=CharacterOpenings.find(first.aiScript!.openingID!)!
         try require(first.speechDuration==opening.duration && first.speechSpeed==1,"Measured opening length must exist before audio starts")

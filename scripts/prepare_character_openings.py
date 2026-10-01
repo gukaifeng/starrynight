@@ -2,8 +2,9 @@
 """Compile three first-visit packages per role. Paid synthesis is explicit/resumable.
 
 --synthesize uses existing approved voices via the official Bailian CLI. It never
-designs voices or generates dialogue. --check requires all 33 verified local PCM
-files; metadata-only compilation deliberately cannot pass that release check.
+designs voices or generates dialogue. --check requires verified local PCM for
+every current and retained legacy variant; metadata-only compilation cannot
+pass that release check.
 """
 import argparse
 import hashlib
@@ -27,7 +28,10 @@ def compile_catalog():
     performances = json.loads((ROOT / 'services/character_ai/performance_catalog.json').read_text())['characters']
     assert set(recipes['characters']) == set(roster)
     packages = []
-    for role, texts in recipes['characters'].items():
+    from services.character_ai.reply_flow import compile_text_parts,duration_hint
+    from types import SimpleNamespace
+    for role, entries in recipes['characters'].items():
+        texts=[e if isinstance(e,str) else e['text'] for e in entries]
         assert len(texts) == len(set(texts)) == 3
         options = [o for o in performances[role] if o.get('enabled') and o.get('automatic') and o.get('speech_compatible')]
         faces = [o for o in options if o['intent'] in ('soft_smile', 'bright_smile', 'teasing_smile', 'shy') and not o['asset_id'].startswith('gesture-')]
@@ -36,8 +40,10 @@ def compile_catalog():
             gestures = [o for o in options if o['group'] in ('ears', 'tail') and o['intent'] not in ('angry', 'sad') and 'idle' not in o['asset_id']]
         assert faces or gestures, role
         variants = []
-        for index, text in enumerate(texts):
-            key = role + '-' + str(index + 1)
+        for index, entry in enumerate(entries):
+            text=entry if isinstance(entry,str) else entry['text']
+            version=recipes.get('contentVersion',1)
+            key = role + (f'-v{version}' if version>1 else '') + '-' + str(index + 1)
             visual = []
             cues=((0,faces),(900,gestures),(6500,faces)) if faces else ((0,gestures),(6500,gestures))
             for offset, pool in cues:
@@ -46,9 +52,20 @@ def compile_catalog():
                 item = pool[(index + (offset > 1000)) % len(pool)]
                 visual.append(dict(assetId=item['asset_id'], group=item['group'], durationMs=min(4000, item['duration_ms']),
                                    grounding=item['observable_effects'][0], offsetMs=offset))
-            variants.append(dict(id=key, text=text, audio='Opening_' + key.replace('-', '_'),
-                                 language='en' if role in ('anime-lime', 'anime-nozomi') else 'zh', visuals=visual))
-        packages.append(dict(characterID=role, variants=variants))
+            language='en' if role in ('anime-lime','anime-nozomi') else 'zh'
+            variant=dict(id=key,text=text,audio='Opening_'+key.replace('-','_'),language=language,visuals=visual)
+            if isinstance(entry,dict):
+                asides=[SimpleNamespace(text=a['text'],stage=a.get('stage','middle'),visibility=a.get('visibility','visible'),after_text=a.get('after_text','')) for a in entry['asides']]
+                cues=[dict(active=True,offset_ms=v['offsetMs'],asset=dict(group=v['group'],observable_effects=[v['grounding']])) for v in visual]
+                variant.update(speech=entry.get('speech',dict(emotion='neutral',delivery='gentle',intensity=.4)),
+                    parts=compile_text_parts(text,asides,cues,language),readingDuration=duration_hint(text))
+            variants.append(variant)
+        legacy=[]
+        for edition in recipes.get('legacyVersions',[]):
+            for index,text in enumerate(edition['characters'].get(role,[])):
+                v=edition['version'];key=role+(f'-v{v}' if v>1 else '')+'-'+str(index+1)
+                legacy.append(dict(id=key,text=text,audio='Opening_'+key.replace('-','_'),language=language,visuals=[],legacy=True))
+        packages.append(dict(characterID=role, variants=variants,legacyVariants=legacy))
     return dict(schemaVersion=1, revision=recipes['revision'], characters=packages)
 
 def main():
@@ -72,15 +89,20 @@ def main():
     missing = []
     for character in catalog['characters']:
         role = character['characterID']
-        for variant in character['variants']:
+        for variant in character['variants']+character.get('legacyVariants',[]):
             target = RESOURCE / (variant['audio'] + '.pcm')
             receipt_path = receipts / (variant['id'] + '.json')
             text_hash = digest(variant['text'].encode())
             receipt = json.loads(receipt_path.read_text()) if receipt_path.exists() else {}
             valid = target.exists() and receipt.get('textSHA256') == text_hash and receipt.get('sha256') == digest(target.read_bytes())
-            if args.synthesize:
+            if args.synthesize and not variant.get('legacy'):
                 from services.character_ai.profiles import PROFILES
+                from services.character_ai.provider import speech_input
                 instruction = PROFILES[role].get('voice_delivery', '')
+                spoken=variant['text']
+                if variant.get('speech'):
+                    spoken,delivery=speech_input(dict(dialogue=dict(text=spoken,speech=variant['speech'])))
+                    instruction+='。'+delivery
                 voice = voices.get(role, {})
                 assert voice.get('approved') and voice.get('voice_id'), f'{role}: approved voice missing'
                 voice_hash = digest(voice['voice_id'].encode())
@@ -89,7 +111,7 @@ def main():
                 if not valid and calls < args.limit:
                     calls += 1
                     text_file = receipts / (variant['id'] + '.txt')
-                    text_file.write_text(variant['text'])
+                    text_file.write_text(spoken)
                     temp = receipts / (variant['id'] + '.pcm')
                     env = dict(os.environ, DASHSCOPE_API_KEY=settings.api_key, DASHSCOPE_BASE_URL=settings.host)
                     command = ['bl', 'speech', 'synthesize', '--text-file', str(text_file), '--model', settings.tts_model,
@@ -118,7 +140,8 @@ def main():
         if args.check:
             if not path.exists() or path.read_text()!=compiled:raise SystemExit('Opening catalog is stale: '+str(path))
         else:path.write_text(compiled)
-    print(f'Opening packages: {len(catalog["characters"])} roles / 33 variants; verified audio: {33-len(missing)}/33; new paid calls: {calls}')
+    total=sum(len(c['variants'])+len(c.get('legacyVariants',[])) for c in catalog['characters'])
+    print(f'Opening packages: {len(catalog["characters"])} roles / 33 current variants; verified audio including legacy: {total-len(missing)}/{total}; new paid calls: {calls}')
     if args.check and missing:
         raise SystemExit('Release check failed: missing verified opening audio: ' + ', '.join(missing))
 

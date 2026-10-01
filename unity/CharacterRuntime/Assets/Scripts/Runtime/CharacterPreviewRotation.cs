@@ -5,10 +5,10 @@ namespace ModelSpace
     // Transient offsets only: never part of CharacterViewPose or its saved target.
     public sealed class CharacterPreviewRotation
     {
-        public const float MaximumYaw=540,MaximumPitch=14;
+        public const float MaximumYaw=180,MaximumPitch=14,MaximumAngularSpeed=300;
         public const float MinimumRatio=.95f,MaximumRatio=1.05f,PinchThreshold=.025f;
         public const float ShakeTravel=1.5f,ShakeWindow=5,ShakeCooldown=20;
-        Vector2 offset,target,velocity,previousInput;
+        Vector2 offset,target,velocity,origin;
         bool returning;
         float clock,windowStart,travel,lastReaction=-100,lastMove=-100;
         int reversals;
@@ -36,7 +36,7 @@ namespace ModelSpace
         public void Begin() {
             EndPinch();
             if(clock-lastMove>.8f || clock-windowStart>ShakeWindow) {windowStart=clock;travel=0;reversals=0;lastDirection=Vector2.zero;}
-            Active=true;returning=false;target=offset;velocity=previousInput=previousTarget=Vector2.zero;Count++;
+            Active=true;returning=false;origin=target=offset;velocity=previousTarget=Vector2.zero;Count++;
         }
         public void BeginPinch() {
             End();Pinching=true;scaleReturning=false;scaleOrigin=scale;scaleTarget=scale;pinchStart=clock;PinchCount++;
@@ -56,19 +56,19 @@ namespace ModelSpace
             PinchReactionCount++;ReactionCount++;ReactionKind=delta>0 ? "pinch_out" : "pinch_in";
             ReactionIntensity=Mathf.Clamp01(.5f+Mathf.Abs(delta)*6);lastReaction=clock;return true;
         }
-        public void Move(float horizontal,float vertical,float horizontalSpeed=0)
+        public void Move(float horizontal,float vertical,float horizontalSpeed=0,float edgeRatio=float.NaN)
         {
             if(!Active || !float.IsFinite(horizontal) || !float.IsFinite(vertical) || !float.IsFinite(horizontalSpeed))return;
             var input=new Vector2(horizontal,vertical);
-            var movement=input-previousInput;previousInput=input;
-            // Integrate each sample with its own finger speed. Changing speed
-            // must never rescale the distance already travelled or jump angles.
-            float gain=1+1.8f*Mathf.SmoothStep(0,1,Mathf.InverseLerp(.15f,2,Mathf.Abs(horizontalSpeed)));
-            target=new Vector2(Mathf.Clamp(target.x-movement.x*300*gain,-MaximumYaw,MaximumYaw),
-                Mathf.Clamp(target.y-movement.y*65,-MaximumPitch,MaximumPitch));
+            // The host maps travel from the initial touch to the nearby edge.
+            // At either edge the actor faces away, independent of finger speed
+            // or off-centre starting point. Older hosts use a half-screen span.
+            float ratio=Mathf.Clamp(float.IsFinite(edgeRatio) ? edgeRatio : horizontal*2,-1,1);
+            target=new Vector2(Mathf.Lerp(origin.x,ratio>=0 ? -MaximumYaw : MaximumYaw,Mathf.Abs(ratio)),
+                Mathf.Clamp(origin.y-vertical*65,-MaximumPitch,MaximumPitch));
             if(clock-windowStart>ShakeWindow) {windowStart=clock;travel=0;reversals=0;lastDirection=Vector2.zero;}
-            // Reactions measure finger travel, not the much larger angular
-            // envelope: ordinary one-way viewing is not repeated shaking.
+            // Reactions still measure actual screen travel, independently of
+            // off-centre edge mapping. One-way viewing is not repeated shaking.
             var delta=new Vector2((input.x-previousTarget.x)*5,(input.y-previousTarget.y)*5.625f);
             if(delta.magnitude>.10f) {
                 if(lastDirection.sqrMagnitude>0 && Vector2.Dot(lastDirection,delta.normalized)<-.35f)reversals++;
@@ -79,8 +79,7 @@ namespace ModelSpace
         {
             if(!Active)return false;
             Active=false;returning=true;target=Vector2.zero;
-            // Equivalent orientation, shortest return: a 1.5-turn inspection
-            // should not rewind all of its revolutions after lifting the finger.
+            // Equivalent orientation, shortest return to the saved front view.
             offset.x=Mathf.DeltaAngle(0,offset.x);velocity=Vector2.zero;
             if(react && TryReact())return true;
             if(!react) {travel=0;reversals=0;lastDirection=Vector2.zero;}
@@ -107,7 +106,14 @@ namespace ModelSpace
             if(scaleReturning && Mathf.Abs(scale-1)<.00005f && Mathf.Abs(scaleVelocity)<.0001f) {
                 scale=scaleTarget=1;scaleVelocity=0;scaleReturning=false;PinchReturnCount++;
             }
-            offset=Vector2.SmoothDamp(offset,target,ref velocity,Active ? .08f : .28f,1440,Mathf.Min(deltaTime,.05f));
+            // Speed-limited SmoothDamp otherwise varies with refresh rate while
+            // saturated. Small fixed upper steps keep 30/60/120 Hz consistent.
+            float remaining=Mathf.Min(deltaTime,.05f);
+            while(remaining>.000001f) {
+                float step=Mathf.Min(remaining,1f/120);
+                offset=Vector2.SmoothDamp(offset,target,ref velocity,Active ? .10f : .28f,MaximumAngularSpeed,step);
+                remaining-=step;
+            }
             // A quick reversal must not overshoot the hard gesture envelope.
             offset=new Vector2(Mathf.Clamp(offset.x,-MaximumYaw,MaximumYaw),Mathf.Clamp(offset.y,-MaximumPitch,MaximumPitch));
             PeakYaw=Mathf.Max(PeakYaw,Mathf.Abs(offset.x));PeakPitch=Mathf.Max(PeakPitch,Mathf.Abs(offset.y));
@@ -117,7 +123,7 @@ namespace ModelSpace
         }
         public void Reset()
         {
-            Active=returning=false;offset=target=velocity=previousInput=Vector2.zero;
+            Active=returning=false;offset=target=velocity=origin=Vector2.zero;
             PeakYaw=PeakPitch=0;Count=ReturnCount=0;
             clock=windowStart=travel=0;reversals=ShakeCount=0;ShakeIntensity=0;lastReaction=lastMove=-100;previousTarget=lastDirection=Vector2.zero;
             Pinching=scaleReturning=false;scale=scaleTarget=scaleOrigin=1;scaleVelocity=pinchStart=0;

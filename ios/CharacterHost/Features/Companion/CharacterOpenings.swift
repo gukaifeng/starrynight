@@ -10,11 +10,13 @@ struct CharacterOpening: Decodable, Sendable {
     let visuals:[AIVisual]
     let audioReady:Bool
     let duration:Double?
+    let parts:[AIReplyPart]?
+    let readingDuration:Double?
 
     func script(characterID:String,messageID:UUID = UUID()) -> AIScript {
         AIScript(messageId:messageID.uuidString,characterId:characterID,text:text,
                  beats:[AIBeat(beatId:"opening",dialogue:AIDialogue(text:text),narrations:[],
-                               visuals:visuals,duration:duration,parts:[AIReplyPart(kind:"dialogue",text:text,at:0)])],
+                               visuals:visuals,duration:duration,parts:parts ?? [AIReplyPart(kind:"dialogue",text:text,at:0)],readingDuration:readingDuration)],
                  openingID:id)
     }
     func pcm(bundle:Bundle = .main) async throws -> Data {
@@ -33,7 +35,7 @@ struct CharacterOpening: Decodable, Sendable {
 
 enum CharacterOpenings {
     struct Catalog:Decodable {let schemaVersion:Int;let characters:[Package]}
-    struct Package:Decodable {let characterID:String;let variants:[CharacterOpening]}
+    struct Package:Decodable {let characterID:String;let variants:[CharacterOpening];let legacyVariants:[CharacterOpening]?}
     private static let packages:[Package] = {
         guard let url=Bundle.main.url(forResource:"CharacterOpenings",withExtension:"json"),
               let data=try? Data(contentsOf:url),let catalog=try? JSONDecoder().decode(Catalog.self,from:data),
@@ -44,6 +46,6 @@ enum CharacterOpenings {
         packages.first(where:{$0.characterID==runtimeID})?.variants.randomElement()
     }
     static func find(_ id:String) -> CharacterOpening? {
-        packages.lazy.flatMap(\.variants).first(where:{$0.id==id})
+        packages.lazy.flatMap {$0.variants+($0.legacyVariants ?? [])}.first(where:{$0.id==id})
     }
 }

@@ -5,7 +5,7 @@ from services.character_ai.config import Settings
 from services.character_ai.storage import Store
 from services.character_ai.schemas import Beat, Plan, Request, TimelinePlan, ShakeTimelinePlan
 from services.character_ai.orchestrator import Orchestrator
-from services.character_ai.reply_flow import compile_parts
+from services.character_ai.reply_flow import compile_parts,safe_boundaries
 from services.character_ai import novelty
 from services.character_ai.provider import speech_input
 from services.character_ai.provider import structured_messages
@@ -37,6 +37,41 @@ def test_anchor_before_comma_keeps_punctuation_with_speech():
     beat=Beat(beat_id='b',dialogue=dict(text='慢慢来，我在听。'),asides=[dict(text='我有点期待。',after_text='慢慢来')])
     parts=compile_parts(beat,dict(performances=[]))
     assert parts[0]['text']=='慢慢来，' and parts[1]['kind']=='thought' and parts[2]['text']=='我在听。'
+
+@pytest.mark.parametrize('text,anchor',[
+    ('我喜欢薰衣草的香气','薰'),
+    ('我喜欢薰衣草的香气。你呢？','薰衣'),
+    ('Lavender smells lovely today','Laven'),
+    ('I love lavender, how about you?','lav'),
+    ('嗯……我喜欢薰衣草～你呢？','嗯…'),
+    ('emmmm……我还想再听听','emm'),
+    ('他说“我喜欢薰衣草。”你呢？','薰'),
+    ('It costs 3.14, or 3,000 for a set.','3.'),
+    ('Meet Dr. Lee at 10:30. Shall we?','Dr.'),
+    ('Visit https://example.com/a.b for more.','example.'),
+])
+def test_all_annotation_paths_preserve_words_and_pause_clusters(text,anchor):
+    beat=Beat(beat_id='b',dialogue=dict(text=text),asides=[dict(text='我有点期待。',after_text=anchor),dict(text='我也想试试。',stage='middle')])
+    parts=compile_parts(beat,dict(performances=[dict(active=True,offset_ms=1800,asset=dict(group='expression',observable_effects=['轻轻微笑。']))]))
+    assert ''.join(p['text'] for p in parts if p['kind']=='dialogue')==text
+    cursor=0
+    for part in parts:
+        if part['kind']=='dialogue':cursor+=len(part['text'])
+        else:assert cursor in safe_boundaries(text)
+    for word in ['薰衣草','lavender','Lavender','……','3.14','3,000','10:30','Dr.','https://example.com/a.b']:
+        if word in text:assert any(word in p['text'] for p in parts if p['kind']=='dialogue')
+
+def test_unpunctuated_clause_is_never_cut_even_at_spaces_or_a_bad_anchor():
+    for text in ['我喜欢薰衣草','I really like lavender']:
+        beat=Beat(beat_id='b',dialogue=dict(text=text),asides=[dict(text='我很开心。',stage='middle')])
+        parts=compile_parts(beat,dict(performances=[]))
+        assert parts[0]['text']==text and parts[1]['at']==1
+
+def test_emotional_token_is_an_allowed_whole_pause_and_ellipsis_stays_whole():
+    text='我想emmmm……再说一会儿。'
+    points=safe_boundaries(text)
+    assert text.index('emmmm') in points and text.index('再') in points
+    assert all(p not in points for p in range(text.index('emmmm')+1,text.index('再')))
 
 def test_timeline_requires_stage_data_and_shake_validates_only_its_real_task():
     with pytest.raises(ValueError):TimelinePlan.model_validate(dict(beats=[dict(beat_id='b',dialogue=dict(text='你好'))]))

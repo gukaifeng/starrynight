@@ -10,6 +10,8 @@ from services.character_ai.app import create_app
 from services.character_ai.config import Settings
 from services.character_ai.profiles import PROFILES
 from scripts.prepare_character_openings import compile_catalog
+from services.character_ai.reply_flow import safe_boundaries
+from services.character_ai.schemas import visible_thought
 
 class NoProvider:
     def __getattr__(self, key):
@@ -26,11 +28,20 @@ def test_all_openings_match_roster_language_and_real_performances():
         for v in variants:
             assert v['text'].endswith(('？','?','。','！','.')) and len(v['visuals'])>=2
             if v['language']=='en':assert not any('\u4e00'<=c<='\u9fff' for c in v['text'])
+            assert len([p for p in v['parts'] if p['kind']=='thought' and visible_thought(p['text'])])==2
+            assert ''.join(p['text'] for p in v['parts'] if p['kind']=='dialogue')==v['text']
+            cursor=0
+            for part in v['parts']:
+                if part['kind']=='dialogue':cursor+=len(part['text'])
+                else:assert cursor in safe_boundaries(v['text'])
+            assert any(mark in v['text'] for mark in ['……','～','…','!','！'])
             for visual in v['visuals']:
                 original=options[visual['assetId']]
                 assert original['speech_compatible'] and original['automatic']
                 assert visual['group']==original['group']
                 assert 0<visual['durationMs']<=4000 and visual['offsetMs']>=0
+        assert len(role['legacyVariants'])==3
+        assert not {v['id'] for v in variants}&{v['id'] for v in role['legacyVariants']}
 
 @pytest.mark.asyncio
 async def test_first_meeting_registration_and_full_reset_are_scoped_and_idempotent(tmp_path):
@@ -44,10 +55,12 @@ async def test_first_meeting_registration_and_full_reset_are_scoped_and_idempote
     store.put('relationship',owner,other,{'closeness':0.7})
     store.put('relationship','someone-else',role,{'closeness':0.9})
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),base_url='http://test') as client:
-        first={'opening_id':'anime-kipfel-1','message_id':str(uuid.uuid4())}
+        first={'opening_id':'anime-kipfel-v2-1','message_id':str(uuid.uuid4())}
         assert (await client.post(path+'/opening',headers=headers,json=first)).status_code==200
         assert (await client.post(path+'/opening',headers=headers,json=first)).status_code==200
         assert len(store.history(owner,role))==1
+        saved=json.loads(store.db.execute('SELECT data FROM messages WHERE id=?',(first['message_id'],)).fetchone()[0])
+        assert len([p for p in saved['beats'][0]['parts'] if p['kind']=='thought'])==2
         text=store.history(owner,role)[0]['text'];assert '琪宝' in text and '书屋' in text
         assert store.get('greetings',owner,role)==[text]
         store.put('relationship',owner,role,{'closeness':0.9})

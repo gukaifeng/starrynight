@@ -135,9 +135,13 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
         if ProcessInfo.processInfo.arguments.contains("--expressive-conversation-fixture") {
             ConversationGestureFixture.seedPerformance(companionStore)
         }
+        if ProcessInfo.processInfo.arguments.contains("--message-scroll-fixture") {
+            for model in ModelDescriptor.all {library.subscribe(model.id,true)}
+            selectedTab = .messages
+        }
 #endif
         if ProcessInfo.processInfo.arguments.contains("--shell-discover") { selectedTab = .discover }
-        else if page == .home { resumeLastCharacter(reason:.appLaunch) }
+        else if page == .home && selectedTab != .messages { resumeLastCharacter(reason:.appLaunch) }
         // The native page is sufficient to dismiss startup, even when its 3D
         // character is still pending. Commit its layout before fading the cover.
         DispatchQueue.main.async { [weak self] in self?.finishShellPreparation() }

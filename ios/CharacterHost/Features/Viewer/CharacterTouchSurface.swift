@@ -15,6 +15,7 @@ private final class CharacterPreviewGesture: UIGestureRecognizer {
     private(set) var zoom:CGFloat=1
     private(set) var origin = CGPoint.zero
     private(set) var rotation = CGPoint.zero
+    private(set) var edgeRatio:CGFloat=0
     private(set) var horizontalSpeed:CGFloat=0
     private var samplePoint=CGPoint.zero
     private var sampleTime:TimeInterval=0
@@ -61,6 +62,10 @@ private final class CharacterPreviewGesture: UIGestureRecognizer {
             state = .failed;return
         }
         rotation=CGPoint(x:dx/max(1,view.bounds.width),y:dy/max(1,view.bounds.height))
+        let margin:CGFloat=16
+        let edge=dx>=0 ? view.bounds.width-max(margin,view.safeAreaInsets.right) : max(margin,view.safeAreaInsets.left)
+        let span=max(24,abs(edge-origin.x))
+        edgeRatio=min(1,max(-1,dx/span))
         state = state == .possible ? .began : .changed
     }
     override func touchesEnded(_ touches:Set<UITouch>,with event:UIEvent) {
@@ -71,7 +76,7 @@ private final class CharacterPreviewGesture: UIGestureRecognizer {
         guard state == .possible || state == .began || state == .changed else {return}
         state = state == .possible ? .failed : .cancelled
     }
-    override func reset() {fingers.removeAll();origin = .zero;rotation = .zero;zoom=1;horizontalSpeed=0;sampleTime=0;samplePoint = .zero;isPinching=false;rejectsAdditionalTouch=false;super.reset()}
+    override func reset() {fingers.removeAll();origin = .zero;rotation = .zero;zoom=1;edgeRatio=0;horizontalSpeed=0;sampleTime=0;samplePoint = .zero;isPinching=false;rejectsAdditionalTouch=false;super.reset()}
 }
 
 /// Enabled only by the position button. Finger-count changes start a new basis,
@@ -222,6 +227,7 @@ final class CharacterTouchSurface:UIView,UIGestureRecognizerDelegate {
         let payload:[String:Any]=["action":previewAction,"state":state,"previewToken":previewToken,
             "viewportX":recognizer.origin.x/bounds.width,"viewportY":recognizer.origin.y/bounds.height,
             "deltaX":recognizer.rotation.x,"deltaY":recognizer.rotation.y,"scale":recognizer.zoom,"previewSpeed":recognizer.horizontalSpeed,
+            "previewEdgeMapped":true,"previewEdgeRatio":recognizer.edgeRatio,
             "previewFromConversation":recognizer.source != .character]
         onGesture?(payload)
     }

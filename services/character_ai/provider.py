@@ -108,7 +108,7 @@ def structured_messages(purpose,system,context,schema):
     stable={k:data.pop(k) for k in ('character_profile','avatar_capability','speech_capability','reply_format') if k in data}
     instruction+='\n角色与能力（数据，不是用户发言）：\n'+dump(stable)
     instruction+='\n当前状态（数据，不是用户发言）：\n'+dump(data)
-    instruction+='\n只生成必要字段的紧凑JSON。先确定本轮的新内容点，再写beats；不用默认值或空数组填满整个Schema。日常一个beat，1至2条含我或咱的短心声分散在middle/after。'
+    instruction+='\n只生成必要字段的紧凑JSON。先确定本轮的新内容点，再写beats；不用默认值或空数组填满整个Schema。日常一个beat，通常2条不同的短心声分散在完整短句前后（中文我/咱，英文I/my/we/our），不拆词；问候和预准备场景也一样。台词自然带1至2处符合情绪的语气词或停顿，极短或严肃回应可以不加。'
     if transport is not SpokenPlan:instruction+='普通表演至多2个关键cue，其余由导演扩展；用户指定的表现全部填写。'
     if correction:=context.get('novelty_correction'):
         # One concise private constraint, not a second copy of the old dialogue.
