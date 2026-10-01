@@ -1,6 +1,25 @@
 import XCTest
 
 final class MarketplaceUITests:XCTestCase {
+    @MainActor func testThirdLocalPreviewBatchOpensWithoutComposer() {
+        for (name,id) in [("意可蕾","anime-eku"),("Sio","anime-sio")] {
+            let app=launch()
+            let search=app.textFields["discoverSearch"]
+            XCTAssertTrue(search.waitForExistence(timeout:12))
+            search.tap();search.typeText(name+"\n")
+            let card=app.buttons["discover-open-"+id]
+            XCTAssertTrue(card.waitForExistence(timeout:6),name)
+            card.tap()
+            let open=app.buttons["profileChatButton"]
+            XCTAssertTrue(open.waitForExistence(timeout:5))
+            XCTAssertEqual(open.label,"查看模型")
+            open.tap()
+            XCTAssertTrue(app.staticTexts["localModelPreview"].waitForExistence(timeout:30),name)
+            XCTAssertFalse(app.textViews["chatInput"].exists)
+            capture("local-preview-"+id)
+            app.terminate()
+        }
+    }
     @MainActor func testSecondLocalPreviewBatchOpensWithoutComposer() {
         for (name,id) in [("米露菲","anime-milfy"),("Shizuku","anime-shizuku")] {
             let app=launch()

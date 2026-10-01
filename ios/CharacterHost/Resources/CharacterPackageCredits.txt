@@ -123,6 +123,115 @@ See portable-conversion.json and physics-source.json for explicit adaptation lim
 }
 
 
+意可蕾 · 3.1.0
+意可蕾 / Eku 1.1.1
+素材原作者：Eku 1.1.1 原作者（见来源包条款）
+许可：Original author avatar terms — private local conversion
+固定来源：file:///Users/gukaifeng/Downloads/VRchat%E6%A8%A1%E5%9E%8B%E6%95%B4%E7%90%86_%E6%9C%80%E6%96%B0%E7%89%88%E6%9C%AC/Eku%E6%84%8F%E5%8F%AF%E8%95%BE_v1.1.1/Eku%E6%9C%AC%E4%BD%93_PC_v1_1_1.rar
+本机个人预览素材：不得随公开版本或公开源码再分发；具体改作与分发权限见下方原模型许可。
+
+Private user-supplied avatar conversion. No public redistribution permission is implied.
+Source SHA256: b1175337562365310c5d92879fb3658947a53a726ebb023a88d91e1d5b77715a
+
+
+
+上游附加署名（原文，包含上游完整素材库说明）：
+# Private avatar candidate
+
+Original geometry, textures and character controls remain subject to their authors’ terms. The host uses the MIT-licensed lilToon renderer. VRChat scripts, SDK binaries, platform animations and arbitrary callbacks are not bundled.
+
+See portable-conversion.json and physics-source.json for explicit adaptation limits. This package has not passed device performance testing merely because it is sealed.
+
+Local preview only: unresolved optional shading textures are listed in source-meta.json. Visual approval is required before activation.
+
+
+原文件许可设置（保留原文）：
+{
+  "schemaVersion": 1,
+  "sourceVersion": "1.1.1",
+  "sourceSHA256": "b1175337562365310c5d92879fb3658947a53a726ebb023a88d91e1d5b77715a",
+  "sourceArchive": "Eku本体_PC_v1_1_1.rar",
+  "prefab": "Assets/sep-neko-ya/Eku/Prefab/Eku.prefab",
+  "variants": [
+    {
+      "package": 0,
+      "prefab": "Assets/sep-neko-ya/Eku/Prefab/Dressup/Eku_Dressup.prefab"
+    },
+    {
+      "package": 0,
+      "prefab": "Assets/sep-neko-ya/Eku/Prefab/Dressup/Eku_Another_Dressup.prefab"
+    },
+    {
+      "package": 0,
+      "prefab": "Assets/sep-neko-ya/Eku/Prefab/Dressup/Eku_Dressup_NoTakt.prefab"
+    },
+    {
+      "package": 0,
+      "prefab": "Assets/sep-neko-ya/Eku/Prefab/Eku.prefab"
+    },
+    {
+      "package": 0,
+      "prefab": "Assets/sep-neko-ya/Eku/Prefab/Eku_Another.prefab"
+    }
+  ],
+  "baseline": {
+    "kind": "host-standing-adaptation",
+    "reason": "Source delegates its body baseline to the VRChat platform; no matching authored standing clip is present"
+  },
+  "localOnly": true,
+  "previewShadingLimitations": [
+    {
+      "material": "a5e06f9a3332f21448dfe2793d7c9f2f",
+      "sourceShader": {
+        "fileID": 4800000,
+        "guid": "4bc4157c0f94b024ca798e893081a344",
+        "type": 3
+      },
+      "reason": "Unresolved shader; lilToon fallback requires visual comparison"
+    },
+    {
+      "material": "5548129efaf04c74cabbfa404b719f8b",
+      "sourceShader": {
+        "fileID": 4800000,
+        "guid": "4bc4157c0f94b024ca798e893081a344",
+        "type": 3
+      },
+      "reason": "Unresolved shader; lilToon fallback requires visual comparison"
+    },
+    {
+      "material": "a4c515a4fdcc9a34f8af04d46d669978",
+      "sourceName": "Takt_Screen",
+      "property": "_Main2ndTex",
+      "reason": "Runtime RenderTexture cannot be bundled as an image"
+    },
+    {
+      "material": "c4f1078737a745d44ab1766aa3fa49a9",
+      "property": "_ShadowBorderMask",
+      "reason": "Unresolved source texture",
+      "reference": {
+        "fileID": 2800000,
+        "guid": "7ee60b2ac602702429a621bf39bcab97",
+        "type": 3
+      }
+    },
+    {
+      "material": "01ea6f7410b72c445b50427a3e64540f",
+      "property": "_ShadowBorderMask",
+      "reason": "Unresolved source texture",
+      "reference": {
+        "fileID": 2800000,
+        "guid": "2c6d577e5cf04d64fa1d4434e30e5e5c",
+        "type": 3
+      }
+    }
+  ],
+  "blinkAdaptation": {
+    "sourceMorph": "vrc.blink",
+    "timing": "host-controlled"
+  }
+}
+
+
 草莓 · 3.0.1
 草莓 / Ichigo 1.03
 素材原作者：Ichigo 1.03 原作者（见来源包条款）
@@ -1567,6 +1676,66 @@ Local preview only: unresolved optional shading textures are listed in source-me
         "type": 3
       },
       "reason": "Unresolved shader; lilToon fallback requires visual comparison"
+    }
+  ],
+  "blinkAdaptation": null
+}
+
+
+Sio · 3.1.0
+Sio / Sio
+素材原作者：Sio 原作者（见来源包条款）
+许可：Original author avatar terms — private local conversion
+固定来源：file:///Users/gukaifeng/Downloads/VRchat%E6%A8%A1%E5%9E%8B%E6%95%B4%E7%90%86_%E6%9C%80%E6%96%B0%E7%89%88%E6%9C%AC/Sio_%E7%89%88%E6%9C%AC%E6%9C%AA%E7%9F%A5/5650156Sio.zip
+本机个人预览素材：不得随公开版本或公开源码再分发；具体改作与分发权限见下方原模型许可。
+
+Private user-supplied avatar conversion. No public redistribution permission is implied.
+Source SHA256: 853c7f64df8184ed24ec940f089944879bfdf184640528c7395ec9cc6f0559e2
+
+
+
+上游附加署名（原文，包含上游完整素材库说明）：
+# Private avatar candidate
+
+Original geometry, textures and character controls remain subject to their authors’ terms. The host uses the MIT-licensed lilToon renderer. VRChat scripts, SDK binaries, platform animations and arbitrary callbacks are not bundled.
+
+See portable-conversion.json and physics-source.json for explicit adaptation limits. This package has not passed device performance testing merely because it is sealed.
+
+Local preview only: unresolved optional shading textures are listed in source-meta.json. Visual approval is required before activation.
+
+
+原文件许可设置（保留原文）：
+{
+  "schemaVersion": 1,
+  "sourceVersion": null,
+  "sourceSHA256": "853c7f64df8184ed24ec940f089944879bfdf184640528c7395ec9cc6f0559e2",
+  "sourceArchive": "5650156Sio.zip",
+  "prefab": "Assets/Chocolate rice/0. Sio/Sio.prefab",
+  "variants": [
+    {
+      "package": 0,
+      "prefab": "Assets/Chocolate rice/0. Sio/Sio.prefab"
+    },
+    {
+      "package": 0,
+      "prefab": "Assets/Chocolate rice/0. Sio/Sio_Kaihen.prefab"
+    }
+  ],
+  "baseline": {
+    "kind": "host-standing-adaptation",
+    "reason": "Source delegates its body baseline to the VRChat platform; no matching authored standing clip is present"
+  },
+  "localOnly": true,
+  "previewShadingLimitations": [
+    {
+      "material": "7b1f1263a075da245a4c3916d447d575",
+      "property": "_OutlineTex",
+      "reason": "Unresolved source texture",
+      "reference": {
+        "fileID": 2800000,
+        "guid": "d7a11fb483991e5469857b7c5bdaa980",
+        "type": 3
+      }
     }
   ],
   "blinkAdaptation": null

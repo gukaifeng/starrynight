@@ -275,6 +275,28 @@
       "cameraYaw": 0,
       "source": "author-supplied",
       "sourceSHA256": "ac4f0d17bbd80e06a0dc81a58220d095224f0b3c2e7ea171e03b2bc280af8141"
+    },
+    {
+      "runtimeID": "anime-eku",
+      "asset": "Cover_anime_eku",
+      "environmentID": "sunroom",
+      "focusX": 0.5,
+      "focusY": 0.3,
+      "frameBottom": 0.46,
+      "cameraYaw": 0,
+      "source": "author-supplied",
+      "sourceSHA256": "0ad0ffe276220af2ef3e82078a9c404669910c21ba69accf6780563afa847fc9"
+    },
+    {
+      "runtimeID": "anime-sio",
+      "asset": "Cover_anime_sio",
+      "environmentID": "sunroom",
+      "focusX": 0.5,
+      "focusY": 0.3,
+      "frameBottom": 0.46,
+      "cameraYaw": 0,
+      "source": "author-supplied",
+      "sourceSHA256": "0fba9d29864b2faae2aa261cd59acc2deb4546b11d13c59a0da74b5b1f2aaf9f"
     }
   ]
 }

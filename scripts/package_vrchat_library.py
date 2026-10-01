@@ -96,9 +96,12 @@ def assemble(row,folder,stage,order,allow_preview_shading=False):
         (item.get('reason')=='Unresolved source texture' and
          item.get('property') in PREVIEW_OPTIONAL_TEXTURES) or
         (item.get('reason')=='Runtime RenderTexture cannot be bundled as an image' and
-         item.get('sourceName')=='SmartPhone_Screen' and item.get('property')=='_Main2ndTex') or
-        (row['role']=='shizuku' and item.get('reason')=='Unresolved shader; lilToon fallback requires visual comparison' and
-         material_names.get(item.get('material')) in PREVIEW_OPTIONAL_SCREEN_SHADERS) or
+         ((row['role']=='milfy' and item.get('sourceName')=='SmartPhone_Screen') or
+          (row['role']=='eku' and item.get('sourceName')=='Takt_Screen')) and
+         item.get('property')=='_Main2ndTex') or
+        (item.get('reason')=='Unresolved shader; lilToon fallback requires visual comparison' and
+         ((row['role']=='shizuku' and material_names.get(item.get('material')) in PREVIEW_OPTIONAL_SCREEN_SHADERS) or
+          (row['role']=='eku' and material_names.get(item.get('material')) in {'Fresnel','Cone'}))) or
         item.get('reason')=='Unity utility mesh uses built-in or missing material; neutral local-preview fallback'
         for item in limitations))
     if limitations and not preview_shading:
@@ -164,7 +167,17 @@ def assemble(row,folder,stage,order,allow_preview_shading=False):
         files=[],extensions={'app.starry.avatar-controls':dict(version=1,file='avatar-controls.json'),
         'app.starry.secondary-motion':dict(version=2,file='secondary-motion.json'),
         'app.starry.private-preview':dict(version=1,redistributionAllowed=False,appearanceEditingAllowed=False,metadata='source-meta.json')})
-    if options:m['performance']=dict(schemaVersion=2,groups=groups,options=options,defaults=[dict(path='Avatar/'+s['path'],visible=s['active'] and s['enabled']) for s in geometry['skins']])
+    if options:
+        defaults=[]
+        for s in geometry['skins']:
+            path='Avatar/'+s['path']
+            # Eku's inactive spatial-screen accessory has two paths beyond the
+            # portable profile limit. Its disabled source state is preserved
+            # by the model; do not shorten paths used by authored animations.
+            if row['role']=='eku' and not s['active'] and 'SpatialScreen' in path and len(path.encode('utf-16-le'))//2>128:
+                continue
+            defaults.append(dict(path=path,visible=s['active'] and s['enabled']))
+        m['performance']=dict(schemaVersion=2,groups=groups,options=options,defaults=defaults)
     blink=blink_binding_name(desc,names,controls)
     if blink:
         optional.append('core.autonomy@1')

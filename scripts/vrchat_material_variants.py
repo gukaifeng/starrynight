@@ -11,8 +11,11 @@ from audit_vrchat_archives import material_inventory,inline_reference,field
 def effective_material(guid,assets,visited=()):
     if guid in visited:raise ValueError('Cyclic material parent: '+guid)
     asset=assets.get(guid)
-    if not asset or asset['extension']!='.mat':raise ValueError('Missing material parent: '+guid)
+    if not asset or asset['extension'] not in ('.mat','.asset'):
+        raise ValueError('Missing material parent: '+guid)
     text=Path(asset['extractedPath']).read_text()
+    if asset['extension']=='.asset' and not re.search(r'^--- !u!21 &\d+\nMaterial:',text,re.M):
+        raise ValueError('Material parent .asset is not a Unity Material: '+guid)
     current=material_inventory(text,assets)
     ints=re.search(r'^    m_Ints:\n([\s\S]*?)(?=^    \w|\Z)',text,re.M)
     if ints:current['floats'].update({m[1]:float(m[2]) for m in re.finditer(r'^    - (\S+): ([-+\d.eE]+)$',ints[1],re.M)})

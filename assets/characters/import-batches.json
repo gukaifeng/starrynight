@@ -151,6 +151,26 @@
       "deviceLaunch": "passed",
       "deviceFrameRate": "not-measured",
       "deliveredAt": "2026-10-02T01:37:17+08:00"
+    },
+    {
+      "id": "vrchat-20261002-preview-06",
+      "status": "delivered",
+      "characters": [
+        "anime-eku",
+        "anime-sio"
+      ],
+      "report": "docs/verification/vrchat-batch-import/preview-06.md",
+      "simulatorChecks": [
+        "20 character/collection export integrity passed",
+        "iPhone 17 UI: Eku and Sio discover/profile/model preview without AI composer; 1 test, 0 failures"
+      ],
+      "appVersion": "0.84.0",
+      "buildNumber": 114,
+      "device": "iPhone 17",
+      "deviceInstall": "passed",
+      "deviceLaunch": "passed",
+      "deviceFrameRate": "not-measured",
+      "deliveredAt": "2026-10-02T02:30:16+08:00"
     }
   ]
 }

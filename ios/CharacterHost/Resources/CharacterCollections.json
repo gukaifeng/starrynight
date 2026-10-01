@@ -603,6 +603,58 @@
       "defaultVoice": "anime-shizuku/preview",
       "defaultMusic": "",
       "previewOnly": true
+    },
+    {
+      "schemaVersion": 1,
+      "id": "app.starry.collections.anime-eku",
+      "version": "1.1.0",
+      "modelID": "anime-eku",
+      "modelPackageID": "app.starry.characters.anime-eku",
+      "modelPackageVersion": "3.1.0",
+      "actions": [],
+      "environments": [
+        "sunroom"
+      ],
+      "voices": [
+        {
+          "id": "anime-eku/preview",
+          "title": "模型预览",
+          "detail": "尚未接入语音",
+          "engine": "aliyun-character-v1",
+          "speed": 1
+        }
+      ],
+      "music": [],
+      "defaultEnvironment": "sunroom",
+      "defaultVoice": "anime-eku/preview",
+      "defaultMusic": "",
+      "previewOnly": true
+    },
+    {
+      "schemaVersion": 1,
+      "id": "app.starry.collections.anime-sio",
+      "version": "1.1.0",
+      "modelID": "anime-sio",
+      "modelPackageID": "app.starry.characters.anime-sio",
+      "modelPackageVersion": "3.1.0",
+      "actions": [],
+      "environments": [
+        "sunroom"
+      ],
+      "voices": [
+        {
+          "id": "anime-sio/preview",
+          "title": "模型预览",
+          "detail": "尚未接入语音",
+          "engine": "aliyun-character-v1",
+          "speed": 1
+        }
+      ],
+      "music": [],
+      "defaultEnvironment": "sunroom",
+      "defaultVoice": "anime-sio/preview",
+      "defaultMusic": "",
+      "previewOnly": true
     }
   ]
 }
