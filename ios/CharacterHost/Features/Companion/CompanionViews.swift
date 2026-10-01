@@ -28,13 +28,13 @@ struct CharacterProfileView: View {
                 Section("我们的相处方式") {
                     TextField("角色昵称",text:$profile.name).focused($focusedField,equals:.name).accessibilityIdentifier("profileName")
                     TextField("背景与关系",text:$profile.background,axis:.vertical).lineLimit(3...5).focused($focusedField,equals:.background).accessibilityIdentifier("profileBackground")
-                    Picker("性格",selection:$profile.personality) { ForEach(["温柔","活泼","理性"],id:\.self) { Text($0) } }
-                    Picker("语气",selection:$profile.tone) { ForEach(["自然","温暖","轻松"],id:\.self) { Text($0) } }
+                    Picker("性格",selection:$profile.personality) { ForEach(["温柔","活泼","理性"],id:\.self) { Text(LocalizedStringKey($0)) } }
+                    Picker("语气",selection:$profile.tone) { ForEach(["自然","温暖","轻松"],id:\.self) { Text(LocalizedStringKey($0)) } }
                     Toggle("偏好简短回复",isOn:$profile.concise).accessibilityIdentifier("conciseToggle")
                 }
                 Section("角色的色彩与空间") {
-                    Picker("点缀配色",selection:$profile.accent) { ForEach(["玉青","鸢紫","暖金"],id:\.self) { Text($0) } }.accessibilityIdentifier("accentPicker")
-                    Picker("空间氛围",selection:$profile.ambience) { ForEach(["晨光","暖暮","月色"],id:\.self) { Text($0) } }
+                    Picker("点缀配色",selection:$profile.accent) { ForEach(["玉青","鸢紫","暖金"],id:\.self) { Text(LocalizedStringKey($0)) } }.accessibilityIdentifier("accentPicker")
+                    Picker("空间氛围",selection:$profile.ambience) { ForEach(["晨光","暖暮","月色"],id:\.self) { Text(LocalizedStringKey($0)) } }
                     Text("配色作用于 Luma 的珐琅与灯光、初音的发色；保留角色原有服装和材质细节。")
                         .font(.caption).foregroundStyle(.secondary)
                 }
@@ -48,7 +48,7 @@ struct CharacterProfileView: View {
                         .font(.caption).foregroundStyle(.secondary)
                 }
                 Section { Text("角色根据设定、共同记忆和当前对话作出 AI 回复。保留真实的共同经历，不会把尚未发生的事当作回忆。").font(.footnote).foregroundStyle(.secondary) }
-                if let error = store.error { Text(error).foregroundStyle(.red) }
+                if let error = store.error { Text(LocalizedStringKey(error)).foregroundStyle(.red) }
                 }.listRowBackground(Theme.surface.opacity(0.72))
             }
             .scrollDismissesKeyboard(.interactively)
@@ -120,7 +120,7 @@ struct CompanionMemoryView: View {
                         }.padding(.vertical,6)
                     }
                 }
-                if let error = store.error { Text(error).foregroundStyle(.red) }
+                if let error = store.error { Text(LocalizedStringKey(error)).foregroundStyle(.red) }
                 }.listRowBackground(Theme.surface.opacity(0.72))
             }
             .scrollIndicators(.hidden).scrollContentBackground(.hidden)

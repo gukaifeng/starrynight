@@ -13,7 +13,7 @@ import (
 
 // The Python inference worker is private. Only explicitly listed user routes
 // pass this gateway; voice design, usage/admin APIs and arbitrary URLs do not.
-var aiConversation = regexp.MustCompile(`^/v1/ai/conversations/([a-zA-Z0-9_-]{1,120})/messages(?:/[a-fA-F0-9-]{36}/audio)?$`)
+var aiConversation = regexp.MustCompile(`^/v1/ai/conversations/([a-zA-Z0-9_-]{1,120})/messages(?:/[a-fA-F0-9-]{36}/(?:audio|translation))?$`)
 var aiASR = regexp.MustCompile(`^/v1/ai/asr/([a-zA-Z0-9_-]{1,120})$`)
 var aiProfile = regexp.MustCompile(`^/v1/ai/characters/([a-zA-Z0-9_-]{1,120})/profile$`)
 var aiInspector = regexp.MustCompile(`^/v1/ai/testing/characters/([a-zA-Z0-9_-]{1,120})/inspector$`)
@@ -64,6 +64,7 @@ func (s *Server) documentAIRoutes() {
 		{"POST", "/v1/ai/conversations/{character}/suggestions/status", "ai-suggestion-status", "Read the ranked choices for the latest AI turn. No paid generation."},
 		{"POST", "/v1/ai/conversations/{character}/reactions/pause", "ai-pause-reactions", "Cancel preparation for this session lease; retains completed, unexpired drafts."},
 		{"POST", "/v1/ai/conversations/{character}/reactions/status", "ai-reaction-status", "Read-only availability for the current context; does not start generation."},
+		{"POST", "/v1/ai/conversations/{character}/messages/{message}/translation", "ai-translate", "Translate visible segments of an owned assistant message to zh-Hans, zh-Hant or en, preserving ids/kinds/order. Read-only; cached by account, message, source and language. Does not alter context or audio."},
 		{"POST", "/v1/ai/conversations/{character}/messages/{message}/audio", "ai-audio", "SSE audio replay for an existing worker message."},
 		{"DELETE", "/v1/ai/conversations/{character}/messages", "ai-clear-context", "Clear worker context. Account archive has its own clear endpoint."},
 		{"DELETE", "/v1/ai/conversations/{character}", "ai-delete-conversation", "Erase worker conversation and memories; requires reset_id UUID query. Idempotent."},

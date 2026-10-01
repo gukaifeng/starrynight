@@ -85,7 +85,7 @@ struct AccountView: View {
                         HStack(spacing:12) {
                             Image(systemName:method.symbol).font(.system(size:17,weight:.regular))
                                 .foregroundStyle(Theme.accent.opacity(0.85)).frame(width:22).accessibilityHidden(true)
-                            Text(method.title)
+                            Text(LocalizedStringKey(method.title))
                         }
                     }
                     .font(.subheadline).frame(minHeight:32)
@@ -128,7 +128,7 @@ struct AccountView: View {
         LabeledContent {
             Text(value).foregroundStyle(Theme.secondary).accessibilityIdentifier(identifier)
         } label: {
-            Text(title)
+            Text(LocalizedStringKey(title))
         }
         .font(.subheadline).frame(minHeight:32)
     }

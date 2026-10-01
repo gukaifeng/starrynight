@@ -20,7 +20,7 @@ struct PostureControls: View {
                 ForEach(selected.parameters) { p in
                     VStack(spacing:5) {
                         HStack {
-                            Text(p.label).font(.subheadline)
+                            Text(LocalizedStringKey(p.label)).font(.subheadline)
                             Spacer()
                             Text(p.unit == "degrees" ? String(format:"%.0f°",preferences.value(p)) : String(format:"%.0f%%",preferences.value(p)*100))
                                 .font(.caption.monospacedDigit()).foregroundStyle(Theme.secondary)

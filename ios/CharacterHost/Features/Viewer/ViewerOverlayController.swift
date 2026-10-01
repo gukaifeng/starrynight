@@ -105,7 +105,7 @@ private final class TouchThroughView: UIView {
 }
 
 // Sheet geometry becomes available during presentation, not just after its completion.
-private final class PreviewSheet<Content: View>: UIHostingController<Content> {
+private final class PreviewSheet<Content: View>: LanguageHostingController<Content> {
     var onLayout: (() -> Void)?
     override func viewDidLayoutSubviews() { super.viewDidLayoutSubviews(); onLayout?() }
 }
@@ -124,13 +124,13 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
     }
     var onTabSelected: ((AppTab)->Void)?
     private var dockBottomInset:CGFloat = -1
-    private var dockHost: UIHostingController<AppDock>?
+    private var dockHost: LanguageHostingController<AppDock>?
     var onBack: (() -> Void)?
     var onPreviewFraming: ((CharacterFraming) -> Void)?
     var onSaveFraming: ((CharacterFraming) -> String?)?
     private let touchSurface = CharacterTouchSurface()
     private let viewEditor = CharacterViewEditor()
-    private var viewEditorHost:UIHostingController<CharacterViewEditorPanel>?
+    private var viewEditorHost:LanguageHostingController<CharacterViewEditorPanel>?
     private let positionButton=UIButton(type:.system)
     private var positionSessions:[Int:(session:CompanionSession,account:String)]=[:]
     var onLoadCharacterView:((CharacterViewPose,Bool)->Void)?
@@ -155,10 +155,15 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
         let editing=viewEditor.isOpen
         positionButton.setImage(UIImage(systemName:editing ? "xmark" : "slider.horizontal.3",withConfiguration:UIImage.SymbolConfiguration(pointSize:15,weight:.regular)),for:.normal)
         positionButton.tintColor=UIColor(Theme.ink).withAlphaComponent(editing ? 0.84:0.56)
-        positionButton.accessibilityLabel=editing ? "收起会话设置" : "会话设置"
-        positionButton.accessibilityValue=editing ? viewEditor.section.title : "位置、声音与氛围"
+        positionButton.accessibilityLabel=editing ? L10n.text("收起会话设置") : L10n.text("会话设置")
+        positionButton.accessibilityValue=editing ? viewEditor.section.title : L10n.text("位置、声音与氛围")
         positionButton.accessibilityIdentifier=editing ? "closeCharacterViewEditor" : "characterPositionButton"
         positionButton.isHidden=chatSession == nil
+    }
+    @objc private func languageChanged() {
+        updatePositionButton()
+        positionButton.accessibilityHint=L10n.text("调整角色位置、心声音量、背景音乐与氛围效果")
+        view.setNeedsLayout()
     }
     @objc private func togglePositionEditor() {
         guard gestureInputAvailable,chatSession != nil else {return}
@@ -183,7 +188,7 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
         guard viewEditorHost == nil,let session=chatSession else {return}
         viewEditor.isOpen=true;viewEditor.status="";viewEditor.moving=false
         viewEditor.section = .position
-        let host=UIHostingController(rootView:CharacterViewEditorPanel(editor:viewEditor,session:session,onSection:{[weak self] section in
+        let host=LanguageHostingController(rootView:CharacterViewEditorPanel(editor:viewEditor,session:session,onSection:{[weak self] section in
             self?.selectConversationSetting(section)
         },onReset:{[weak self] in self?.resetPosition()}))
         host.view.backgroundColor = .clear;host.view.isOpaque=false;host.safeAreaRegions=[]
@@ -282,8 +287,8 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
     }
     private func setModelControlsLocked(_ locked: Bool) {
         modelControlsLocked = true
-        gestureHint.text = "单指轻转，松手复位；右上角修改位置"
-        stageProbe.accessibilityLabel = "角色互动区域，单指小范围旋转，松手恢复；右上角修改位置"
+        gestureHint.text = L10n.text("单指轻转，松手复位；右上角修改位置")
+        stageProbe.accessibilityLabel = L10n.text("角色互动区域，单指小范围旋转，松手恢复；右上角修改位置")
         syncGestureInput()
     }
     private var framing = CharacterFraming.recommended
@@ -323,7 +328,7 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
     var onOpenCharacterFromDetails: ((String,Bool) -> Void)?
     var onDetailsClosed: (() -> Void)?
     private var nextCharacterAfterDetails: (String,Bool)?
-    private var identityHost:UIHostingController<CharacterConversationIdentity>?
+    private var identityHost:LanguageHostingController<CharacterConversationIdentity>?
     private let identityDiagnostics=CharacterIdentityDiagnostics()
     private let customizationButton = UIButton(type:.system)
     private var identityLeading:NSLayoutConstraint?
@@ -526,8 +531,8 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
     var onAction: ((String) -> Void)?
     var onFrameRate: ((Int) -> Void)?
     var onConversationViewport: ((CGRect,CGRect) -> Void)?
-    private var chatHost: UIHostingController<CompanionChatView>?
-    private var atmosphereHost:UIHostingController<CharacterAtmosphereView>?
+    private var chatHost: LanguageHostingController<CompanionChatView>?
+    private var atmosphereHost:LanguageHostingController<CharacterAtmosphereView>?
     private let atmosphereActivity=AtmosphereActivity()
     func setAtmosphereActive(_ active:Bool) {atmosphereActivity.active=active}
     private var chatSession: CompanionSession?
@@ -542,7 +547,7 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
     func setCompanionTitle(_ title: String) {
         if chatSession != nil {
             titleLabel.text = title; subtitle.text = nil
-            customizationButton.accessibilityLabel = title + "，查看角色资料"
+            customizationButton.accessibilityLabel = title + L10n.text("，查看角色资料")
             identityContentWidth?.constant = CharacterConversationIdentity.fittingWidth(for:title)
         }
     }
@@ -571,12 +576,12 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
         performance.isHidden = session != nil; actionsScroll.isHidden = session != nil
         previousViewport = .zero
         if let session {
-            let atmosphere=UIHostingController(rootView:CharacterAtmosphereView(session:session,activity:atmosphereActivity))
+            let atmosphere=LanguageHostingController(rootView:CharacterAtmosphereView(session:session,activity:atmosphereActivity))
             atmosphere.view.backgroundColor = .clear;atmosphere.view.isOpaque=false;atmosphere.view.isUserInteractionEnabled=false
             atmosphere.safeAreaRegions=[];atmosphere.view.frame=view.bounds;atmosphere.view.autoresizingMask=[.flexibleWidth,.flexibleHeight]
             addChild(atmosphere);view.insertSubview(atmosphere.view,at:0);atmosphere.didMove(toParent:self);atmosphereHost=atmosphere
             session.onPreparationChanged = { [weak self] in self?.updatePreparationDiagnostics() }
-            let host = UIHostingController(rootView:CompanionChatView(session:session,onEditingChanged:{ [weak self] focused in
+            let host = LanguageHostingController(rootView:CompanionChatView(session:session,onEditingChanged:{ [weak self] focused in
                 guard let self else { return }; self.chatEditing = focused
                 if !focused { self.view.endEditing(true) }; self.animateLayout()
             },onDisplayChanged:{ [weak self] in self?.animateLayout() },onMessageFrameChanged:{ [weak self] frame in
@@ -594,7 +599,7 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
             (view as? TouchThroughView)?.chatView = host.view
             (view as? TouchThroughView)?.characterTouchView = touchSurface
             if let portraits {
-                let identity = UIHostingController(rootView:CharacterConversationIdentity(session:session,portraits:portraits,library:library,diagnostics:identityDiagnostics,onDetails:{[weak self] in self?.openCustomization()}))
+                let identity = LanguageHostingController(rootView:CharacterConversationIdentity(session:session,portraits:portraits,library:library,diagnostics:identityDiagnostics,onDetails:{[weak self] in self?.openCustomization()}))
                 identity.view.backgroundColor = .clear; identity.view.isOpaque = false
                 identity.view.isUserInteractionEnabled = true; identity.view.accessibilityElementsHidden = false
                 identity.safeAreaRegions = []
@@ -628,7 +633,7 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
         guard isViewLoaded else { return }
         guard changed || actionButtons.isEmpty else { return }
         titleLabel.text = model.name
-        customizationButton.accessibilityLabel = model.name + "，查看角色资料"
+        customizationButton.accessibilityLabel = model.name + L10n.text("，查看角色资料")
         for item in actionStrip.arrangedSubviews { actionStrip.removeArrangedSubview(item); item.removeFromSuperview() }
         actionButtons.removeAll()
         for action in model.actions {
@@ -650,32 +655,33 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
         }
         setAction("")
         actionsScroll.setContentOffset(.zero,animated:false)
-        performance.configuration?.title = "帧率测量中"
+        performance.configuration?.title = L10n.text("帧率测量中")
         performance.configuration?.subtitle = nil
     }
 
     func setAction(_ action: String) {
-        let name = action == "No" ? "摇头" : model.actions.first(where: { $0.id == action })?.name
+        let name = action == "No" ? L10n.text("摇头") : model.actions.first(where: { $0.id == action })?.name
         if let chatSession { chatSession.currentAction = action; return }
         subtitle.text = name.map { "正在" + $0 } ?? model.originalName.uppercased()
         for (name,button) in actionButtons {
             button.isSelected = name == action
-            button.accessibilityValue = name == action ? "正在播放" : "轻点播放"
+            button.accessibilityValue = name == action ? L10n.text("正在播放") : L10n.text("轻点播放")
             button.configuration?.baseBackgroundColor = name == action
                 ? UIColor(Theme.jade) : UIColor(Theme.surface).withAlphaComponent(0.95)
         }
     }
     func setPerformance(fps:Double,target:Int,screenMaximum:Int) {
-        performance.configuration?.title = String(format:"%.0f FPS  ·  目标 %d",fps,target)
+        performance.configuration?.title = String(format:L10n.text("%.0f FPS  ·  目标 %d"),fps,target)
         performance.configuration?.subtitle = "当前屏幕上限 \(screenMaximum) Hz"
-        performance.accessibilityValue = String(format:"实测渲染循环 %.1f 帧，目标 %d 帧，屏幕上限 %d 赫兹",fps,target,screenMaximum)
+        performance.accessibilityValue = String(format:L10n.text("实测渲染循环 %.1f 帧，目标 %d 帧，屏幕上限 %d 赫兹"),fps,target,screenMaximum)
     }
 
     override func loadView() { view = TouchThroughView(); view.backgroundColor = .clear }
     override func viewDidLoad() {
         super.viewDidLoad()
+        NotificationCenter.default.addObserver(self,selector:#selector(languageChanged),name:.appLanguageChanged,object:nil)
         positionButton.addTarget(self,action:#selector(togglePositionEditor),for:.touchUpInside)
-        positionButton.accessibilityHint="调整角色位置、心声音量、背景音乐与氛围效果"
+        positionButton.accessibilityHint=L10n.text("调整角色位置、心声音量、背景音乐与氛围效果")
         view.addSubview(positionButton)
         (view as? TouchThroughView)?.inspectionEntry=positionButton
         touchSurface.onGesture = { [weak self] value in self?.onNativeGesture?(value) }
@@ -703,7 +709,7 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
         dismissChatKeyboardTap.delegate = self
         view.addGestureRecognizer(dismissChatKeyboardTap)
         overrideUserInterfaceStyle = .dark
-        let dock = UIHostingController(rootView:AppDock(selection:.home) { [weak self] tab in
+        let dock = LanguageHostingController(rootView:AppDock(selection:.home) { [weak self] tab in
             self?.view.endEditing(true); self?.onTabSelected?(tab)
         })
         dock.view.backgroundColor = .clear; dock.safeAreaRegions = []
@@ -712,7 +718,7 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
         NotificationCenter.default.addObserver(self,selector:#selector(keyboardChanged),name:UIResponder.keyboardDidHideNotification,object:nil)
         stageProbe.backgroundColor = .clear; stageProbe.isUserInteractionEnabled = false
         stageProbe.isAccessibilityElement = true; stageProbe.accessibilityIdentifier = "characterStage"
-        stageProbe.accessibilityLabel = "角色互动区域，单指轻转、双指轻捏缩放，松手恢复；右上角修改位置"
+        stageProbe.accessibilityLabel = L10n.text("角色互动区域，单指轻转、双指轻捏缩放，松手恢复；右上角修改位置")
         stageProbe.accessibilityTraits = .image; view.addSubview(stageProbe)
         updatePositionButton()
 #if DEBUG
@@ -721,7 +727,7 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
             // on the 3D view. This adds no recognizer or alternative runtime input path.
             gestureProbe.isUserInteractionEnabled = false; gestureProbe.isAccessibilityElement = true
             gestureProbe.accessibilityIdentifier = "characterGestureRegion"; gestureProbe.accessibilityTraits = .image
-            gestureProbe.accessibilityLabel = "当前未被聊天遮挡的模型区域"
+            gestureProbe.accessibilityLabel = L10n.text("当前未被聊天遮挡的模型区域")
             view.addSubview(gestureProbe)
         }
 #endif
@@ -740,7 +746,7 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
             return config
         }
         back.configuration = quietControl("chevron.left")
-        back.accessibilityLabel = "返回发现"; back.accessibilityIdentifier = "viewerBackButton"
+        back.accessibilityLabel = L10n.text("返回发现"); back.accessibilityIdentifier = "viewerBackButton"
         back.addAction(UIAction { [weak self] _ in self?.onBack?() },for:.touchUpInside)
         setModelControlsLocked(modelControlsLocked)
 
@@ -749,9 +755,9 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
         // native button keeps a generous tap target without intercepting model gestures below.
         reset.configuration = .plain()
         reset.configuration?.contentInsets = .zero
-        reset.accessibilityHint = "查看介绍，或从资料卡进入定制"
+        reset.accessibilityHint = L10n.text("查看介绍，或从资料卡进入定制")
         reset.accessibilityIdentifier = "customizationButton"
-        reset.accessibilityLabel = "查看角色资料"
+        reset.accessibilityLabel = L10n.text("查看角色资料")
         reset.addAction(UIAction { [weak self] _ in self?.openCustomization() },for:.touchUpInside)
         let title = titleLabel; title.text = model.name; title.textColor = ink
         title.font = UIFontMetrics(forTextStyle:.subheadline).scaledFont(for:.systemFont(ofSize:16,weight:.medium)); title.adjustsFontForContentSizeCategory = true
@@ -782,7 +788,7 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
         let safe = view.safeAreaLayoutGuide
         let titleArea = UILayoutGuide(); view.addLayoutGuide(titleArea)
         var fpsConfig = UIButton.Configuration.tinted()
-        fpsConfig.title = "目标 120 FPS · 测量中"; fpsConfig.cornerStyle = .capsule
+        fpsConfig.title = L10n.text("目标 120 FPS · 测量中"); fpsConfig.cornerStyle = .capsule
         fpsConfig.baseForegroundColor = ink; fpsConfig.baseBackgroundColor = UIColor(Theme.surface)
         fpsConfig.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { incoming in
             var outgoing = incoming; outgoing.font = .monospacedDigitSystemFont(ofSize:11,weight:.medium); return outgoing
@@ -792,8 +798,8 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
         }
         performance.configuration = fpsConfig
         performance.accessibilityIdentifier = "frameRateButton"
-        performance.accessibilityLabel = "帧率设置与实测"
-        performance.menu = UIMenu(title:"渲染目标（实际帧率由设备与系统决定）",children:[
+        performance.accessibilityLabel = L10n.text("帧率设置与实测")
+        performance.menu = UIMenu(title:L10n.text("渲染目标（实际帧率由设备与系统决定）"),children:[
             UIAction(title:"120 FPS · 高刷新率") { [weak self] _ in self?.onFrameRate?(120) },
             UIAction(title:"60 FPS · 标准") { [weak self] _ in self?.onFrameRate?(60) }])
         performance.showsMenuAsPrimaryAction = true
@@ -942,7 +948,7 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
             dock.view.frame = CGRect(x:0,y:size.height-safe.bottom-62,width:size.width,height:62+safe.bottom)
             if dockBottomInset != safe.bottom {
                 dockBottomInset = safe.bottom
-                dock.rootView = AppDock(selection:.home,bottomInset:safe.bottom) { [weak self] tab in
+                dock.content = AppDock(selection:.home,bottomInset:safe.bottom) { [weak self] tab in
                     self?.view.endEditing(true); self?.onTabSelected?(tab)
                 }
             }

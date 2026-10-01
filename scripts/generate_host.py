@@ -69,18 +69,18 @@ for path in sorted((ios/'CharacterHost').rglob('*')):
     if not path.is_file() or path.name == 'Info.plist': continue
     if not test_tools and ('Developer' in path.parts or path.name == 'AIInspectionPanel.swift'): continue
     if path.name.startswith('Music_') and path.stem not in active_music: continue
-    types={'.swift':'sourcecode.swift','.mm':'sourcecode.cpp.objcpp','.h':'sourcecode.c.h','.png':'image.png','.txt':'text','.json':'text.json','.wav':'audio.wav','.pcm':'file','.caf':'audio.caf','.storyboard':'file.storyboard'}
+    types={'.swift':'sourcecode.swift','.mm':'sourcecode.cpp.objcpp','.h':'sourcecode.c.h','.png':'image.png','.txt':'text','.json':'text.json','.wav':'audio.wav','.pcm':'file','.caf':'audio.caf','.storyboard':'file.storyboard','.xcstrings':'text.json.xcstrings'}
     if path.suffix not in types: continue
     relative=str(path.relative_to(ios))
     ref=obj(relative,'PBXFileReference',lastKnownFileType=types[path.suffix],path=relative,sourceTree='<group>')
     source_refs.append(ref)
     if path.suffix in ('.swift','.mm'): source_build.append(buildfile(relative,ref))
-    elif path.suffix in ('.png','.txt','.json','.wav','.pcm', '.caf','.storyboard'): resource_build.append(buildfile(relative,ref))
+    elif path.suffix in ('.png','.txt','.json','.wav','.pcm', '.caf','.storyboard','.xcstrings'): resource_build.append(buildfile(relative,ref))
 
 # Run the same pure Swift checks in the iOS runtime when local macOS executables
 # cannot launch. The SceneDelegate entry is DEBUG + simulator + explicit flag only.
 if args.platform == 'simulator':
-    for test_name in ['ConversationContinuityFixture', 'CharacterOpeningChecks', 'VoiceAtmosphereFixture', 'ReplyFlowFixture', 'ConversationGestureFixture', 'ConversationPresentationFixture', 'ChatComposerInputTests', 'CloudSpeechPlaybackTests', 'CompanionExperienceTests', 'ConversationGreetingTests', 'ConversationExportTests', 'CharacterLibraryTests', 'AuthorSubscriptionTests', 'CacheStorageTests', 'CharacterViewPresetTests', 'MarketplaceCoreTests']:
+    for test_name in ['AppLanguageFixture', 'ConversationContinuityFixture', 'CharacterOpeningChecks', 'VoiceAtmosphereFixture', 'ReplyFlowFixture', 'ConversationGestureFixture', 'ConversationPresentationFixture', 'ChatComposerInputTests', 'CloudSpeechPlaybackTests', 'CompanionExperienceTests', 'ConversationGreetingTests', 'ConversationExportTests', 'CharacterLibraryTests', 'AuthorSubscriptionTests', 'CacheStorageTests', 'CharacterViewPresetTests', 'MarketplaceCoreTests']:
         relative=f'../scripts/tests/{test_name}.swift'
         ref=obj(relative,'PBXFileReference',lastKnownFileType='sourcecode.swift',path=relative,sourceTree='<group>')
         source_refs.append(ref); source_build.append(buildfile(relative,ref))
@@ -140,7 +140,7 @@ settings={'PRODUCT_NAME':'$(TARGET_NAME)','PRODUCT_BUNDLE_IDENTIFIER':'com.model
     'FRAMEWORK_SEARCH_PATHS':['$(inherited)','$(BUILT_PRODUCTS_DIR)'],
     'OTHER_LDFLAGS':['$(inherited)','-lc++','-framework','CoreML','-framework','Accelerate'],
     'GCC_ENABLE_CPP_EXCEPTIONS':'YES',
-    'CODE_SIGN_STYLE':'Automatic','CURRENT_PROJECT_VERSION':'108','MARKETING_VERSION':'0.80.1',
+    'CODE_SIGN_STYLE':'Automatic','CURRENT_PROJECT_VERSION':'109','MARKETING_VERSION':'0.81.0',
     'ENABLE_USER_SCRIPT_SANDBOXING':'NO','SUPPORTS_MACCATALYST':'NO','SWIFT_EMIT_LOC_STRINGS':'YES',
     'ARCHS':'arm64','ENABLE_DEBUG_DYLIB':'NO','ASSETCATALOG_COMPILER_APPICON_NAME':'AppIcon'}
 target=obj('host-target','PBXNativeTarget',name='CharacterHost',productName='CharacterHost',productType='com.apple.product-type.application',productReference=app,
@@ -169,7 +169,7 @@ objects[products]['children'].append(test_product)
 base_config=obj('base-config','PBXFileReference',lastKnownFileType='text.xcconfig',path='Config/Base.xcconfig',sourceTree='<group>')
 main_group=obj('main-group','PBXGroup',children=source_refs+test_refs+[base_config,unity_ref,products],sourceTree='<group>')
 project=obj('project','PBXProject',attributes={'BuildIndependentTargetsInParallel':'YES','LastUpgradeCheck':'2640','TargetAttributes':{target:{'CreatedOnToolsVersion':'26.4'},test_target:{'CreatedOnToolsVersion':'26.4','TestTargetID':target}}},
-    buildConfigurationList=configuration('project',{'CLANG_ENABLE_MODULES':'YES','CLANG_ENABLE_OBJC_ARC':'YES'}),compatibilityVersion='Xcode 14.0',developmentRegion='zh-Hans',hasScannedForEncodings='0',knownRegions=['zh-Hans','en','Base'],mainGroup=main_group,productRefGroup=products,projectDirPath='',projectRoot='',targets=[target,test_target],projectReferences=[{'ProductGroup':unity_products,'ProjectRef':unity_ref}])
+    buildConfigurationList=configuration('project',{'CLANG_ENABLE_MODULES':'YES','CLANG_ENABLE_OBJC_ARC':'YES'}),compatibilityVersion='Xcode 14.0',developmentRegion='zh-Hans',hasScannedForEncodings='0',knownRegions=['zh-Hans','zh-Hant','en','Base'],mainGroup=main_group,productRefGroup=products,projectDirPath='',projectRoot='',targets=[target,test_target],projectReferences=[{'ProductGroup':unity_products,'ProjectRef':unity_ref}])
 
 def pbx(value):
     if isinstance(value,dict): return '{\n'+''.join(f'{json.dumps(str(k))} = {pbx(v)};\n' for k,v in value.items())+'}'
@@ -197,7 +197,7 @@ scheme=f'''<?xml version="1.0" encoding="UTF-8"?>
 </Scheme>'''
 schemes=workspace/'xcshareddata/xcschemes'; schemes.mkdir(parents=True,exist_ok=True)
 (schemes/'CharacterHost.xcscheme').write_text(scheme)
-info={'CFBundleDevelopmentRegion':'zh_CN','CFBundleDisplayName':json.loads((ROOT/'assets/brand/brand.json').read_text())['displayName'],'CFBundleExecutable':'$(EXECUTABLE_NAME)',
+info={'CFBundleDevelopmentRegion':'zh-Hans','CFBundleLocalizations':['zh-Hans','zh-Hant','en'],'CFBundleDisplayName':json.loads((ROOT/'assets/brand/brand.json').read_text())['displayName'],'CFBundleExecutable':'$(EXECUTABLE_NAME)',
     'CFBundleIdentifier':'$(PRODUCT_BUNDLE_IDENTIFIER)','CFBundleInfoDictionaryVersion':'6.0','CFBundleName':'$(PRODUCT_NAME)',
     'CFBundlePackageType':'APPL','CFBundleShortVersionString':'$(MARKETING_VERSION)','CFBundleVersion':'$(CURRENT_PROJECT_VERSION)',
     'NSMicrophoneUsageDescription':'将语音发送至星夜 AI 服务及阿里云百炼，实时转成可编辑文字。确认发送后才进入对话。',

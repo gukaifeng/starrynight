@@ -84,6 +84,7 @@ private final class MicrophonePCM: @unchecked Sendable {
     let soundscape: CompanionSoundscape
     let api: CharacterAI
     let cacheScope: String
+    private let clipCache: SpeechClipCache
     @ObservationIgnored private var engine: AVAudioEngine?
     @ObservationIgnored private var player: AVAudioPlayerNode?
     @ObservationIgnored private var microphone: MicrophonePCM?
@@ -122,8 +123,8 @@ private final class MicrophonePCM: @unchecked Sendable {
         isSpeaking=false;playbackLevel=0;onFrame?(playbackElapsed,0)
         soundscape.endVoice()
     }
-    init(soundscape: CompanionSoundscape, api: CharacterAI, cacheScope: String) {
-        self.soundscape = soundscape; self.api = api; self.cacheScope = cacheScope
+    init(soundscape: CompanionSoundscape, api: CharacterAI, cacheScope: String, clipCache:SpeechClipCache = .shared) {
+        self.soundscape = soundscape; self.api = api; self.cacheScope = cacheScope; self.clipCache=clipCache
         super.init()
         for name in [UIApplication.didEnterBackgroundNotification,AVAudioSession.interruptionNotification] {
             NotificationCenter.default.addObserver(self,selector:#selector(interrupted),name:name,object:nil)
@@ -138,11 +139,11 @@ private final class MicrophonePCM: @unchecked Sendable {
     func refreshVolume() { player?.volume = Float(soundscape.speechVolume) }
     func prepare(_ message: UUID, script: AIScript) {
         stop(); error = nil; activeMessageID = message; cacheMessage = script.messageId
-        cacheGeneration = SpeechClipCache.shared.generation
+        cacheGeneration = clipCache.generation
         durationHints=Dictionary(uniqueKeysWithValues:script.beats.map {($0.beatId,$0.readingDuration ?? max(1.8,Double($0.dialogue?.text.count ?? 0)/5.5))})
         isBusy = true; totalDuration = 0; beatStartTime = 0; beatFrames = 0; playbackElapsed = 0; onState?("thinking")
     }
-    private func key(_ beat: String) -> String { SpeechClipCache.shared.key(scope:cacheScope,text:cacheMessage+"|"+beat,speed:1) }
+    private func key(_ beat: String) -> String { clipCache.key(scope:cacheScope,text:cacheMessage+"|"+beat,speed:1) }
     func accept(_ event: AIEvent) async throws {
         switch event.type {
         case "segment.audio.started":
@@ -179,6 +180,11 @@ private final class MicrophonePCM: @unchecked Sendable {
             // The full byte count is known before draining, so reveal stages
             // while sound is actually playing, not when downloading finishes.
             beatDuration=Double(beatPCM.count)/48000
+            // Save a complete network segment before waiting for the speaker.
+            // Backgrounding/stopping playback must not discard downloaded audio.
+            if !beatPCM.isEmpty {
+                clipCache.insert(Self.wave(beatPCM),key:key(beat),generation:cacheGeneration)
+            }
             try await drain()
             onBeatProgress?(beat,1)
             playbackSegment = UUID() // Retire late mixer/timer callbacks during the next beat's network wait.
@@ -186,7 +192,6 @@ private final class MicrophonePCM: @unchecked Sendable {
             playbackElapsed = beatStartTime+Double(beatFrames)/24000
             onFrame?(playbackElapsed,0)
             if !beatPCM.isEmpty {
-                SpeechClipCache.shared.insert(Self.wave(beatPCM),key:key(beat),generation:cacheGeneration)
                 totalDuration += Double(beatPCM.count)/48000
                 if let id = activeMessageID {
                     durations[id] = totalDuration; durationSpeeds[id] = 1; onDuration?(id,1,totalDuration)
@@ -273,7 +278,7 @@ private final class MicrophonePCM: @unchecked Sendable {
             finish();return true
         }
         let keys = script.beats.filter { $0.hasAudio }.map { $0.beatId }
-        let cached = keys.map { SpeechClipCache.shared.data(SpeechClipCache.shared.key(scope:cacheScope,text:script.messageId+"|"+$0,speed:1)) }
+        let cached = keys.map { clipCache.data(clipCache.key(scope:cacheScope,text:script.messageId+"|"+$0,speed:1)) }
         guard !keys.isEmpty, cached.allSatisfy({ $0 != nil }) else { return false }
         prepare(messageID,script:script)
         for (id,wave) in zip(keys,cached) {

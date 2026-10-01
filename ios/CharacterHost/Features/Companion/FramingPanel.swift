@@ -42,7 +42,7 @@ struct FramingPanel: View {
                     Spacer(minLength:0)
                     Button("恢复推荐") { draft = .recommended }.font(.subheadline).fixedSize().accessibilityIdentifier("restoreFramingButton")
                 }
-                if let error { Text(error).font(.caption).foregroundStyle(.red).accessibilityIdentifier("framingSaveError") }
+                if let error { Text(LocalizedStringKey(error)).font(.caption).foregroundStyle(.red).accessibilityIdentifier("framingSaveError") }
               }.padding(.horizontal,22).padding(.bottom,28)
             }.scrollIndicators(.hidden)
         }.scrollIndicators(.hidden).foregroundStyle(Theme.ink).tint(Theme.accent)

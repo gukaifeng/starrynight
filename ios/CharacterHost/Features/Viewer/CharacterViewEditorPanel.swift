@@ -19,7 +19,7 @@ struct CharacterViewEditorPanel: View {
                     } label: {
                         HStack(spacing:5) {
                             Image(systemName:section.symbol).font(.system(size:11))
-                            Text(section.title).font(.system(size:12,weight:.medium))
+                            Text(LocalizedStringKey(section.title)).font(.system(size:12,weight:.medium))
                         }.foregroundStyle(Theme.ink.opacity(editor.section == section ? 0.95 : 0.48))
                             .frame(maxWidth:.infinity).frame(height:44)
                             .background { Capsule().fill(Theme.ink.opacity(editor.section == section ? 0.08 : 0)).frame(height:30) }

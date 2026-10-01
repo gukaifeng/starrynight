@@ -20,7 +20,9 @@ func TestAIAllowlistAndTrustedIdentity(t *testing.T) {
 		method, path string
 		allowed      bool
 	}{
-		{"GET", "/v1/ai/status", true}, {"POST", "/v1/ai/conversations/anime-kipfel/messages", true},
+		{"GET", "/v1/ai/status", true},
+		{"POST", "/v1/ai/conversations/anime-kipfel/messages/11111111-1111-1111-1111-111111111111/translation", true},
+		{"DELETE", "/v1/ai/conversations/anime-kipfel/messages/11111111-1111-1111-1111-111111111111/translation", false}, {"POST", "/v1/ai/conversations/anime-kipfel/messages", true},
 		{"DELETE", "/v1/ai/conversations/anime-kipfel/messages", true}, {"GET", "/v1/ai/asr/anime-kipfel", true},
 		{"POST", "/v1/ai/admin/usage", false}, {"GET", "/v1/ai/admin/usage", false},
 		{"POST", "/v1/ai/characters/anime-kipfel/voice-designs", false},

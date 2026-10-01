@@ -24,7 +24,7 @@ struct CacheLocations: Sendable {
     let exports: URL
     static var live: Self {
         let fm = FileManager.default
-        return Self(speech:fm.urls(for:.cachesDirectory,in:.userDomainMask)[0].appendingPathComponent("SpeechClips-v1"),
+        return Self(speech:fm.urls(for:.applicationSupportDirectory,in:.userDomainMask)[0].appendingPathComponent("SpeechClips-v1"),
                     portraits:fm.urls(for:.documentDirectory,in:.userDomainMask)[0].appendingPathComponent("CharacterPortraits"),
                     exports:fm.temporaryDirectory.appendingPathComponent("ConversationImages"))
     }

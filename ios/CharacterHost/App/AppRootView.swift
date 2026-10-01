@@ -136,7 +136,7 @@ private struct ConversationLanding: View {
                 NightEmptyState(symbol:"sparkle",title:"这里，留给你的伙伴",detail:coordinator.library.subscriptions.isEmpty ? "还没有订阅的角色。\n去发现一个，或用中间的 ＋ 创造自己的角色。" : "已订阅的角色暂时不可用。\n可以先去发现，遇见新的伙伴。",actionTitle:"去发现角色") { coordinator.navigate(.discover) }
 
             }
-            if let error = coordinator.library.error ?? coordinator.companionStore.error { Text(error).font(.caption).foregroundStyle(Theme.peach).padding() }
+            if let error = coordinator.library.error ?? coordinator.companionStore.error { Text(LocalizedStringKey(error)).font(.caption).foregroundStyle(Theme.peach).padding() }
         }
     }
 }

@@ -56,7 +56,7 @@ struct AIInspectionPanel:View {
             ScrollView {
                 LazyVStack(alignment:.leading,spacing:10) {
                     if let failure {
-                        Text(failure).font(.subheadline).foregroundStyle(Theme.secondary).accessibilityIdentifier("aiInspectorError")
+                        Text(LocalizedStringKey(failure)).font(.subheadline).foregroundStyle(Theme.secondary).accessibilityIdentifier("aiInspectorError")
                     } else if let report {
                         Text("\(report.sections.count) 个完整分区 · \(report.capturedAt)").font(.system(size:10)).foregroundStyle(Theme.secondary)
                         ForEach(sections) {section in

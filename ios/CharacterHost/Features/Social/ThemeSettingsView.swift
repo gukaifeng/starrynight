@@ -19,8 +19,8 @@ struct ThemeSettingsView: View {
                                 Circle().fill(palette.accent.opacity(0.7)).frame(width:16,height:16).offset(x:10,y:4)
                             }.frame(width:56,height:56)
                             VStack(alignment:.leading,spacing:5) {
-                                Text(palette.name).font(.subheadline.weight(.semibold))
-                                Text(palette.detail).font(.caption).foregroundStyle(Theme.secondary)
+                                Text(LocalizedStringKey(palette.name)).font(.subheadline.weight(.semibold))
+                                Text(LocalizedStringKey(palette.detail)).font(.caption).foregroundStyle(Theme.secondary)
                             }
                             Spacer(minLength:0)
                             Image(systemName:settings.paletteID == palette.id ? "checkmark.circle.fill" : "circle")

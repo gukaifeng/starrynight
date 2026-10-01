@@ -37,7 +37,7 @@ struct LoginView: View {
                         .padding(16).background(Theme.surface.opacity(0.65),in:RoundedRectangle(cornerRadius:16))
                         .accessibilityIdentifier("passwordCredential")
                 }.font(.system(size:15))
-                if let error = account.error { Text(error).font(.system(size:12)).foregroundStyle(Theme.peach).accessibilityIdentifier("loginError") }
+                if let error = account.error { Text(LocalizedStringKey(error)).font(.system(size:12)).foregroundStyle(Theme.peach).accessibilityIdentifier("loginError") }
                 Button {
                     focused = false
                     Task { await account.authenticate(action:registering ? "register" : "login",username:username,password:password,name:nickname) }

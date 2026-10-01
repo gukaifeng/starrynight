@@ -58,7 +58,7 @@ struct CompanionChatView: View {
             if let text = session.notice ?? session.store.error ?? session.speech.error {
               HStack(spacing:2) {
                     HStack(spacing:5) {
-                        Text(text).font(.system(size:11)).lineLimit(2)
+                        Text(LocalizedStringKey(text)).font(.system(size:11)).lineLimit(2)
                             .accessibilityLabel(text)
                         Button { session.notice = nil; session.speech.error = nil; session.store.error = nil } label: {
                             Image(systemName:"xmark").font(.system(size:9,weight:.medium)).frame(width:30,height:30)
@@ -208,7 +208,7 @@ struct CompanionChatView: View {
     }
     private func topic(_ text: String,symbol: String,id: String) -> some View {
         Button { session.input = text; send() } label: {
-            Label(text,systemImage:symbol).font(.caption).padding(.horizontal,12).frame(minHeight:44)
+            Label(LocalizedStringKey(text),systemImage:symbol).font(.caption).padding(.horizontal,12).frame(minHeight:44)
                 .background(Theme.surface.opacity(reduceTransparency ? 1 : Theme.controlOpacity),in:Capsule()).overlay(Capsule().stroke(Theme.line.opacity(0.8)))
         }.accessibilityIdentifier("starter-" + id)
     }
@@ -390,7 +390,7 @@ struct CompanionChatView: View {
                         // Body begins 12pt below the 23pt shoulder, matching its
                         // bottom inset. The 44pt audio hit area extends upward.
                         .frame(height:35,alignment:.bottom)
-                    AIReplyContent(message:message,fontSize:chatFontSize,reveal:session.replyReveal)
+                    TranslatableReplyContent(session:session,message:message,fontSize:chatFontSize)
                 }.padding(.horizontal,15).padding(.bottom,12)
                     .frame(minWidth:136,alignment:.leading)
                     .background(Theme.surface.opacity(reduceTransparency ? 1 : 0.64),in:AssistantBubbleShape())

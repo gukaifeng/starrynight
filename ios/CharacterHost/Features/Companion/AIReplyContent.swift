@@ -6,6 +6,8 @@ struct AIReplyContent: View {
     let message: CompanionMessage
     let fontSize: CGFloat
     var reveal: ReplyReveal = ReplyReveal()
+    var translation: [String:String] = [:]
+    private func translated(_ text:String,_ id:String) -> String { translation[id] ?? text }
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     private var asideFont:Font {
         let size=max(12,fontSize-1)
@@ -21,9 +23,10 @@ struct AIReplyContent: View {
             if let script = message.aiScript {
                 ForEach(script.beats) { beat in
                   if let parts=beat.parts {
-                    ForEach(Array(parts.prefix(reveal.count(message.id,beat:beat.beatId) ?? parts.count).enumerated()),id:\.offset) { _,part in
+                    ForEach(Array(parts.prefix(reveal.count(message.id,beat:beat.beatId) ?? parts.count).enumerated()),id:\.offset) { index,part in
                         if part.isVisible {
-                            Text(part.kind == "dialogue" ? part.text : aside(part.text))
+                            let text = translated(part.text,beat.beatId + ".part.\(index)")
+                            Text(part.kind == "dialogue" ? text : aside(text))
                                 .font(part.kind == "dialogue" ? .system(size:fontSize) : asideFont)
                                 .foregroundStyle(part.kind == "dialogue" ? Theme.ink : part.kind == "thought" ? Theme.peach.opacity(0.8) : Theme.secondary.opacity(0.92))
                                 .lineSpacing(part.kind == "dialogue" ? 5 : 3)
@@ -33,8 +36,8 @@ struct AIReplyContent: View {
                         }
                     }
                   } else {
-                    ForEach(Array(beat.visibleNarrations.enumerated()),id:\.offset) { _, narration in
-                        Text(aside(narration.text)).font(asideFont)
+                    ForEach(Array(beat.narrations.enumerated().filter { $0.element.isVisible }),id:\.offset) { index, narration in
+                        Text(aside(translated(narration.text,beat.beatId + ".narration.\(index)"))).font(asideFont)
                             .foregroundStyle(Theme.secondary.opacity(0.92)).lineSpacing(3)
                             .accessibilityLabel("旁白："+narration.text)
                             .accessibilityIdentifier("aiNarration")
@@ -42,12 +45,12 @@ struct AIReplyContent: View {
                     if let text = beat.visibleThought {
                         HStack(alignment:.firstTextBaseline,spacing:5) {
                             Image(systemName:"sparkle").font(.system(size:8,weight:.light))
-                            Text(aside(text)).font(asideFont).lineSpacing(3)
+                            Text(aside(translated(text,beat.beatId + ".thought"))).font(asideFont).lineSpacing(3)
                         }.foregroundStyle(Theme.peach.opacity(0.8))
                             .accessibilityLabel("角色心声："+text).accessibilityIdentifier("aiThought")
                     }
                     if let dialogue = beat.dialogue {
-                        Text(dialogue.text).font(.system(size:fontSize)).lineSpacing(5)
+                        Text(translated(dialogue.text,beat.beatId + ".dialogue")).font(.system(size:fontSize)).lineSpacing(5)
                             .fixedSize(horizontal:false,vertical:true)
                             .accessibilityIdentifier("assistantMessage")
                             .accessibilityValue(message.proactiveScene.map { "主动问候："+$0 } ?? "AI 回复")
@@ -55,7 +58,7 @@ struct AIReplyContent: View {
                   }
                 }
             } else {
-                Text(message.text).font(.system(size:fontSize)).lineSpacing(5).accessibilityIdentifier("assistantMessage")
+                Text(translated(message.text,"text")).font(.system(size:fontSize)).lineSpacing(5).accessibilityIdentifier("assistantMessage")
             }
         }.fixedSize(horizontal:false,vertical:true)
             .animation(.easeInOut(duration:reduceMotion ? 0.01 : 0.22),value:reveal.revision)

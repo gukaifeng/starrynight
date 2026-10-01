@@ -128,10 +128,10 @@ def structured_messages(purpose,system,context,schema):
     return messages
 
 def structured_payload(settings,purpose,messages,attempt=0):
-    payload = dict(model=settings.suggestions_model if purpose=='suggestions' else settings.character_model,messages=messages,temperature=.95 if purpose=='plan' and attempt==0 else .7 if purpose=='performance' else .2,
+    payload = dict(model=settings.suggestions_model if purpose in ('suggestions','translation') else settings.character_model,messages=messages,temperature=.95 if purpose=='plan' and attempt==0 else .7 if purpose=='performance' else .2,
                 presence_penalty=.8 if purpose=='plan' and attempt==0 else 0,
-                max_tokens=1900 if purpose=='plan' else 320 if purpose=='suggestions' else 600,response_format={'type':'json_object'})
-    if purpose == 'suggestions': payload['enable_thinking'] = False
+                max_tokens=6000 if purpose=='translation' else 1900 if purpose=='plan' else 320 if purpose=='suggestions' else 600,response_format={'type':'json_object'})
+    if purpose in ('suggestions','translation'): payload['enable_thinking'] = False
     return payload
 
 def speech_payload(settings,character,beat,voice):

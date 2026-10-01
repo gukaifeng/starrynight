@@ -52,7 +52,7 @@ struct MyPage: View {
                     statistic(chattedModels.count,title:"聊过",identifier:"myConversationsButton") { showingConversations = true }
                 }.padding(.vertical,4)
                     .background(Theme.surface.opacity(0.35),in:RoundedRectangle(cornerRadius:16))
-                if let error = coordinator.library.error { Text(error).font(.caption).foregroundStyle(Theme.peach) }
+                if let error = coordinator.library.error { Text(LocalizedStringKey(error)).font(.caption).foregroundStyle(Theme.peach) }
             }.padding(.horizontal,24).padding(.top,20).padding(.bottom,20)
         }.scrollIndicators(.hidden)
             .softSheet(isPresented:$showingSettings,height:860) {
@@ -94,11 +94,11 @@ struct MyPage: View {
             else { UserAccountAvatar(size:56,signed:signed) }
             VStack(alignment:.leading,spacing:6) {
                 HStack(spacing:7) {
-                    Text(signed ? coordinator.account.cloudSession?.user.displayName ?? coordinator.library.currentAuthor?.name ?? "星夜体验者" : "初来星夜")
+                    Text(signed ? coordinator.account.cloudSession?.user.displayName ?? coordinator.library.currentAuthor?.name ?? L10n.text("星夜体验者") : L10n.text("初来星夜"))
                         .font(.system(size:20,weight:.semibold,design:.rounded)).lineLimit(1)
                     Image(systemName:"chevron.right").font(.system(size:9,weight:.medium)).foregroundStyle(Theme.secondary.opacity(0.7))
                 }
-                Text(signed ? "星夜号：" + (coordinator.account.cloudSession.map { $0.user.guest ? "测试体验" : $0.user.username } ?? coordinator.account.session?.accountID ?? "") : "游客 · 正在开始的故事")
+                Text(signed ? L10n.text("星夜号：") + (coordinator.account.cloudSession.map { $0.user.guest ? L10n.text("测试体验") : $0.user.username } ?? coordinator.account.session?.accountID ?? "") : L10n.text("游客 · 正在开始的故事"))
                     .font(.system(size:10)).foregroundStyle(Theme.secondary).lineLimit(1).accessibilityIdentifier("profileAccountID")
             }.frame(maxWidth:.infinity,alignment:.leading)
         }.padding(.vertical,4).contentShape(Rectangle())
@@ -107,9 +107,13 @@ struct MyPage: View {
     }
     private func statistic(_ value:Int,title:String,identifier:String,action:@escaping ()->Void) -> some View {
         Button(action:action) {
-            HStack(alignment:.firstTextBaseline,spacing:5) {
+            let layout:AnyLayout = AppLanguageSettings.shared.resolved == .english
+                ? AnyLayout(VStackLayout(alignment:.center,spacing:3))
+                : AnyLayout(HStackLayout(alignment:.firstTextBaseline,spacing:5))
+            layout {
                 Text("\(value)").font(.system(size:18,weight:.semibold,design:.rounded)).monospacedDigit()
-                Text(title).font(.system(size:11)).foregroundStyle(Theme.secondary)
+                Text(LocalizedStringKey(title)).font(.system(size:11)).foregroundStyle(Theme.secondary)
+                    .lineLimit(1).minimumScaleFactor(0.85)
             }.frame(maxWidth:.infinity,minHeight:44).contentShape(Rectangle())
         }.buttonStyle(.plain).accessibilityIdentifier(identifier).accessibilityLabel("\(value) \(title)")
             .accessibilityHint("查看列表")
@@ -149,7 +153,7 @@ struct MyPage: View {
                                 CharacterAvatar(model:model,profile:coordinator.profile(for:model),portraits:coordinator.portraits,size:44)
                                 VStack(alignment:.leading,spacing:5) {
                                     Text(coordinator.profile(for:model).name).font(.subheadline.weight(.medium))
-                                    Text("作者 · " + (coordinator.library.author(for:id)?.name ?? "暂不可用")).font(.caption).foregroundStyle(Theme.secondary)
+                                    Text(L10n.text("作者 · ") + (coordinator.library.author(for:id)?.name ?? "暂不可用")).font(.caption).foregroundStyle(Theme.secondary)
                                 }
                             }.frame(maxWidth:.infinity,alignment:.leading)
                         }.buttonStyle(.plain)
@@ -169,7 +173,7 @@ struct MyPage: View {
                     }.padding(12).background(Theme.surface,in:RoundedRectangle(cornerRadius:18))
                 }
             }
-            if let error = coordinator.library.error { Text(error).font(.caption).foregroundStyle(Theme.peach) }
+            if let error = coordinator.library.error { Text(LocalizedStringKey(error)).font(.caption).foregroundStyle(Theme.peach) }
         }
     }
     private var creations:some View {
@@ -317,6 +321,8 @@ struct ProfileSettingsView: View {
                             Image(systemName:"chevron.right").font(.caption).foregroundStyle(Theme.secondary)
                         }
                     }.accessibilityIdentifier("chatDisplaySettingsButton")
+                    NavigationLink { AppLanguageSettingsView() } label: { Label("语言",systemImage:"globe") }
+                        .accessibilityIdentifier("languageSettingsButton")
                     NavigationLink { ThemeSettingsView() } label: { Label("主题与样式",systemImage:"circle.lefthalf.filled") }
                         .accessibilityIdentifier("themeSettingsButton")
                     NavigationLink { CacheSettingsView(coordinator:coordinator) } label: { Label("存储与缓存",systemImage:"internaldrive") }

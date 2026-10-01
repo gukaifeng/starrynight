@@ -34,7 +34,7 @@ struct ConversationExportView: View {
                 else if let result { preview(result).transition(.opacity) }
                 else { editor.transition(.opacity) }
             }.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            if let error { Text(error).font(.footnote).foregroundStyle(Theme.peach).padding(.horizontal, 22).padding(.vertical, 8).accessibilityIdentifier("conversationExportError") }
+            if let error { Text(LocalizedStringKey(error)).font(.footnote).foregroundStyle(Theme.peach).padding(.horizontal, 22).padding(.vertical, 8).accessibilityIdentifier("conversationExportError") }
         }
         .foregroundStyle(Theme.ink).tint(Theme.accent)
         .softPanelPageSurface(opaque:true)
@@ -100,7 +100,7 @@ struct ConversationExportView: View {
             }.scrollIndicators(.hidden).accessibilityIdentifier("exportEditorScroll")
             VStack(spacing: 8) {
                 if rendering {
-                    HStack(spacing: 10) { ProgressView().tint(Theme.accent); Text(progress).font(.system(size: 13)) }
+                    HStack(spacing: 10) { ProgressView().tint(Theme.accent); Text(LocalizedStringKey(progress)).font(.system(size: 13)) }
                         .padding(.vertical, 14).accessibilityIdentifier("exportRenderingProgress")
                     Button("取消生成") { renderTask?.cancel() }.font(.system(size: 12)).accessibilityIdentifier("cancelExportRendering")
                 } else {
@@ -145,8 +145,8 @@ struct ConversationExportView: View {
                     Spacer()
                     if options.style == style { Image(systemName: "checkmark.circle.fill").font(.system(size: 14)) }
                 }
-                Text(style.name).font(.system(size: 14, weight: .semibold))
-                Text(style.detail).font(.system(size: 10)).opacity(0.7)
+                Text(LocalizedStringKey(style.name)).font(.system(size: 14, weight: .semibold))
+                Text(LocalizedStringKey(style.detail)).font(.system(size: 10)).opacity(0.7)
             }.foregroundStyle(style == .moon ? Color(hex: 0xF3ECE1) : Color(hex: 0x574638))
                 .padding(14).frame(maxWidth: .infinity, alignment: .leading)
                 .background(style == .moon ? Color(hex: 0x222B36) : Color(hex: 0xEFE4D2), in: RoundedRectangle(cornerRadius: 16))

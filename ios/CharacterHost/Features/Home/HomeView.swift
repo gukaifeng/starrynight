@@ -33,7 +33,7 @@ struct HomeView: View {
                 }.frame(height:44)
                 if !short {
                     VStack(alignment:.leading,spacing:7) {
-                        Text(greeting).font(.system(size:12)).foregroundStyle(Theme.secondary)
+                        Text(LocalizedStringKey(greeting)).font(.system(size:12)).foregroundStyle(Theme.secondary)
                         Text("今天，想和谁聊聊？").font(.system(size:geometry.size.width>600 ? 30 : 25,weight:.medium,design:.rounded))
                             .lineLimit(1).minimumScaleFactor(0.8).accessibilityIdentifier("homeHeadline")
                     }.padding(.top,4)

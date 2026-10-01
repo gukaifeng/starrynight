@@ -42,7 +42,7 @@ struct CompanionCloudPreview:View {
                         VStack(spacing:17) {
                             Image(systemName:feature.symbol).font(.system(size:38,weight:.ultraLight)).foregroundStyle(Theme.gradient)
                                 .frame(width:94,height:94).overlay(Circle().stroke(Theme.accent.opacity(0.14),lineWidth:0.7))
-                            Text(feature.subtitle).font(.system(size:16,weight:.medium))
+                            Text(LocalizedStringKey(feature.subtitle)).font(.system(size:16,weight:.medium))
                             if feature == .voice {
                                 HStack(spacing:30) {
                                     Image(systemName:"mic.slash");Text("未连接").font(.system(size:12));Image(systemName:"phone.down")
@@ -53,7 +53,7 @@ struct CompanionCloudPreview:View {
                     ForEach(feature.capabilities,id:\.self) { item in
                         HStack(spacing:12) {
                             Circle().fill(Theme.peach.opacity(0.6)).frame(width:4,height:4)
-                            Text(item).font(.system(size:14)).foregroundStyle(Theme.secondary)
+                            Text(LocalizedStringKey(item)).font(.system(size:14)).foregroundStyle(Theme.secondary)
                         }
                     }
                     Button("服务尚未开通") {}.buttonStyle(NightPrimaryButton()).disabled(true)

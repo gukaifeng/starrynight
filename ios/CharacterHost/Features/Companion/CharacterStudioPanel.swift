@@ -34,7 +34,7 @@ struct CharacterStudioPanel: View {
                 ScrollView {
                     VStack(alignment:.leading,spacing:18) {
                         controls
-                        if let error { Text(error).font(.caption).foregroundStyle(.red) }
+                        if let error { Text(LocalizedStringKey(error)).font(.caption).foregroundStyle(.red) }
                     }.padding(.bottom,16)
                 }.scrollIndicators(.hidden)
                 footer
@@ -83,7 +83,7 @@ struct CharacterStudioPanel: View {
         VStack(alignment:.leading,spacing:16) {
             ForEach(parameters) { p in
                 VStack(alignment:.leading,spacing:8) {
-                    Text(p.label).font(.subheadline.weight(.medium))
+                    Text(LocalizedStringKey(p.label)).font(.subheadline.weight(.medium))
                     let value = Binding<Double>(get:{ draft.parameters?[p.id] ?? p.initial },set:{
                         if draft.parameters == nil { draft.parameters = [:] }; draft.parameters?[p.id] = $0
                     })
@@ -151,14 +151,14 @@ struct CharacterStudioPanel: View {
     }
     private func adjustment(_ label: String,low: String,high: String,value: Binding<Double>,id: String,range: ClosedRange<Double> = 0...1) -> some View {
         VStack(spacing:5) {
-            HStack { Text(label).font(.subheadline.weight(.medium)); Spacer(); Text(low + " · " + high).font(.caption).foregroundStyle(Theme.secondary) }
+            HStack { Text(LocalizedStringKey(label)).font(.subheadline.weight(.medium)); Spacer(); Text(low + " · " + high).font(.caption).foregroundStyle(Theme.secondary) }
             Slider(value:value,in:range).accessibilityLabel(label).accessibilityIdentifier("studio-" + id)
         }
     }
     private func choices(_ label: String,selection: Binding<String>,items: [(String,String)]) -> some View {
         VStack(alignment:.leading,spacing:8) {
-            Text(label).font(.subheadline.weight(.medium))
-            Picker(label,selection:selection) { ForEach(items,id:\.0) { item in Text(item.1).tag(item.0) } }
+            Text(LocalizedStringKey(label)).font(.subheadline.weight(.medium))
+            Picker(label,selection:selection) { ForEach(items,id:\.0) { item in Text(LocalizedStringKey(item.1)).tag(item.0) } }
                 .pickerStyle(.segmented).accessibilityIdentifier("studio-" + label)
         }
     }

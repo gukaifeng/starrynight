@@ -18,7 +18,7 @@ struct MessagesPage: View {
     }
     private func deletionDialogClosed() {
         deletionCandidate=nil;swipeRestoreTask?.cancel()
-        // Let the system alert finish dismissing, then softly close the row.
+        // Let the confirmation finish dismissing, then softly close the row.
         // A reopened alert or a confirmed deletion owns its own completion.
         swipeRestoreTask=Task { @MainActor in
             do {try await Task.sleep(for:.milliseconds(reduceMotion ? 180 : 350))} catch {return}
@@ -105,9 +105,9 @@ struct MessagesPage: View {
                     }.padding(.horizontal,24)
                 }.scrollIndicators(.hidden).scrollDismissesKeyboard(.interactively)
             }
-            if let error = coordinator.library.error { Text(error).font(.caption).foregroundStyle(Theme.peach).padding(12) }
+            if let error = coordinator.library.error { Text(LocalizedStringKey(error)).font(.caption).foregroundStyle(Theme.peach).padding(12) }
             if deleting {ProgressView("正在清空对话与记忆").font(.caption).padding(12)}
-            if let deletionError {Text(deletionError).font(.caption).foregroundStyle(Theme.peach).padding(12)}
+            if let deletionError {Text(LocalizedStringKey(deletionError)).font(.caption).foregroundStyle(Theme.peach).padding(12)}
         }.onChange(of:coordinator.companionStore.accountID) {
             swipeRestoreTask?.cancel();revealedConversation=nil
             search = ""; hiddenNotice = nil; hiddenPresented = false;showingDeletionConfirmation=false;deletionCandidate=nil;deletionError=nil
@@ -116,11 +116,13 @@ struct MessagesPage: View {
             .accessibilityElement(children:.contain).accessibilityIdentifier("messagesPage")
             .softSheet(isPresented:$hiddenPresented,height:440) { hiddenConversations }
             .onChange(of:showingDeletionConfirmation) {if !showingDeletionConfirmation {deletionDialogClosed()}}
-            .alert("删除对话和记忆？",isPresented:$showingDeletionConfirmation,presenting:deletionCandidate) { model in
-                Button("取消",role:.cancel) {}
-                Button("删除全部",role:.destructive) {deleteConfirmed(model)}
-            } message: { model in
-                Text("将永久清空你与「\(coordinator.profile(for:model).name)」的全部聊天记录、记忆和相处进度，无法撤销。订阅与个人设置会保留。再次进入将重新认识。")
+            .accessibilityHidden(showingDeletionConfirmation)
+            .overlay {
+                if showingDeletionConfirmation, let model = deletionCandidate {
+                    ConversationDeleteConfirmation(name:coordinator.profile(for:model).name,
+                        onCancel:{showingDeletionConfirmation=false},
+                        onDelete:{deleteConfirmed(model);showingDeletionConfirmation=false})
+                }
             }
     }
     private var hiddenConversations: some View {

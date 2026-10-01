@@ -6,7 +6,7 @@ final class ConversationPolishTests:XCTestCase {
         continueAfterFailure=false;XCUIDevice.shared.orientation = .portrait
         let app=XCUIApplication()
         app.launchArguments=["--ui-testing","--companion-testing","--auth-testing","--test-ready-delay=14"]
-        app.launch();defer {app.terminate()}
+        app.launchArguments += ["-AppleLanguages", "(zh-Hans)"];app.launch();defer {app.terminate()}
         let loading=app.buttons["preparingIdentityButton"]
         XCTAssertTrue(loading.waitForExistence(timeout:10))
         let artwork=app.otherElements["conversationPreparingArtwork"]
@@ -41,7 +41,7 @@ final class ConversationPolishTests:XCTestCase {
         continueAfterFailure=false;XCUIDevice.shared.orientation = .portrait
         let app=XCUIApplication()
         app.launchArguments=["--ui-testing","--companion-testing","--auth-testing","--smart-reply-layout-fixture"]
-        app.launch();defer {app.terminate()}
+        app.launchArguments += ["-AppleLanguages", "(zh-Hans)"];app.launch();defer {app.terminate()}
         XCTAssertTrue(app.buttons["customizationButton"].waitForExistence(timeout:60))
         app.waitForCharacter {$0["nativeHoldAvailable"] as? Bool == true}
         let open=app.buttons["smartReplyButton"],panel=app.otherElements["smartRepliesPanel"]
@@ -93,7 +93,7 @@ final class ConversationPolishTests:XCTestCase {
     @MainActor func testLeftSwipeInlineActionsAndDeletionConfirmation() {
         continueAfterFailure=false;XCUIDevice.shared.orientation = .portrait
         let app=XCUIApplication();app.launchArguments=["--ui-testing","--companion-testing","--auth-testing"]
-        app.launch();defer {app.terminate()}
+        app.launchArguments += ["-AppleLanguages", "(zh-Hans)"];app.launch();defer {app.terminate()}
         XCTAssertTrue(app.buttons["customizationButton"].waitForExistence(timeout:60))
         app.buttons["tab-messages"].tap()
         let row=app.buttons["message-anime-kipfel"],remove=app.buttons["deleteConversation-anime-kipfel"]
@@ -121,17 +121,17 @@ final class ConversationPolishTests:XCTestCase {
         let actionStart=hide.coordinate(withNormalizedOffset:CGVector(dx:0.25,dy:0.5))
         actionStart.press(forDuration:0.06,thenDragTo:actionStart.withOffset(CGVector(dx:112,dy:0)))
         wait {!remove.exists && abs(row.frame.width-initial.width)<1}
-        XCTAssertFalse(app.alerts["删除对话和记忆？"].exists)
+        XCTAssertFalse(app.alerts["conversationDeleteConfirmation"].exists)
         XCTAssertTrue(row.exists)
         row.swipeLeft();XCTAssertTrue(remove.waitForExistence(timeout:4))
         let redPoint=CGPoint(x:remove.frame.minX+9,y:remove.frame.minY+9)
         assertRed(at:redPoint,app:app)
         capture("left-swipe-inline-actions")
         remove.tap()
-        XCTAssertTrue(app.alerts["删除对话和记忆？"].waitForExistence(timeout:5))
+        XCTAssertTrue(app.alerts["conversationDeleteConfirmation"].waitForExistence(timeout:5))
         assertRed(at:redPoint,app:app)
         capture("deletion-confirmation-keeps-inline-actions")
-        app.alerts.buttons["取消"].firstMatch.tap()
+        app.buttons["cancelConversationDeletion"].tap()
         wait {!remove.exists && abs(row.frame.width-initial.width)<1}
         XCTAssertTrue(row.exists)
         row.swipeLeft()
@@ -145,7 +145,7 @@ final class ConversationPolishTests:XCTestCase {
     @MainActor func testComposerPromptsShareLayoutAcrossInputModes() {
         continueAfterFailure=false;XCUIDevice.shared.orientation = .portrait
         let app=XCUIApplication();app.launchArguments=["--ui-testing","--voice-atmosphere-check"]
-        app.launch();defer {app.terminate()}
+        app.launchArguments += ["-AppleLanguages", "(zh-Hans)"];app.launch();defer {app.terminate()}
         let input=app.textViews["chatInput"],mode=app.buttons["inputModeButton"]
         XCTAssertTrue(input.waitForExistence(timeout:10))
         let frame=input.frame,toggle=mode.frame

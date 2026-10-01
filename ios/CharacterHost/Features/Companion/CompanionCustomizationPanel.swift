@@ -42,7 +42,7 @@ struct CompanionCustomizationPanel: View {
     }
     private var overview: some View {
         VStack(spacing:0) {
-            PanelPageHeader("定制我们的相处 · " + (session?.record.profile.name ?? model.name),backID:"closeCustomizationButton")
+            PanelPageHeader(L10n.text("定制我们的相处 · ") + (session?.record.profile.name ?? model.name),backID:"closeCustomizationButton")
             ScrollView {
                 VStack(alignment:.leading,spacing:12) {
                     if session != nil {
@@ -62,8 +62,8 @@ struct CompanionCustomizationPanel: View {
             HStack(spacing:14) {
                 Image(systemName:page.symbol).font(.system(size:18,weight:.light)).frame(width:24).foregroundStyle(Theme.accent)
                 VStack(alignment:.leading,spacing:5) {
-                    Text(page.title).font(.system(size:15,weight:.medium))
-                    Text(page.detail).font(.system(size:12)).foregroundStyle(Theme.secondary)
+                    Text(LocalizedStringKey(page.title)).font(.system(size:15,weight:.medium))
+                    Text(LocalizedStringKey(page.detail)).font(.system(size:12)).foregroundStyle(Theme.secondary)
                 }
                 Spacer()
                 Image(systemName:"chevron.right").font(.system(size:11)).foregroundStyle(Theme.secondary.opacity(0.6))

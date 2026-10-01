@@ -69,9 +69,10 @@ struct CharacterConversationIdentity:View {
 }
 
 struct CharacterIdentityCapsule: View {
+    private static var subscriptionWidth:CGFloat {AppLanguageSettings.shared.resolved == .english ? 64 : 46}
     static func fittingWidth(for name:String) -> CGFloat {
         let text = (name as NSString).size(withAttributes:[.font:UIFont.systemFont(ofSize:13,weight:.medium)]).width
-        return ceil(text + 24 + 7 + 8 + 7 + 46 + 0.5)
+        return ceil(text + 24 + 7 + 8 + 7 + subscriptionWidth + 0.5)
     }
     let model:ModelDescriptor
     let profile:CharacterProfile
@@ -109,7 +110,8 @@ struct CharacterIdentityCapsule: View {
             Rectangle().fill(Theme.ink.opacity(0.13)).frame(width:0.5,height:13)
             if subscribed {
                 Text("已订阅").font(.system(size:10)).foregroundStyle(Theme.ink.opacity(0.38))
-                    .frame(width:46,height:44).accessibilityIdentifier("capsuleSubscribed")
+                    .lineLimit(1).minimumScaleFactor(0.8)
+                    .frame(width:Self.subscriptionWidth,height:44).accessibilityIdentifier("capsuleSubscribed")
             } else {
                 if interactive {
                     Button {library.subscribe(model.id,true)} label: {subscribeLabel}
@@ -132,7 +134,8 @@ struct CharacterIdentityCapsule: View {
     }
     private var subscribeLabel:some View {
         Text("+ 订阅").font(.system(size:11,weight:.medium)).foregroundStyle(Theme.accent.opacity(0.85))
-            .frame(width:46,height:44).contentShape(Rectangle())
+            .lineLimit(1).minimumScaleFactor(0.8)
+            .frame(width:Self.subscriptionWidth,height:44).contentShape(Rectangle())
     }
 }
 
@@ -306,7 +309,7 @@ struct CharacterDetailsPanel: View {
                         withAnimation(motion) { showingCredits = true }
                     } label: { Label("模型素材与原始署名",systemImage:"doc.text").font(.system(size:11)).foregroundStyle(Theme.secondary).frame(minHeight:44) }
                         .buttonStyle(.plain).accessibilityIdentifier("characterCreditsButton")
-                    if let error = library.error { Text(error).font(.caption).foregroundStyle(Theme.peach) }
+                    if let error = library.error { Text(LocalizedStringKey(error)).font(.caption).foregroundStyle(Theme.peach) }
 #if STARRY_TEST_TOOLS
                     Button {
                         beginChild {showingDeveloper=false}

@@ -16,11 +16,13 @@ from .public_profiles import public_profile
 from .inspection import report as inspection_report
 from .reaction_pool import ReactionPool
 from .schemas import PreparationRequest,QuickReplyRequest
+from .translation import Translations, TranslationRequest
 from .openings import OpeningRegistration,register as register_opening
 
 def create_app(settings=None,provider=None):
     settings=settings or Settings.load();store=Store(settings.data_dir/'state.sqlite3')
     provider=provider or Provider(settings,store);engine=Orchestrator(settings,store,provider)
+    translations=Translations(store,provider)
     reactions=ReactionPool(engine);engine.reactions=reactions
     busy=set(); resetting=set(); turns=TurnStreams()
     @asynccontextmanager
@@ -110,6 +112,13 @@ def create_app(settings=None,provider=None):
         who=owner(request.headers)
         if character!=body.character_id:raise HTTPException(400,'CHARACTER_MISMATCH')
         return reactions.status(who,body)
+    @app.post('/v1/conversations/{character}/messages/{message_id}/translation')
+    async def translate_message(character:str,message_id:UUID,body:TranslationRequest,request:HTTPRequest):
+        who=owner(request.headers)
+        if (who,character) in resetting:raise HTTPException(409,'CONVERSATION_RESETTING')
+        try:return await translations.translate(who,character,str(message_id),body)
+        except TimeoutError:raise HTTPException(504,'TRANSLATION_TIMEOUT') from None
+        except ProviderError:raise HTTPException(502,'TRANSLATION_UNAVAILABLE') from None
     @app.post('/v1/conversations/{character}/messages/{message_id}/audio')
     async def replay(character:str,message_id:UUID,request:HTTPRequest):
         who=owner(request.headers)
@@ -146,6 +155,7 @@ def create_app(settings=None,provider=None):
                     (settings.data_dir/'audio'/(key+'.pcm')).unlink(missing_ok=True)
         with store.db:
             store.clear_novelty(who,character)
+            store.db.execute("DELETE FROM records WHERE owner=? AND character=? AND kind LIKE 'translation:%'",(who,character))
             store.db.execute('DELETE FROM messages WHERE owner=? AND character=?',(who,character))
             store.db.execute('DELETE FROM requests WHERE owner=? AND character=?',(who,character))
             store.db.execute('DELETE FROM reaction_drafts WHERE owner=? AND character=?',(who,character))

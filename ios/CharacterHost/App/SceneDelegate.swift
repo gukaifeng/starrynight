@@ -18,7 +18,15 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         window.rootViewController = placeholder
         window.overrideUserInterfaceStyle = .dark
         window.makeKeyAndVisible()
+#if STARRY_TEST_TOOLS
+        if ProcessInfo.processInfo.arguments.contains("--connection-check") {
+            window.rootViewController=LanguageHostingController(rootView:AIConnectionDiagnostics());return
+        }
+#endif
 #if DEBUG && targetEnvironment(simulator)
+        if ProcessInfo.processInfo.arguments.contains("--language-check") {
+            window.rootViewController=LanguageHostingController(rootView:AppLanguageFixture());return
+        }
         if ProcessInfo.processInfo.arguments.contains("--opening-check") {
             let label=UILabel();label.numberOfLines=0;label.textColor = .white
             label.frame=CGRect(x:24,y:100,width:window.bounds.width-48,height:450)
@@ -31,13 +39,13 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             return
         }
         if ProcessInfo.processInfo.arguments.contains("--voice-atmosphere-check") {
-            window.rootViewController=UIHostingController(rootView:VoiceAtmosphereFixture());return
+            window.rootViewController=LanguageHostingController(rootView:VoiceAtmosphereFixture());return
         }
         if ProcessInfo.processInfo.arguments.contains("--reply-flow-check") {
-            window.rootViewController=UIHostingController(rootView:ReplyFlowFixture());return
+            window.rootViewController=LanguageHostingController(rootView:ReplyFlowFixture());return
         }
         if ProcessInfo.processInfo.arguments.contains("--conversation-presentation-check") {
-            window.rootViewController=UIHostingController(rootView:ConversationPresentationFixture())
+            window.rootViewController=LanguageHostingController(rootView:ConversationPresentationFixture())
             return
         }
         if ProcessInfo.processInfo.arguments.contains("--chat-input-check") {
@@ -97,7 +105,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             placeholder.view.addSubview(label); return
         }
         if ProcessInfo.processInfo.arguments.contains("--export-ui-check") {
-            let controller = UIHostingController(rootView: ConversationExportView(snapshot: ConversationExportTests.fixture()).preferredColorScheme(.dark))
+            let controller = LanguageHostingController(rootView: ConversationExportView(snapshot: ConversationExportTests.fixture()).preferredColorScheme(.dark))
             window.rootViewController = controller
             return
         }
@@ -141,7 +149,10 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     }
     private func bootstrap(in windowScene:UIWindowScene) {
 #if DEBUG && targetEnvironment(simulator)
-        if ProcessInfo.processInfo.arguments.contains(where: { ["--opening-check", "--voice-atmosphere-check", "--reply-flow-check", "--conversation-presentation-check", "--chat-input-check", "--speech-playback-check", "--greeting-core-check", "--view-presets-check", "--experience-core-check", "--export-core-check", "--export-ui-check", "--social-core-check", "--cache-core-check", "--market-core-check"].contains($0) }) { return }
+        if ProcessInfo.processInfo.arguments.contains(where: { ["--language-check", "--opening-check", "--voice-atmosphere-check", "--reply-flow-check", "--conversation-presentation-check", "--chat-input-check", "--speech-playback-check", "--greeting-core-check", "--view-presets-check", "--experience-core-check", "--export-core-check", "--export-ui-check", "--social-core-check", "--cache-core-check", "--market-core-check"].contains($0) }) { return }
+#endif
+#if STARRY_TEST_TOOLS
+        if ProcessInfo.processInfo.arguments.contains("--connection-check") {return}
 #endif
         guard coordinator == nil, bootstrapTask == nil else { return }
         // Paint the lightweight brand cover, then prepare only the native shell.
@@ -163,7 +174,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
                     if self.coordinator?.page != .viewer { self.window?.makeKeyAndVisible() }
                 }
             }
-            let controller = UIHostingController(rootView:AppRootView(coordinator:coordinator))
+            let controller = LanguageHostingController(rootView:AppRootView(coordinator:coordinator))
             controller.view.backgroundColor = UIColor(Theme.background)
             controller.view.accessibilityElementsHidden = true
             window.rootViewController = controller

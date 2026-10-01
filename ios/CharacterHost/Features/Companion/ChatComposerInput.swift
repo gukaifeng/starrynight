@@ -55,7 +55,7 @@ struct ChatComposerInput: UIViewRepresentable {
             view.returnKeyType = .send; view.enablesReturnKeyAutomatically = true
             view.allowsEditingTextAttributes = false
             view.accessibilityIdentifier = input.identifier
-            view.accessibilityLabel = "想和你说…"
+            view.accessibilityLabel = L10n.text("想和你说…")
             view.setContentHuggingPriority(.defaultLow, for:.horizontal)
             view.setContentCompressionResistancePriority(.defaultLow, for:.horizontal)
             update(view)
@@ -77,6 +77,7 @@ struct ChatComposerInput: UIViewRepresentable {
                 }
                 if view.text != input.text { replaceText(in:view, with:input.text) }
             }
+            view.accessibilityLabel = L10n.text("想和你说…")
             view.tintColor = input.accent
             view.isEditable = input.isEnabled; view.isUserInteractionEnabled = input.isEnabled
             view.wantsFocus = input.isFocused && input.isEnabled

@@ -92,7 +92,7 @@ struct CharacterPerformancePanel: View {
 
     var body: some View {
         VStack(spacing:0) {
-            PanelPageHeader("角色表现 · " + model.name,backID:"closeCharacterPerformance") {
+            PanelPageHeader(L10n.text("角色表现 · ") + model.name,backID:"closeCharacterPerformance") {
                 if currentGroup == "host-emotion" {
                     Button { HostEmotionMotionPreference.request("stop",actor:model.runtimeID) } label: {
                         Text("结束预览").font(.system(size:11,weight:.medium))
@@ -147,7 +147,7 @@ struct CharacterPerformancePanel: View {
             }.id(currentGroup).scrollIndicators(.hidden).accessibilityIdentifier("performanceOptions")
             }
             if let error = state.error {
-                Text(error).font(.system(size:11)).foregroundStyle(Theme.peach)
+                Text(LocalizedStringKey(error)).font(.system(size:11)).foregroundStyle(Theme.peach)
                     .padding(.horizontal,18).padding(.bottom,12).accessibilityIdentifier("performanceError")
             }
         }.softPanelPageSurface().foregroundStyle(Theme.ink).tint(Theme.accent).softSheetSurface()
@@ -166,7 +166,7 @@ struct CharacterPerformancePanel: View {
             HStack(spacing:7) {
                 Image(systemName:"arrow.counterclockwise").font(.system(size:11,weight:.medium))
                     .foregroundStyle(Theme.secondary)
-                Text(label).font(.system(size:12,weight:.medium)).frame(maxWidth:.infinity,alignment:.leading)
+                Text(LocalizedStringKey(label)).font(.system(size:12,weight:.medium)).frame(maxWidth:.infinity,alignment:.leading)
                 if pending { ProgressView().controlSize(.mini).frame(width:17) }
                 else {
                     Image(systemName:selected ? "checkmark" : "circle.dotted")

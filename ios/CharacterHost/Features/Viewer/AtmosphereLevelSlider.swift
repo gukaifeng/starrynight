@@ -11,7 +11,7 @@ struct AtmosphereLevelSlider:UIViewRepresentable {
         let slider=UISlider()
         slider.minimumValue=0;slider.maximumValue=1;slider.isContinuous=true
         slider.accessibilityIdentifier="atmosphereLevelSlider"
-        slider.accessibilityLabel="氛围效果"
+        slider.accessibilityLabel=L10n.text("氛围效果")
         slider.accessibilityHint="连续调节，滑到最左侧关闭"
         slider.setValue(Float(intensity),animated:false)
         slider.addTarget(context.coordinator,action:#selector(Coordinator.changed(_:)),for:.valueChanged)
@@ -23,7 +23,7 @@ struct AtmosphereLevelSlider:UIViewRepresentable {
         slider.minimumTrackTintColor=UIColor(Theme.accent)
         slider.maximumTrackTintColor=UIColor(Theme.ink.opacity(0.16))
         slider.thumbTintColor=UIColor(Theme.ink)
-        slider.accessibilityValue=intensity<=0 ? "关闭" : "\(Int((intensity*100).rounded()))%"
+        slider.accessibilityValue=intensity<=0 ? L10n.text("关闭") : "\(Int((intensity*100).rounded()))%"
         if !slider.isTracking,abs(slider.value-Float(intensity))>0.0001 {
             slider.setValue(Float(intensity),animated:!reduceMotion)
         }

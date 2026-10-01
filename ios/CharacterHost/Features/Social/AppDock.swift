@@ -26,12 +26,12 @@ struct AppDock: View {
                                 Image(systemName:"plus").font(.system(size:24,weight:.light)).foregroundStyle(Theme.ink)
                             }.frame(width:48,height:48)
                         } else {
-                            Text(tab.title).font(.system(size:14,weight:selection == tab ? .semibold : .regular)).tracking(1)
+                            Text(LocalizedStringKey(tab.title)).font(.system(size:14,weight:selection == tab ? .semibold : .regular)).tracking(1)
                         }
                     }.foregroundStyle(selection == tab ? Theme.accent : Theme.secondary)
                         .frame(maxWidth:.infinity,minHeight:58).contentShape(Rectangle())
                 }.buttonStyle(.plain).accessibilityIdentifier("tab-"+tab.rawValue)
-                    .accessibilityLabel(tab == .create ? "创建角色" : tab.title)
+                    .accessibilityLabel(Text(LocalizedStringKey(tab == .create ? "创建角色" : tab.title)))
                     .accessibilityAddTraits(selection == tab ? .isSelected : [])
             }
         }.padding(.horizontal,12).frame(height:62).frame(maxWidth:760).frame(maxWidth:.infinity).padding(.bottom,bottomInset)
@@ -61,8 +61,8 @@ struct NightHeader: View {
     var body:some View {
         HStack(alignment:.top) {
             VStack(alignment:.leading,spacing:7) {
-                Text(title).font(.system(size:27,weight:.semibold,design:.rounded)).tracking(2)
-                Text(subtitle).font(.system(size:12)).foregroundStyle(Theme.secondary)
+                Text(LocalizedStringKey(title)).font(.system(size:27,weight:.semibold,design:.rounded)).tracking(2)
+                Text(LocalizedStringKey(subtitle)).font(.system(size:12)).foregroundStyle(Theme.secondary)
             }
             Spacer()
             Image("BrandMark").resizable().frame(width:43,height:43).clipShape(.rect(cornerRadius:13)).accessibilityHidden(true)
@@ -80,9 +80,9 @@ struct NightEmptyState: View {
         VStack(spacing:18) {
             Image(systemName:symbol).font(.system(size:42,weight:.ultraLight)).foregroundStyle(Theme.accent)
                 .frame(width:88,height:88).background(Theme.accent.opacity(0.08),in:Circle())
-            Text(title).font(.title3.weight(.medium))
-            Text(detail).font(.subheadline).foregroundStyle(Theme.secondary).multilineTextAlignment(.center).lineSpacing(5)
-            Button(actionTitle,action:action).buttonStyle(NightPrimaryButton()).accessibilityIdentifier("emptyStateAction")
+            Text(LocalizedStringKey(title)).font(.title3.weight(.medium))
+            Text(LocalizedStringKey(detail)).font(.subheadline).foregroundStyle(Theme.secondary).multilineTextAlignment(.center).lineSpacing(5)
+            Button(LocalizedStringKey(actionTitle),action:action).buttonStyle(NightPrimaryButton()).accessibilityIdentifier("emptyStateAction")
         }.padding(28).frame(maxWidth:480).frame(maxWidth:.infinity,maxHeight:.infinity)
             .offset(y:geometry.size.height > 400 ? -42 : 0)
         }

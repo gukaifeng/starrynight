@@ -2,7 +2,8 @@ import Foundation
 import CryptoKit
 
 /// Disposable, account/character/voice scoped cache. No conversation text in filenames.
-/// The 64 MB disk budget uses last access (LRU); the OS can purge the Caches directory.
+/// Complete downloaded clips survive relaunch and OS cache purges. A 512 MB
+/// LRU budget and Settings → Storage keep disk use bounded. Excluded from backups.
 @MainActor final class SpeechClipCache {
     static let shared = SpeechClipCache()
     private let memory = NSCache<NSString,NSData>()
@@ -13,6 +14,16 @@ import CryptoKit
         memory.totalCostLimit = 16*1024*1024
         self.directory = directory ?? CacheLocations.live.speech
         try? FileManager.default.createDirectory(at:self.directory,withIntermediateDirectories:true)
+        if directory == nil {
+            // Move, never discard, existing v1 clips on the first upgrade.
+            let old = FileManager.default.urls(for:.cachesDirectory,in:.userDomainMask)[0].appendingPathComponent("SpeechClips-v1")
+            for file in (try? FileManager.default.contentsOfDirectory(at:old,includingPropertiesForKeys:nil)) ?? [] where file.pathExtension == "wav" {
+                let target=self.directory.appendingPathComponent(file.lastPathComponent)
+                if !FileManager.default.fileExists(atPath:target.path) {try? FileManager.default.moveItem(at:file,to:target)}
+            }
+        }
+        var folder=self.directory;var values=URLResourceValues();values.isExcludedFromBackup=true
+        try? folder.setResourceValues(values)
     }
     func key(scope:String,text:String,speed:Double) -> String {
         // Refresh pre-sanitizer audio too: old clips may have spoken stage
@@ -45,7 +56,7 @@ import CryptoKit
             return (url,values.fileSize ?? 0,values.contentModificationDate ?? .distantPast)
         }.sorted { $0.2 < $1.2 }
         var bytes = entries.reduce(0) { $0+$1.1 }
-        for entry in entries where bytes > 64*1024*1024 { try? FileManager.default.removeItem(at:entry.0); bytes -= entry.1 }
+        for entry in entries where bytes > 512*1024*1024 { try? FileManager.default.removeItem(at:entry.0); bytes -= entry.1 }
     }
     func beginClearing() {
         clearing = true; generation = UUID(); memory.removeAllObjects()

@@ -40,7 +40,7 @@ struct DefaultNicknamePanel: View {
                         Button("清空默认称呼") { nickname = "" }
                             .font(.system(size:13)).frame(minHeight:44).accessibilityIdentifier("clearDefaultNickname")
                     }
-                    if let error = store.error { Text(error).font(.caption).foregroundStyle(Theme.peach) }
+                    if let error = store.error { Text(LocalizedStringKey(error)).font(.caption).foregroundStyle(Theme.peach) }
                 }.padding(.horizontal,22).padding(.bottom,24)
             }.scrollIndicators(.hidden).scrollDismissesKeyboard(.interactively)
         }.foregroundStyle(Theme.ink).tint(Theme.accent).softPanelPageSurface()

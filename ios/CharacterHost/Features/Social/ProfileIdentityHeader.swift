@@ -28,7 +28,7 @@ struct ProfileRelationshipLabel:View {
     let title:String
     var selected:Bool = false
     var body:some View {
-        Text(title).font(.system(size:11,weight:.medium))
+        Text(LocalizedStringKey(title)).font(.system(size:11,weight:.medium))
             .fixedSize().padding(.horizontal,12).frame(height:28)
             .background(Theme.accent.opacity(selected ? 0.06 : 0.13),in:Capsule())
             .frame(minWidth:44,minHeight:44).contentShape(Rectangle())

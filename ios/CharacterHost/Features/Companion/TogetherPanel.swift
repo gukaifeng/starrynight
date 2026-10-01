@@ -52,7 +52,7 @@ struct TogetherPanel: View {
             PanelPageHeader("和\(session.record.profile.name)一起",subtitle:"把相处，变成自己的故事",backID:"closeTogetherButton")
             VStack(spacing:14) {
                 Picker("一起",selection:$tab) {
-                    ForEach(["故事","相处","时光","更多"],id:\.self) { Text($0).tag($0) }
+                    ForEach(["故事","相处","时光","更多"],id:\.self) { Text(LocalizedStringKey($0)).tag($0) }
                 }.pickerStyle(.segmented).accessibilityIdentifier("togetherTabs")
                 ScrollView {
                     VStack(alignment:.leading,spacing:18) {
@@ -62,7 +62,7 @@ struct TogetherPanel: View {
                         case "更多": futureFeatures
                         default: storyShelf
                         }
-                        if let error = store.error { Text(error).font(.caption).foregroundStyle(Theme.peach) }
+                        if let error = store.error { Text(LocalizedStringKey(error)).font(.caption).foregroundStyle(Theme.peach) }
                     }.padding(.bottom,28)
                 }.scrollIndicators(.hidden).scrollDismissesKeyboard(.interactively).accessibilityIdentifier("togetherContent")
             }.padding(.horizontal,22)
@@ -135,13 +135,13 @@ struct TogetherPanel: View {
             VStack(alignment:.leading,spacing:9) {
                 caption("我们的关系")
                 Picker("我们的关系",selection:$preferences.relationship) {
-                    ForEach(["朋友","搭档","知己"],id:\.self) { Text($0) }
+                    ForEach(["朋友","搭档","知己"],id:\.self) { Text(LocalizedStringKey($0)) }
                 }.pickerStyle(.segmented).accessibilityIdentifier("togetherRelationship")
             }
             VStack(alignment:.leading,spacing:9) {
                 caption("当我有心事时")
                 Picker("回应偏好",selection:$preferences.responseStyle) {
-                    ForEach(["先听我说","一起想办法","轻松聊聊"],id:\.self) { Text($0) }
+                    ForEach(["先听我说","一起想办法","轻松聊聊"],id:\.self) { Text(LocalizedStringKey($0)) }
                 }.pickerStyle(.segmented).accessibilityIdentifier("togetherResponseStyle")
             }
             textEntry("暂时不想聊",placeholder:"关键词，用逗号分开",text:$preferences.avoidedTopics,id:"togetherAvoidedTopics")
@@ -175,7 +175,7 @@ struct TogetherPanel: View {
             }.padding(.vertical,6)
             VStack(alignment:.leading,spacing:12) {
                 caption("今天，想留下什么？")
-                Picker("心情",selection:$mood) { ForEach(["平静","开心","有点累","低落"],id:\.self) { Text($0) } }
+                Picker("心情",selection:$mood) { ForEach(["平静","开心","有点累","低落"],id:\.self) { Text(LocalizedStringKey($0)) } }
                     .pickerStyle(.segmented).accessibilityIdentifier("momentMood")
                 TextField("记下一件小事…",text:$note,axis:.vertical).lineLimit(2...4)
                     .font(.system(size:14)).accessibilityIdentifier("momentInput")
@@ -219,8 +219,8 @@ struct TogetherPanel: View {
                     HStack(spacing:14) {
                         Image(systemName:feature.symbol).font(.system(size:20,weight:.light)).frame(width:30)
                         VStack(alignment:.leading,spacing:5) {
-                            Text(feature.title).font(.system(size:14,weight:.medium))
-                            Text(feature.subtitle).font(.system(size:11)).foregroundStyle(Theme.secondary)
+                            Text(LocalizedStringKey(feature.title)).font(.system(size:14,weight:.medium))
+                            Text(LocalizedStringKey(feature.subtitle)).font(.system(size:11)).foregroundStyle(Theme.secondary)
                         }
                         Spacer(); Text("预览").font(.system(size:10)).foregroundStyle(Theme.peach)
                     }.padding(16).frame(maxWidth:.infinity,alignment:.leading)
@@ -229,7 +229,7 @@ struct TogetherPanel: View {
             }
         }
     }
-    private func caption(_ text:String) -> some View { Text(text).font(.system(size:12,weight:.medium)).foregroundStyle(Theme.secondary) }
+    private func caption(_ text:String) -> some View { Text(LocalizedStringKey(text)).font(.system(size:12,weight:.medium)).foregroundStyle(Theme.secondary) }
     private func statistic(_ value:String,_ label:String) -> some View {
         VStack(alignment:.leading,spacing:5) {
             Text(value).font(.system(size:24,weight:.medium,design:.rounded)).monospacedDigit()
@@ -239,7 +239,7 @@ struct TogetherPanel: View {
     private func textEntry(_ title:String,placeholder:String,text:Binding<String>,id:String) -> some View {
         VStack(alignment:.leading,spacing:8) {
             caption(title)
-            TextField(placeholder,text:text,axis:.vertical).lineLimit(1...4).font(.system(size:14))
+            TextField(LocalizedStringKey(placeholder),text:text,axis:.vertical).lineLimit(1...4).font(.system(size:14))
                 .padding(13).background(Theme.surface.opacity(0.8),in:RoundedRectangle(cornerRadius:13))
                 .accessibilityIdentifier(id)
         }

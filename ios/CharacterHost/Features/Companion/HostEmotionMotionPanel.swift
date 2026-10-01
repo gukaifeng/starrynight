@@ -35,7 +35,7 @@ struct HostEmotionMotionPanel: View {
                             HStack(spacing:7) {
                                 Image(systemName:state.hostMotionGesture == id ? "sparkle" : "play.fill")
                                     .font(.system(size:9)).foregroundStyle(Theme.accent)
-                                Text(label).font(.system(size:12,weight:.medium)).frame(maxWidth:.infinity,alignment:.leading)
+                                Text(LocalizedStringKey(label)).font(.system(size:12,weight:.medium)).frame(maxWidth:.infinity,alignment:.leading)
                             }.padding(.horizontal,11).frame(minHeight:42)
                                 .background(Theme.surface.opacity(0.5),in:RoundedRectangle(cornerRadius:11))
                         }.buttonStyle(.plain).disabled(!enabled || !state.ready || !state.hostMotionEnabled)

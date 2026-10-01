@@ -100,7 +100,7 @@ struct CacheSettingsView: View {
                     }.buttonStyle(NightPrimaryButton()).disabled(!model.canClear)
                         .opacity(model.canClear || model.clearing ? 1 : 0.45).accessibilityIdentifier("clearCacheButton")
                     if let message = model.message {
-                        Text(message).font(.system(size:12)).lineSpacing(4).foregroundStyle(Theme.peach)
+                        Text(LocalizedStringKey(message)).font(.system(size:12)).lineSpacing(4).foregroundStyle(Theme.peach)
                             .frame(maxWidth:.infinity,alignment:.leading).accessibilityIdentifier("cacheClearResult")
                     } else if let snapshot = model.snapshot, snapshot.categories.allSatisfy({ $0.files == 0 }) {
                         Text("暂时没有缓存需要清理。正常使用后，会在这里更新。")
@@ -125,11 +125,11 @@ struct CacheSettingsView: View {
                 Image(systemName:usage.category.symbol).font(.system(size:19,weight:.light)).foregroundStyle(Theme.peach).frame(width:30)
                 VStack(alignment:.leading,spacing:6) {
                     HStack {
-                        Text(usage.category.title).font(.system(size:14,weight:.medium))
+                        Text(LocalizedStringKey(usage.category.title)).font(.system(size:14,weight:.medium))
                         Spacer(minLength:4)
                         Text(model.snapshot == nil ? "—" : CacheSize.text(usage.bytes)).font(.system(size:12)).monospacedDigit().foregroundStyle(Theme.secondary)
                     }
-                    Text(usage.category.detail).font(.system(size:11)).lineSpacing(3).foregroundStyle(Theme.secondary).multilineTextAlignment(.leading)
+                    Text(LocalizedStringKey(usage.category.detail)).font(.system(size:11)).lineSpacing(3).foregroundStyle(Theme.secondary).multilineTextAlignment(.leading)
                 }
                 Image(systemName:selected ? "checkmark.circle.fill" : "circle").font(.system(size:18)).foregroundStyle(selected ? Theme.accent : Theme.secondary)
             }.padding(.vertical,18).frame(maxWidth:.infinity,minHeight:72).contentShape(Rectangle())

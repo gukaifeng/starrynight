@@ -67,7 +67,7 @@ struct VoiceCaptureOverlay:View {
                 }
             }
             CaptureWave(speech:session.speech).frame(height:compact ? 16 : 20)
-            Text(transcript)
+            Text(session.voiceInput.text.isEmpty ? L10n.text(transcript) : transcript)
                 .font(.system(size:14)).lineSpacing(3).lineLimit(compact ? 1 : 2)
                 .frame(maxWidth:.infinity).frame(height:compact ? 20 : 36)
                 .multilineTextAlignment(.center).foregroundStyle(Theme.ink.opacity(session.voiceInput.text.isEmpty ? 0.46 : 0.9))

@@ -113,7 +113,7 @@ struct AuthorDirectoryPanel: View {
                         else if !query.isEmpty && !all.contains(where: { $0.matches(query) }) { Text("没有找到相关作者").foregroundStyle(Theme.secondary).padding(.vertical,30) }
                         Text("当前关系与数量来自本机体验身份。")
                             .font(.system(size:10)).foregroundStyle(Theme.secondary).padding(.vertical,20)
-                        if let error = library.error { Text(error).font(.caption).foregroundStyle(Theme.peach) }
+                        if let error = library.error { Text(LocalizedStringKey(error)).font(.caption).foregroundStyle(Theme.peach) }
                     }.padding(.horizontal,22).scrollIndicators(.hidden).scrollDismissesKeyboard(.interactively)
                 }.transition(.opacity)
             }
@@ -180,7 +180,7 @@ struct AuthorProfilePanel: View {
             ScrollView {
                 VStack(alignment:.leading,spacing:22) {
                     ProfileIdentityHeader(name:author.name,
-                        subtitle:author.handle + (author.isBuiltin ? " · 内置作者" : ""),nameID:"authorProfileName") {
+                        subtitle:author.handle + (author.isBuiltin ? L10n.text(" · 内置作者") : ""),nameID:"authorProfileName") {
                         AuthorAvatar(author:author,size:52)
                     } accessory: {
                         if library.currentAuthor?.id == authorID {
@@ -223,7 +223,7 @@ struct AuthorProfilePanel: View {
                     }
                     Text("当前为本机作品与关系预览，尚未同步到网络。")
                         .font(.system(size:10)).foregroundStyle(Theme.secondary)
-                    if let error = library.error { Text(error).font(.caption).foregroundStyle(Theme.peach) }
+                    if let error = library.error { Text(LocalizedStringKey(error)).font(.caption).foregroundStyle(Theme.peach) }
                 }.padding(.horizontal,22).padding(.bottom,22)
             }.scrollIndicators(.hidden).accessibilityIdentifier("authorProfileScroll")
         }
@@ -247,7 +247,7 @@ struct AuthorEditorView: View {
                             Button { draft.avatar = value } label: {
                                 AuthorAvatar(author:preview,size:38).padding(3)
                                     .overlay(Circle().stroke(draft.avatar == value ? Theme.accent : .clear,lineWidth:1))
-                            }.buttonStyle(.plain).accessibilityLabel("作者头像 " + value).accessibilityIdentifier("authorAvatar-"+value)
+                            }.buttonStyle(.plain).accessibilityLabel(L10n.text("作者头像 ") + value).accessibilityIdentifier("authorAvatar-"+value)
                         }
                     }
                 }.listRowBackground(Theme.surface)
@@ -259,7 +259,7 @@ struct AuthorEditorView: View {
                     Text("名字最多 24 字，介绍最多 160 字。返回时保存，所有作品同步显示这份作者资料。")
                         .font(.caption).foregroundStyle(Theme.secondary)
                 }.listRowBackground(Theme.surface)
-                if let validation { Section { Text(validation).font(.caption).foregroundStyle(Theme.peach) }.listRowBackground(Theme.surface) }
+                if let validation { Section { Text(LocalizedStringKey(validation)).font(.caption).foregroundStyle(Theme.peach) }.listRowBackground(Theme.surface) }
             }.scrollIndicators(.hidden).scrollContentBackground(.hidden)
                 .contentMargins(.horizontal,22,for:.scrollContent)
                 .contentMargins(.top,0,for:.scrollContent)

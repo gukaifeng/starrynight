@@ -89,7 +89,7 @@ struct DemoLoginView: View {
             HStack(spacing:6) {
                 ForEach(LoginMethod.allCases) { option in
                     Button { method = option } label: {
-                        Label(option.title,systemImage:option.symbol).font(.subheadline.weight(.semibold))
+                        Label(LocalizedStringKey(option.title),systemImage:option.symbol).font(.subheadline.weight(.semibold))
                             .frame(maxWidth:.infinity,minHeight:46)
                             .background(method == option ? Theme.ink : .clear,in:Capsule())
                             .foregroundStyle(method == option ? Theme.background : Theme.secondary)

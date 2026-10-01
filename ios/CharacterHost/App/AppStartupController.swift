@@ -26,8 +26,8 @@ final class AppStartupController: UIViewController {
         view.isAccessibilityElement = true
         view.accessibilityViewIsModal = true
         view.accessibilityIdentifier = "appStartupScreen"
-        view.accessibilityLabel = "星夜，正在打开"
-        view.accessibilityValue = "开场动画"
+        view.accessibilityLabel = L10n.text("星夜，正在打开")
+        view.accessibilityValue = L10n.text("开场动画")
         content.isUserInteractionEnabled = false
         view.addSubview(content)
         halo.type = .radial
@@ -40,11 +40,11 @@ final class AppStartupController: UIViewController {
         glyph.contentMode = .scaleAspectFit
         content.addSubview(glyph)
         wordmark.textAlignment = .center
-        wordmark.attributedText = NSAttributedString(string:"星夜",attributes:[
+        wordmark.attributedText = NSAttributedString(string:L10n.text("星夜"),attributes:[
             .font:UIFont.systemFont(ofSize:28,weight:.light), .kern:8,
             .foregroundColor:UIColor(white:0.94,alpha:1)])
         caption.textAlignment = .center
-        caption.attributedText = NSAttributedString(string:"每一句，都有回声",attributes:[
+        caption.attributedText = NSAttributedString(string:L10n.text("每一句，都有回声"),attributes:[
             .font:UIFont.systemFont(ofSize:11,weight:.regular), .kern:3,
             .foregroundColor:UIColor(white:0.67,alpha:0.74)])
         content.addSubview(wordmark); content.addSubview(caption)
@@ -81,7 +81,7 @@ final class AppStartupController: UIViewController {
         phaseTask = Task { @MainActor [weak self] in
             do { try await Task.sleep(for:.seconds(self?.introDuration ?? 0.42)) } catch { return }
             guard let self, !self.leaving else { return }
-            self.view.accessibilityValue = "等待就绪"
+            self.view.accessibilityValue = L10n.text("等待就绪")
         }
     }
     private func configureAnimation() {
@@ -139,7 +139,7 @@ final class AppStartupController: UIViewController {
             do { try await Task.sleep(for:.seconds(remaining)) } catch { return }
             guard let self, !self.leaving, !self.paused else { return }
             self.leaving = true; self.phaseTask?.cancel()
-            self.view.accessibilityValue = "进入页面"
+            self.view.accessibilityValue = L10n.text("进入页面")
             UIView.animate(withDuration:UIAccessibility.isReduceMotionEnabled ? 0.12 : 0.22,
                            delay:0,options:[.curveEaseInOut,.beginFromCurrentState],animations:{
                 self.view.alpha = 0

@@ -11,7 +11,7 @@ struct CatalogSearchField: View {
         HStack(spacing:10) {
             Image(systemName:"magnifyingglass").font(.system(size:14)).foregroundStyle(Theme.secondary)
                 .accessibilityHidden(true)
-            TextField(placeholder,text:$text).font(.system(size:14)).focused($focused)
+            TextField(LocalizedStringKey(placeholder),text:$text).font(.system(size:14)).focused($focused)
                 .submitLabel(.search).onSubmit { focused = false }
                 .autocorrectionDisabled().textInputAutocapitalization(.never)
                 .accessibilityIdentifier(identifier)

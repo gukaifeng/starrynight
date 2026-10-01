@@ -107,8 +107,8 @@ struct DeveloperEntry:View {
             HStack(spacing:12) {
                 Image(systemName:symbol).frame(width:24).foregroundStyle(Theme.accent)
                 VStack(alignment:.leading,spacing:4) {
-                    Text(title).font(.system(size:14,weight:.medium))
-                    Text(detail).font(.system(size:11)).foregroundStyle(Theme.secondary).lineLimit(2)
+                    Text(LocalizedStringKey(title)).font(.system(size:14,weight:.medium))
+                    Text(LocalizedStringKey(detail)).font(.system(size:11)).foregroundStyle(Theme.secondary).lineLimit(2)
                 }.frame(maxWidth:.infinity,alignment:.leading)
                 Image(systemName:"chevron.right").font(.system(size:10)).foregroundStyle(Theme.secondary)
             }.padding(14).background(Theme.surface.opacity(0.6),in:RoundedRectangle(cornerRadius:15)).contentShape(Rectangle())

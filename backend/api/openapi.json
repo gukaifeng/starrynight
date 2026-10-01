@@ -1331,6 +1331,49 @@
         ]
       }
     },
+    "/v1/ai/conversations/{character}/messages/{message}/translation": {
+      "post": {
+        "description": "Translate visible segments of an owned assistant message to zh-Hans, zh-Hant or en, preserving ids/kinds/order. Read-only; cached by account, message, source and language. Does not alter context or audio.",
+        "operationId": "ai-translate",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "character",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "message",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Worker response; SSE where documented"
+          },
+          "401": {
+            "description": "Session required"
+          },
+          "503": {
+            "description": "Worker unconfigured or unavailable"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "tags": [
+          "AI worker"
+        ]
+      }
+    },
     "/v1/ai/conversations/{character}/opening": {
       "post": {
         "description": "Register an already-played bundled first meeting. No paid model invocation.",

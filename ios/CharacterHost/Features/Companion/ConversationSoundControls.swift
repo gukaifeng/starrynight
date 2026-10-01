@@ -22,9 +22,9 @@ struct ConversationSoundControls: View {
         HStack(spacing:8) {
             Image(systemName:volume.wrappedValue == 0 ? "speaker.slash" : symbol)
                 .font(.system(size:12,weight:.light)).frame(width:17).foregroundStyle(Theme.secondary)
-            Text(title).font(.system(size:12,weight:.medium)).frame(width:54,alignment:.leading)
+            Text(LocalizedStringKey(title)).font(.system(size:12,weight:.medium)).frame(width:76,alignment:.leading).lineLimit(2).minimumScaleFactor(0.8)
             Slider(value:volume,in:0...1)
-                .accessibilityLabel(title+"音量").accessibilityIdentifier(id+"SoundVolume")
+                .accessibilityLabel(L10n.text(title)+" · "+L10n.text("音量")).accessibilityIdentifier(id+"SoundVolume")
             Text(volume.wrappedValue == 0 ? "静音" : "\(Int((volume.wrappedValue*100).rounded()))%")
                 .font(.system(size:10).monospacedDigit()).foregroundStyle(Theme.secondary)
                 .frame(width:32,alignment:.trailing)

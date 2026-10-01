@@ -62,7 +62,7 @@ struct DiscoverPage: View {
                                 .background(Theme.surface.opacity(0.45),in:RoundedRectangle(cornerRadius:16))
                         }.buttonStyle(.plain).accessibilityIdentifier("marketCreateCharacter")
                             .padding(.top,4).padding(.bottom,20)
-                        if let error = coordinator.library.error { Text(error).font(.caption).foregroundStyle(Theme.peach) }
+                        if let error = coordinator.library.error { Text(LocalizedStringKey(error)).font(.caption).foregroundStyle(Theme.peach) }
                     }.padding(.horizontal,18)
                 }.scrollIndicators(.hidden).scrollDismissesKeyboard(.interactively)
                     .onChange(of:query) { _,_ in proxy.scrollTo("marketTop",anchor:.top) }
@@ -87,7 +87,7 @@ struct DiscoverPage: View {
                 Button {
                     query.shelf = shelf
                 } label: {
-                    Text(shelf.rawValue).font(.system(size:16,weight:query.shelf == shelf ? .semibold : .regular))
+                    Text(LocalizedStringKey(shelf.rawValue)).font(.system(size:16,weight:query.shelf == shelf ? .semibold : .regular))
                         .foregroundStyle(query.shelf == shelf ? Theme.ink : Theme.secondary)
                         .frame(height:36)
                         .overlay(alignment:.bottom) {
@@ -138,7 +138,7 @@ struct DiscoverPage: View {
             HStack(spacing:8) {
                 ForEach(CharacterMarketplace.categories(catalog),id:\.self) { category in
                     Button { query.category = category } label: {
-                        Text(category).font(.system(size:12,weight:query.category == category ? .medium : .regular))
+                        Text(LocalizedStringKey(category)).font(.system(size:12,weight:query.category == category ? .medium : .regular))
                             .padding(.horizontal,13).frame(height:30)
                             .foregroundStyle(query.category == category ? Theme.background : Theme.secondary)
                             .background(query.category == category ? Theme.accent : Theme.surface,in:Capsule())
@@ -158,11 +158,11 @@ struct DiscoverPage: View {
             Spacer()
             Menu {
                 Picker("排序",selection:$query.sort) {
-                    ForEach(MarketSort.allCases) { option in Text(option.rawValue).tag(option) }
+                    ForEach(MarketSort.allCases) { option in Text(LocalizedStringKey(option.rawValue)).tag(option) }
                 }
             } label: {
                 HStack(spacing:5) {
-                    Text(query.sort.rawValue)
+                    Text(LocalizedStringKey(query.sort.rawValue))
                     Image(systemName:"chevron.down").font(.system(size:8,weight:.medium))
                 }.font(.system(size:11)).foregroundStyle(Theme.secondary).padding(.vertical,5)
             }.accessibilityIdentifier("marketSortMenu")
@@ -188,7 +188,7 @@ struct DiscoverPage: View {
             VStack(alignment:.leading,spacing:0) {
                 CharacterCover(model:item.model).aspectRatio(0.94,contentMode:.fit)
                     .overlay(alignment:.topLeading) {
-                        Text(item.categories.first ?? "3D 角色").font(.system(size:9,weight:.medium))
+                        Text(LocalizedStringKey(item.categories.first ?? "3D 角色")).font(.system(size:9,weight:.medium))
                             .padding(.horizontal,7).padding(.vertical,4)
                             .background(Theme.background.opacity(0.7),in:Capsule()).padding(5)
                     }

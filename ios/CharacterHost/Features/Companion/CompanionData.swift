@@ -59,6 +59,7 @@ struct CompanionMessage: Codable, Identifiable, Sendable {
     var proactiveScene: String? = nil
     var storyID: String? = nil
     var aiScript: AIScript? = nil
+    var translations: [String:MessageTranslation]? = nil
     var source: String? = nil
     // A late narration enriches the same message. Track visible content rather
     // than only message count, and exclude audio duration/playback metadata.

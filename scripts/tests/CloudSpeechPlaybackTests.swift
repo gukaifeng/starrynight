@@ -104,6 +104,21 @@ import CryptoKit
         try require(try await speech.cachedReplay(script,messageID:message),"Cached replay missed")
         try require(speech.audibleSegments == 4 && played == ["speech","vocal","speech","vocal"],"Replay skipped the vocal-only beat")
         try require(regressions == 0,"Cached speech timestamps moved backwards")
+        // Relaunch equivalent: no shared memory cache and no reachable provider.
+        let disk=SpeechClipCache(directory:CacheLocations.live.speech)
+        let fresh=CloudSpeech(soundscape:soundscape,api:api,cacheScope:scope,clipCache:disk)
+        let restored=try JSONDecoder().decode(AIScript.self,from:JSONEncoder().encode(script))
+        try require(try await fresh.cachedReplay(restored,messageID:message),"Offline replay after reconstruction missed durable clips")
+        try require(fresh.audibleSegments==2,"Durable replay did not produce real audio")
+        // A completed download survives interruption before its speaker drains.
+        fresh.prepare(message,script:restored)
+        try await fresh.accept(AIEvent(type:"segment.audio.started",beatId:"speech"))
+        try await fresh.accept(AIEvent(type:"segment.audio.chunk",data:pcm.base64EncodedString()))
+        let readyTask=Task {try await fresh.accept(AIEvent(type:"segment.audio.ready",beatId:"speech"))}
+        try await Task.sleep(for:.milliseconds(30));fresh.stop();readyTask.cancel()
+        _ = try? await readyTask.value
+        let afterStop=SpeechClipCache(directory:CacheLocations.live.speech)
+        try require(afterStop.data(afterStop.key(scope:scope,text:script.messageId+"|speech",speed:1)) != nil,"Complete audio was lost when playback stopped")
         // Hiding a tab while a beat drains must neither cancel the turn nor
         // discard its complete PCM. Later hidden beats cache without output.
         speech.prepare(message,script:script)

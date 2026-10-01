@@ -43,8 +43,8 @@ struct PanelPageHeader<Trailing:View>: View {
                 }.buttonStyle(.plain).accessibilityLabel("返回").accessibilityIdentifier(backID)
             } else { PanelBackButton(identifier:backID).buttonStyle(.plain) }
             VStack(alignment:.leading,spacing:3) {
-                Text(title).font(.system(size:16,weight:.medium)).lineLimit(1).minimumScaleFactor(0.8)
-                if let subtitle { Text(subtitle).font(.system(size:11)).foregroundStyle(Theme.secondary).lineLimit(1) }
+                Text(LocalizedStringKey(title)).font(.system(size:16,weight:.medium)).lineLimit(1).minimumScaleFactor(0.8)
+                if let subtitle { Text(LocalizedStringKey(subtitle)).font(.system(size:11)).foregroundStyle(Theme.secondary).lineLimit(1) }
             }.frame(maxWidth:.infinity,alignment:.leading)
             trailing
         }.frame(height:44).padding(.horizontal,22).padding(.top,16).padding(.bottom,12)

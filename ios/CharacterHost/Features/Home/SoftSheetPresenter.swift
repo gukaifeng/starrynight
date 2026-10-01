@@ -50,13 +50,13 @@ private struct SoftSheetPresenter<Content:View>: UIViewControllerRepresentable {
             guard let controller, let coordinator else { return }
             if requested && coordinator.binding?.wrappedValue == true {
                 if let host = coordinator.host {
-                    if !host.isBeingDismissed { host.rootView = body }
+                    if !host.isBeingDismissed { host.content = body }
                     return
                 }
                 guard controller.view.window != nil, controller.presentedViewController == nil else { return }
                 coordinator.close.begin { [weak coordinator] in coordinator?.binding?.wrappedValue = false }
                 coordinator.transition.onDismissRequested = { [weak coordinator] in coordinator?.close.request() }
-                let host = UIHostingController(rootView:body)
+                let host = LanguageHostingController(rootView:body)
                 host.view.backgroundColor = .clear; host.view.isOpaque = false
                 host.modalPresentationStyle = .custom; host.transitioningDelegate = coordinator.transition
                 host.preferredContentSize = CGSize(width:600,height:height)
@@ -73,7 +73,7 @@ private struct SoftSheetPresenter<Content:View>: UIViewControllerRepresentable {
     }
     final class Coordinator: NSObject, UIAdaptivePresentationControllerDelegate {
         var binding:Binding<Bool>?
-        weak var host:UIHostingController<AnyView>?
+        weak var host:LanguageHostingController<AnyView>?
         let transition = SoftSheetTransition()
         let close = SoftPanelCloseRequest()
         var onDismiss: () -> Void = {}

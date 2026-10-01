@@ -48,7 +48,7 @@ struct BrandSignature: View {
                 .clipShape(.rect(cornerRadius:size * 0.25))
                 .accessibilityHidden(true)
             VStack(alignment:.leading,spacing:3) {
-                Text(Theme.brandName).font(.title3.weight(.semibold)).tracking(3)
+                Text(LocalizedStringKey(Theme.brandName)).font(.title3.weight(.semibold)).tracking(3)
                 Text(Theme.romanName).font(.system(size:9,weight:.semibold,design:.rounded))
                     .tracking(1.5).foregroundStyle(Theme.secondary)
             }
