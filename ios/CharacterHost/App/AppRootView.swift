@@ -55,18 +55,19 @@ private struct ConversationPreparingCover: View {
     var body: some View {
         ZStack {
             CharacterCover(model:model)
-                .overlay(alignment:.bottom) {LinearGradient(colors:[.clear,Theme.background.opacity(0.7)],startPoint:.top,endPoint:.bottom).frame(height:180)}
+                .overlay {
+                    LinearGradient(stops:[.init(color:.black.opacity(0.58),location:0),
+                        .init(color:.black.opacity(0.16),location:0.30),
+                        .init(color:.black.opacity(0.22),location:0.55),
+                        .init(color:.black.opacity(0.85),location:1)],startPoint:.top,endPoint:.bottom)
+                }
                 .allowsHitTesting(false)
                 .accessibilityIdentifier("conversationPreparingCover-"+model.id)
             VStack(alignment:.leading,spacing:0) {
-                HStack(spacing:9) {
-                    CharacterAvatar(model:model,profile:profile,portraits:coordinator.portraits,
-                                    size:28,floatingEnabled:false)
-                    Text(profile.name).font(.system(size:14,weight:.medium)).lineLimit(1)
-                }.padding(.leading,9).padding(.trailing,14).padding(.vertical,7)
-                    .background(Theme.surface.opacity(Theme.controlOpacity),in:Capsule())
-                    .overlay(Capsule().stroke(Theme.ink.opacity(0.09),lineWidth:0.5))
-                    .padding(.top,8)
+                CharacterIdentityCapsule(model:model,profile:profile,interactive:false,
+                    portraits:coordinator.portraits,library:coordinator.library)
+                    .frame(width:CharacterIdentityCapsule.fittingWidth(for:profile.name),height:44)
+                    .padding(.top,8).padding(.horizontal,16)
                 Spacer(minLength:24)
                 if let lastMessage {
                     VStack(alignment:.leading,spacing:10) {
@@ -76,14 +77,14 @@ private struct ConversationPreparingCover: View {
                     }.padding(16).frame(maxWidth:.infinity,alignment:.leading)
                         .background(Theme.surface.opacity(0.48),in:RoundedRectangle(cornerRadius:22))
                         .accessibilityIdentifier("lastConversationPreview")
-                        .padding(.bottom,22)
+                        .padding(.horizontal,22).padding(.bottom,22)
                 }
                 HStack(spacing:10) {
                     ProgressView().controlSize(.mini).tint(Theme.secondary)
                     Text("\(profile.name)正在来到你身边")
                         .font(.system(size:12)).foregroundStyle(Theme.secondary)
                 }.frame(maxWidth:.infinity).padding(.bottom,28)
-            }.padding(.horizontal,22)
+            }
         }.accessibilityElement(children:.contain).accessibilityIdentifier("conversationPreparing")
     }
 }

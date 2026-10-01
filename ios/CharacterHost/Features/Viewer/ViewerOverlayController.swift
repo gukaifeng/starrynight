@@ -834,7 +834,17 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
     }
     func gestureRecognizer(_ gestureRecognizer:UIGestureRecognizer,shouldReceive touch:UITouch) -> Bool {
         guard gestureRecognizer === dismissChatKeyboardTap else { return true }
-        guard chatSession != nil, (chatEditing || keyboardFrame != nil), gestureInputAvailable, presentedViewController == nil else { return false }
+        let keyboardVisible=chatEditing || keyboardFrame != nil
+        guard let session=chatSession,(keyboardVisible || session.quickReplyPanelPresented),
+              !viewEditor.isOpen,gestureInputAvailable,presentedViewController == nil else {return false}
+        if !keyboardVisible {
+            // Observe blank/model taps without a full-screen overlay that would
+            // steal model drags or taps inside the reply suggestions/composer.
+            switch (view as? TouchThroughView)?.previewOrigin(at:touch.location(in:view),target:touch.view) {
+            case .character,.conversationBlank:return true
+            default:return false
+            }
+        }
         var inputView=touch.view
         while let current=inputView {
             if current is UITextView || current is UITextField {return false}
@@ -861,9 +871,9 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
         gestureRecognizer === dismissChatKeyboardTap || other === dismissChatKeyboardTap
     }
     @objc private func dismissChatKeyboardFromBlankTap(_ recognizer:UITapGestureRecognizer) {
-        guard recognizer.state == .ended, chatEditing else { return }
-        chatSession?.dismissKeyboardRequest += 1
-        view.endEditing(true)
+        guard recognizer.state == .ended else {return}
+        chatSession?.quickReplyPanelPresented=false
+        if chatEditing {chatSession?.dismissKeyboardRequest += 1;view.endEditing(true)}
     }
     @objc private func keyboardChanged(_ notification: Notification) {
         if notification.name == UIResponder.keyboardDidHideNotification { keyboardFrame = nil }

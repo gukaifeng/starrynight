@@ -4,10 +4,13 @@ import Foundation
     static func main() {
         var assertions=0
         func check(_ ok:Bool,_ message:String) {assertions+=1;precondition(ok,message)}
+        check(AtmosphereBlend.amount(for:2)==0.5,"New medium equals previous light")
+        check(AtmosphereBlend.amount(for:1)==0.25,"New light halves the previous light")
+        check(AtmosphereBlend.amount(for:3)==1 && AtmosphereBlend.amount(for:4)==1.5,"Former strongest level is removed")
         for from in 0...4 {for to in 0...4 {
             var blend=AtmosphereBlend(level:from)
             blend.retarget(level:to,at:100)
-            let start=Double(from)*0.5,end=Double(to)*0.5
+            let start=AtmosphereBlend.amount(for:from),end=AtmosphereBlend.amount(for:to)
             check(abs(blend.value(at:100)-start)<1e-10,"A new selection must retain the displayed density")
             var previous=start
             for frame in 1...180 {

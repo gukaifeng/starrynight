@@ -64,11 +64,9 @@ struct CharacterViewEditorPanel: View {
                 Text(AtmosphereBlend.levelNames[session.record.profile.resolvedAtmosphereLevel])
                     .font(.system(size:11)).foregroundStyle(Theme.accent)
             }
-            Slider(value:Binding(get:{Double(session.record.profile.resolvedAtmosphereLevel)},set:{value in
-                session.store.update(session.model.id) {$0.profile.atmosphereLevel=Int(value.rounded());$0.profile.atmosphereEnabled=value>0}
-            }),in:0...4,step:1)
-                .accessibilityLabel("氛围效果").accessibilityIdentifier("atmosphereLevelSlider")
-                .accessibilityValue(AtmosphereBlend.levelNames[session.record.profile.resolvedAtmosphereLevel])
+            AtmosphereLevelSlider(level:Binding(get:{session.record.profile.resolvedAtmosphereLevel},set:{value in
+                session.store.update(session.model.id) {$0.profile.atmosphereLevel=value;$0.profile.atmosphereEnabled=value>0}
+            })).frame(height:32)
             HStack {Text("关闭");Spacer();Text("绚烂")}.font(.system(size:10)).foregroundStyle(Theme.secondary)
         }.tint(Theme.accent)
     }

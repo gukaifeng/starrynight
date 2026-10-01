@@ -5,13 +5,15 @@ import Foundation
 /// No per-particle timers or per-frame mutations of the conversation store.
 struct AtmosphereBlend {
     static let levelNames = ["关闭","轻盈","适中","浓郁","绚烂"]
+    static let amounts = [0.0,0.25,0.5,1.0,1.5]
+    static func amount(for level:Int)->Double {amounts[min(4,max(0,level))]}
     static let settlingDuration = 1.5
     private(set) var target:Double
     private var origin:Double
     private var velocity = 0.0
     private var started = 0.0
     init(level:Int) {
-        target=Double(min(4,max(0,level)))*0.5;origin=target
+        target=Self.amount(for:level);origin=target
     }
     private func sample(at time:Double)->(value:Double,velocity:Double) {
         let t=max(0,time-started),omega=9.0
@@ -19,12 +21,12 @@ struct AtmosphereBlend {
         let offset=origin-target,b=velocity+omega*offset,decay=exp(-omega*t)
         let value=target+(offset+b*t)*decay
         if value<0 {return (0,0)}
-        if value>2 {return (2,0)}
+        if value>Self.amounts[4] {return (Self.amounts[4],0)}
         return (value,(b-omega*(offset+b*t))*decay)
     }
     func value(at time:Double)->Double {sample(at:time).value}
     mutating func retarget(level:Int,at time:Double) {
-        let next=Double(min(4,max(0,level)))*0.5
+        let next=Self.amount(for:level)
         guard next != target else {return}
         let current=sample(at:time)
         origin=current.value;velocity=current.velocity;started=time;target=next

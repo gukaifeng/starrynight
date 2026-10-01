@@ -31,7 +31,6 @@ struct CompanionChatView: View {
     @State private var bottomScrollTask: Task<Void,Never>?
     @Namespace private var chatViewport
     @State private var editing = false
-    @State private var smartRepliesPresented=false
     @State private var voiceMode=false
     @State private var voiceEditing=false
     @State private var voiceEditTarget=VoiceCaptureTouchTarget()
@@ -80,19 +79,20 @@ struct CompanionChatView: View {
         .foregroundStyle(Theme.ink).tint(Theme.accent).scrollIndicators(.hidden)
         .animation(interfaceAnimation,value:editing)
         .animation(interfaceAnimation,value:session.generating)
+        .animation(interfaceAnimation,value:session.quickReplyPanelPresented)
         .animation(.easeInOut(duration:reduceMotion ? 0.12 : 0.18),value:session.voiceInput.phase)
         .animation(interfaceAnimation,value:session.notice ?? session.store.error ?? session.speech.error)
         .task { await session.speech.check() }
         .onChange(of:session.store.chatDisplay) { onDisplayChanged?() }
-        .onChange(of:session.dismissKeyboardRequest) { editing = false;voiceEditing=false }
+        .onChange(of:session.dismissKeyboardRequest) { editing = false;voiceEditing=false;session.quickReplyPanelPresented=false }
         .onChange(of:session.voiceInput.phase) {
             if session.voiceInput.phase == .editing {voiceEditing=true}
             else if !session.voiceInput.active {voiceEditing=false}
         }
         .onChange(of:voiceEditing) {onEditingChanged?(voiceEditing)}
-        .onDisappear {if session.voiceInput.active {session.cancelVoiceInput()}}
+        .onDisappear {session.quickReplyPanelPresented=false;if session.voiceInput.active {session.cancelVoiceInput()}}
         .onChange(of:editing) {
-            if editing {smartRepliesPresented=false}
+            if editing {session.quickReplyPanelPresented=false}
             if editing && session.characterEditorPresented { editing = false }
             onEditingChanged?(editing)
         }
@@ -209,7 +209,7 @@ struct CompanionChatView: View {
     private func composer(compact:Bool) -> some View {
         HStack(alignment:.bottom,spacing:3) {
             Button {
-                editing=false;voiceEditing=false;smartRepliesPresented=false
+                editing=false;voiceEditing=false;session.quickReplyPanelPresented=false
                 if session.voiceInput.active {session.cancelVoiceInput()}
                 withAnimation(interfaceAnimation) {voiceMode.toggle()}
             } label: {
@@ -221,7 +221,7 @@ struct CompanionChatView: View {
             if voiceMode {
                 VoiceHoldSurface(title:voiceHoldTitle,active:session.voiceInput.phase == .holding,armed:session.voiceInput.editArmed || session.voiceInput.cancelArmed,
                     onBegin:{
-                        smartRepliesPresented=false
+                        session.quickReplyPanelPresented=false
                         return session.beginVoiceInput()
                     },onMove:{point in
                         let cancel=voiceCancelTarget.contains(point,armed:session.voiceInput.cancelArmed)
@@ -246,11 +246,11 @@ struct CompanionChatView: View {
             }
             Button {
                 editing=false
-                withAnimation(interfaceAnimation) {smartRepliesPresented.toggle()}
-                if smartRepliesPresented && session.quickReplies.isEmpty && !session.quickRepliesLoading {session.requestQuickReplies()}
+                withAnimation(interfaceAnimation) {session.quickReplyPanelPresented.toggle()}
+                if session.quickReplyPanelPresented && session.quickReplies.isEmpty && !session.quickRepliesLoading {session.requestQuickReplies()}
             } label: {
                 Image(systemName:"sparkles").font(.system(size:17,weight:.light))
-                    .foregroundStyle(Theme.gradient.opacity(smartRepliesPresented ? 1 : 0.66))
+                    .foregroundStyle(Theme.gradient.opacity(session.quickReplyPanelPresented ? 1 : 0.66))
                     .frame(width:42,height:44).contentShape(Rectangle())
             }.buttonStyle(.plain).disabled(session.voiceInput.active)
                 .accessibilityLabel("快捷回复").accessibilityIdentifier("smartReplyButton")
@@ -280,17 +280,17 @@ struct CompanionChatView: View {
                         .allowsHitTesting(session.voiceInput.active && session.voiceInput.phase != .holding)
                         .accessibilityHidden(!session.voiceInput.active)
                     }
-                    if smartRepliesPresented && !session.voiceInput.active {
-                        Color.clear.overlay(alignment:.bottom) {
+                    if session.quickReplyPanelPresented && !session.voiceInput.active {
+                        Color.clear.overlay(alignment:.bottomTrailing) {
                             smartRepliesPanel.frame(width:max(0,min(308,composer.size.width-64)))
-                                .fixedSize(horizontal:false,vertical:true)
+                                .fixedSize(horizontal:false,vertical:true).padding(.trailing,20)
                                 .offset(y:-composer.size.height-8)
                                 .transition(.opacity.combined(with:.offset(y:8)))
                         }
                     }
-                }.allowsHitTesting((session.voiceInput.active && session.voiceInput.phase != .holding) || (smartRepliesPresented && !session.voiceInput.active))
+                }.allowsHitTesting((session.voiceInput.active && session.voiceInput.phase != .holding) || (session.quickReplyPanelPresented && !session.voiceInput.active))
             }
-            .onChange(of:session.quickReplySource) {if session.quickReplySource==nil {smartRepliesPresented=false}}
+            .onChange(of:session.quickReplySource) {if session.quickReplySource==nil {session.quickReplyPanelPresented=false}}
 
     }
     private var smartRepliesPanel:some View {
@@ -298,7 +298,7 @@ struct CompanionChatView: View {
             HStack {
                 Text("快捷回复").font(.system(size:11,weight:.medium)).foregroundStyle(Theme.secondary)
                 Spacer()
-                Button {withAnimation(interfaceAnimation) {smartRepliesPresented=false}} label: {
+                Button {withAnimation(interfaceAnimation) {session.quickReplyPanelPresented=false}} label: {
                     Image(systemName:"xmark").font(.system(size:10,weight:.medium)).frame(width:28,height:28)
                 }.buttonStyle(.plain).accessibilityLabel("关闭快捷回复")
             }.padding(.leading,7)
@@ -311,7 +311,7 @@ struct CompanionChatView: View {
             }
             ForEach(Array(session.quickReplies.enumerated()),id:\.element.id) {index,option in
                 Button {
-                    withAnimation(interfaceAnimation) {smartRepliesPresented=false}
+                    withAnimation(interfaceAnimation) {session.quickReplyPanelPresented=false}
                     editing=false;session.clearMessageFocus();scrollState.returnToLatest();session.sendSuggested(option)
                 } label: {
                     HStack(spacing:10) {

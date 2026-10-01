@@ -10,6 +10,7 @@ final class CompanionSession {
     let api: CharacterAI
     var inspectionActive = false
     var dismissKeyboardRequest = 0
+    var quickReplyPanelPresented = false
     var characterEditorPresented = false { didSet { if !characterEditorPresented { refreshAddressPreferences(); deliverPendingGreeting() } } }
     var input = ""
     let voiceInput=VoiceInputDraft()

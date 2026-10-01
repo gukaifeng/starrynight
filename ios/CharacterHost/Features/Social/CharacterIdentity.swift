@@ -54,46 +54,74 @@ private struct AvatarVoiceRipples: View {
 
 @MainActor @Observable final class CharacterIdentityDiagnostics {var value:String?}
 
-struct CharacterConversationIdentity: View {
+struct CharacterConversationIdentity:View {
+    static func fittingWidth(for name:String)->CGFloat {CharacterIdentityCapsule.fittingWidth(for:name)}
+    let session:CompanionSession
+    let portraits:CharacterPortraitStore
+    let library:CharacterLibrary
+    let diagnostics:CharacterIdentityDiagnostics
+    var onDetails:()->Void
+    var body:some View {
+        CharacterIdentityCapsule(model:session.model,profile:session.record.profile,speaking:session.speech.isSpeaking,
+            portraits:portraits,library:library,diagnostics:diagnostics,onDetails:onDetails)
+            .frame(maxWidth:.infinity,maxHeight:.infinity,alignment:.leading)
+    }
+}
+
+struct CharacterIdentityCapsule: View {
     static func fittingWidth(for name:String) -> CGFloat {
         let text = (name as NSString).size(withAttributes:[.font:UIFont.systemFont(ofSize:13,weight:.medium)]).width
         return ceil(text + 24 + 7 + 8 + 7 + 46 + 0.5)
     }
-    let session: CompanionSession
+    let model:ModelDescriptor
+    let profile:CharacterProfile
+    var speaking=false
+    var interactive=true
     let portraits: CharacterPortraitStore
     let library:CharacterLibrary
-    let diagnostics:CharacterIdentityDiagnostics
-    var onDetails:()->Void
+    var diagnostics:CharacterIdentityDiagnostics? = nil
+    var onDetails:()->Void = {}
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
-    private var subscribed:Bool {library.subscriptions.contains(session.model.id)}
+    private var subscribed:Bool {library.subscriptions.contains(model.id)}
     var body: some View {
         HStack(spacing:0) {
-            Button(action:onDetails) {
-                HStack(spacing:7) {
-                    CharacterAvatar(model:session.model,profile:session.record.profile,portraits:portraits,
-                        size:24,floatingEnabled:false,speaking:session.speech.isSpeaking)
-                    Text(session.record.profile.name).font(.system(size:13,weight:.medium)).lineLimit(1)
-                        .foregroundStyle(Theme.ink.opacity(0.9)).minimumScaleFactor(0.85)
-                }.padding(.leading,8).padding(.trailing,7).frame(height:44).contentShape(Rectangle())
-            }.buttonStyle(.plain).accessibilityIdentifier("customizationButton")
-                .accessibilityLabel(session.record.profile.name+"，查看角色资料")
-                .accessibilityValue(diagnostics.value ?? "")
+            if interactive {
+                Button(action:onDetails) {identityLabel}
+                    .buttonStyle(.plain).accessibilityIdentifier("customizationButton")
+                    .accessibilityLabel(profile.name+"，查看角色资料")
+                    .accessibilityValue(diagnostics?.value ?? "")
+            } else {identityLabel}
             Rectangle().fill(Theme.ink.opacity(0.13)).frame(width:0.5,height:13)
             if subscribed {
                 Text("已订阅").font(.system(size:10)).foregroundStyle(Theme.ink.opacity(0.38))
                     .frame(width:46,height:44).accessibilityIdentifier("capsuleSubscribed")
             } else {
-                Button {library.subscribe(session.model.id,true)} label: {
-                    Text("+ 订阅").font(.system(size:11,weight:.medium)).foregroundStyle(Theme.accent.opacity(0.85))
-                        .frame(width:46,height:44).contentShape(Rectangle())
-                }.buttonStyle(.plain).accessibilityIdentifier("capsuleSubscribeButton")
-                    .accessibilityLabel("订阅"+session.record.profile.name)
+                if interactive {
+                    Button {library.subscribe(model.id,true)} label: {subscribeLabel}
+                        .buttonStyle(.plain).accessibilityIdentifier("capsuleSubscribeButton")
+                        .accessibilityLabel("订阅"+profile.name)
+                } else {subscribeLabel}
             }
         }.background { Capsule().fill(Theme.surface.opacity(reduceTransparency ? 1 : Theme.controlOpacity)).frame(height:36) }
             .overlay(Capsule().stroke(LinearGradient(colors:[.white.opacity(0.16),.white.opacity(0.035)],
                 startPoint:.topLeading,endPoint:.bottomTrailing),lineWidth:0.5).frame(height:36).allowsHitTesting(false))
             .shadow(color:.black.opacity(0.12),radius:7,y:3)
-            .frame(maxWidth:.infinity,maxHeight:.infinity,alignment:.leading)
+            .allowsHitTesting(interactive)
+            .accessibilityElement(children:interactive ? .contain : .ignore)
+            .accessibilityLabel(interactive ? "" : profile.name+"，正在准备会话")
+            .accessibilityIdentifier(interactive ? "conversationIdentityCapsule" : "preparingIdentityCapsule")
+    }
+    private var identityLabel:some View {
+        HStack(spacing:7) {
+            CharacterAvatar(model:model,profile:profile,portraits:portraits,
+                size:24,floatingEnabled:false,speaking:speaking)
+            Text(profile.name).font(.system(size:13,weight:.medium)).lineLimit(1)
+                .foregroundStyle(Theme.ink.opacity(0.9)).minimumScaleFactor(0.85)
+        }.padding(.leading,8).padding(.trailing,7).frame(height:44).contentShape(Rectangle())
+    }
+    private var subscribeLabel:some View {
+        Text("+ 订阅").font(.system(size:11,weight:.medium)).foregroundStyle(Theme.accent.opacity(0.85))
+            .frame(width:46,height:44).contentShape(Rectangle())
     }
 }
 
