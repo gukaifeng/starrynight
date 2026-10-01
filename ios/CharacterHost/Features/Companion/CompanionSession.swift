@@ -11,6 +11,16 @@ final class CompanionSession {
     var inspectionActive = false
     var dismissKeyboardRequest = 0
     var quickReplyPanelPresented = false
+    var atmospherePreviewIntensity:Double?
+    var atmosphereIntensity:Double {atmospherePreviewIntensity ?? record.profile.resolvedAtmosphereIntensity}
+    func commitAtmosphereIntensity() {
+        guard let value=atmospherePreviewIntensity else {return}
+        defer {atmospherePreviewIntensity=nil}
+        guard store.accountID==ownerID else {return}
+        let clean=AtmosphereBlend.normalized(value)
+        guard record.profile.atmosphereIntensity != clean else {return}
+        store.update(model.id) {$0.profile.atmosphereIntensity=clean;$0.profile.atmosphereEnabled=clean>0}
+    }
     var characterEditorPresented = false { didSet { if !characterEditorPresented { refreshAddressPreferences(); deliverPendingGreeting() } } }
     var input = ""
     let voiceInput=VoiceInputDraft()

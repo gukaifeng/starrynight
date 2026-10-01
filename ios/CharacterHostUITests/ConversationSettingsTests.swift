@@ -13,6 +13,30 @@ extension XCUIApplication {
 }
 
 final class ConversationSettingsTests:XCTestCase {
+    @MainActor func testOutsideTapClosesEverySectionWithoutStealingAdjustment() {
+        continueAfterFailure=false;XCUIDevice.shared.orientation = .portrait
+        let app=XCUIApplication();app.launchArguments=["--ui-testing","--companion-testing","--auth-testing"]
+        app.launch();defer {app.terminate()}
+        XCTAssertTrue(app.buttons["customizationButton"].waitForExistence(timeout:60))
+        app.waitForCharacter {$0["nativeHoldAvailable"] as? Bool == true}
+        for section in ["position","sound","atmosphere"] {
+            app.openConversationSettings(section)
+            let panel=app.otherElements["conversationSettingsPanel"]
+            XCTAssertTrue(panel.waitForExistence(timeout:5))
+            if section == "position" {
+                let start=app.coordinate(withNormalizedOffset:CGVector(dx:0.25,dy:0.29))
+                start.press(forDuration:0.1,thenDragTo:start.withOffset(CGVector(dx:70,dy:5)),withVelocity:.slow,thenHoldForDuration:0.1)
+                XCTAssertTrue(app.buttons["closeCharacterViewEditor"].exists,"Dragging must keep the settings open")
+                app.buttons["resetCharacterView"].tap()
+            }
+            // Touches within the tab/content region never close the panel.
+            app.buttons["conversationSetting-"+section].tap()
+            XCTAssertTrue(app.buttons["closeCharacterViewEditor"].exists)
+            app.coordinate(withNormalizedOffset:CGVector(dx:0.08,dy:0.30)).tap()
+            app.waitForCharacter {$0["viewEditorOpen"] as? Bool == false && $0["inspectionChatLocked"] as? Bool == false}
+            XCTAssertTrue(app.textViews["chatInput"].isHittable)
+        }
+    }
     @MainActor func testSlidersNeverTransformCharacterAndSettingsFitRotations() {
         continueAfterFailure=false;XCUIDevice.shared.orientation = .portrait
         let app=XCUIApplication();app.launchArguments=["--ui-testing","--companion-testing","--auth-testing"]
@@ -41,7 +65,7 @@ final class ConversationSettingsTests:XCTestCase {
                     XCTAssertTrue(slider.isHittable);slider.adjust(toNormalizedSliderPosition:0)
                     XCTAssertEqual(slider.value as? String,"关闭")
                     slider.adjust(toNormalizedSliderPosition:1)
-                    XCTAssertEqual(slider.value as? String,"绚烂")
+                    XCTAssertEqual(slider.value as? String,"100%")
                 } else {XCTAssertTrue(app.buttons["resetCharacterView"].isHittable)}
                 let saved=app.characterRuntime["viewPoseSaved"] as? [String:Double] ?? [:]
                 XCTAssertEqual(initial,saved,"Changing tabs and sliders must never rotate, scale or move the character")

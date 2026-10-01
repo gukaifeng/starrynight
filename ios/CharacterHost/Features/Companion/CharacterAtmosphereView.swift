@@ -32,7 +32,7 @@ struct CharacterAtmosphereView:View {
     private var recipe:CharacterAtmosphere? {CharacterAtmosphere.all.first {$0.id==session.model.runtimeID}}
     init(session:CompanionSession,activity:AtmosphereActivity) {
         self.session=session;self.activity=activity
-        _blend=State(initialValue:AtmosphereBlend(level:session.record.profile.resolvedAtmosphereLevel))
+        _blend=State(initialValue:AtmosphereBlend(intensity:session.atmosphereIntensity))
     }
     var body:some View {
         if let recipe {
@@ -43,10 +43,10 @@ struct CharacterAtmosphereView:View {
                     draw(context:context,size:size,time:reduceMotion ? 12 : now,recipe:recipe,amount:blend.value(at:now))
                 }
             }.allowsHitTesting(false).accessibilityHidden(true)
-                .onChange(of:session.record.profile.resolvedAtmosphereLevel) {_,level in
-                    blend.retarget(level:level,at:Date.timeIntervalSinceReferenceDate);settled=false
+                .onChange(of:session.atmosphereIntensity) {_,intensity in
+                    blend.retarget(intensity:intensity,at:Date.timeIntervalSinceReferenceDate);settled=false
                 }
-                .task(id:session.record.profile.resolvedAtmosphereLevel) {
+                .task(id:session.atmosphereIntensity) {
                     // SwiftUI cancels this single settling task on retarget/disappear.
                     do {try await Task.sleep(for:.seconds(AtmosphereBlend.settlingDuration))}
                     catch {return}

@@ -155,7 +155,7 @@ final class VoiceAtmosphereTests:XCTestCase {
         wait {app.frame.height>app.frame.width}
         app.openConversationSettings("atmosphere")
         let effects=app.sliders["atmosphereLevelSlider"]
-        XCTAssertTrue(effects.waitForExistence(timeout:5));XCTAssertEqual(effects.value as? String,"适中")
+        XCTAssertTrue(effects.waitForExistence(timeout:5));XCTAssertEqual(effects.value as? String,"50%")
         effects.adjust(toNormalizedSliderPosition:0);XCTAssertEqual(effects.value as? String,"关闭")
         app.buttons["closeCharacterViewEditor"].tap()
         for role in ["anime-mamehinata","anime-chiffon","anime-karin","anime-kipfel"] {

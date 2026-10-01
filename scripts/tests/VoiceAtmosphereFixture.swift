@@ -98,6 +98,15 @@ enum VoiceAtmosphereChecks {
         check(levelRestored.resolvedAtmosphereLevel==4,"Explicit level overrides legacy disabled state and persists")
         check(ModelDescriptor.defaultCharacter.conversationProfile(preserving:levelRestored).resolvedAtmosphereLevel==4,"Reopening retains character-specific atmosphere level")
         check(failed.record("another-role").profile.resolvedAtmosphereLevel==2,"One character cannot change another's atmosphere")
+        check(recovered.record("role").profile.resolvedAtmosphereIntensity==0,"Legacy off remains fully off")
+        check(levelRestored.resolvedAtmosphereIntensity==1,"Legacy highest maps to the continuous maximum")
+        check(CharacterProfile(name:"默认").resolvedAtmosphereIntensity==0.5,"New profiles retain their previous middle density")
+        failed.update("role") {$0.profile.atmosphereIntensity=0.373}
+        await CompanionPersistence.flush()
+        let continuousRestored=CompanionStore(storageURL:failed.url,arguments:[]).record("role").profile
+        check(continuousRestored.resolvedAtmosphereIntensity==0.373,"Fractional intensity survives disk roundtrip without snapping")
+        check(ModelDescriptor.defaultCharacter.conversationProfile(preserving:continuousRestored).resolvedAtmosphereIntensity==0.373,"Reopening retains the exact per-character intensity")
+        check(failed.record("another-role").profile.resolvedAtmosphereIntensity==0.5,"Continuous intensity remains isolated per character")
         do {
             let library=try CharacterLibraryTests.run()
             return "PASS: \(checks) voice lifecycle, motion gating and asynchronous journal checks; "+library

@@ -1,8 +1,8 @@
 import SwiftUI
 
-/// A rightward drag makes room for inline actions at the trailing edge.
+/// A leftward drag makes room for inline actions at the trailing edge.
 /// The buttons share the row's layout; they are never underneath its content.
-/// Vertical/leftward drags do not reveal actions, and confirmation owns the
+/// Vertical/rightward drags do not reveal actions, and confirmation owns the
 /// expanded state until it finishes.
 struct ConversationSwipeRow<Content:View>:View {
     let id:String
@@ -57,17 +57,17 @@ struct ConversationSwipeRow<Content:View>:View {
                 guard !locked else {return}
                 ignoreTapUntil=Date().addingTimeInterval(0.3)
                 if axis==0 {
-                    guard value.translation.width>abs(value.translation.height)*1.2 else {axis=2;return}
+                    guard -value.translation.width>abs(value.translation.height)*1.2 else {axis=2;return}
                     axis=1;origin=reveal;dragging=origin
                     withAnimation(motion) {revealedID=id}
                 }
                 guard axis==1 else {return}
-                dragging=min(revealWidth,max(0,origin+value.translation.width))
+                dragging=min(revealWidth,max(0,origin-value.translation.width))
             }.onEnded {value in
                 defer {axis=0}
                 ignoreTapUntil=Date().addingTimeInterval(0.3)
                 guard axis==1,!locked else {return}
-                let current=reveal,predicted=origin+value.predictedEndTranslation.width
+                let current=reveal,predicted=origin-value.predictedEndTranslation.width
                 withAnimation(motion) {
                     revealedID=current>revealWidth*0.35 || (predicted>revealWidth*0.65 && current>0) ? id : nil
                     dragging=nil

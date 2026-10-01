@@ -46,6 +46,7 @@ struct ModelDescriptor: Identifiable, Decodable, Sendable {
         value.audio = personal?.audio ?? CharacterAudioPreferences(trackID:collection.defaultMusic)
         value.atmosphereEnabled = personal?.atmosphereEnabled
         value.atmosphereLevel = personal?.atmosphereLevel
+        value.atmosphereIntensity = personal?.atmosphereIntensity
         return collection.normalize(value)
     }
     var name: String { display.name }

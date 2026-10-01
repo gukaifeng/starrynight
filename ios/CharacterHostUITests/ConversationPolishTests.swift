@@ -37,7 +37,7 @@ final class ConversationPolishTests:XCTestCase {
         app.buttons["customizationButton"].tap()
         XCTAssertTrue(app.buttons["closeCharacterDetails"].waitForExistence(timeout:5))
     }
-    @MainActor func testReplyRightAlignmentBlankDismissAndAtmosphereDetents() {
+    @MainActor func testReplyRightAlignmentBlankDismissAndContinuousAtmosphere() {
         continueAfterFailure=false;XCUIDevice.shared.orientation = .portrait
         let app=XCUIApplication()
         app.launchArguments=["--ui-testing","--companion-testing","--auth-testing","--smart-reply-layout-fixture"]
@@ -69,20 +69,23 @@ final class ConversationPolishTests:XCTestCase {
         app.openConversationSettings("atmosphere")
         let slider=app.sliders["atmosphereLevelSlider"]
         XCTAssertTrue(slider.waitForExistence(timeout:5))
-        for (value,name) in [(0.0,"关闭"),(0.25,"轻盈"),(0.5,"适中"),(0.75,"浓郁"),(1.0,"绚烂")] {
+        for value in [0.0,0.25,0.5,0.75,1.0] {
             slider.adjust(toNormalizedSliderPosition:value)
-            wait {slider.value as? String == name}
+            // Apple's native adjustment is best-effort, not exact: the iOS 26
+            // thumb drag can land several percent from the requested target.
+            wait {abs(self.intensity(of:slider)-value)<(value==0 || value==1 ? 0.01 : 0.09)}
         }
-        // Taps between stops must choose a marked stop during the interaction.
-        slider.coordinate(withNormalizedOffset:CGVector(dx:0.32,dy:0.5)).tap()
-        wait {slider.value as? String == "轻盈"}
-        capture("marked-discrete-atmosphere-thumb")
-        slider.adjust(toNormalizedSliderPosition:0.5)
+        slider.adjust(toNormalizedSliderPosition:0.37)
+        wait {abs(self.intensity(of:slider)-0.37)<0.09}
+        let actual=self.intensity(of:slider)
+        XCTAssertGreaterThan(abs(actual*4-(actual*4).rounded()),0.04,"Intermediate values must not snap to an old detent")
+        let saved=slider.value as? String
+        capture("continuous-atmosphere-thumb")
         app.buttons["closeCharacterViewEditor"].tap()
         app.openConversationSettings("atmosphere")
-        XCTAssertEqual(slider.value as? String,"适中")
+        XCTAssertEqual(slider.value as? String,saved)
     }
-    @MainActor func testRightSwipeInlineActionsAndDeletionConfirmation() {
+    @MainActor func testLeftSwipeInlineActionsAndDeletionConfirmation() {
         continueAfterFailure=false;XCUIDevice.shared.orientation = .portrait
         let app=XCUIApplication();app.launchArguments=["--ui-testing","--companion-testing","--auth-testing"]
         app.launch();defer {app.terminate()}
@@ -90,10 +93,10 @@ final class ConversationPolishTests:XCTestCase {
         app.buttons["tab-messages"].tap()
         let row=app.buttons["message-anime-kipfel"],remove=app.buttons["deleteConversation-anime-kipfel"]
         XCTAssertTrue(row.waitForExistence(timeout:6));let initial=row.frame
-        row.swipeLeft()
-        XCTAssertFalse(remove.exists,"Leftward swipes never reveal conversation actions")
-        XCTAssertEqual(row.frame,initial)
         row.swipeRight()
+        XCTAssertFalse(remove.exists,"Rightward swipes never reveal conversation actions")
+        XCTAssertEqual(row.frame,initial)
+        row.swipeLeft()
         XCTAssertTrue(remove.waitForExistence(timeout:5));XCTAssertTrue(remove.isHittable)
         let hide=app.buttons["hideConversation-anime-kipfel"]
         XCTAssertGreaterThanOrEqual(hide.frame.minX,row.frame.maxX)
@@ -102,7 +105,7 @@ final class ConversationPolishTests:XCTestCase {
         XCTAssertEqual(row.frame.minX,initial.minX,accuracy:1)
         let redPoint=CGPoint(x:remove.frame.minX+9,y:remove.frame.minY+9)
         assertRed(at:redPoint,app:app)
-        capture("right-swipe-inline-actions")
+        capture("left-swipe-inline-actions")
         remove.tap()
         XCTAssertTrue(app.alerts["删除对话和记忆？"].waitForExistence(timeout:5))
         assertRed(at:redPoint,app:app)
@@ -110,7 +113,7 @@ final class ConversationPolishTests:XCTestCase {
         app.alerts.buttons["取消"].firstMatch.tap()
         wait {!remove.exists && abs(row.frame.width-initial.width)<1}
         XCTAssertTrue(row.exists)
-        row.swipeRight()
+        row.swipeLeft()
         app.buttons["hideConversation-anime-kipfel"].tap()
         XCTAssertTrue(app.buttons["undoHideConversation"].waitForExistence(timeout:5))
         XCTAssertFalse(row.exists)
@@ -151,6 +154,11 @@ final class ConversationPolishTests:XCTestCase {
     @MainActor private func wait(_ predicate:@escaping ()->Bool) {
         let check=XCTNSPredicateExpectation(predicate:NSPredicate {_,_ in MainActor.assumeIsolated {predicate()}},object:nil)
         XCTAssertEqual(XCTWaiter.wait(for:[check],timeout:7),.completed)
+    }
+    @MainActor private func intensity(of slider:XCUIElement)->Double {
+        let text=slider.value as? String ?? ""
+        if text=="关闭" {return 0}
+        return (Double(text.replacingOccurrences(of:"%",with:"")) ?? -100)/100
     }
     @MainActor private func capture(_ name:String) {
         let shot=XCTAttachment(screenshot:XCUIScreen.main.screenshot());shot.name=name;shot.lifetime = .keepAlways;add(shot)

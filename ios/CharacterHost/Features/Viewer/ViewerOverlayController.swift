@@ -458,6 +458,7 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
             values["sound"] = try? JSONSerialization.jsonObject(with:evidence)
         }
         values["atmosphereLevel"] = chatSession?.record.profile.resolvedAtmosphereLevel
+        values["atmosphereIntensity"] = chatSession?.atmosphereIntensity
         values["positionAnimationSamples"] = positionAnimationSamples
         values["viewPoseSaved"] = chatSession?.record.lastViewPose.payload
         if let host=viewEditorHost {
@@ -834,6 +835,16 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
     }
     func gestureRecognizer(_ gestureRecognizer:UIGestureRecognizer,shouldReceive touch:UITouch) -> Bool {
         guard gestureRecognizer === dismissChatKeyboardTap else { return true }
+        if viewEditor.isOpen {
+            guard gestureInputAvailable,presentedViewController==nil else {return false}
+            let point=touch.location(in:view)
+            for excluded in [viewEditorHost?.view,positionButton,dockHost?.view].compactMap({$0}) where !excluded.isHidden && excluded.alpha>0.01 {
+                if excluded.bounds.contains(excluded.convert(point,from:view)) {return false}
+            }
+            // Only a completed tap dismisses. Panning or pinching outside the
+            // panel remains the live model adjustment gesture.
+            return true
+        }
         let keyboardVisible=chatEditing || keyboardFrame != nil
         guard let session=chatSession,(keyboardVisible || session.quickReplyPanelPresented),
               !viewEditor.isOpen,gestureInputAvailable,presentedViewController == nil else {return false}
@@ -872,6 +883,7 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
     }
     @objc private func dismissChatKeyboardFromBlankTap(_ recognizer:UITapGestureRecognizer) {
         guard recognizer.state == .ended else {return}
+        if viewEditor.isOpen {closeViewEditor();return}
         chatSession?.quickReplyPanelPresented=false
         if chatEditing {chatSession?.dismissKeyboardRequest += 1;view.endEditing(true)}
     }

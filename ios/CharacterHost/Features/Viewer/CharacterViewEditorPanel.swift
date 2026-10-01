@@ -9,6 +9,7 @@ struct CharacterViewEditorPanel: View {
     var onReset:()->Void
     @Environment(\.accessibilityReduceTransparency) private var opaque
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.scenePhase) private var scenePhase
     var body: some View {
         VStack(alignment:.leading,spacing:0) {
             HStack(spacing:2) {
@@ -61,14 +62,14 @@ struct CharacterViewEditorPanel: View {
             HStack {
                 Text("氛围效果").font(.system(size:12,weight:.medium))
                 Spacer()
-                Text(AtmosphereBlend.levelNames[session.record.profile.resolvedAtmosphereLevel])
+                Text(session.atmosphereIntensity<=0 ? "关闭" : "\(Int((session.atmosphereIntensity*100).rounded()))%")
                     .font(.system(size:11)).foregroundStyle(Theme.accent)
             }
-            AtmosphereLevelSlider(level:Binding(get:{session.record.profile.resolvedAtmosphereLevel},set:{value in
-                session.store.update(session.model.id) {$0.profile.atmosphereLevel=value;$0.profile.atmosphereEnabled=value>0}
-            })).frame(height:38)
+            AtmosphereLevelSlider(intensity:Binding(get:{session.atmosphereIntensity},set:{session.atmospherePreviewIntensity=$0}),
+                onCommit:session.commitAtmosphereIntensity).frame(height:32)
             HStack {Text("关闭");Spacer();Text("绚烂")}.font(.system(size:10)).foregroundStyle(Theme.secondary)
-        }.tint(Theme.accent)
+        }.tint(Theme.accent).onDisappear {session.commitAtmosphereIntensity()}
+            .onChange(of:scenePhase) {if scenePhase != .active {session.commitAtmosphereIntensity()}}
     }
 }
 private struct CharacterViewGlass:ViewModifier {

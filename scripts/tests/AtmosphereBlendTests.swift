@@ -7,6 +7,23 @@ import Foundation
         check(AtmosphereBlend.amount(for:2)==0.5,"New medium equals previous light")
         check(AtmosphereBlend.amount(for:1)==0.25,"New light halves the previous light")
         check(AtmosphereBlend.amount(for:3)==1 && AtmosphereBlend.amount(for:4)==1.5,"Former strongest level is removed")
+        for level in 0...4 {
+            check(AtmosphereBlend.amount(forIntensity:Double(level)/4)==AtmosphereBlend.amount(for:level),"Legacy density remains unchanged")
+        }
+        for step in 1...1000 {
+            let value=Double(step)/1000,previous=Double(step-1)/1000
+            check(AtmosphereBlend.amount(forIntensity:value)>AtmosphereBlend.amount(forIntensity:previous),"No discrete plateaus")
+        }
+        var continuous=AtmosphereBlend(intensity:0.37)
+        for frame in 1...360 {
+            let now=100+Double(frame)/120,intensity=0.5+sin(Double(frame)/41)*0.5
+            let before=continuous.value(at:now)
+            continuous.retarget(intensity:intensity,at:now)
+            check(abs(continuous.value(at:now)-before)<1e-10,"Continuous dragging must never jump")
+            check((0...1.5).contains(continuous.value(at:now+0.001)),"Continuous density stays bounded")
+        }
+        continuous.retarget(intensity:0,at:104)
+        check(continuous.value(at:106)==0,"Continuous slider fully turns off")
         for from in 0...4 {for to in 0...4 {
             var blend=AtmosphereBlend(level:from)
             blend.retarget(level:to,at:100)
@@ -38,6 +55,6 @@ import Foundation
             let boundary=Double(index)+4
             check(abs(AtmosphereBlend.visibility(index:index,count:boundary+0.00001)-AtmosphereBlend.visibility(index:index,count:boundary-0.00001))<0.00001,"No particle pops at count boundaries")
         }
-        print("Atmosphere blend PASS: \(assertions) assertions; 25 level pairs, 120 Hz sampling, continuous retarget and particle fade")
+        print("Atmosphere blend PASS: \(assertions) assertions; legacy migration, continuous density and drag retarget, particle fade")
     }
 }

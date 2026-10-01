@@ -17,7 +17,12 @@ struct CharacterProfile: Codable, Equatable, Sendable {
     var audio: CharacterAudioPreferences? = nil
     var atmosphereEnabled:Bool? = nil // Legacy on/off is read until a level is chosen.
     var atmosphereLevel:Int? = nil
+    var atmosphereIntensity:Double? = nil
     var resolvedAtmosphereLevel:Int {min(4,max(0,atmosphereLevel ?? (atmosphereEnabled == false ? 0 : 2)))}
+    var resolvedAtmosphereIntensity:Double {
+        let value=atmosphereIntensity ?? Double(resolvedAtmosphereLevel)/4
+        return value.isFinite ? min(1,max(0,value)) : 0.5
+    }
     var framing: CharacterFraming? = nil
     var studio: CharacterStudio? = nil
     var resolvedStudio: CharacterStudio { (studio ?? .recommended).normalized }
@@ -34,6 +39,7 @@ struct CharacterProfile: Codable, Equatable, Sendable {
         if name.isEmpty { name = "伙伴" }
         background = String(background.prefix(500))
         voiceSpeed = voiceSpeed.isFinite ? min(1.4,max(0.7,voiceSpeed)) : 1
+        if atmosphereIntensity != nil {atmosphereIntensity=resolvedAtmosphereIntensity}
         if framing != nil { framing = resolvedFraming }
         if studio != nil { studio = resolvedStudio }
     }
