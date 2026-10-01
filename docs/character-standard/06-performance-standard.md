@@ -65,6 +65,15 @@ v2 分组顺序决定动画层顺序，跨组共享骨骼时必须审查混合�
 |---|---|---|
 | `performance.select` | `performance.options.id` | toggle：≥0.5 开、<0.5 关；非 toggle：选择／重播 |
 | `performance.reset` | 空字符串或分组 ID | 不使用；恢复该组或全部作者默认 |
+| `performance.replace` | 必填分组 ID | 不使用；`selections` 为该组完整选中 ID 数组，空数组恢复默认并关闭旧式独立 toggle |
+
+`performance.replace` 是 0.83.2 的增量事件，用于 AI 同组表演替换及恢复用户原选项。运行时先验证全部 ID 属于该组，再一次提交参数，下一次 Animator 采样前不暴露中间默认帧；无效 ID 返回 `PERFORMANCE_SELECTION_INVALID` 且不改变任何选择。旧 `select/reset` 仍可用于开发者面板；配套旧运行时不认识此事件时应保留基础聊天，不能假称已经执行。示例内层信号：
+
+```json
+{"apiMajor":1,"apiMinor":1,"actorId":"anime-ichigo","sequence":13,"eventId":"cue-13","eventName":"performance.replace","target":"menu-5a963eacb2279abe","selections":["gesture-left-3"]}
+```
+
+原生宿主在 AI 接管每组前记录用户完整选择，后续 cue 替换上一个 cue，结束后发送原快照一次性恢复。这样不同手的手势表情不会因旧手参数残留而互相遮盖。
 
 ```json
 {"schemaVersion":1,"kind":"command","name":"character.signal","presentationId":8,"requestId":"performance-12","payload":{"signal":{"apiMajor":1,"apiMinor":1,"actorId":"anime-kipfel","sequence":12,"eventId":"performance-event-12","turnId":"","eventName":"performance.select","target":"outfit-glasses","intensity":1}}}
@@ -87,6 +96,10 @@ v2 分组顺序决定动画层顺序，跨组共享骨骼时必须审查混合�
 本能力负责表现，不改变相机取景。坐姿、躺姿等可能离开当前近景；完整身体展示应由独立产品设计决定，不能让每次开面板隐式缩放模型。
 
 ## 制作与验证
+
+Portable Animator 的宿主适配（0.83.2）：底层 Idle 明确持有导入时的真实 morph 默认值；FX 中缺失的 SDK 中性手势代理使用不含身体曲线的空 FX，而不是全身站姿。含这类中性代理、且供 AI 使用的表情层，进入/退出时以平滑权重释放下层；源数据不变。AI 白名单参数驱动的 Gesture/FX 非定时过渡设置至少 0.32 秒，保留原作更长过渡、exit time、服装逻辑与其他未授权自动控制。材质贴图和物件开关仍是离散属性，不能把时长调整宣称为所有特效都可插值。
+
+可见的参数复位不调用 `Animator.Rebind()`；该 API 仅用于初始绑定和离线重置。正常 reset/replace 等待引擎下一帧求值，避免在“先默认、再恢复用户选择”之间采样一帧。
 
 来源动作应在自己的有效 Avatar 上离线采样；该角色生成的 Transform 曲线才能进入自己的 GLB。Morph 曲线既要保留形状变化，也要保留时间、循环和复位语义。特别核对静态手势、连续耳尾、动态脸部、上装遮挡形变及默认隐藏配件。
 

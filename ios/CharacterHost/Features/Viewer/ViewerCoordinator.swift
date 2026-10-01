@@ -444,7 +444,8 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
                 aiVisualBaseline[group] = characterPerformance.selections.intersection(Set(profile.options.filter { $0.group == group }.map(\.id)))
             }
             aiVisualTasks[group]?.cancel()
-            signal(CharacterIntent(eventName:"performance.select",target:option.id,intensity:visual.active == false ? 0 : 1))
+            signal(CharacterIntent(eventName:"performance.replace",target:group,
+                selections:visual.active == false ? (aiVisualBaseline[group] ?? []).sorted() : [option.id]))
             if visual.active != false, characterPerformance.hostMotionSupported, HostEmotionMotionPreference.enabled {
                 signal(CharacterIntent(eventName:"host.motion.cue",target:option.id))
             }
@@ -458,12 +459,7 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
     private func restoreAIGroup(_ group: String) {
         guard let original = aiVisualBaseline.removeValue(forKey:group) else { return }
         aiVisualTasks.removeValue(forKey:group)
-        signal(CharacterIntent(eventName:"performance.reset",target:group))
-        for option in selectedModel.performance?.restoring(group,baseline:original) ?? [] {
-            // Portable enum choices share a parameter. Writing every unselected
-            // choice as OFF would overwrite the restored selected expression.
-            signal(CharacterIntent(eventName:"performance.select",target:option.id,intensity:original.contains(option.id) ? 1 : 0))
-        }
+        signal(CharacterIntent(eventName:"performance.replace",target:group,selections:original.sorted()))
     }
     private func endAIVisuals() {
         aiVisualSequences.values.forEach { $0.cancel() };aiVisualSequences.removeAll()

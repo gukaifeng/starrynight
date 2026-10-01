@@ -28,14 +28,6 @@ struct CharacterPerformanceProfile: Decodable, Sendable {
     let groups: [Group]
     let options: [Option]
 
-    func restoring(_ group: String, baseline: Set<String>) -> [Option] {
-        options.filter { option in
-            guard option.group == group else { return false }
-            let sharedControl = !(option.control?.id.isEmpty ?? true)
-            return baseline.contains(option.id) || (option.isToggle && !sharedControl)
-        }
-    }
-
     func isDefault(group: String, selections: Set<String>) -> Bool {
         let choices = options.filter { $0.group == group }
         let actual = selections.intersection(Set(choices.map(\.id)))

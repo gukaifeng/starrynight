@@ -108,9 +108,10 @@ namespace ModelSpace
                     return Finish(receipt);
                 case "expression.request": Queue(new CharacterCue { channel="expression",target=s.target,fallback="neutral",duration=2 },50,s,now,receipt); break;
                 case "effect.request": Queue(new CharacterCue { channel="effect",target=s.target,duration=2 },50,s,now,receipt); break;
-                case "performance.select": case "performance.reset":
+                case "performance.select": case "performance.reset": case "performance.replace":
                     receipt.channel="performance";receipt.target=s.target;
-                    string performanceError=s.eventName=="performance.select" ? performance.Select(s.target,s.intensity) : performance.Reset(s.target);
+                    string performanceError=s.eventName=="performance.select" ? performance.Select(s.target,s.intensity) :
+                        s.eventName=="performance.replace" ? performance.Replace(s.target,s.selections) : performance.Reset(s.target);
                     if(performanceError!=null) {receipt.status="rejected";receipt.code=performanceError;}
                     else receipt.executed++;
                     return Finish(receipt);

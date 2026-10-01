@@ -37,6 +37,16 @@
       "type": "string",
       "maxLength": 96
     },
+    "selections": {
+      "description": "Complete selected option IDs for performance.replace; target identifies their group.",
+      "type": "array",
+      "maxItems": 256,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 128
+      }
+    },
     "intensity": {
       "type": "number",
       "minimum": 0,

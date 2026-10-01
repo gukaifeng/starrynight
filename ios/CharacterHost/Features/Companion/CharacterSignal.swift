@@ -11,6 +11,7 @@ struct CharacterIntent {
     var audioTime = 0.0
     var level = 0.0
     var posture: [String:Any]? = nil
+    var selections: [String]? = nil
 }
 @MainActor final class CharacterSignalPort {
     private var sequence = 0
@@ -21,6 +22,7 @@ struct CharacterIntent {
                 "turnId":intent.turnId,"eventName":intent.eventName,"emotion":intent.emotion,"target":intent.target,
                 "intensity":min(1,max(0,intent.intensity)),"audioTime":intent.audioTime,"level":min(1,max(0,intent.level)),"visemes":[]]
         if let posture = intent.posture { result["posture"] = posture }
+        if let selections = intent.selections { result["selections"] = selections }
         return result
     }
 }

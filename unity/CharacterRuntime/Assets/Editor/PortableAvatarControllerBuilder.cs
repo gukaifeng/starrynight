@@ -44,6 +44,10 @@ public static class PortableAvatarControllerBuilder
         var data=JsonUtility.FromJson<Data>(File.ReadAllText(path));
         if(data.schemaVersion!=1 || data.controllers.Length>8 || data.controls.Length>2048)throw new Exception("AVATAR_CONTROL_SCHEMA_INVALID");
         var root=character.transform.Find("Avatar");if(!root)throw new Exception("AVATAR_CONTROL_ROOT_MISSING");
+        var manifest=JsonUtility.FromJson<CharacterManifest>(File.ReadAllText(folder+"/character.json"));
+        var automaticControls=new HashSet<string>((manifest.performance?.options ?? Array.Empty<CharacterPerformanceOption>())
+            .Where(o=>o.ai?.automatic==true && !string.IsNullOrEmpty(o.control?.id)).Select(o=>o.control.id));
+        var conversationalParameters=new HashSet<string>(data.controls.Where(c=>automaticControls.Contains(c.id)).Select(c=>c.parameter));
         var geometry=JsonUtility.FromJson<Geometry>(File.ReadAllText(folder+"/avatar-geometry.json"));
         foreach(var n in geometry.nodes) {var t=string.IsNullOrEmpty(n.path)?root:root.Find(n.path);if(t)t.gameObject.SetActive(n.active);}
         foreach(var s in geometry.skins) {var t=root.Find(s.path);if(t && t.TryGetComponent<Renderer>(out var renderer))renderer.enabled=s.enabled;}
@@ -66,6 +70,16 @@ public static class PortableAvatarControllerBuilder
             if(!binding.path.StartsWith("Avatar/",StringComparison.Ordinal))continue;
             var target=binding;target.path=target.path.Substring(7);AnimationUtility.SetEditorCurve(baseline,target,AnimationUtility.GetEditorCurve(idle,binding));
         }
+        // An unbound morph otherwise retains the last blended frame when a
+        // write-defaults state relinquishes it. Anchor to the imported neutral
+        // weights in the bottom layer, below every authored expression.
+        foreach(var skin in root.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+            for(int index=0;index<skin.sharedMesh.blendShapeCount;index++)
+                AnimationUtility.SetEditorCurve(baseline,EditorCurveBinding.FloatCurve(
+                    AnimationUtility.CalculateTransformPath(skin.transform,root),typeof(SkinnedMeshRenderer),
+                    "blendShape."+skin.sharedMesh.GetBlendShapeName(index)),
+                    AnimationCurve.Constant(0,1,skin.GetBlendShapeWeight(index)));
+        var neutralFX=Own(new AnimationClip {name="Host neutral FX passthrough",legacy=false});
         var baseMachine=Own(new AnimatorStateMachine {name="Host baseline"});var baseState=baseMachine.AddState("Idle");baseState.motion=baseline;baseMachine.defaultState=baseState;
         controller.AddLayer(new AnimatorControllerLayer {name="Host baseline",defaultWeight=1,stateMachine=baseMachine});
         var motions=JsonUtility.FromJson<MotionList>(File.ReadAllText(folder+"/avatar-motions.json"));
@@ -145,7 +159,10 @@ public static class PortableAvatarControllerBuilder
                 if(string.IsNullOrEmpty(id) || id=="0")return null;
                 if(clips.TryGetValue(id,out var clip))return clip;
                 if(blends.TryGetValue(id,out var blend))return blend;
-                if((data.baselineFallbackMotions??Array.Empty<string>()).Contains(id))return baseline;
+                // VRChat's FX playable excludes humanoid motion. A missing SDK
+                // neutral-hand proxy here must not inject a full-body pose above
+                // the Gesture playable and then drop it when a face is selected.
+                if((data.baselineFallbackMotions??Array.Empty<string>()).Contains(id))return graph.playable==5?neutralFX:baseline;
                 throw new Exception("AVATAR_MOTION_DEPENDENCY_MISSING: "+id);
             }
             foreach(var b in graph.blends)
@@ -159,6 +176,25 @@ public static class PortableAvatarControllerBuilder
                 state.timeParameter=s.timeParameter;state.timeParameterActive=!string.IsNullOrEmpty(s.timeParameter);state.speedParameter=s.speedParameter;state.speedParameterActive=!string.IsNullOrEmpty(s.speedParameter);
                 if(s.behaviors?.Length>0)state.AddStateMachineBehaviour<AvatarStateBehavior>().operations=s.behaviors;
             }
+            // A neutral hand proxy in FX means this expression layer releases
+            // the face. Fade its contribution instead of letting an empty state
+            // mask the opposite hand until the last frame of the transition.
+            if(graph.playable==5)
+            {
+                var machineSpecs=graph.machines.ToDictionary(m=>m.id);
+                IEnumerable<string> LayerStates(string id) => machineSpecs[id].states.Concat(machineSpecs[id].children.SelectMany(LayerStates));
+                var adapted=new HashSet<string>();
+                foreach(var layer in graph.layers)
+                {
+                    var ids=new HashSet<string>(LayerStates(layer.root));
+                    var layerStates=graph.states.Where(s=>ids.Contains(s.id)).ToArray();
+                    if(!layerStates.Any(s=>(data.baselineFallbackMotions??Array.Empty<string>()).Contains(s.motion)))continue;
+                    if(!graph.transitions.Any(t=>ids.Contains(t.target) && t.conditions.Any(c=>conversationalParameters.Contains(c.parameter))))continue;
+                    foreach(var s in layerStates.Where(s=>adapted.Add(s.id)))
+                        states[s.id].AddStateMachineBehaviour<AvatarStateBehavior>().operations=new[]{new AvatarBehavior {
+                            kind="host-expression-weight",weight=(data.baselineFallbackMotions??Array.Empty<string>()).Contains(s.motion)?0:1}};
+                }
+            }
             foreach(var m in graph.machines)
             {
                 var machine=machines[m.id];machine.states=m.states.Select(id=>new ChildAnimatorState {state=states[id]}).ToArray();machine.stateMachines=m.children.Select(id=>new ChildAnimatorStateMachine {stateMachine=machines[id]}).ToArray();
@@ -169,7 +205,16 @@ public static class PortableAvatarControllerBuilder
             {
                 native.mute=source.muted;native.solo=source.solo;
                 foreach(var condition in source.conditions)native.AddCondition((AnimatorConditionMode)condition.mode,condition.threshold,condition.parameter);
-                if(native is AnimatorStateTransition t) {t.duration=source.duration;t.offset=source.offset;t.exitTime=source.exitTime;t.hasExitTime=source.hasExitTime;t.hasFixedDuration=source.fixedDuration;t.interruptionSource=(TransitionInterruptionSource)source.interrupt;t.orderedInterruption=source.ordered;t.canTransitionToSelf=source.self;}
+                if(native is AnimatorStateTransition t) {
+                    t.duration=source.duration;t.offset=source.offset;t.exitTime=source.exitTime;t.hasExitTime=source.hasExitTime;t.hasFixedDuration=source.fixedDuration;t.interruptionSource=(TransitionInterruptionSource)source.interrupt;t.orderedInterruption=source.ordered;t.canTransitionToSelf=source.self;
+                    // Close-up conversation needs a perceptible blend for the
+                    // approved AI expression/gesture controls. Preserve timed
+                    // choreography, longer author transitions, and outfit logic.
+                    if((graph.playable==3 || graph.playable==5) && !source.hasExitTime &&
+                        (source.fixedDuration || source.duration==0) && source.duration<AvatarControlDriver.ConversationBlendSeconds &&
+                        source.conditions.Any(c=>conversationalParameters.Contains(c.parameter)))
+                    {t.hasFixedDuration=true;t.duration=AvatarControlDriver.ConversationBlendSeconds;}
+                }
             }
             foreach(var s in graph.states)foreach(string id in s.transitions)
             {

@@ -122,6 +122,7 @@ namespace ModelSpace
         public float intensity=1, audioTime, level;
         public VisemeValue[] visemes=Array.Empty<VisemeValue>();
         public PostureRequest posture;
+        public string[] selections=Array.Empty<string>();
     }
     [Serializable] public sealed class VisemeValue { public string id; public float weight; }
     [Serializable] public sealed class CharacterReceipt

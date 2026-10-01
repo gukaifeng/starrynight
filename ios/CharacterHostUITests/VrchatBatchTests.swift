@@ -3,6 +3,43 @@ import XCTest
 /// Exercises actual native-to-Unity controls and eviction/reload across old and
 /// new character packages. No paid AI request is enabled by these launch flags.
 final class VrchatBatchTests:XCTestCase {
+    @MainActor func testIchigoExpressionChangesAndDefaultRecovery() {
+        continueAfterFailure=false
+        let app=XCUIApplication();app.launchArguments=["--ui-testing","--companion-testing","--auth-testing"]
+        app.launch();defer{app.terminate()}
+        XCTAssertTrue(app.buttons["customizationButton"].waitForExistence(timeout:75))
+        app.buttons["tab-discover"].tap()
+        let search=app.textFields["discoverSearch"]
+        XCTAssertTrue(search.waitForExistence(timeout:8));search.tap();search.typeText("ichigo")
+        app.buttons["discover-open-anime-ichigo"].tap()
+        XCTAssertTrue(app.buttons["profileChatButton"].waitForExistence(timeout:8));app.buttons["profileChatButton"].tap()
+        app.waitForCharacter({$0["modelId"] as? String == "anime-ichigo" && $0["idlePlaying"] as? Bool == true},timeout:60)
+        capture("ichigo-conversation",app)
+        app.openCharacterPerformance()
+        let group=app.buttons["performanceGroup-menu-5a963eacb2279abe"]
+        let strip=app.scrollViews["performanceGroups"]
+        for _ in 0..<20 {
+            if strip.frame.insetBy(dx:4,dy:0).contains(group.frame){break}
+            let left=group.frame.midX>strip.frame.midX
+            strip.coordinate(withNormalizedOffset:CGVector(dx:left ? 0.75:0.25,dy:0.5)).press(forDuration:0.05,
+                thenDragTo:strip.coordinate(withNormalizedOffset:CGVector(dx:left ? 0.35:0.65,dy:0.5)),withVelocity:.slow,thenHoldForDuration:0.2)
+        }
+        XCTAssertTrue(group.isHittable);group.tap()
+        for id in ["gesture-left-2","gesture-left-6","gesture-left-3"] {
+            let option=app.buttons["performanceOption-"+id]
+            for _ in 0..<8 {
+                if app.scrollViews["performanceOptions"].frame.contains(option.frame){break}
+                app.scrollViews["performanceOptions"].swipeUp()
+            }
+            XCTAssertTrue(option.isHittable);option.tap()
+            app.waitForCharacter{self.selections($0).contains(id)}
+            capture("ichigo-"+id,app)
+        }
+        app.buttons["performanceReset"].tap()
+        app.waitForCharacter{self.selections($0).contains("gesture-left-0") && self.selections($0).contains("gesture-right-0")}
+        XCTAssertFalse(app.staticTexts["performanceError"].exists)
+        app.closeCharacterPerformance();capture("ichigo-return-to-default",app)
+    }
     @MainActor func testBatchThreeAutonomousBlink() {
         continueAfterFailure=false
         let app=XCUIApplication();app.launchArguments=["--ui-testing","--companion-testing","--auth-testing"]

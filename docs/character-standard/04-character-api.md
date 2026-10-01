@@ -60,6 +60,8 @@
 | effect.request | 受控预设特效请求 | target=effects.id |
 | posture.set | 设置可持续保持的姿势，见 05-posture-standard.md | posture.id / parameters |
 | speech.frame | 音频时间同步的表现输入 | audioTime、level、visemes |
+| performance.select / performance.reset | 选择原作表现／恢复默认 | target=选项／分组，见 06-performance-standard.md |
+| performance.replace | 原子替换某组 AI 表演或恢复用户快照 | target=分组，selections=完整选中 ID 数组；0.83.2 增量扩展 |
 | interaction.head.tap | 引擎精确头部点击产生 | 由角色 rule 决定动作，不写死摇头 clip |
 | interaction.* | 声明的其他骨骼热点 | 自定义事件名，匹配同名 rule |
 

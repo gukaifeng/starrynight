@@ -147,7 +147,11 @@ namespace ModelSpace
         float poseWeight;
         public Action OnChanged;
         public bool Supported => character && CharacterPerformanceContract.IsSupported(character.Manifest.performance);
-        public bool Transitioning { get; private set; }
+        bool transitioning;
+        public bool Transitioning {
+            get => transitioning || (character && character.TryGetComponent<AvatarControlDriver>(out var avatar) && avatar.Transitioning);
+            private set => transitioning=value;
+        }
         public float GazeWeight => 1-poseWeight;
         public string[] Selections => entries.Where(e=>{
             if(!string.IsNullOrEmpty(e.spec.control?.id)) {
@@ -252,11 +256,24 @@ namespace ModelSpace
             if(!Supported)return "PERFORMANCE_UNSUPPORTED";
             if(!string.IsNullOrEmpty(group) && !character.Manifest.performance.groups.Any(g=>g.id==group))return "PERFORMANCE_GROUP_UNKNOWN";
             var avatar=character.GetComponent<AvatarControlDriver>();
-            if(avatar)avatar.Reset(string.IsNullOrEmpty(group)?"":character.Manifest.performance.options.First(o=>o.group==group).control?.group ?? "");
+            if(avatar)avatar.Reset(string.IsNullOrEmpty(group)?"":character.Manifest.performance.options.First(o=>o.group==group).control?.group ?? "",false);
             foreach(var entry in entries)
                 if(string.IsNullOrEmpty(group) || entry.spec.group==group)
                 {entry.selected=entry.spec.defaultOn;entry.elapsed=0;entry.transientPlaying=false;if(entry.animation!=null && entry.selected && entry.spec.kind!="toggle") {entry.animation.time=0;entry.animation.enabled=true;}}
             Transitioning=true;OnChanged?.Invoke();return null;
+        }
+        // One transaction for an AI group: replace the previous cue or restore
+        // the user's snapshot without evaluating a reset frame in between.
+        public string Replace(string group,string[] selections)
+        {
+            if(!Supported)return "PERFORMANCE_UNSUPPORTED";
+            if(string.IsNullOrEmpty(group) || !character.Manifest.performance.groups.Any(g=>g.id==group))return "PERFORMANCE_GROUP_UNKNOWN";
+            if(selections==null || selections.Length>entries.Count || selections.Any(id=>!entries.Any(e=>e.spec.group==group && e.spec.id==id)))return "PERFORMANCE_SELECTION_INVALID";
+            Reset(group);
+            foreach(var entry in entries.Where(e=>e.spec.group==group && e.spec.kind=="toggle" && string.IsNullOrEmpty(e.spec.control?.id) && !selections.Contains(e.spec.id)).ToArray())
+                Select(entry.spec.id,0);
+            foreach(string id in selections.Distinct())Select(id,1);
+            return null;
         }
         public void RestoreMorphs()
         {

@@ -13,6 +13,7 @@ namespace ModelSpace
             var driver=animator.GetComponentInParent<AvatarControlDriver>();if(!driver)return;
             foreach(var op in operations)
             {
+                if(op.kind=="host-expression-weight") {driver.ExpressionLayerWeight(layerIndex,op.weight);continue;}
                 if(op.kind=="layer-weight" || op.kind=="playable-weight") {driver.Weight(op.playable,op.layer,op.weight,op.duration);continue;}
                 if(op.kind=="tracking") {driver.Tracking(op.eyes,op.mouth);continue;}
                 if(op.kind!="parameter-driver" || op.parameters==null)continue;

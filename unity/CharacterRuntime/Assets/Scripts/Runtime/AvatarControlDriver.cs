@@ -33,8 +33,10 @@ namespace ModelSpace
         public bool AllowSpeech {get;private set;}=true;
         readonly Dictionary<string,float> weights=new Dictionary<string,float>();
         readonly Dictionary<string,Fade> fades=new Dictionary<string,Fade>();
-        sealed class Fade {public float start,target,duration,elapsed;}
+        public const float ConversationBlendSeconds=.32f;
+        sealed class Fade {public float start,target,duration,elapsed;public bool eased;}
         public bool Available => animator && profile!=null;
+        public bool Transitioning => fades.Count>0 || (Available && Enumerable.Range(0,animator.layerCount).Any(animator.IsInTransition));
         public CharacterParameterValue[] Values => profile.controls.Select(c=>new CharacterParameterValue {id=c.id,value=c.kind=="slider"?Mathf.InverseLerp(c.minimum,c.maximum,Get(c.parameter)):Get(c.parameter)}).ToArray();
         void OnEnable() { if(!initialized && Available) {Reset();initialized=true;} }
         public float Get(string parameter)
@@ -64,18 +66,25 @@ namespace ModelSpace
             return null;
         }
         IEnumerator Release(AvatarControl control) {yield return new WaitForSeconds(1);Set(control.parameter,0);}
-        public void Reset(string group="")
+        public void Reset(string group="",bool immediate=true)
         {
             if(string.IsNullOrEmpty(group))
             {
-                StopAllCoroutines();animator.Rebind();
-                AllowBlink=AllowSpeech=true;fades.Clear();weights.Clear();
+                StopAllCoroutines();
+                // Rebind is initialization, not a visible expression transition.
+                if(immediate)animator.Rebind();
+                AllowBlink=AllowSpeech=true;
+                if(immediate){fades.Clear();weights.Clear();}
+                void RestoreWeight(string key,float target) {
+                    if(immediate)weights[key]=target;
+                    else fades[key]=new Fade {start=weights.TryGetValue(key,out var value)?value:target,target=target,duration=ConversationBlendSeconds,eased=true};
+                }
                 foreach(var g in layerGroups??Array.Empty<AvatarLayerGroup>())
                 {
-                    weights[g.playable+":-1"]=g.initialWeight;
-                    for(int i=0;i<g.layers.Length;i++)weights[g.playable+":"+i]=g.initialWeights[i];
+                    RestoreWeight(g.playable+":-1",g.initialWeight);
+                    for(int i=0;i<g.layers.Length;i++)RestoreWeight(g.playable+":"+i,g.initialWeights[i]);
                 }
-                ApplyWeights();
+                if(immediate)ApplyWeights();
                 foreach(var p in profile.parameters)Set(p.name,p.initial);
                 Set("IsLocal",1);Set("Grounded",1);Set("TrackingType",3);Set("Upright",1);
             }
@@ -85,7 +94,9 @@ namespace ModelSpace
                 foreach(var gate in c.gates??Array.Empty<AvatarGate>())Set(gate.parameter,profile.parameters.First(p=>p.name==gate.parameter).initial);
                 if(c.parameter=="GestureLeft" || c.parameter=="GestureRight")Set(c.parameter+"Weight",0);
             }
-            animator.Update(0);
+            // Runtime batches reset + selected parameters before the next
+            // evaluation; never expose an intermediate default pose to Animator.
+            if(immediate)animator.Update(0);
         }
         public void Weight(int playable,int layer,float weight,float seconds)
         {
@@ -95,18 +106,24 @@ namespace ModelSpace
             if(seconds<=0) {fades.Remove(key);weights[key]=target;ApplyWeights();return;}
             fades[key]=new Fade {start=weights.TryGetValue(key,out var v)?v:1,target=target,duration=seconds};
         }
+        public void ExpressionLayerWeight(int nativeLayer,float target)
+        {
+            string key="expression:"+nativeLayer;
+            fades[key]=new Fade {start=weights.TryGetValue(key,out var value)?value:1,target=target,duration=ConversationBlendSeconds,eased=true};
+        }
         void Update(){AdvanceWeights(Time.deltaTime);}
         public void AdvanceWeights(float dt)
         {
             if(fades.Count==0)return;
             foreach(string key in fades.Keys.ToArray())
-            {var f=fades[key];f.elapsed+=dt;weights[key]=Mathf.Lerp(f.start,f.target,Mathf.Clamp01(f.elapsed/f.duration));if(f.elapsed>=f.duration)fades.Remove(key);}
+            {var f=fades[key];f.elapsed+=dt;float t=Mathf.Clamp01(f.elapsed/f.duration);weights[key]=f.eased?Mathf.SmoothStep(f.start,f.target,t):Mathf.Lerp(f.start,f.target,t);if(f.elapsed>=f.duration)fades.Remove(key);}
             ApplyWeights();
         }
         void ApplyWeights()
         {
             foreach(var g in layerGroups??Array.Empty<AvatarLayerGroup>())
-                for(int i=0;i<g.layers.Length;i++)animator.SetLayerWeight(g.layers[i],weights[g.playable+":-1"]*weights[g.playable+":"+i]);
+                for(int i=0;i<g.layers.Length;i++)animator.SetLayerWeight(g.layers[i],weights[g.playable+":-1"]*weights[g.playable+":"+i]*
+                    (weights.TryGetValue("expression:"+g.layers[i],out var expressionWeight)?expressionWeight:1));
         }
         public void Tracking(int eyes,int mouth) {if(eyes!=0)AllowBlink=eyes==1;if(mouth!=0)AllowSpeech=mouth==1;}
     }
