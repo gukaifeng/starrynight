@@ -63,7 +63,7 @@ struct VoiceHoldSurface:UIViewRepresentable {
         override init(frame:CGRect) {
             super.init(frame:frame)
             backgroundColor = .clear;isOpaque=false;isMultipleTouchEnabled=true
-            label.font = ComposerPromptStyle.uiFont(15);label.textAlignment = .left
+            label.font = ComposerPromptStyle.uiFont(15);label.textAlignment = .center
             label.adjustsFontSizeToFitWidth=true;label.minimumScaleFactor=0.8
             label.translatesAutoresizingMaskIntoConstraints=false;addSubview(label)
             NSLayoutConstraint.activate([label.leadingAnchor.constraint(equalTo:leadingAnchor),
