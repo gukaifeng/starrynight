@@ -18,7 +18,7 @@ public static class CharacterPreviewRotationTests
             rotation.Step(1f/hz);
             Check(Vector2.Distance(previous,rotation.Offset)<=CharacterPreviewRotation.MaximumAngularSpeed/hz+.001f,"frame-to-frame speed is capped");
             Check(float.IsFinite(rotation.Offset.x) && float.IsFinite(rotation.Offset.y),"finite output");
-            Check(Math.Abs(rotation.Offset.x)<=180.0001f && Math.Abs(rotation.Offset.y)<=14.0001f,"back-facing yaw and small pitch envelope");
+            Check(Math.Abs(rotation.Offset.x)<=120.0001f && Math.Abs(rotation.Offset.y)<=24.0001f,"narrower yaw and expanded pitch envelope");
             Check(float.IsFinite(rotation.ScaleRatio) && rotation.ScaleRatio>=.94999f && rotation.ScaleRatio<=1.05001f,"bounded transient pinch");
         }
     }
@@ -46,9 +46,9 @@ public static class CharacterPreviewRotationTests
             Check(pinch.ScaleRatio==1 && pinch.ReactionCount==0,"invalid scale cannot affect the actor");
             var rotation=new CharacterPreviewRotation();
             rotation.Begin();rotation.Move(4,-4);Tick(rotation,hz,hz);
-            Check(rotation.Offset.x<-179f && rotation.Offset.y>13.9f,"full clockwise envelope");
+            Check(rotation.Offset.x<-119f && rotation.Offset.y>23.9f,"full clockwise envelope");
             rotation.Move(-4,4);Tick(rotation,hz,hz*2);
-            Check(rotation.Offset.x>179f && rotation.Offset.y<-13.9f,"full anticlockwise envelope");
+            Check(rotation.Offset.x>119f && rotation.Offset.y<-23.9f,"full anticlockwise envelope");
             var before=rotation.Offset;
             rotation.Move(float.NaN,1);rotation.Move(1,float.PositiveInfinity);
             rotation.Step(float.NaN);rotation.Step(float.PositiveInfinity);rotation.Step(-1);
@@ -79,9 +79,9 @@ public static class CharacterPreviewRotationTests
         var start=fast.Offset;fast.Move(.6f,0,0);Tick(fast,120,30);
         Check(Vector2.Distance(start,fast.Offset)<.1f,"slowing a stationary finger cannot rescale accumulated rotation");
         fast.Move(.5f,0,3,1);Tick(fast,120,120);fast.Move(.49f,0,.1f,.98f);Tick(fast,120,30);
-        Check(fast.Offset.x>-179,"direction reversal responds immediately at the limit");
+        Check(fast.Offset.x>-119,"direction reversal responds immediately at the limit");
         var edge=new CharacterPreviewRotation();edge.Begin();edge.Move(.17f,0,4,1);Tick(edge,120,180);
-        Check(Mathf.Abs(edge.Offset.x+180)<.05f,"off-centre touch reaches back at its nearby edge");
+        Check(Mathf.Abs(edge.Offset.x+120)<.05f,"off-centre touch reaches the reduced yaw at its nearby edge");
         Check(fast.ShakeCount==0,"one-way viewing plus a single reversal is not shaking");
         var shake=new CharacterPreviewRotation();shake.Begin();
         for(int i=0;i<180;i++) {shake.Move(.12f*(float)Math.Sin(i*12f/60),0,1);shake.Step(1f/60);}

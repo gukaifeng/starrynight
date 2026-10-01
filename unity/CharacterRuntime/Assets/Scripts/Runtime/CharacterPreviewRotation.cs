@@ -5,7 +5,7 @@ namespace ModelSpace
     // Transient offsets only: never part of CharacterViewPose or its saved target.
     public sealed class CharacterPreviewRotation
     {
-        public const float MaximumYaw=180,MaximumPitch=14,MaximumAngularSpeed=300;
+        public const float MaximumYaw=120,MaximumPitch=24,MaximumAngularSpeed=300;
         public const float MinimumRatio=.95f,MaximumRatio=1.05f,PinchThreshold=.025f;
         public const float ShakeTravel=1.5f,ShakeWindow=5,ShakeCooldown=20;
         Vector2 offset,target,velocity,origin;
@@ -61,11 +61,11 @@ namespace ModelSpace
             if(!Active || !float.IsFinite(horizontal) || !float.IsFinite(vertical) || !float.IsFinite(horizontalSpeed))return;
             var input=new Vector2(horizontal,vertical);
             // The host maps travel from the initial touch to the nearby edge.
-            // At either edge the actor faces away, independent of finger speed
+            // Either edge reaches the limited yaw, independent of finger speed
             // or off-centre starting point. Older hosts use a half-screen span.
             float ratio=Mathf.Clamp(float.IsFinite(edgeRatio) ? edgeRatio : horizontal*2,-1,1);
             target=new Vector2(Mathf.Lerp(origin.x,ratio>=0 ? -MaximumYaw : MaximumYaw,Mathf.Abs(ratio)),
-                Mathf.Clamp(origin.y-vertical*65,-MaximumPitch,MaximumPitch));
+                Mathf.Clamp(origin.y-vertical*90,-MaximumPitch,MaximumPitch));
             if(clock-windowStart>ShakeWindow) {windowStart=clock;travel=0;reversals=0;lastDirection=Vector2.zero;}
             // Reactions still measure actual screen travel, independently of
             // off-centre edge mapping. One-way viewing is not repeated shaking.

@@ -16,8 +16,8 @@ final class CharacterViewEditorTests:XCTestCase {
             let after=app.characterRuntime
             XCTAssertEqual(number(after,"previewRotationCount"),count+1)
             XCTAssertGreaterThan(number(after,"previewRotationPeakYaw"),5)
-            XCTAssertLessThanOrEqual(number(after,"previewRotationPeakYaw"),18.001)
-            XCTAssertLessThanOrEqual(number(after,"previewRotationPeakPitch"),8.001)
+            XCTAssertLessThanOrEqual(number(after,"previewRotationPeakYaw"),120.001)
+            XCTAssertLessThanOrEqual(number(after,"previewRotationPeakPitch"),24.001)
             XCTAssertEqual(number(after,"previewRotationYaw"),0)
             XCTAssertEqual(number(after,"previewRotationPitch"),0)
             XCTAssertEqual(after["viewEditorOpen"] as? Bool,false)

@@ -29,9 +29,10 @@ final class ViewingModeTests:XCTestCase {
         let count=state["previewRotationCount"] as? Int ?? 0
         start.press(forDuration:0.08,thenDragTo:end,withVelocity:.fast,thenHoldForDuration:0.55)
         app.waitForCharacter {($0["previewRotationCount"] as? Int ?? 0)>count && ($0["previewRotationReturnCount"] as? Int ?? 0)>0}
-        XCTAssertGreaterThan(app.characterRuntime["previewRotationPeakYaw"] as? Double ?? 0,175)
-        XCTAssertGreaterThan(app.characterRuntime["previewRotationPeakPitch"] as? Double ?? 0,8)
-        XCTAssertLessThanOrEqual(app.characterRuntime["previewRotationPeakYaw"] as? Double ?? 999,180.01)
+        XCTAssertGreaterThan(app.characterRuntime["previewRotationPeakYaw"] as? Double ?? 0,115)
+        XCTAssertGreaterThan(app.characterRuntime["previewRotationPeakPitch"] as? Double ?? 0,20)
+        XCTAssertLessThanOrEqual(app.characterRuntime["previewRotationPeakYaw"] as? Double ?? 999,120.01)
+        XCTAssertLessThanOrEqual(app.characterRuntime["previewRotationPeakPitch"] as? Double ?? 999,24.01)
         toggle.tap()
         XCTAssertTrue(input.waitForExistence(timeout:5));XCTAssertTrue(input.isHittable)
         XCTAssertEqual(input.value as? String,"Keep draft")
