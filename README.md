@@ -14,7 +14,7 @@ v0.58.0 将心声与真实动作说明提前编入有序回复，随语音／静
 
 v0.57.0 已接入全部角色表现的语义目录和多组时间轴，普通对话目标组合 4–8 项表情／动作；新分组通过 core.performance@2 扩展。静态外貌旁白隐藏，动作与心声用括号斜体；普通单指反复晃动会触发真实 AI 的撒娇／小生气和语音。已安装 iPhone 并读回 **0.57.0 / 83**；手机锁定阻止自动打开，模拟器验证通过。见[本轮实施与验证](docs/design/2026-09-30-expressive-conversation.md)。
 
-独立账户平台位于 [`backend/`](backend/README.md)，采用 Go、PostgreSQL、Redis，拥有独立构建、迁移、测试、容器和 CI。Go 平台与 Python AI worker 的职责见[账户平台架构](backend/docs/architecture.md)；当前 AI worker 仍部署在本机，正式云端部署尚未完成。账户平台的阶段性验证见[记录](docs/verification/account-platform/README.md)。
+服务端已独立迁入 [starrynight-server](https://github.com/gukaifeng/starrynight-server)，本机目录为 `../starrynight-server`。原 Go / PostgreSQL / Redis / Python AI 实现、部署、备份与维护工具均在新仓库维护；本仓库以客户端为主，旧服务端副本暂留待后续清理。云端准备阶段不切换客户端、不停止正在使用的 Mac 服务；当前状态见独立仓库的 [迁移与拆分记录](https://github.com/gukaifeng/starrynight-server/blob/main/docs/repository-separation.md)。
 
 v0.52.0 核实琪宝、豆日向的原始 Prefab 与 FBX 均提供 15 个 VRChat 口型，当前 App 已保留 5 个原作元音形变，朗读由实际音频振幅驱动原作张嘴形变。修复连续语音分句和停止时的时间戳倒退，防止 Unity 拒绝后续口型；等待下一段音频时归零，并隔离过期的音频回调。真实 AVAudioEngine 播放回归通过，Unity 两角色实际网格检查共 23 项通过，未增加程序化说话头部动作。本轮没有付费 AI 调用，已安装 iPhone 17 并读回 **0.52.0 / 73**。详见[原作口型核查与同步修复](docs/verification/authored-lip-sync/README.md)。
 
