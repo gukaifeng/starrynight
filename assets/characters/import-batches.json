@@ -131,6 +131,26 @@
         "anime-shinano"
       ],
       "report": "docs/verification/vrchat-batch-import/preview-04.md"
+    },
+    {
+      "id": "vrchat-20261002-preview-05",
+      "status": "delivered",
+      "characters": [
+        "anime-milfy",
+        "anime-shizuku"
+      ],
+      "report": "docs/verification/vrchat-batch-import/preview-05.md",
+      "simulatorChecks": [
+        "18 character/collection export integrity passed",
+        "iPhone 17 UI: both local-preview profiles open their Unity models without AI composer; 1 test, 0 failures"
+      ],
+      "appVersion": "0.84.0",
+      "buildNumber": 114,
+      "device": "iPhone 17",
+      "deviceInstall": "passed",
+      "deviceLaunch": "passed",
+      "deviceFrameRate": "not-measured",
+      "deliveredAt": "2026-10-02T01:37:17+08:00"
     }
   ]
 }

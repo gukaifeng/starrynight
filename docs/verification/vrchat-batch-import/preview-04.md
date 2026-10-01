@@ -6,7 +6,7 @@
 
 五个候选均通过 XCP seal/validate、Unity 隔离渲染和逐项作者控制的 Reset 复位：爱莉 43/43、Marycia 27/27、美云 40/40、米露缇娜 41/41、信浓 44/44。可见状态变化分别为 40、27、30、41、41 项；剩余按钮多为默认手势/原作平台专用状态，不能宣称在 App 中都有可见效果。渲染图、控件明细保存在 `.local/vrchat-batch/render/<role>.png` 与 `<role>-controls.json`。缺失的少量非主体描边、阴影和 MatCap 贴图逐条保存在私有 XCP 的 `source-meta.json.previewShadingLimitations`；它们只被允许进入本地预览，尚未通过与 VRChat 原版的逐像素材质比对。
 
-米露菲虽封包成功，Unity 遇到动态 RenderTexture 缺失，未激活。白爪花的原作物理碰撞器半径超过宿主安全范围，不能直接裁断原作物理，未激活。Azuki、Hikarun、Nemesis、Perula 等重新检查后仍缺可达动作；Rindo 只有衣服没有本体。它们没有拿空动画冒充可用按钮。更多逐项原因保留在 [整库结果](library-status.md) 和本机 `package-status.json`。
+本批时米露菲虽封包成功，Unity 遇到动态 RenderTexture 缺失，暂未激活；后续已作为屏幕功能降级的本地预览加入[第五批](preview-05.md)。白爪花的原作物理碰撞器半径超过宿主安全范围，不能直接裁断原作物理，未激活。Azuki、Hikarun、Nemesis、Perula 等重新检查后仍缺可达动作；Rindo 只有衣服没有本体。它们没有拿空动画冒充可用按钮。更多逐项原因保留在 [整库结果](library-status.md) 和本机 `package-status.json`。
 
 模拟器导出后，`check_export_content.py` 验证 16 个角色和 16 个相互隔离的集合；11 个正式角色的开场 PCM 校验通过，5 个预览角色没有开场语音或对话请求。iPhone 17 模拟器的开场/预览离线检查 219 项通过，首个正式角色语音开始播放约 0.26 秒。`MarketplaceUITests/testImportedLocalPreviewDoesNotOpenAIComposer()` 实际经过发现搜索 → 爱莉资料 → 查看模型，23.84 秒通过、0 失败；预览页实测展示 Unity 模型和“模型预览”提示，没有聊天输入框。截图保存在 `.local/checks/Preview04-attachments/`。
 

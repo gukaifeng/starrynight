@@ -78,6 +78,8 @@ def require_selected_inspection(row, snapshot):
 PREVIEW_OPTIONAL_TEXTURES={'_Shadow2ndColorTex','_ShadowColorTex','_RimColorTex',
     '_MatCapBlendMask','_MatCapTex','_ShadowBorderMask','_ShadowStrengthMask',
     '_OutlineTex','_RimShadeMask'}
+PREVIEW_OPTIONAL_SCREEN_SHADERS={'watchLCD','pSLAG_Mat','pSLAG_UI',
+    'fTLG_ON_UIStandby','fTLG_ON_UIOnOff','fTLG_ON_UI'}
 
 def assemble(row,folder,stage,order,allow_preview_shading=False):
     geometry=json.loads((stage/'Inspection/Portable'/row['role']/'geometry.json').read_text())
@@ -88,9 +90,17 @@ def assemble(row,folder,stage,order,allow_preview_shading=False):
     required_missing=[x for x in controls['limitations'] if x['kind'].startswith(('missing-','unsupported-','unknown-'))]
     if required_missing:raise ValueError('Missing source control dependencies: '+json.dumps(required_missing,ensure_ascii=False))
     limitations=report['materialLimitations']
+    material_names={m['name'].removeprefix('mat_'):m['sourceName']
+                    for m in json.loads((folder/'materials.json').read_text())['materials']}
     preview_shading=(allow_preview_shading and limitations and all(
-        item.get('reason')=='Unresolved source texture' and
-        item.get('property') in PREVIEW_OPTIONAL_TEXTURES for item in limitations))
+        (item.get('reason')=='Unresolved source texture' and
+         item.get('property') in PREVIEW_OPTIONAL_TEXTURES) or
+        (item.get('reason')=='Runtime RenderTexture cannot be bundled as an image' and
+         item.get('sourceName')=='SmartPhone_Screen' and item.get('property')=='_Main2ndTex') or
+        (row['role']=='shizuku' and item.get('reason')=='Unresolved shader; lilToon fallback requires visual comparison' and
+         material_names.get(item.get('material')) in PREVIEW_OPTIONAL_SCREEN_SHADERS) or
+        item.get('reason')=='Unity utility mesh uses built-in or missing material; neutral local-preview fallback'
+        for item in limitations))
     if limitations and not preview_shading:
         raise ValueError('Material dependency requires review: '+json.dumps(limitations[:4],ensure_ascii=False))
     if report['nonlinearMorphFrames']:raise ValueError('Nonlinear morph frames require a dedicated adapter')

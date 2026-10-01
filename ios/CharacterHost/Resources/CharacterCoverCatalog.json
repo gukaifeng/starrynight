@@ -253,6 +253,28 @@
       "cameraYaw": 0,
       "source": "author-supplied",
       "sourceSHA256": "f05753875e42bc3118f4139770ebb3ec019a23e7e574e5ec063b7eb3269e6773"
+    },
+    {
+      "runtimeID": "anime-milfy",
+      "asset": "Cover_anime_milfy",
+      "environmentID": "sunroom",
+      "focusX": 0.5,
+      "focusY": 0.3,
+      "frameBottom": 0.46,
+      "cameraYaw": 0,
+      "source": "author-supplied",
+      "sourceSHA256": "ab89757d43430cb73c665bd6a446d81c4e4d2f5fd743d2ad5b41f750f3477a8c"
+    },
+    {
+      "runtimeID": "anime-shizuku",
+      "asset": "Cover_anime_shizuku",
+      "environmentID": "sunroom",
+      "focusX": 0.5,
+      "focusY": 0.3,
+      "frameBottom": 0.46,
+      "cameraYaw": 0,
+      "source": "author-supplied",
+      "sourceSHA256": "ac4f0d17bbd80e06a0dc81a58220d095224f0b3c2e7ea171e03b2bc280af8141"
     }
   ]
 }

@@ -234,9 +234,21 @@ def export_materials(stage,geometry,output,shader_root,motions=None):
             if guid in seen:continue
             seen.add(guid)
             asset=assets.get(guid)
-            if not asset:raise ValueError('Missing author material: '+guid)
-            source=effective_material(guid,assets)
-            shader=shaders.get(source['shader'].get('guid',''))
+            # Unity's built-in Default-Material is not an author asset. Several
+            # avatars also carry a four-vertex AvatarHight measurement quad with
+            # no material. These are utility meshes, not character appearance.
+            utility_skins=[s for s in geometry['skins'] if any(p['guid']==guid for p in s['primitives'])]
+            utility=bool(utility_skins) and all(
+                (s['path'].endswith('/AvatarHight') and s['vertices']<=4) or
+                (not s['active'] and not s['enabled'] and s['vertices']<=550)
+                for s in utility_skins)
+            if not asset and not utility:raise ValueError('Missing author material: '+guid)
+            if not asset:
+                source=dict(shader={},customRenderQueue=-1,floats={},
+                            colors={'_Color':dict(r=1,g=1,b=1,a=1)},textureBindings=[])
+                notes.append(dict(material=guid,reason='Unity utility mesh uses built-in or missing material; neutral local-preview fallback'))
+            else:source=effective_material(guid,assets)
+            shader='lilToon' if not asset else shaders.get(source['shader'].get('guid',''))
             if not shader:
                 shader='lilToon'
                 notes.append(dict(material=guid,sourceShader=source['shader'],reason='Unresolved shader; lilToon fallback requires visual comparison'))
@@ -265,7 +277,14 @@ def export_materials(stage,geometry,output,shader_root,motions=None):
                 if not tex:
                     if binding['texture'].get('guid','').startswith('0000000000000000'):continue
                     notes.append(dict(material=guid,property=binding['property'],reason='Unresolved source texture',reference=binding['texture']));continue
-                path=Path(tex['extractedPath']);digest=hashlib.sha256(path.read_bytes()).hexdigest()
+                path=Path(tex['extractedPath'])
+                if path.suffix.lower()=='.rendertexture':
+                    # A Unity RenderTexture is an empty runtime target, not an
+                    # image. Milfy uses one for the optional phone screen.
+                    notes.append(dict(material=guid,sourceName=primitive['material'],
+                                      property=prop,reason='Runtime RenderTexture cannot be bundled as an image'))
+                    continue
+                digest=hashlib.sha256(path.read_bytes()).hexdigest()
                 meta=Path(tex['metaPath']).read_text(errors='replace') if tex.get('metaPath') else ''
                 normal=bool(re.search(r'^\s+textureType:\s*1\s*$',meta,re.M))
                 linear=bool(re.search(r'^\s+sRGBTexture:\s*0\s*$',meta,re.M))

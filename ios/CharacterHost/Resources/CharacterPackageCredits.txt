@@ -862,6 +862,101 @@ Local preview only: unresolved optional shading textures are listed in source-me
 }
 
 
+米露菲 · 3.1.0
+米露菲 / Milfy 1.5.0
+素材原作者：Milfy 1.5.0 原作者（见来源包条款）
+许可：Original author avatar terms — private local conversion
+固定来源：file:///Users/gukaifeng/Downloads/VRchat%E6%A8%A1%E5%9E%8B%E6%95%B4%E7%90%86_%E6%9C%80%E6%96%B0%E7%89%88%E6%9C%AC/Milfy%E7%B1%B3%E9%9C%B2%E8%8F%B2_v1.5.0/Milfy_v1.5.0.zip
+本机个人预览素材：不得随公开版本或公开源码再分发；具体改作与分发权限见下方原模型许可。
+
+Private user-supplied avatar conversion. No public redistribution permission is implied.
+Source SHA256: 4e283f439622d40b65f10afed45e6597efe16c9d76e2f360b17520ec447495f4
+
+
+
+上游附加署名（原文，包含上游完整素材库说明）：
+# Private avatar candidate
+
+Original geometry, textures and character controls remain subject to their authors’ terms. The host uses the MIT-licensed lilToon renderer. VRChat scripts, SDK binaries, platform animations and arbitrary callbacks are not bundled.
+
+See portable-conversion.json and physics-source.json for explicit adaptation limits. This package has not passed device performance testing merely because it is sealed.
+
+Local preview only: unresolved optional shading textures are listed in source-meta.json. Visual approval is required before activation.
+
+
+原文件许可设置（保留原文）：
+{
+  "schemaVersion": 1,
+  "sourceVersion": "1.5.0",
+  "sourceSHA256": "4e283f439622d40b65f10afed45e6597efe16c9d76e2f360b17520ec447495f4",
+  "sourceArchive": "Milfy_v1.5.0.zip",
+  "prefab": "Assets/PLUSONE/Milfy/Prefab/Milfy.prefab",
+  "variants": [
+    {
+      "package": 0,
+      "prefab": "Assets/PLUSONE/Milfy/Prefab/Kisekae_NoSmartPhone/Milfy_kisekae_NoSmartPhone.prefab"
+    },
+    {
+      "package": 0,
+      "prefab": "Assets/PLUSONE/Milfy/Prefab/Kisekae/Milfy_kisekae.prefab"
+    },
+    {
+      "package": 0,
+      "prefab": "Assets/PLUSONE/Milfy/Prefab/Kisekae_NoSmartPhone/Milfy_Another_Kisekae_NoSmartPhone.prefab"
+    },
+    {
+      "package": 0,
+      "prefab": "Assets/PLUSONE/Milfy/Prefab/Milfy.prefab"
+    },
+    {
+      "package": 0,
+      "prefab": "Assets/PLUSONE/Milfy/Prefab/Kisekae/Milfy_Another_kisekae.prefab"
+    },
+    {
+      "package": 0,
+      "prefab": "Assets/PLUSONE/Milfy/Prefab/Milfy_Another.prefab"
+    }
+  ],
+  "baseline": {
+    "kind": "host-standing-adaptation",
+    "reason": "Source delegates its body baseline to the VRChat platform; no matching authored standing clip is present"
+  },
+  "localOnly": true,
+  "previewShadingLimitations": [
+    {
+      "material": "cc1907699f8445740ada164e74c338bf",
+      "sourceName": "SmartPhone_Screen",
+      "property": "_Main2ndTex",
+      "reason": "Runtime RenderTexture cannot be bundled as an image"
+    },
+    {
+      "material": "40382c0b529819e488a469130b2c7377",
+      "property": "_ShadowBorderMask",
+      "reason": "Unresolved source texture",
+      "reference": {
+        "fileID": 2800000,
+        "guid": "7ee60b2ac602702429a621bf39bcab97",
+        "type": 3
+      }
+    },
+    {
+      "material": "da2578c718f34754f96e5277bcdb2d86",
+      "property": "_ShadowBorderMask",
+      "reason": "Unresolved source texture",
+      "reference": {
+        "fileID": 2800000,
+        "guid": "2c6d577e5cf04d64fa1d4434e30e5e5c",
+        "type": 3
+      }
+    }
+  ],
+  "blinkAdaptation": {
+    "sourceMorph": "vrc.blink",
+    "timing": "host-controlled"
+  }
+}
+
+
 米露缇娜 · 3.1.0
 米露缇娜 / Milltina 1.00
 素材原作者：Milltina 1.00 原作者（见来源包条款）
@@ -1347,6 +1442,134 @@ Local preview only: unresolved optional shading textures are listed in source-me
     "sourceMorph": "vrc.Blink",
     "timing": "host-controlled"
   }
+}
+
+
+Shizuku · 3.1.0
+Shizuku / Shizuku
+素材原作者：Shizuku 原作者（见来源包条款）
+许可：Original author avatar terms — private local conversion
+固定来源：file:///Users/gukaifeng/Downloads/VRchat%E6%A8%A1%E5%9E%8B%E6%95%B4%E7%90%86_%E6%9C%80%E6%96%B0%E7%89%88%E6%9C%AC/Shizuku_%E7%89%88%E6%9C%AC%E6%9C%AA%E7%9F%A5/3828632shizuku.zip
+本机个人预览素材：不得随公开版本或公开源码再分发；具体改作与分发权限见下方原模型许可。
+
+Private user-supplied avatar conversion. No public redistribution permission is implied.
+Source SHA256: 855616cd420466afc159a3e8ec30b75b4978f39f2490ca2dc668b315720abb80
+
+Assets/kuromaru9/Editor/ShizukuJointNameMatching_ReadMe.txt
+◆ShizukuJointNameMatchingツール使い方◆
+
+１、メニューバーの kuromaru9 > しずくさん着せ替えジョイント名マッチングツール を起動します。
+２、ツールのメインウィンドウが開きます。
+３、着せたい衣装モデルを Hierarchy にD&Dします。
+４、Hierarchy に配置した衣装モデルをツールの リネームしたい衣装モデル の欄にD&Dします。
+５、しずくさんのジョイントに対応する衣装モデルのジョイントが自動でセットされますので問題なければリネームボタンを押してリネームします。
+
+もしツールの不具合を見つけたり、～ちゃん用の衣装だとうまく動かなかった等、お気づきの点がございましたらBOOTHのメッセージよりご報告いただけると嬉しいです。
+
+kuromaru9 BOOTH：https://kuromaru9.booth.pm/
+
+上游附加署名（原文，包含上游完整素材库说明）：
+# Private avatar candidate
+
+Original geometry, textures and character controls remain subject to their authors’ terms. The host uses the MIT-licensed lilToon renderer. VRChat scripts, SDK binaries, platform animations and arbitrary callbacks are not bundled.
+
+See portable-conversion.json and physics-source.json for explicit adaptation limits. This package has not passed device performance testing merely because it is sealed.
+
+Local preview only: unresolved optional shading textures are listed in source-meta.json. Visual approval is required before activation.
+
+
+原文件许可设置（保留原文）：
+{
+  "schemaVersion": 1,
+  "sourceVersion": null,
+  "sourceSHA256": "855616cd420466afc159a3e8ec30b75b4978f39f2490ca2dc668b315720abb80",
+  "sourceArchive": "3828632shizuku.zip",
+  "prefab": "Assets/kuromaru9/shizuku/Prefabs_lil/shizuku_lil.prefab",
+  "variants": [
+    {
+      "package": 2,
+      "prefab": "Assets/kuromaru9/shizuku/Prefabs_lil/shizuku_lil.prefab"
+    },
+    {
+      "package": 2,
+      "prefab": "Assets/kuromaru9/shizuku/Prefabs_lil/shizuku_customBody_lil.prefab"
+    },
+    {
+      "package": 3,
+      "prefab": "Assets/kuromaru9/shizuku/Prefabs/shizuku_customBody.prefab"
+    },
+    {
+      "package": 3,
+      "prefab": "Assets/kuromaru9/shizuku/Prefabs/shizuku.prefab"
+    },
+    {
+      "package": 3,
+      "prefab": "Assets/kuromaru9/shizuku/Prefabs/shizuku_Medium.prefab"
+    }
+  ],
+  "baseline": {
+    "kind": "author-clip",
+    "guid": "8764c15cf6176f74d944d040a9cce81a:4554036223788809366",
+    "name": "stand_still"
+  },
+  "localOnly": true,
+  "previewShadingLimitations": [
+    {
+      "material": "59bffca921e4e1c48a91ec48f3ec60e0",
+      "sourceShader": {
+        "fileID": 4800000,
+        "guid": "1ae380c551e280340831d6d3e16a75d3",
+        "type": 3
+      },
+      "reason": "Unresolved shader; lilToon fallback requires visual comparison"
+    },
+    {
+      "material": "211b985a0092a0345a0e7fe062683969",
+      "sourceShader": {
+        "fileID": 4800000,
+        "guid": "f89d2778aee5c9c4e914a0b1e391dbb7",
+        "type": 3
+      },
+      "reason": "Unresolved shader; lilToon fallback requires visual comparison"
+    },
+    {
+      "material": "d87d51fb391a57249b3d16b08ab06824",
+      "sourceShader": {
+        "fileID": 4800000,
+        "guid": "f89d2778aee5c9c4e914a0b1e391dbb7",
+        "type": 3
+      },
+      "reason": "Unresolved shader; lilToon fallback requires visual comparison"
+    },
+    {
+      "material": "08af952840bfcd34da7637a1ebbcb167",
+      "sourceShader": {
+        "fileID": 4800000,
+        "guid": "f89d2778aee5c9c4e914a0b1e391dbb7",
+        "type": 3
+      },
+      "reason": "Unresolved shader; lilToon fallback requires visual comparison"
+    },
+    {
+      "material": "999e929551abdb446879c2fc67363fbd",
+      "sourceShader": {
+        "fileID": 4800000,
+        "guid": "f89d2778aee5c9c4e914a0b1e391dbb7",
+        "type": 3
+      },
+      "reason": "Unresolved shader; lilToon fallback requires visual comparison"
+    },
+    {
+      "material": "ac7f136a567d82940bdf99452bb27cf4",
+      "sourceShader": {
+        "fileID": 4800000,
+        "guid": "f89d2778aee5c9c4e914a0b1e391dbb7",
+        "type": 3
+      },
+      "reason": "Unresolved shader; lilToon fallback requires visual comparison"
+    }
+  ],
+  "blinkAdaptation": null
 }
 
 

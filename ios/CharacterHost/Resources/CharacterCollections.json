@@ -551,6 +551,58 @@
       "defaultVoice": "anime-shinano/preview",
       "defaultMusic": "",
       "previewOnly": true
+    },
+    {
+      "schemaVersion": 1,
+      "id": "app.starry.collections.anime-milfy",
+      "version": "1.1.0",
+      "modelID": "anime-milfy",
+      "modelPackageID": "app.starry.characters.anime-milfy",
+      "modelPackageVersion": "3.1.0",
+      "actions": [],
+      "environments": [
+        "sunroom"
+      ],
+      "voices": [
+        {
+          "id": "anime-milfy/preview",
+          "title": "模型预览",
+          "detail": "尚未接入语音",
+          "engine": "aliyun-character-v1",
+          "speed": 1
+        }
+      ],
+      "music": [],
+      "defaultEnvironment": "sunroom",
+      "defaultVoice": "anime-milfy/preview",
+      "defaultMusic": "",
+      "previewOnly": true
+    },
+    {
+      "schemaVersion": 1,
+      "id": "app.starry.collections.anime-shizuku",
+      "version": "1.1.0",
+      "modelID": "anime-shizuku",
+      "modelPackageID": "app.starry.characters.anime-shizuku",
+      "modelPackageVersion": "3.1.0",
+      "actions": [],
+      "environments": [
+        "sunroom"
+      ],
+      "voices": [
+        {
+          "id": "anime-shizuku/preview",
+          "title": "模型预览",
+          "detail": "尚未接入语音",
+          "engine": "aliyun-character-v1",
+          "speed": 1
+        }
+      ],
+      "music": [],
+      "defaultEnvironment": "sunroom",
+      "defaultVoice": "anime-shizuku/preview",
+      "defaultMusic": "",
+      "previewOnly": true
     }
   ]
 }

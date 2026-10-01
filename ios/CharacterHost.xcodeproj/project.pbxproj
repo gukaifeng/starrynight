@@ -2346,7 +2346,7 @@
 "runOnlyForDeploymentPostprocessing" = "0";
 "shellPath" = "/bin/sh";
 "alwaysOutOfDate" = "1";
-"shellScript" = "set -e\nif [ \"${ACTION:-}\" = install ] && echo \"${SWIFT_ACTIVE_COMPILATION_CONDITIONS:-}\" | /usr/bin/grep -q STARRY_TEST_TOOLS; then\n  echo \"error: Developer tools cannot be archived. Regenerate with scripts/generate_host.py --platform device --distribution.\"\n  exit 1\nfi\npython3 \"${SRCROOT}/../scripts/check_export_content.py\" --platform device\npython3 \"${SRCROOT}/../scripts/prepare_character_openings.py\" --check\n";
+"shellScript" = "set -e\nif [ \"${ACTION:-}\" = install ] && echo \"${SWIFT_ACTIVE_COMPILATION_CONDITIONS:-}\" | /usr/bin/grep -q STARRY_TEST_TOOLS; then\n  echo \"error: Developer tools cannot be archived. Regenerate with scripts/generate_host.py --platform device --distribution.\"\n  exit 1\nfi\npython3 \"${SRCROOT}/../scripts/check_export_content.py\" --platform device\npython3 \"${SRCROOT}/../scripts/check_character_openings.py\"\n";
 };
 "66864AA84ECAA76D9D8D65CE" = {
 "isa" = "XCBuildConfiguration";
