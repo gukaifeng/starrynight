@@ -33,6 +33,9 @@ struct CompanionChatView: View {
     @State private var editing = false
     @State private var voiceMode=false
     @State private var voiceEditing=false
+    // Keep outgoing content mounted through its dismissal, even when sending
+    // immediately clears the session's suggestions for the next reply.
+    @State private var presentedReplies:[AIQuickReply]=[]
     @State private var voiceEditTarget=VoiceCaptureTouchTarget()
     @State private var voiceCancelTarget=VoiceCaptureTouchTarget()
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -85,6 +88,12 @@ struct CompanionChatView: View {
         .task { await session.speech.check() }
         .onChange(of:session.store.chatDisplay) { onDisplayChanged?() }
         .onChange(of:session.dismissKeyboardRequest) { editing = false;voiceEditing=false;session.quickReplyPanelPresented=false }
+        .onChange(of:session.quickReplyPanelPresented) {
+            if session.quickReplyPanelPresented {presentedReplies=session.quickReplies}
+        }
+        .onChange(of:session.quickReplies.map(\.id)) {
+            if session.quickReplyPanelPresented,!session.quickReplies.isEmpty {presentedReplies=session.quickReplies}
+        }
         .onChange(of:session.voiceInput.phase) {
             if session.voiceInput.phase == .editing {voiceEditing=true}
             else if !session.voiceInput.active {voiceEditing=false}
@@ -109,7 +118,10 @@ struct CompanionChatView: View {
                         if session.record.messages.isEmpty && !session.generating {
                             invitation.frame(minHeight:max(0,viewport.size.height-24),alignment:.bottom)
                         }
-                        ForEach(session.visibleMessages) { message in messageView(message).id(message.id) }
+                        ForEach(session.visibleMessages) { message in
+                            messageView(message).id(message.id)
+                                .transition(reduceMotion ? .opacity : .opacity.combined(with:.offset(y:10)).combined(with:.scale(scale:0.98,anchor:.bottomTrailing)))
+                        }
                         if session.generating {
                             Image(systemName:"ellipsis").font(.system(size:chatFontSize))
                                 .symbolEffect(.variableColor,isActive:!reduceMotion)
@@ -119,7 +131,8 @@ struct CompanionChatView: View {
                         }
                         // Include the entire bottom inset in the scroll target.
                         Color.clear.frame(height:18).id("latest")
-                    }.padding(.horizontal,22)
+                    }.animation(interfaceAnimation,value:session.record.messages.last?.id)
+                        .padding(.horizontal,22)
                         // Real scrollable breathing room lets the first line travel below
                         // the mask's fade, even when the history is already at its beginning.
                         .padding(.top,reduceTransparency || (session.record.messages.isEmpty && !session.generating)
@@ -254,7 +267,7 @@ struct CompanionChatView: View {
                     .foregroundStyle(Theme.gradient.opacity(session.quickReplyPanelPresented ? 1 : 0.66))
                     .frame(width:42,height:44).contentShape(Rectangle())
             }.buttonStyle(.plain).disabled(session.voiceInput.active)
-                .accessibilityLabel("快捷回复").accessibilityIdentifier("smartReplyButton")
+                .accessibilityLabel("灵感接话").accessibilityHint("选择一句适合此刻的回复").accessibilityIdentifier("smartReplyButton")
         }.padding(.trailing,4).padding(.vertical,2)
             .conversationHitRegion(.control,id:"chatComposer")
             .background(Theme.surface.opacity(reduceTransparency ? 1 : Theme.controlOpacity),in:RoundedRectangle(cornerRadius:25,style:.continuous))
@@ -281,14 +294,16 @@ struct CompanionChatView: View {
                         .allowsHitTesting(session.voiceInput.active && session.voiceInput.phase != .holding)
                         .accessibilityHidden(!session.voiceInput.active)
                     }
-                    if session.quickReplyPanelPresented && !session.voiceInput.active {
-                        Color.clear.overlay(alignment:.bottomTrailing) {
+                    Color.clear.overlay(alignment:.bottomTrailing) {
+                        if session.quickReplyPanelPresented && !session.voiceInput.active {
                             smartRepliesPanel.frame(width:max(0,min(308,composer.size.width-64)))
                                 .fixedSize(horizontal:false,vertical:true).padding(.trailing,20)
                                 .offset(y:-composer.size.height-8)
-                                .transition(.opacity.combined(with:.offset(y:8)))
+                                .transition(reduceMotion ? .opacity : .asymmetric(
+                                    insertion:.opacity.combined(with:.offset(y:12)).combined(with:.scale(scale:0.96,anchor:.bottomTrailing)),
+                                    removal:.opacity.combined(with:.offset(y:8)).combined(with:.scale(scale:0.98,anchor:.bottomTrailing))))
                         }
-                    }
+                    }.animation(interfaceAnimation,value:session.quickReplyPanelPresented)
                 }.allowsHitTesting((session.voiceInput.active && session.voiceInput.phase != .holding) || (session.quickReplyPanelPresented && !session.voiceInput.active))
             }
             .onChange(of:session.quickReplySource) {if session.quickReplySource==nil {session.quickReplyPanelPresented=false}}
@@ -297,23 +312,25 @@ struct CompanionChatView: View {
     private var smartRepliesPanel:some View {
         VStack(alignment:.leading,spacing:3) {
             HStack {
-                Text("快捷回复").font(.system(size:11,weight:.medium)).foregroundStyle(Theme.secondary)
+                Text("灵感接话").font(.system(size:11,weight:.medium)).foregroundStyle(Theme.secondary)
                 Spacer()
                 Button {withAnimation(interfaceAnimation) {session.quickReplyPanelPresented=false}} label: {
                     Image(systemName:"xmark").font(.system(size:10,weight:.medium)).frame(width:28,height:28)
-                }.buttonStyle(.plain).accessibilityLabel("关闭快捷回复")
+                }.buttonStyle(.plain).accessibilityLabel("关闭灵感接话").accessibilityIdentifier("closeSmartReplies")
             }.padding(.leading,7)
-            if session.quickReplies.isEmpty {
+            if presentedReplies.isEmpty {
                 HStack(spacing:9) {
                     if session.quickRepliesLoading {ProgressView().controlSize(.small)}
                     Text(session.quickRepliesLoading ? "想几个适合你的回答…" : "聊起来后，这里会有适合你的接话。")
                         .font(.system(size:12)).foregroundStyle(Theme.secondary)
                 }.padding(10)
             }
-            ForEach(Array(session.quickReplies.enumerated()),id:\.element.id) {index,option in
+            ForEach(Array(presentedReplies.enumerated()),id:\.element.id) {index,option in
                 Button {
-                    withAnimation(interfaceAnimation) {session.quickReplyPanelPresented=false}
-                    editing=false;session.clearMessageFocus();scrollState.returnToLatest();session.sendSuggested(option)
+                    withAnimation(interfaceAnimation) {
+                        session.quickReplyPanelPresented=false
+                        editing=false;session.clearMessageFocus();scrollState.returnToLatest();session.sendSuggested(option)
+                    }
                 } label: {
                     HStack(spacing:10) {
                         Text(option.text).font(.system(size:13)).lineLimit(2).multilineTextAlignment(.leading)
@@ -321,7 +338,8 @@ struct CompanionChatView: View {
                         Image(systemName:"arrow.up.right").font(.system(size:10,weight:.medium)).foregroundStyle(Theme.secondary.opacity(0.7))
                     }.padding(.horizontal,10).padding(.vertical,8).frame(maxWidth:.infinity,minHeight:40,alignment:.leading)
                         .background(Theme.ink.opacity(index==0 ? 0.075 : 0.035),in:RoundedRectangle(cornerRadius:12))
-                }.buttonStyle(.plain).accessibilityLabel(option.text).accessibilityIdentifier("smartReplyOption-\(index)")
+                }.buttonStyle(ReplySuggestionPressStyle(reduceMotion:reduceMotion))
+                    .accessibilityLabel(option.text).accessibilityIdentifier("smartReplyOption-\(index)")
             }
         }.padding(7).background(Theme.surface.opacity(reduceTransparency ? 1 : 0.96),in:RoundedRectangle(cornerRadius:17))
             .overlay(RoundedRectangle(cornerRadius:17).stroke(Theme.gradient.opacity(0.24),lineWidth:0.65))
@@ -359,7 +377,9 @@ struct CompanionChatView: View {
     }
     private func send() {
         guard canSend, !session.characterEditorPresented else { return }
-        editing = false; session.clearMessageFocus(); scrollState.returnToLatest(); session.send()
+        withAnimation(interfaceAnimation) {
+            editing = false; session.clearMessageFocus(); scrollState.returnToLatest(); session.send()
+        }
     }
     private func messageView(_ message: CompanionMessage) -> some View {
         VStack(alignment:message.role == "user" ? .trailing : .leading,spacing:0) {
@@ -385,5 +405,14 @@ struct CompanionChatView: View {
             if message.interrupted { Text("已停止生成").font(.caption2).foregroundStyle(Theme.secondary) }
         }.conversationHitRegion(.message,id:message.id.uuidString)
             .frame(maxWidth:.infinity,alignment:message.role == "user" ? .trailing : .leading)
+    }
+}
+
+private struct ReplySuggestionPressStyle:ButtonStyle {
+    let reduceMotion:Bool
+    func makeBody(configuration:Configuration)->some View {
+        configuration.label.opacity(configuration.isPressed ? 0.72 : 1)
+            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.98 : 1)
+            .animation(.easeOut(duration:0.16),value:configuration.isPressed)
     }
 }

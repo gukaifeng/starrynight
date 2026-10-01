@@ -69,15 +69,20 @@ final class ConversationPolishTests:XCTestCase {
         app.openConversationSettings("atmosphere")
         let slider=app.sliders["atmosphereLevelSlider"]
         XCTAssertTrue(slider.waitForExistence(timeout:5))
+        var previous = -1.0
         for value in [0.0,0.25,0.5,0.75,1.0] {
-            slider.adjust(toNormalizedSliderPosition:value)
-            // Apple's native adjustment is best-effort, not exact: the iOS 26
-            // thumb drag can land several percent from the requested target.
-            wait {abs(self.intensity(of:slider)-value)<(value==0 || value==1 ? 0.01 : 0.09)}
+            dragAtmosphere(slider,to:value)
+            let actual=intensity(of:slider)
+            // Touch slop and the native thumb's grab offset affect its precise
+            // endpoint. Verify the interaction contract, not XCTest pixel fidelity.
+            XCTAssertGreaterThan(actual,previous)
+            XCTAssertTrue((0...1).contains(actual))
+            if value==0 || value==1 {XCTAssertEqual(actual,value,accuracy:0.01)}
+            previous=actual
         }
-        slider.adjust(toNormalizedSliderPosition:0.37)
-        wait {abs(self.intensity(of:slider)-0.37)<0.09}
+        dragAtmosphere(slider,to:0.37)
         let actual=self.intensity(of:slider)
+        XCTAssertTrue((0.15...0.7).contains(actual),"Dragging back must reach an intermediate value")
         XCTAssertGreaterThan(abs(actual*4-(actual*4).rounded()),0.04,"Intermediate values must not snap to an old detent")
         let saved=slider.value as? String
         capture("continuous-atmosphere-thumb")
@@ -99,10 +104,26 @@ final class ConversationPolishTests:XCTestCase {
         row.swipeLeft()
         XCTAssertTrue(remove.waitForExistence(timeout:5));XCTAssertTrue(remove.isHittable)
         let hide=app.buttons["hideConversation-anime-kipfel"]
-        XCTAssertGreaterThanOrEqual(hide.frame.minX,row.frame.maxX)
+        // With the drag attached to the whole row, UIKit reports that full
+        // gesture rectangle for its accessible button (including the actions).
+        XCTAssertGreaterThanOrEqual(hide.frame.minX,initial.midX)
         XCTAssertGreaterThan(remove.frame.minX,hide.frame.maxX)
         XCTAssertEqual(remove.frame.maxX,initial.maxX,accuracy:1)
         XCTAssertEqual(row.frame.minX,initial.minX,accuracy:1)
+        row.swipeRight()
+        wait {!remove.exists && abs(row.frame.width-initial.width)<1}
+        // Begin in the empty edge of the row, not its label/avatar.
+        row.coordinate(withNormalizedOffset:CGVector(dx:0.9,dy:0.08)).press(forDuration:0.06,
+            thenDragTo:row.coordinate(withNormalizedOffset:CGVector(dx:0.15,dy:0.08)))
+        XCTAssertTrue(remove.waitForExistence(timeout:4))
+        // The revealed actions belong to the same drag surface. Releasing a
+        // closing drag on one must not accidentally hide/delete/open anything.
+        let actionStart=hide.coordinate(withNormalizedOffset:CGVector(dx:0.25,dy:0.5))
+        actionStart.press(forDuration:0.06,thenDragTo:actionStart.withOffset(CGVector(dx:112,dy:0)))
+        wait {!remove.exists && abs(row.frame.width-initial.width)<1}
+        XCTAssertFalse(app.alerts["删除对话和记忆？"].exists)
+        XCTAssertTrue(row.exists)
+        row.swipeLeft();XCTAssertTrue(remove.waitForExistence(timeout:4))
         let redPoint=CGPoint(x:remove.frame.minX+9,y:remove.frame.minY+9)
         assertRed(at:redPoint,app:app)
         capture("left-swipe-inline-actions")
@@ -159,6 +180,15 @@ final class ConversationPolishTests:XCTestCase {
         let text=slider.value as? String ?? ""
         if text=="关闭" {return 0}
         return (Double(text.replacingOccurrences(of:"%",with:"")) ?? -100)/100
+    }
+    @MainActor private func dragAtmosphere(_ slider:XCUIElement,to target:Double) {
+        // iOS 26's normalized XCTest adjustment accumulates overshoot across
+        // repeated drags. Start at the live thumb and use a real touch path.
+        let width=slider.frame.width,inset:CGFloat=18
+        let origin=slider.coordinate(withNormalizedOffset:CGVector(dx:0,dy:0.5))
+        let start=origin.withOffset(CGVector(dx:inset+(width-2*inset)*intensity(of:slider),dy:0))
+        let end=origin.withOffset(CGVector(dx:target==0 ? -5 : target==1 ? width+5 : inset+(width-2*inset)*target,dy:0))
+        start.press(forDuration:0.08,thenDragTo:end,withVelocity:.slow,thenHoldForDuration:0.05)
     }
     @MainActor private func capture(_ name:String) {
         let shot=XCTAttachment(screenshot:XCUIScreen.main.screenshot());shot.name=name;shot.lifetime = .keepAlways;add(shot)

@@ -25,6 +25,25 @@ final class CompanionSession {
     var input = ""
     let voiceInput=VoiceInputDraft()
     var generating = false
+    private(set) var presentationActive = true
+    /// Leaving a retained tab hides its presentation, not its network turn.
+    func setPresentationActive(_ active:Bool) {
+        guard presentationActive != active else {return}
+        presentationActive=active
+        if !active {
+            idleTask?.cancel();idleTask=nil
+            silentVisualTask?.cancel();silentVisualTask=nil
+            revealTask?.cancel();revealTask=nil;replyReveal.finish()
+            if voiceInput.active {cancelVoiceInput()}
+            quickReplyPanelPresented=false
+            onEndAIVisual?()
+        }
+        speech.setPresentationActive(active)
+        if active {
+            emit(generating ? "state.thinking" : "state.idle")
+            if !generating {scheduleIdle()}
+        }
+    }
     var notice: String?
     var currentAction = ""
     var replyReveal = ReplyReveal()
@@ -149,11 +168,11 @@ final class CompanionSession {
             self.emit("state."+state)
         }
         speech.onFrame = { [weak self] time,level in
-            guard let self, self.activeTurn else { return }
+            guard let self, self.presentationActive,self.activeTurn else { return }
             self.onIntent?(CharacterIntent(eventName:"speech.frame",turnId:self.token.uuidString,audioTime:time,level:Double(level)))
         }
         speech.onBeat = { [weak self] id in
-            guard let self, let beat = self.activeScript?.beats.first(where:{ $0.beatId == id }) else { return }
+            guard let self,self.presentationActive,let beat = self.activeScript?.beats.first(where:{ $0.beatId == id }) else { return }
             self.performedBeats.insert(id)
             self.onAIVisual?(beat.visuals)
             self.replyReveal.advance(id,fraction:0)
@@ -301,7 +320,10 @@ final class CompanionSession {
         store.pauseStory(id:model.id)
         scheduleReactionPreparation()
     }
-    private func emit(_ name: String) { onIntent?(CharacterIntent(eventName:name,turnId:activeTurn ? token.uuidString : "")) }
+    private func emit(_ name: String) {
+        guard presentationActive else {return}
+        onIntent?(CharacterIntent(eventName:name,turnId:activeTurn ? token.uuidString : ""))
+    }
     private func beginTurn() { activeTurn = true; emit("turn.begin") }
     func requestBody(_ text:String,trigger:String)->[String:Any] {
         Self.requestBody(store:store,model:model,text:text,trigger:trigger)
@@ -371,7 +393,7 @@ final class CompanionSession {
                         var message = CompanionMessage(id:UUID(uuidString:script.messageId) ?? UUID(),role:"assistant",text:script.text,
                             proactiveScene:trigger == "user_message" ? nil : trigger,aiScript:script,source:"cloud-v1")
                         message.storyID=self.record.together.activeStoryID
-                        if !self.record.messages.contains(where:{$0.id==message.id}) {self.replyReveal.begin(message.id,script:script)}
+                        if self.presentationActive,!self.record.messages.contains(where:{$0.id==message.id}) {self.replyReveal.begin(message.id,script:script)}
                         self.store.update(self.model.id) { record in
                             if !record.messages.contains(where:{ $0.id == message.id }) { record.messages.append(message) }
                             if let source = record.messages.last(where:{ $0.role == "user" }) {
@@ -391,7 +413,7 @@ final class CompanionSession {
                             self.speech.prepare(message.id,script:script)
                             // React when the text arrives, even while voice is
                             // connecting. Audio onset then aligns/renews the beat.
-                            if let first=script.beats.first {
+                            if self.presentationActive,let first=script.beats.first {
                                 self.performedBeats.insert(first.beatId)
                                 self.onAIVisual?(first.visuals)
                             }
@@ -414,7 +436,7 @@ final class CompanionSession {
                         self.store.update(self.model.id) {record in
                             if let index=record.messages.firstIndex(where:{$0.id==id}) {record.messages[index].aiScript=script}
                         }
-                        if !self.inspectionActive,!self.characterEditorPresented,let visuals=event.visuals,!visuals.isEmpty {
+                        if self.presentationActive,!self.inspectionActive,!self.characterEditorPresented,let visuals=event.visuals,!visuals.isEmpty {
                             self.lateVisualUpdates+=1
                             if self.speech.isSpeaking {self.lateVisualsDuringSpeech+=1}
                             self.onAdditionalAIVisual?(visuals)
@@ -451,17 +473,17 @@ final class CompanionSession {
     }
     private func scheduleIdle() {
         idleTask?.cancel()
-        guard record.messages.contains(where:{$0.role=="user"}),!(isGuest && store.guestLimitReached) else {return}
+        guard presentationActive,record.messages.contains(where:{$0.role=="user"}),!(isGuest && store.guestLimitReached) else {return}
         idleTask = Task { @MainActor [weak self] in
             try? await Task.sleep(for:.seconds(Int.random(in:150...240)))
-            guard !Task.isCancelled, let self, !self.generating, !self.speech.isRecording, !self.speech.isBusy,
+            guard !Task.isCancelled, let self, self.presentationActive, !self.generating, !self.speech.isRecording, !self.speech.isBusy,
                   !self.speech.isSpeaking, !self.voiceInput.active, self.input.isEmpty, !self.characterEditorPresented else { return }
             self.generate("",trigger:"idle")
         }
     }
     private func scheduleReactionPreparation(delay:Double = 0.2) {
         reactionPreparationTask?.cancel()
-        guard CharacterAI.reactionPreparationEnabled,!(isGuest && store.guestLimitReached) else {return}
+        guard presentationActive,CharacterAI.reactionPreparationEnabled,!(isGuest && store.guestLimitReached) else {return}
         let current=token
         reactionPreparationTask=Task { @MainActor [weak self] in
             do {
@@ -492,7 +514,7 @@ final class CompanionSession {
            !ProcessInfo.processInfo.arguments.contains("--live-ai") {
             quickReplies=["可以再和我多说一点吗？","你最喜欢刚才的哪个发现？","我也想和你分享今天的小事。"].enumerated().map {
                 AIQuickReply(id:"layout-\($0.offset)",text:$0.element,likelihood:1-Double($0.offset)*0.2)
-            };return
+            };quickReplySource=record.messages.last?.aiScript?.messageId;return
         }
 #endif
         guard let script=record.messages.last?.aiScript else {return}
@@ -521,6 +543,7 @@ final class CompanionSession {
         }
     }
     private func revealSilently(_ script:AIScript) {
+        guard presentationActive else {replyReveal.finish();return}
         revealTask?.cancel()
         revealTask=Task { @MainActor [weak self] in
             guard let self else {return}
@@ -537,6 +560,7 @@ final class CompanionSession {
         }
     }
     private func playSilentVisuals(_ script: AIScript) {
+        guard presentationActive else {return}
         let remaining=script.beats.filter { !performedBeats.contains($0.beatId) }
         guard !remaining.isEmpty else { return }
         silentVisualTask?.cancel()

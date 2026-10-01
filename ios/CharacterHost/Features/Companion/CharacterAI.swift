@@ -267,12 +267,20 @@ private final class AINoRedirect: NSObject, URLSessionTaskDelegate, Sendable {
         return try JSONDecoder().decode(ConversationResetReceipt.self,from:data)
     }
     func registerOpening(_ script:AIScript,resetID:String) async throws {
+#if DEBUG && targetEnvironment(simulator)
+        if ConversationContinuityFixture.enabled {return}
+#endif
         guard let id=script.openingID else {return}
         struct Acknowledgement:Decodable,Sendable {let accepted:Bool}
         let _:Acknowledgement=try await configuration("/v1/conversations/"+characterID+"/opening",body:[
             "opening_id":id,"message_id":script.messageId,"conversation_reset":resetID])
     }
     func events(path: String, body: [String:Any]?, consume: (AIEvent) async throws -> Void) async throws {
+#if DEBUG && targetEnvironment(simulator)
+        if ConversationContinuityFixture.enabled {
+            try await ConversationContinuityFixture.events(characterID:characterID,body:body,consume:consume);return
+        }
+#endif
         var request = try request(path); request.httpMethod = "POST"
         request.setValue("application/json",forHTTPHeaderField:"Content-Type")
         request.setValue("text/event-stream",forHTTPHeaderField:"Accept")

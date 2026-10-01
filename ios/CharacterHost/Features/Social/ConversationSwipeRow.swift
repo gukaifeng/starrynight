@@ -2,8 +2,8 @@ import SwiftUI
 
 /// A leftward drag makes room for inline actions at the trailing edge.
 /// The buttons share the row's layout; they are never underneath its content.
-/// Vertical/rightward drags do not reveal actions, and confirmation owns the
-/// expanded state until it finishes.
+/// The whole row tracks both opening and closing, including its action area.
+/// Vertical drags scroll the list; confirmation owns expansion until finished.
 struct ConversationSwipeRow<Content:View>:View {
     let id:String
     @Binding var revealedID:String?
@@ -33,13 +33,12 @@ struct ConversationSwipeRow<Content:View>:View {
                 .frame(maxWidth:.infinity).clipped().contentShape(Rectangle())
                 .buttonStyle(.plain).accessibilityIdentifier("message-"+id)
                 .allowsHitTesting(!locked)
-                .simultaneousGesture(revealGesture)
             if reveal>0.1 {
                 HStack(spacing:6) {
-                    Button(action:onHide) {Text("不显示").frame(width:65,height:54).contentShape(Rectangle())}
+                    Button {if Date()>=ignoreTapUntil {onHide()}} label: {Text("不显示").frame(width:65,height:54).contentShape(Rectangle())}
                         .background(Theme.card,in:RoundedRectangle(cornerRadius:13))
                         .accessibilityIdentifier("hideConversation-"+id)
-                    Button(role:.destructive,action:onDelete) {Text("删除").frame(width:65,height:54).contentShape(Rectangle())}
+                    Button(role:.destructive) {if Date()>=ignoreTapUntil {onDelete()}} label: {Text("删除").frame(width:65,height:54).contentShape(Rectangle())}
                         .background(Color(hex:0xAC3E4E),in:RoundedRectangle(cornerRadius:13))
                         .accessibilityIdentifier("deleteConversation-"+id)
                 }.font(.system(size:12,weight:.medium)).foregroundStyle(.white).buttonStyle(.plain)
@@ -48,7 +47,8 @@ struct ConversationSwipeRow<Content:View>:View {
                     .allowsHitTesting(progress>0.95 && !locked).accessibilityHidden(progress<0.95)
                     .zIndex(1)
             }
-        }.clipped().accessibilityElement(children:.contain)
+        }.clipped().contentShape(Rectangle()).simultaneousGesture(revealGesture)
+            .accessibilityElement(children:.contain)
             .accessibilityAction(named:Text("不显示"),onHide)
             .accessibilityAction(named:Text("删除对话和记忆"),onDelete)
     }
@@ -57,7 +57,8 @@ struct ConversationSwipeRow<Content:View>:View {
                 guard !locked else {return}
                 ignoreTapUntil=Date().addingTimeInterval(0.3)
                 if axis==0 {
-                    guard -value.translation.width>abs(value.translation.height)*1.2 else {axis=2;return}
+                    guard abs(value.translation.width)>abs(value.translation.height)*1.2,
+                          reveal>0 || value.translation.width<0 else {axis=2;return}
                     axis=1;origin=reveal;dragging=origin
                     withAnimation(motion) {revealedID=id}
                 }
@@ -66,10 +67,10 @@ struct ConversationSwipeRow<Content:View>:View {
             }.onEnded {value in
                 defer {axis=0}
                 ignoreTapUntil=Date().addingTimeInterval(0.3)
-                guard axis==1,!locked else {return}
-                let current=reveal,predicted=origin-value.predictedEndTranslation.width
+                guard axis==1,!locked else {dragging=nil;return}
+                let predicted=origin-value.predictedEndTranslation.width
                 withAnimation(motion) {
-                    revealedID=current>revealWidth*0.35 || (predicted>revealWidth*0.65 && current>0) ? id : nil
+                    revealedID=predicted>revealWidth*0.5 ? id : nil
                     dragging=nil
                 }
             }

@@ -127,7 +127,7 @@ final class RealAIConversationTests: XCTestCase {
             XCTAssertGreaterThan(choice.frame.minY,app.buttons["customizationButton"].frame.maxY)
         }
         capture("smart-replies-fully-visible-above-input",app)
-        app.buttons["关闭快捷回复"].tap()
+        app.buttons["closeSmartReplies"].tap()
         XCTAssertTrue(app.buttons["smartReplyOption-0"].waitForNonExistence(timeout:3))
         XCTAssertTrue(input.isHittable)
     }

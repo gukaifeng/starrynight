@@ -643,7 +643,6 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
         }
     }
     private func finishClosing() {
-        companion?.stop()
         overlay?.view.accessibilityElementsHidden = true
         overlay?.view.isUserInteractionEnabled = true
         bridge.setPaused(true); page = .home
@@ -747,6 +746,7 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
     @ObservationIgnored private var deviceMotion=ConversationDeviceMotion()
     private func setConversationAudioActive(_ enabled:Bool) {
         soundscape.setActive(enabled)
+        companion?.setPresentationActive(enabled)
         overlay?.setAtmosphereActive(enabled)
         deviceMotion.onShake = { [weak self] intensity in
             guard let self,self.active,self.conversationVisible,self.page == .viewer,

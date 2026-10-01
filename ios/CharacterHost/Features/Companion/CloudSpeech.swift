@@ -109,6 +109,19 @@ private final class MicrophonePCM: @unchecked Sendable {
     @ObservationIgnored private var cacheMessage = ""
     @ObservationIgnored private var measured = false
     @ObservationIgnored private var timer: Timer?
+    @ObservationIgnored private var presentationActive=true
+    @ObservationIgnored private var segmentAudible=true
+    /// Drain hidden-page audio to the same cache without starting an engine.
+    /// Keep the transport generation and PCM intact; returning may play the next
+    /// complete beat, while the interrupted beat remains available for replay.
+    func setPresentationActive(_ active:Bool) {
+        presentationActive=active
+        guard !active else {return}
+        segmentAudible=false;playbackSegment=UUID();buffers=0
+        timer?.invalidate();timer=nil;player?.stop();engine?.stop();player=nil;engine=nil
+        isSpeaking=false;playbackLevel=0;onFrame?(playbackElapsed,0)
+        soundscape.endVoice()
+    }
     init(soundscape: CompanionSoundscape, api: CharacterAI, cacheScope: String) {
         self.soundscape = soundscape; self.api = api; self.cacheScope = cacheScope
         super.init()
@@ -139,7 +152,11 @@ private final class MicrophonePCM: @unchecked Sendable {
             beat = event.beatId ?? ""; beatPCM = Data(); beatFrames = 0; measured = false; beatDuration=nil
             beatStartTime = totalDuration; playbackElapsed = beatStartTime; playbackLevel = 0
             onFrame?(playbackElapsed,0)
-            try await soundscape.beginVoice(.speech)
+            segmentAudible=presentationActive
+            guard segmentAudible else {return}
+            do {try await soundscape.beginVoice(.speech)}
+            catch {if !presentationActive {segmentAudible=false;return};throw error}
+            guard presentationActive else {segmentAudible=false;return}
             let engine = AVAudioEngine(), player = AVAudioPlayerNode()
             engine.attach(player); engine.connect(player,to:engine.mainMixerNode,format:AVAudioFormat(standardFormatWithSampleRate:24000,channels:1))
             self.engine = engine; self.player = player; refreshVolume()
@@ -190,7 +207,12 @@ private final class MicrophonePCM: @unchecked Sendable {
         }
     }
     private func append(_ data: Data) {
-        guard let player, data.count.isMultiple(of:2), data.count <= 24000*2*15,
+        guard data.count.isMultiple(of:2),data.count <= 24000*2*15 else {return}
+        if !segmentAudible {
+            beatPCM.append(data);beatFrames += data.count/2
+            return
+        }
+        guard let player,
               let format = AVAudioFormat(standardFormatWithSampleRate:24000,channels:1),
               let buffer = AVAudioPCMBuffer(pcmFormat:format,frameCapacity:AVAudioFrameCount(data.count/2)),
               let output = buffer.floatChannelData?[0] else { return }

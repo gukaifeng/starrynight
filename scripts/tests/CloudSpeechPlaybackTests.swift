@@ -104,6 +104,24 @@ import CryptoKit
         try require(try await speech.cachedReplay(script,messageID:message),"Cached replay missed")
         try require(speech.audibleSegments == 4 && played == ["speech","vocal","speech","vocal"],"Replay skipped the vocal-only beat")
         try require(regressions == 0,"Cached speech timestamps moved backwards")
+        // Hiding a tab while a beat drains must neither cancel the turn nor
+        // discard its complete PCM. Later hidden beats cache without output.
+        speech.prepare(message,script:script)
+        try await speech.accept(AIEvent(type:"segment.audio.started",beatId:"speech"))
+        try await speech.accept(AIEvent(type:"segment.audio.chunk",data:pcm.base64EncodedString()))
+        let draining=Task {try await speech.accept(AIEvent(type:"segment.audio.ready",beatId:"speech"))}
+        try await Task.sleep(for:.milliseconds(50))
+        soundscape.setActive(false);speech.setPresentationActive(false)
+        try await draining.value
+        let beforeHidden=speech.audibleSegments
+        try await speech.accept(AIEvent(type:"segment.audio.started",beatId:"vocal"))
+        try await speech.accept(AIEvent(type:"segment.audio.chunk",data:pcm.base64EncodedString()))
+        try await speech.accept(AIEvent(type:"segment.audio.ready",beatId:"vocal"))
+        try require(!speech.isSpeaking && speech.audibleSegments==beforeHidden,"Hidden-page speech started an audible engine")
+        try require(abs((speech.durations[message] ?? 0)-1.2)<0.01,"Hidden completion lost PCM or duration")
+        speech.finish();soundscape.setActive(true);speech.setPresentationActive(true)
+        try require(try await speech.cachedReplay(script,messageID:message),"A reply completed offscreen could not replay from cache")
+        try require(speech.audibleSegments==beforeHidden+2,"Returning did not restore real output")
         speech.prepare(message,script:script)
         try await speech.accept(AIEvent(type:"segment.audio.started",beatId:"speech"))
         try await speech.accept(AIEvent(type:"segment.audio.chunk",data:pcm.base64EncodedString()))
@@ -124,6 +142,6 @@ import CryptoKit
         do {try await cancelledPump.finish();try require(false,"Cancelled audio worker reported success")}
         catch is CancellationError {}
         try require(cancelled && !nextBeatAccepted,"Cancellation left audio from the old turn queued")
-        return "PASS: old voice cache invalidation, real audio-thread metering, monotonic lip-sync timestamps, nonblocking two-beat audio queue, late visual delivery during playback, vocal-only cache replay, duration and worker cancellation; zero network calls."
+        return "PASS: real audio metering, cache replay, monotonic lip-sync, nonblocking queue, late visuals, hidden-tab drain and PCM cache, playback restoration, duration and worker cancellation; zero network calls."
     }
 }
