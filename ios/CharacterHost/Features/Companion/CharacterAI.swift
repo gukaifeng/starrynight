@@ -105,11 +105,12 @@ struct AIReactionPoolStatus:Decodable,Sendable {
 }
 private struct AIReactionPause:Decodable,Sendable {var paused:Bool}
 enum AIConnectionError: LocalizedError {
-    case unconfigured, unavailable, server(Int), remote(String), testingDisabled
+    case unconfigured, unavailable, server(Int), remote(String), testingDisabled, authenticationRequired
     var errorDescription: String? {
         switch self {
+        case .authenticationRequired: "登录星夜后，就可以继续聊天了。"
         case .unconfigured: "AI 连接尚未配置。"
-        case .unavailable: "暂时连不上 AI 服务。当前开发版需要 Mac 上的服务运行，并处于同一网络。"
+        case .unavailable: "暂时连不上 AI 服务，请检查网络后重试。"
         case .server(let code): code == 401 ? "AI 连接凭证已变更，请更新安装版本。" : [429,503].contains(code) ? "AI 服务暂时繁忙，请稍后重试。" : "AI 服务暂时不可用（\(code)）。"
         case .remote(let code): Self.remoteDescription(code)
         case .testingDisabled: "自动测试已关闭付费 AI 调用。"
@@ -161,6 +162,8 @@ private final class AINoRedirect: NSObject, URLSessionTaskDelegate, Sendable {
     /// Installed by the account layer; the AI pipeline itself stays independent
     /// of login UI and the account persistence implementation.
     static var authenticatedRequest: ((String,String) throws -> URLRequest?)?
+    static var authenticationRequired: ((String) -> Bool)?
+    var requiresAuthentication:Bool { Self.authenticationRequired?(accountID) == true }
     static var clearAccountArchive: ((String,String) async throws -> Void)?
     static var deleteAccountConversation: ((String,String,String) async throws -> Int)?
     private struct Connection: Decodable { let baseURL, clientToken: String }
@@ -213,6 +216,7 @@ private final class AINoRedirect: NSObject, URLSessionTaskDelegate, Sendable {
     func request(_ path: String, paid: Bool = true) throws -> URLRequest {
         if paid && !Self.paidTestsEnabled { throw AIConnectionError.testingDisabled }
         if let request = try Self.authenticatedRequest?(accountID,path) { return request }
+        if requiresAuthentication { throw AIConnectionError.authenticationRequired }
         guard let connection, let base = URL(string:connection.baseURL),
               base.scheme == "https" || (base.scheme == "http" && (base.host?.hasSuffix(".local") == true || base.host == "127.0.0.1")),
               let url = URL(string:path,relativeTo:base)?.absoluteURL else { throw AIConnectionError.unconfigured }

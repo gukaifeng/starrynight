@@ -14,8 +14,6 @@ import subprocess
 from urllib.parse import urlsplit
 import xml.sax.saxutils as xml
 from generate_asset_credits import generate_asset_credits
-from generate_character_public_profiles import generate as generate_public_profiles
-from generate_ai_performances import generate as generate_ai_performances
 
 ROOT = Path(__file__).resolve().parents[1]
 test_tool_config=ROOT/'.local/character-ai-client/TestTools.json'
@@ -55,8 +53,6 @@ def configuration(key, settings):
 # Keep model authors, original licensing and separate upstream NOTICE files
 # available offline in both About and each character's source-attribution page.
 generate_asset_credits(ROOT)
-generate_public_profiles(ROOT)
-generate_ai_performances(ROOT)
 source_refs=[]; source_build=[]; resource_build=[]
 active_music = {t['asset'] for c in json.loads((ios/'CharacterHost/Resources/CharacterCollections.json').read_text())['collections'] for t in c['music']}
 for path in sorted((ios/'CharacterHost').rglob('*')):
@@ -93,15 +89,12 @@ if test_tools:
     rules.write_text('\n\n'.join('===== '+name+' =====\n'+(ios/'CharacterHost/Features/Companion'/name).read_text() for name in names))
     ref=obj('ai-test-rules','PBXFileReference',lastKnownFileType='text',path='../.local/character-ai-client/ClientAIRules.txt',sourceTree='<group>')
     source_refs.append(ref);resource_build.append(buildfile('ai-test-rules',ref))
-connection = ROOT/'.local/character-ai-client/Connection.json'
-if connection.exists():
-    ref=obj('ai-connection','PBXFileReference',lastKnownFileType='text.json',path='../.local/character-ai-client/Connection.json',sourceTree='<group>')
-    source_refs.append(ref); resource_build.append(buildfile('ai-connection',ref))
-
 # The platform endpoint is independently configurable; it contains no credentials.
 platform_connection = ROOT/f'.local/platform-client/{args.platform}/PlatformConnection.json'
 if not platform_connection.exists():
     platform_connection = ROOT/'.local/platform-client/PlatformConnection.json'
+if not platform_connection.exists():
+    platform_connection = ROOT/'config/PlatformConnection.json'
 has_platform_connection = platform_connection.exists()
 if has_platform_connection and args.platform == 'device':
     endpoint = json.loads(platform_connection.read_text()).get('baseURL', '')
@@ -110,6 +103,14 @@ if has_platform_connection and args.platform == 'device':
 if has_platform_connection:
     ref=obj('platform-connection','PBXFileReference',lastKnownFileType='text.json',path='../'+str(platform_connection.relative_to(ROOT)),sourceTree='<group>')
     source_refs.append(ref); resource_build.append(buildfile('platform-connection',ref))
+
+# Production AI requests use the account session. Never ship the old shared
+# worker token alongside a public HTTPS platform configuration.
+uses_cloud_accounts = has_platform_connection and urlsplit(json.loads(platform_connection.read_text()).get('baseURL', '')).scheme == 'https'
+connection = ROOT/'.local/character-ai-client/Connection.json'
+if connection.exists() and not uses_cloud_accounts and not args.distribution:
+    ref=obj('ai-connection','PBXFileReference',lastKnownFileType='text.json',path='../.local/character-ai-client/Connection.json',sourceTree='<group>')
+    source_refs.append(ref); resource_build.append(buildfile('ai-connection',ref))
 
 app=obj('app-product','PBXFileReference',explicitFileType='wrapper.application',path='CharacterHost.app',sourceTree='BUILT_PRODUCTS_DIR',includeInIndex='0')
 unity_ref=obj('unity-project','PBXFileReference',lastKnownFileType='wrapper.pb-project',path=f'../build/unity-{args.platform}/Unity-iPhone.xcodeproj',sourceTree='<group>')
@@ -127,7 +128,7 @@ content_check=obj('check-content','PBXShellScriptBuildPhase',buildActionMask='21
     name='Check character content',runOnlyForDeploymentPostprocessing='0',shellPath='/bin/sh',alwaysOutOfDate='1',
     shellScript='set -e\nif [ "${ACTION:-}" = install ] && echo "${SWIFT_ACTIVE_COMPILATION_CONDITIONS:-}" | /usr/bin/grep -q STARRY_TEST_TOOLS; then\n  echo "error: Developer tools cannot be archived. Regenerate with scripts/generate_host.py --platform device --distribution."\n  exit 1\nfi\n'
         f'python3 "${{SRCROOT}}/../scripts/check_export_content.py" --platform {args.platform}\n'
-        'python3 "${SRCROOT}/../scripts/prepare_character_openings.py" --check\n')
+        'python3 "${SRCROOT}/../scripts/check_character_openings.py"\n')
 settings={'PRODUCT_NAME':'$(TARGET_NAME)','PRODUCT_BUNDLE_IDENTIFIER':'com.modelspace.viewer',
     'PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]':'$(MODELSPACE_DEVICE_BUNDLE_IDENTIFIER)',
     'INFOPLIST_FILE':'CharacterHost/Info.plist','SWIFT_VERSION':'6.0','SWIFT_OBJC_BRIDGING_HEADER':'CharacterHost/Bridge/CharacterHost-Bridging-Header.h',
@@ -140,7 +141,7 @@ settings={'PRODUCT_NAME':'$(TARGET_NAME)','PRODUCT_BUNDLE_IDENTIFIER':'com.model
     'FRAMEWORK_SEARCH_PATHS':['$(inherited)','$(BUILT_PRODUCTS_DIR)'],
     'OTHER_LDFLAGS':['$(inherited)','-lc++','-framework','CoreML','-framework','Accelerate'],
     'GCC_ENABLE_CPP_EXCEPTIONS':'YES',
-    'CODE_SIGN_STYLE':'Automatic','CURRENT_PROJECT_VERSION':'113','MARKETING_VERSION':'0.83.2',
+    'CODE_SIGN_STYLE':'Automatic','CURRENT_PROJECT_VERSION':'114','MARKETING_VERSION':'0.84.0',
     'ENABLE_USER_SCRIPT_SANDBOXING':'NO','SUPPORTS_MACCATALYST':'NO','SWIFT_EMIT_LOC_STRINGS':'YES',
     'ARCHS':'arm64','ENABLE_DEBUG_DYLIB':'NO','ASSETCATALOG_COMPILER_APPICON_NAME':'AppIcon'}
 target=obj('host-target','PBXNativeTarget',name='CharacterHost',productName='CharacterHost',productType='com.apple.product-type.application',productReference=app,

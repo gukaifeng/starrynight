@@ -10,6 +10,15 @@ import Foundation
         }
         try require(!CharacterAI.reactionPreparationEnabled && !CharacterAI.smartReplyPreparationEnabled,"Fixture must disable paid preparation")
         for model in ModelDescriptor.all {
+            if model.isPreviewOnly {
+                try require(CharacterOpenings.random(for:model.id)==nil,"Preview role must not bundle paid opening media")
+                let previewStore=CompanionStore(storageURL:FileManager.default.temporaryDirectory.appendingPathComponent("preview-\(UUID()).json"),arguments:[])
+                let preview=CompanionSession(store:previewStore,model:model,soundscape:CompanionSoundscape())
+                preview.enterConversation(ConversationEntry(reason:.appLaunch,characterID:model.id,accountID:previewStore.accountID))
+                try require(previewStore.record(model.id).messages.isEmpty && preview.soundscape.volume==0,
+                            "Preview must stay local and silent")
+                continue
+            }
             for index in 1...3 {
                 guard let opening=CharacterOpenings.find(model.runtimeID+"-v2-\(index)") else {
                     throw NSError(domain:"OpeningChecks",code:2,userInfo:[NSLocalizedDescriptionKey:"Missing opening for "+model.id])
@@ -21,6 +30,9 @@ import Foundation
                 try require(parts.filter {$0.kind == "thought" && $0.isVisible}.count==2,"Every introduction needs two visible inner asides")
                 try require(parts.filter {$0.kind == "dialogue"}.map(\.text).joined()==opening.text,"Aside composition must preserve every spoken character")
                 try require(CharacterOpenings.find(model.runtimeID+"-\(index)")?.audioReady == true,"Old first-meeting audio must remain replayable")
+                let suggestions=CharacterOpenings.initialReplies(for:model.runtimeID,messageID:"test-message")
+                try require(suggestions.count==3 && Set(suggestions.map(\.text)).count==3,
+                            "Every bundled introduction needs three immediately visible replies")
             }
         }
         let folder=FileManager.default.temporaryDirectory.appendingPathComponent("opening-fixture-\(UUID())")
@@ -36,6 +48,8 @@ import Foundation
         try require(store.record(role).messages.count==1,"First meeting must append synchronously without network")
         try require(store.record(role).messages[0].source=="bundled-opening-v2","First meeting must use the revised package")
         let first=store.record(role).messages[0]
+        try require(session.quickReplies.count==3 && session.quickReplySource==first.aiScript?.messageId.lowercased(),
+                    "First-meeting suggestions must appear before speech completes")
         let opening=CharacterOpenings.find(first.aiScript!.openingID!)!
         try require(first.speechDuration==opening.duration && first.speechSpeed==1,"Measured opening length must exist before audio starts")
         for _ in 0..<150 {

@@ -4,7 +4,7 @@
 
 ## 文件与职责
 
-- `scripts/generate_character_media.py`：百炼制作，读取既有私有 `Settings`。角色人格来自 AI 服务设定，参考图来自已有 `Cover_*.imageset/source.*`。封面和头像用参考图编辑，背景使用纯环境生成。
+- `scripts/generate_character_media.py`：百炼制作，从相邻 `starrynight-server` 仓库读取私有 `Settings`。角色人格来自 AI 服务设定，参考图来自已有 `Cover_*.imageset/source.*`。封面和头像用参考图编辑，背景使用纯环境生成。
 - `.local/character-media/<id>/`：私有母版及回执（模型、提示、源图哈希、请求 ID、usage、成品哈希）；旧版保留在 `revisions/`。原始 VRChat 源包不改。
 - `scripts/prepare_character_media.py`：验证回执后安装原生封面/头像和 Unity 场景图，更新目录。`CharacterCoverBuilder` 校验 `bailian-generated` 封面且不以截图覆盖。
 - `CharacterAtmospheres.json`：双方共用 schema v1，资源路径、哈希、粒子类型、配色与密度；Unity 导出戳保存目录哈希，旧导出不能混入新宿主。
@@ -16,10 +16,10 @@
 
 ```bash
 # 仅查看计划，不发起收费请求。
-.local/character-ai-venv/bin/python scripts/generate_character_media.py
+../starrynight-server/.local/character-ai-venv/bin/python scripts/generate_character_media.py
 
 # 明确需要新制作时执行；已完成同指纹会复用。
-.local/character-ai-venv/bin/python scripts/generate_character_media.py --generate
+../starrynight-server/.local/character-ai-venv/bin/python scripts/generate_character_media.py --generate
 
 # 查看每张母版后安装，检查多余人物、错误文字和裁切。
 python3 scripts/prepare_character_media.py
@@ -51,7 +51,7 @@ python3 scripts/export_unity_ios.py --platform device
 当前 API 实测 403，用户已申请等待批准。获准后执行：
 
 ```bash
-.local/character-ai-venv/bin/python scripts/generate_character_media.py --kinds music --generate --retry-failed
+../starrynight-server/.local/character-ai-venv/bin/python scripts/generate_character_media.py --kinds music --generate --retry-failed
 python3 scripts/prepare_character_music.py --ai
 python3 scripts/check_character_collections.py
 ```

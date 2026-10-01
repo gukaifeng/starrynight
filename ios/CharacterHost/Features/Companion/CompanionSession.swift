@@ -56,6 +56,7 @@ final class CompanionSession {
     }
     func clearMessageFocus() { focusedMessageID = nil }
     func clearMessages() {
+        guard !model.isPreviewOnly else { return }
         stop()
         task = Task { @MainActor [weak self] in
             guard let self else { return }
@@ -116,6 +117,8 @@ final class CompanionSession {
     }
     func requestLogin() { dismissKeyboardRequest += 1; onLoginRequested?() }
     private func allowReply() -> Bool {
+        if model.isPreviewOnly { return false }
+        if api.requiresAuthentication { requestLogin(); return false }
         guard record.pendingDeletionID==nil else {notice="上次删除尚未完成，请在消息页重试删除。";return false}
         if isGuest && store.guestLimitReached { requestLogin(); return false }; return true
     }
@@ -181,6 +184,7 @@ final class CompanionSession {
     }
     func enterConversation(_ entry: ConversationEntry) {
         guard entry.characterID == model.id, entry.accountID == ownerID, store.accountID == ownerID else { return }
+        if model.isPreviewOnly { return }
         guard record.pendingDeletionID==nil else {notice="上次删除尚未完成，请在消息页重试删除。";return}
         refreshAddressPreferences()
         guard ConversationGreetingPolicy.shouldGreet(record,entry:entry) else {
@@ -228,6 +232,9 @@ final class CompanionSession {
             record.messages.append(message)
             record.greeting=ConversationGreetingHistory(count:1,lastDate:Date(),lastText:script.text,lastEntryID:entry.id)
         }
+        quickReplySource=script.messageId.lowercased()
+        quickReplies=CharacterOpenings.initialReplies(for:model.runtimeID,messageID:script.messageId)
+        scheduleQuickReplies(script)
         // Record once before playback, so rapid remounts and interruption never
         // draw another first-meeting variant. Later greetings remain contextual AI.
         task=Task { @MainActor [weak self] in
@@ -238,7 +245,7 @@ final class CompanionSession {
                 guard token==current,store.accountID==ownerID else {return}
                 emit("state.idle");scheduleIdle()
                 // Preparation is for future interactions, never for this opening.
-                scheduleReactionPreparation(delay:1);scheduleQuickReplies(script)
+                scheduleReactionPreparation(delay:1)
             } catch {
                 guard token==current,!Task.isCancelled else {return}
                 speech.stop();playSilentVisuals(script);replyReveal.finish();emit("state.idle")
@@ -262,8 +269,9 @@ final class CompanionSession {
     }
     func sendSuggested(_ option:AIQuickReply) {
         guard quickReplies.contains(where:{$0.id==option.id}),
-              record.messages.last?.aiScript?.messageId==quickReplySource else {return}
-        let draft=input;input=option.text;send(quickReplyID:option.id)
+              record.messages.last?.aiScript?.messageId.lowercased()==quickReplySource else {return}
+        let draft=input;input=option.text
+        send(quickReplyID:option.id.hasPrefix("opening-local-") ? nil : option.id)
         if !draft.isEmpty {input=draft}
     }
     @discardableResult func beginVoiceInput() -> Bool {
@@ -350,7 +358,7 @@ final class CompanionSession {
     }
     func reactToModelInteraction(kind:String,intensity:Double) {
         guard ["shake","pinch_out","pinch_in"].contains(kind),intensity.isFinite else {return}
-        guard !inspectionActive,!characterEditorPresented,store.accountID==ownerID,
+        guard !api.requiresAuthentication,!inspectionActive,!characterEditorPresented,store.accountID==ownerID,
               !(isGuest && store.guestLimitReached),!voiceInput.active,!speech.isRecording,shakeTask==nil else {return}
         if kind=="shake" {shakeReactions+=1} else {pinchReactions+=1}
         lastModelInteraction=kind
@@ -360,6 +368,8 @@ final class CompanionSession {
             interaction:["kind":kind,"intensity":min(1,max(0,intensity))])
     }
     private func generate(_ text: String,trigger: String,entry: ConversationEntry? = nil,interaction:[String:Any]? = nil,quickReplyID:String? = nil) {
+        guard !model.isPreviewOnly else { return }
+        guard !api.requiresAuthentication else {return}
         guard record.pendingDeletionID==nil else {return}
         stop(preservePreparation:true);quickReplies=[];quickReplySource=nil
         let current = token; generating = true; beginTurn(); emit("state.thinking")
@@ -472,8 +482,9 @@ final class CompanionSession {
         }
     }
     private func scheduleIdle() {
+        guard !model.isPreviewOnly else { return }
         idleTask?.cancel()
-        guard presentationActive,record.messages.contains(where:{$0.role=="user"}),!(isGuest && store.guestLimitReached) else {return}
+        guard !api.requiresAuthentication,presentationActive,record.messages.contains(where:{$0.role=="user"}),!(isGuest && store.guestLimitReached) else {return}
         idleTask = Task { @MainActor [weak self] in
             try? await Task.sleep(for:.seconds(Int.random(in:150...240)))
             guard !Task.isCancelled, let self, self.presentationActive, !self.generating, !self.speech.isRecording, !self.speech.isBusy,
@@ -482,8 +493,9 @@ final class CompanionSession {
         }
     }
     private func scheduleReactionPreparation(delay:Double = 0.2) {
+        guard !model.isPreviewOnly else { return }
         reactionPreparationTask?.cancel()
-        guard presentationActive,CharacterAI.reactionPreparationEnabled,!(isGuest && store.guestLimitReached) else {return}
+        guard !api.requiresAuthentication,presentationActive,CharacterAI.reactionPreparationEnabled,!(isGuest && store.guestLimitReached) else {return}
         let current=token
         reactionPreparationTask=Task { @MainActor [weak self] in
             do {
@@ -514,16 +526,17 @@ final class CompanionSession {
            !ProcessInfo.processInfo.arguments.contains("--live-ai") {
             quickReplies=["可以再和我多说一点吗？","你最喜欢刚才的哪个发现？","我也想和你分享今天的小事。"].enumerated().map {
                 AIQuickReply(id:"layout-\($0.offset)",text:$0.element,likelihood:1-Double($0.offset)*0.2)
-            };quickReplySource=record.messages.last?.aiScript?.messageId;return
+            };quickReplySource=record.messages.last?.aiScript?.messageId.lowercased();return
         }
 #endif
         guard let script=record.messages.last?.aiScript else {return}
         scheduleQuickReplies(script)
     }
     private func scheduleQuickReplies(_ script:AIScript) {
+        guard !model.isPreviewOnly else { return }
         quickReplyTask?.cancel()
-        guard CharacterAI.smartReplyPreparationEnabled,!(isGuest && store.guestLimitReached) else {return}
-        let current=token;quickReplySource=script.messageId;quickRepliesLoading=true
+        guard !api.requiresAuthentication,CharacterAI.smartReplyPreparationEnabled,!(isGuest && store.guestLimitReached) else {return}
+        let current=token;quickReplySource=script.messageId.lowercased();quickRepliesLoading=true
         quickReplyTask=Task { @MainActor [weak self] in
             guard let self else {return}
             defer {if self.token==current {self.quickRepliesLoading=false}}
@@ -533,7 +546,7 @@ final class CompanionSession {
                 var response=try await self.api.quickReplies(body,prepare:true)
                 for _ in 0..<30 {
                     guard !Task.isCancelled,self.token==current,self.store.accountID==self.ownerID,
-                          self.quickReplySource==response.sourceMessageId else {return}
+                          self.quickReplySource==response.sourceMessageId.lowercased() else {return}
                     if !response.options.isEmpty {self.quickReplies=response.options;self.onPreparationChanged?();return}
                     if !response.preparing {return}
                     try await Task.sleep(for:.milliseconds(500))

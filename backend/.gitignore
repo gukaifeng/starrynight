@@ -1,5 +1,0 @@
-.env
-.local/
-bin/
-coverage.out
-*.test

@@ -60,6 +60,10 @@ private final class PlatformNoRedirect: NSObject, URLSessionTaskDelegate, Sendab
     static let shared = PlatformAPI()
     let baseURL:URL?
     var activeSession:PlatformSession?
+    var requiresAccountSession:Bool { baseURL?.scheme == "https" }
+    func requiresAuthentication(for accountID:String) -> Bool {
+        requiresAccountSession && activeSession?.user.id != accountID
+    }
     private let injectedTransport:URLSession?
     private lazy var transport:URLSession = {
         if let injectedTransport{return injectedTransport}

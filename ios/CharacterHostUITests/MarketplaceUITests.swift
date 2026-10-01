@@ -1,6 +1,21 @@
 import XCTest
 
 final class MarketplaceUITests:XCTestCase {
+    @MainActor func testImportedLocalPreviewDoesNotOpenAIComposer() {
+        let app=launch()
+        let search=app.textFields["discoverSearch"]
+        XCTAssertTrue(search.waitForExistence(timeout:12))
+        search.tap();search.typeText("爱莉\n")
+        let card=app.buttons["discover-open-anime-airi"]
+        XCTAssertTrue(card.waitForExistence(timeout:6))
+        card.tap()
+        XCTAssertTrue(app.buttons["profileChatButton"].waitForExistence(timeout:5))
+        XCTAssertEqual(app.buttons["profileChatButton"].label,"查看模型")
+        app.buttons["profileChatButton"].tap()
+        XCTAssertTrue(app.staticTexts["localModelPreview"].waitForExistence(timeout:30))
+        XCTAssertFalse(app.textViews["chatInput"].exists)
+        capture("05-local-preview-airi")
+    }
     @MainActor func testCatalogVisibilityAndHiddenConversationPersistence() {
         let app = XCUIApplication(); app.launchArguments = ["--market-core-check"]
         app.launch()

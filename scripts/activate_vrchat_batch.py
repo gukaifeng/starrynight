@@ -21,7 +21,9 @@ def write(path,value):path.write_text(json.dumps(value,ensure_ascii=False,indent
 
 
 def main():
-    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--batch',required=True);args=parser.parse_args()
+    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--batch',required=True)
+    parser.add_argument('--preview-only',action='store_true',help='Local model preview; no character AI, music or speech assets')
+    args=parser.parse_args()
     batches=json.loads((ROOT/'assets/characters/import-batches.json').read_text())
     batch=next(b for b in batches['batches'] if b['id']==args.batch)
     plan=json.loads((ROOT/'.local/vrchat-batch/plan.json').read_text());rows={r['id']:r for r in plan['models']}
@@ -54,6 +56,12 @@ def main():
                 music=[dict(id=identity+'/theme')],defaultEnvironment=scene,defaultVoice=identity+'/natural',defaultMusic=identity+'/theme'))
         collection=next(c for c in collections['collections'] if c['modelID']==identity)
         collection['modelPackageVersion']=manifest['packageVersion']
+        if args.preview_only:
+            collection['previewOnly']=True
+            collection['voices']=[dict(id=identity+'/preview',title='模型预览',detail='尚未接入语音',engine='aliyun-character-v1',speed=1)]
+            collection['defaultVoice']=identity+'/preview'
+            collection['music']=[]
+            collection['defaultMusic']=''
         asset='Cover_'+identity.replace('-','_');folder=ROOT/'ios/CharacterHost/Assets.xcassets'/(asset+'.imageset');folder.mkdir(exist_ok=True)
         name='source'+art.suffix.lower();shutil.copy2(art,folder/name)
         write(folder/'Contents.json',dict(images=[dict(filename=name,idiom='universal')],info=dict(author='xcode',version=1)))

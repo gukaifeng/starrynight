@@ -1,6 +1,0 @@
-.git
-.local
-.env
-bin
-coverage.out
-*.test

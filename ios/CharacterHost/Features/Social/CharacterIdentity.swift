@@ -213,6 +213,7 @@ struct CharacterDetailsPanel: View {
             .onAppear { close?.beforeClose = { editorClose.beforeClose?() ?? true } }
             .onDisappear { close?.beforeClose = nil }
             .task(id:model.id) {
+                if model.isPreviewOnly { return }
                 let api=CharacterAI(accountID:store.accountID,characterID:model.id)
                 if let value:CharacterPublicProfile=try? await api.configuration("/v1/characters/"+model.id+"/profile"),!Task.isCancelled,
                    value.supersedes(CharacterPublicProfile.find(model.id)) {
@@ -324,7 +325,7 @@ struct CharacterDetailsPanel: View {
 #endif
                     HStack(spacing:8) {
                         Image(systemName:"sparkles").font(.system(size:12))
-                        Text("听着专属音乐，把重要的话留在共同记忆里。")
+                        Text(model.isPreviewOnly ? "本地模型预览 · 暂未制作语音与对话" : "听着专属音乐，把重要的话留在共同记忆里。")
                             .font(.system(size:11)).lineLimit(2)
                     }.foregroundStyle(Theme.secondary.opacity(0.8)).padding(.top,4)
                 }.padding(.horizontal,22).padding(.bottom,16)
@@ -333,7 +334,7 @@ struct CharacterDetailsPanel: View {
             // author profiles still need an explicit destination for starting a chat.
             if !showsLiveCharacter {
                 Button { if library.select(model.id) { onChat() } } label: {
-                    HStack { Text(subscribed ? "进入会话" : "订阅并聊天"); Image(systemName:"arrow.up.right").font(.system(size:12)) }
+                    HStack { Text(model.isPreviewOnly ? "查看模型" : (subscribed ? "进入会话" : "订阅并聊天")); Image(systemName:"arrow.up.right").font(.system(size:12)) }
                         .frame(maxWidth:.infinity)
                 }.buttonStyle(NightPrimaryButton()).accessibilityIdentifier("profileChatButton")
                     .padding(.horizontal,22).padding(.top,14).padding(.bottom,20)

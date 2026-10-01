@@ -27,6 +27,11 @@ def validate(resources=None, audit_path=None):
         assert (c['modelPackageID'], c['modelPackageVersion']) == (model['packageId'], model['packageVersion'])
         assert set(c['actions']) <= {a['id'] for a in model['actions'] if a['button']}, 'Unknown action'
         assert set(c['environments']) <= scenes and c['defaultEnvironment'] in c['environments'], 'Invalid scene/default'
+        if c.get('previewOnly'):
+            assert c['voices'] and len(c['voices']) == 1 and c['defaultVoice'] == c['voices'][0]['id']
+            assert c['music'] == [] and c['defaultMusic'] == ''
+            assert c['voices'][0]['id'].startswith(c['modelID'] + '/')
+            continue
         for kind, default in [('voices', 'defaultVoice'), ('music', 'defaultMusic')]:
             ids = {o['id'] for o in c[kind]}
             assert len(ids) == len(c[kind]) and c[default] in ids, 'Duplicate or missing option/default'

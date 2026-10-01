@@ -19,13 +19,19 @@ import Foundation
         let decoded=try JSONDecoder().decode(JSONValue.self,from:encoded)
         precondition(decoded == base)
         let api=PlatformAPI(baseURL:URL(string:"https://accounts.example.test"))
+        precondition(api.requiresAuthentication(for:"fixture-user"))
+        precondition(!PlatformAPI(baseURL:URL(string:"http://127.0.0.1:8090")).requiresAuthentication(for:"local-demo"))
         let user=PlatformUser(id:"fixture-user",username:"fixture",guest:false,version:1,profile:["display_name":.string("星夜伙伴")])
         api.activeSession=PlatformSession(token:"fixture-token",expiresAt:"2026-10-30T00:00:00Z",user:user)
+        precondition(!api.requiresAuthentication(for:user.id))
+        precondition(api.requiresAuthentication(for:"other-user"))
         let request=try api.aiRequest(accountID:user.id,path:"/v1/asr/anime-kipfel")
         precondition(request?.url?.absoluteString == "https://accounts.example.test/v1/ai/asr/anime-kipfel")
         precondition(request?.value(forHTTPHeaderField:"Authorization") == "Bearer fixture-token")
         let wrongAccount=try api.aiRequest(accountID:"other-user",path:"/v1/status")
         precondition(wrongAccount == nil)
-        print("Platform sync: 14 checks passed (conflicts, offline edits, unknown fields, account-scoped AI request; no network or paid calls).")
+        api.activeSession=nil
+        precondition(api.requiresAuthentication(for:user.id))
+        print("Platform sync: 19 checks passed (conflicts, offline edits, unknown fields, account-scoped AI request, cloud authentication gate; no network or paid calls).")
     }
 }

@@ -37,7 +37,7 @@
 当前发布名册内的第三方角色需要用户自行提供合法取得的原始资源，因此 **仅克隆仓库不能直接构建出含这些角色的完整 App**。已有开发机资源都保留。新批次来源锁为 `assets/characters/vrchat-library.lock.json`；旧两角色保留原专用转换管线。
 
 1. 安装与项目锁一致的 Unity 6000.3.25f1、iOS Build Support、Unity CLI、Xcode 和 Python 3.11，按个人资格完成 Unity 许可；参照 `docs/environment.md` 与项目 Unity CLI 技能。
-2. `python3 scripts/prepare_packages.py` 恢复固定 UPM 归档。Python 虚拟环境依赖分别在 `character-sdk/requirements.txt`、`scripts/vrchat/requirements.txt` 和 `services/character_ai/requirements.lock`；虚拟环境建在 `.local/`。
+2. `python3 scripts/prepare_packages.py` 恢复固定 UPM 归档。客户端 Python 虚拟环境依赖在 `character-sdk/requirements.txt` 与 `scripts/vrchat/requirements.txt`；服务端依赖与部署另见相邻的 `starrynight-server` 仓库。虚拟环境建在 `.local/`。
    0.60 起另执行 `python3 scripts/prepare_liltoon.py` 与 `python3 scripts/prepare_vrc_reference_data.py`，恢复固定官方渲染包与私有 mask 数据。批量审计依赖另见 `scripts/vrchat/audit-requirements.txt`。
 3. v0.48起不再下载或打包离线语音模型。按[真实AI实施文档](design/2026-09-30-real-character-ai.md)准备私有Key、本机网关与客户端连接。音色绑定、SQLite和音频私有状态需要从原机器安全恢复；不能因为克隆仓库而重复付费设计音色。
 4. 提供与 VRChat 来源锁匹配的原 ZIP，严格按 [VRChat 导入技能](../.agents/skills/vrchat-character-import/SKILL.md)及其 `references/performances.md`、`references/natural-idle.md` 依次审计、隔离导入、采样原作表现、生成目录与物理数据、转换 XCP 并校验。审计报告和源采样也必须重建；不能只运行最后一步 converter。不要从公开仓库寻找付费源包。

@@ -53,6 +53,7 @@ struct CharacterCollection: Codable, Equatable, Sendable {
     let music: [SoundscapeTrack]
     let defaultEnvironment, defaultVoice, defaultMusic: String
     let scopeID: String?
+    let previewOnly: Bool?
     var optionScope: String { scopeID ?? modelID }
 
     var availableEnvironments: [EnvironmentDescriptor] {
@@ -78,7 +79,10 @@ struct CharacterCollection: Codable, Equatable, Sendable {
         let latest = Self.all.first { $0.modelID == modelID }
         let sourceMusic = latest?.music ?? music
         if characterID == modelID, scopeID == nil, sourceMusic == music { return self }
-        func remap(_ value:String) -> String { characterID+"/"+value.split(separator:"/").last! }
+        func remap(_ value:String) -> String {
+            guard let last=value.split(separator:"/").last else { return "" }
+            return characterID+"/"+last
+        }
         let mappedMusic = sourceMusic.map { $0.scoped(to:characterID) }
         let musicDefault = mappedMusic.contains(where:{ $0.id == remap(defaultMusic) }) ? remap(defaultMusic) : remap(latest?.defaultMusic ?? defaultMusic)
         return Self(schemaVersion:schemaVersion,id:"app.starry.collections."+characterID,version:latest?.version ?? version,
@@ -86,7 +90,7 @@ struct CharacterCollection: Codable, Equatable, Sendable {
             actions:actions,environments:environments,
             voices:voices.map { CharacterVoice(id:remap($0.id),title:$0.title,detail:$0.detail,engine:$0.engine,speed:$0.speed) },
             music:mappedMusic,defaultEnvironment:defaultEnvironment,defaultVoice:remap(defaultVoice),defaultMusic:musicDefault,
-            scopeID:characterID)
+            scopeID:characterID,previewOnly:previewOnly)
     }
     func normalize(_ input: CharacterStudio) -> CharacterStudio {
         var studio = input.normalized
@@ -114,6 +118,7 @@ struct CharacterCollection: Codable, Equatable, Sendable {
         if !music.contains(where:{ $0.id == audio.trackID }) { audio.trackID = defaultMusic }
         audio.volume = audio.volume.isFinite ? min(1,max(0,audio.volume)) : 0.28
         audio.speechVolume = audio.speechVolume.map { $0.isFinite ? min(1,max(0,$0)) : 1 }
+        if previewOnly == true { audio.volume = 0; audio.speechVolume = 0; profile.autoSpeak = false }
         profile.audio = audio
         return profile
     }
@@ -124,7 +129,14 @@ struct CharacterCollection: Codable, Equatable, Sendable {
         return normalize(profile)
     }
     func isCompatible(with model:ModelDescriptor) -> Bool {
-        schemaVersion == 1 && modelID == model.runtimeID && modelPackageID == model.packageId &&
+        if previewOnly == true {
+            return schemaVersion == 1 && modelID == model.runtimeID && modelPackageID == model.packageId &&
+                modelPackageVersion == model.packageVersion && !environments.isEmpty &&
+                environments.contains(defaultEnvironment) && voices.count == 1 && music.isEmpty &&
+                defaultMusic.isEmpty && voices[0].id == defaultVoice &&
+                Set(actions).isSubset(of:Set(model.actions.map(\.id)))
+        }
+        return schemaVersion == 1 && modelID == model.runtimeID && modelPackageID == model.packageId &&
         !environments.isEmpty && Set(environments).isSubset(of:Set(EnvironmentDescriptor.all.map(\.id))) &&
         environments.contains(defaultEnvironment) && !voices.isEmpty && !music.isEmpty &&
         voices.contains(where:{ $0.id == defaultVoice }) && music.contains(where:{ $0.id == defaultMusic }) &&

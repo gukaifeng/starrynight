@@ -39,6 +39,7 @@ struct ModelDescriptor: Identifiable, Decodable, Sendable {
     var collectionSnapshot: CharacterCollection? = nil
     var authoredProfileSnapshot: CharacterProfile? = nil
     var collection: CharacterCollection { (collectionSnapshot ?? .builtin(self)).scoped(to:id) }
+    var isPreviewOnly: Bool { collection.previewOnly == true }
     // Listener preferences never replace the authored character definition.
     func conversationProfile(preserving personal:CharacterProfile?) -> CharacterProfile {
         var value = authoredProfileSnapshot ?? collection.initialProfile()

@@ -1,10 +1,12 @@
 # 星夜 · StarryNight
 
-源码仓库：[gukaifeng/starrynight](https://github.com/gukaifeng/starrynight)。本库跟踪源码、标准、工具与开发记录；受限角色资源、生成媒体、构建缓存和个人签名配置留在本机。新机器的资源恢复顺序与持续推送约定见 [Git 与资源恢复](docs/git-workflow.md)。仅克隆仓库尚不能直接构建包含当前四位受限角色的完整 App。
+源码仓库：[gukaifeng/starrynight](https://github.com/gukaifeng/starrynight)。本库跟踪客户端源码、角色标准、工具与开发记录；受限角色资源、生成媒体、构建缓存和个人签名配置留在本机。新机器的资源恢复顺序与持续推送约定见 [Git 与资源恢复](docs/git-workflow.md)。仅克隆仓库不能直接构建包含受限 VRChat 角色的完整 App。
 
 正式英文名 **StarryNight**，仓库和根目录统一为 `starrynight`。当前根目录 `/Users/gukaifeng/Documents/starrynight`，Xcode 真机入口为 `ios/StarryNight.xcworkspace`，模拟器入口为 `ios/StarryNight-Simulator.xcworkspace`，scheme 均为 `CharacterHost`。命名约定与迁移记录见 [英文命名与目录](docs/project-naming.md)。
 
-以精致 3D 角色为核心的 AI 陪伴产品。当前源码 **v0.67.0 / build 93**，名称保持「星夜」，默认月白深色主题，保留彩色星夜等可选主题，Logo 为极简月白星月矢量标志。原生 SwiftUI / UIKit + Unity as a Library，当前适配 **iPhone 17 与 iPad Pro 11 英寸 M4（2024）**。
+以精致 3D 角色为核心的 AI 陪伴产品。当前源码 **v0.84.0 / build 114**，名称保持「星夜」，默认月白深色主题，保留彩色星夜等可选主题，Logo 为极简月白星月矢量标志。原生 SwiftUI / UIKit + Unity as a Library，当前适配 **iPhone 17 与 iPad Pro 11 英寸 M4（2024）**。
+
+v0.84 已切换至云端 HTTPS 入口 `https://39.105.116.74:8443`，iPhone 17 已安装并验证账户和 AI 认证链路。首次聊天需注册或登录正式账户；安装包不再包含旧 Mac AI 共享凭证。Mac 原服务及 AI 自动启动项已停用，旧运行数据按用户要求清理。见[服务端分离记录](docs/server-separation-2026-10-02.md)。
 
 v0.67 为四位角色接入百炼生成的封面、头像与 2.5D 场景，并加入各自的前景粒子和唯一背景音乐。Fun-Music 邀测待开通，按用户选择先用匹配曲风的 CC0 音乐。输入支持键盘／按住说话、实时转写、上滑编辑与松手发送；智能回复预测独立使用 Qwen-Turbo，正式角色回答保持原模型。录音准备和消息写盘移出主线程，设备摇晃复用已有 AI 反应缓存。实施、测试与边界见[角色氛围与语音输入](docs/design/2026-09-30-character-atmosphere-and-voice.md)，私有资源恢复见[媒体制作](docs/character-media-authoring.md)。
 
@@ -14,7 +16,7 @@ v0.58.0 将心声与真实动作说明提前编入有序回复，随语音／静
 
 v0.57.0 已接入全部角色表现的语义目录和多组时间轴，普通对话目标组合 4–8 项表情／动作；新分组通过 core.performance@2 扩展。静态外貌旁白隐藏，动作与心声用括号斜体；普通单指反复晃动会触发真实 AI 的撒娇／小生气和语音。已安装 iPhone 并读回 **0.57.0 / 83**；手机锁定阻止自动打开，模拟器验证通过。见[本轮实施与验证](docs/design/2026-09-30-expressive-conversation.md)。
 
-服务端已独立迁入 [starrynight-server](https://github.com/gukaifeng/starrynight-server)，本机目录为 `../starrynight-server`。原 Go / PostgreSQL / Redis / Python AI 实现、部署、备份与维护工具均在新仓库维护；本仓库以客户端为主，旧服务端副本暂留待后续清理。云端准备阶段不切换客户端、不停止正在使用的 Mac 服务；当前状态见独立仓库的 [迁移与拆分记录](https://github.com/gukaifeng/starrynight-server/blob/main/docs/repository-separation.md)。
+服务端已独立迁入 [starrynight-server](https://github.com/gukaifeng/starrynight-server)，本机目录为 `../starrynight-server`。Go / PostgreSQL / Redis / Python AI 实现、部署、备份与维护工具均在新仓库维护；本仓库的旧服务端副本已移除。云端正式运行，本机旧服务已停止并清理；本仓库保留客户端、Unity、角色包标准和本地素材制作工具。
 
 v0.52.0 核实琪宝、豆日向的原始 Prefab 与 FBX 均提供 15 个 VRChat 口型，当前 App 已保留 5 个原作元音形变，朗读由实际音频振幅驱动原作张嘴形变。修复连续语音分句和停止时的时间戳倒退，防止 Unity 拒绝后续口型；等待下一段音频时归零，并隔离过期的音频回调。真实 AVAudioEngine 播放回归通过，Unity 两角色实际网格检查共 23 项通过，未增加程序化说话头部动作。本轮没有付费 AI 调用，已安装 iPhone 17 并读回 **0.52.0 / 73**。详见[原作口型核查与同步修复](docs/verification/authored-lip-sync/README.md)。
 
@@ -181,33 +183,9 @@ XCTest 操作真实 App：加载取消及重试、30 个前台计时 tick 的等
 
 ## 真实角色对话与语音
 
-当前两位角色为琪宝和豆日向，独立人设、关系状态、记忆与专属音色。文字使用 `qwen-flash-character-2026-02-26`，语音识别使用 `fun-asr-realtime`，朗读使用 `qwen-audio-3.1-tts-flash`。所有回复都来自真实 AI，没有离线/关键词模拟答案兜底。短篇故事入口是共同创作提示，不再有固定分支答案。
+正式会话通过云端 `https://39.105.116.74:8443` 的账户与 AI 代理服务运行；服务端源码、百炼配置、付费验证和部署入口均在独立的 `../starrynight-server` 仓库。本客户端仓库只维护登录、会话、UI、Unity 表现、已打包的开场语音和本地语音缓存。App 不携带百炼 API Key，不需要 Mac 常驻网关。
 
-当前开发拓扑是 iPhone / iPhone 模拟器 → Mac 的星夜网关 → 百炼。App 内只有受限的开发网关连接凭证；付费 Key 不进入 App。Mac 后端已注册登录后自动运行，退出开发终端不影响它；Mac 睡眠、关机或手机离开同一网络时无法创建新回复。部署独立服务器后再替换 App 的服务 URL。
-
-首次配置（不会调用付费模型）：
-
-```bash
-python3 -m venv .local/character-ai-venv
-.local/character-ai-venv/bin/pip install -r services/character_ai/requirements.lock
-python3 scripts/setup_character_ai.py --key-csv /你的私有目录/百炼密钥.csv
-python3 scripts/install_character_ai_agent.py
-bash scripts/build_host.sh
-bash scripts/build_device.sh
-```
-
-声音设计只做一次并保存绑定，不能在启动/构建时重复创建。语音输入实时显示草稿，确认发送后进入对话；心理和旁白不朗读。当前长期记忆由 AI 提议，用户确认后才进入后续上下文。角色有真实动作资源时同步表演并恢复原选择，无匹配资源则自然退回待机。
-
-```bash
-# 免费检查：不会调用百炼
-.local/character-ai-venv/bin/python -m pytest -q services/character_ai/tests
-zsh scripts/test_companion.sh SIMULATOR_UUID \
-  'CompanionExperienceUITests/testCoreContractInIOSRuntime,RealAIConversationTests/testMissingAIShowsErrorWithoutFabricatedReply' RealAI-Free
-# 付费联调必须显式选择；脚本不会自行创建音色
-.local/character-ai-venv/bin/python scripts/live_character_ai_smoke.py --allow-paid
-```
-
-后台运行位置、更新方法、费用限制、请求重试规则、接口和部署前还需补齐的正式认证见[实施文档](docs/design/2026-09-30-real-character-ai.md)。旧的离线语音设计文件只作为历史记录，相关生产源码、构建依赖和测试入口已移除，原已下载权重保留在本机忽略目录。
+首次进入已完成的 11 个聊天角色使用本地打包开场；其余回复通过云端生成。当前新增的 5 个 VRChat 角色是本地模型预览，使用作者提供的封面，不调用对话、图片或语音生成接口，也没有专属音乐。这一边界由角色集合的 `previewOnly` 字段与离线开场包校验实现，详见[第四批本地预览](docs/verification/vrchat-batch-import/preview-04.md)。
 
 ## 工程关系
 
@@ -215,8 +193,8 @@ zsh scripts/test_companion.sh SIMULATOR_UUID \
 |---|---|
 | `unity/CharacterRuntime/` | Unity 源工程：URP、模型适配、动作、镜头和触摸交互 |
 | `ios/CharacterHost/` | 原生源码：首页、角色档案、对话／记忆、语音播放、生命周期和桥接 |
-| `services/character_ai/` | 真实 AI 网关、角色编排、上下文、付费配额与语音协议 |
-| `.local/character-ai-client/` | 忽略提交的开发网关 URL 与受限客户端凭证 |
+| `../starrynight-server/` | 独立仓库：账户 API、AI 网关、数据、部署与付费验证 |
+| `config/PlatformConnection.json` | 无密钥的云端 HTTPS 默认入口；本机差异配置在 `.local/platform-client/` |
 | `build/unity-simulator/` | Unity 生成的 ARM64 Simulator SDK Xcode 工程 |
 | `build/unity-device/` | 独立 Device SDK 导出，不与模拟器框架混用 |
 | `ios/CharacterHost.xcodeproj` | 脚本生成的真机宿主和 UI 测试工程 |
@@ -224,7 +202,7 @@ zsh scripts/test_companion.sh SIMULATOR_UUID \
 | `ios/CharacterHost-Simulator.xcodeproj` | 脚本生成的模拟器宿主和 UI 测试工程 |
 | `ios/StarryNight-Simulator.xcworkspace` | 模拟器 App 入口，依赖 Simulator UnityFramework |
 
-业务源码两套；Unity 导出的 Xcode 工程是可恢复产物。`scripts/generate_host.py` 生成 workspace 和跨工程依赖，不需要 CocoaPods / Carthage / XcodeGen。`--platform simulator` 与 `--platform device` 分别生成独立工程，两者共用原生源码且可同时保留，互不覆盖平台设置。
+本仓库的业务源码分原生与 Unity 两套，服务端在独立仓库。Unity 导出的 Xcode 工程是可恢复产物。`scripts/generate_host.py` 生成 workspace 和跨工程依赖，不需要 CocoaPods / Carthage / XcodeGen。`--platform simulator` 与 `--platform device` 分别生成独立工程，两者共用原生源码且可同时保留，互不覆盖平台设置。
 
 ## 固定工具版本
 

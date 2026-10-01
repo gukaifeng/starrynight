@@ -54,7 +54,7 @@ struct CompanionChatView: View {
           } else {
           VStack(spacing:0) {
             messages.simultaneousGesture(TapGesture().onEnded { editing = false }).zIndex(2)
-            if geometry.size.height >= 360 && session.record.messages.isEmpty && !editing && !session.generating { topics.opacity(session.voiceInput.active ? 0 : 1).allowsHitTesting(!session.voiceInput.active).transition(.opacity.combined(with:.move(edge:.bottom))) }
+            if !session.model.isPreviewOnly && geometry.size.height >= 360 && session.record.messages.isEmpty && !editing && !session.generating { topics.opacity(session.voiceInput.active ? 0 : 1).allowsHitTesting(!session.voiceInput.active).transition(.opacity.combined(with:.move(edge:.bottom))) }
             if let text = session.notice ?? session.store.error ?? session.speech.error {
               HStack(spacing:2) {
                     HStack(spacing:5) {
@@ -70,7 +70,18 @@ struct CompanionChatView: View {
                 Spacer()
               }.disabled(session.voiceInput.active).foregroundStyle(Theme.ink.opacity(0.56)).padding(.horizontal,22).frame(height:34)
             }
-            composer(compact:geometry.size.height < 300).zIndex(4)
+            if session.model.isPreviewOnly {
+                Text("模型预览 · 可查看原作造型与表现")
+                    .font(.system(size:12,weight:.medium))
+                    .foregroundStyle(Theme.ink.opacity(0.72))
+                    .padding(.horizontal,16).padding(.vertical,10)
+                    .background(Theme.surface.opacity(0.55),in:Capsule())
+                    .frame(maxWidth:.infinity)
+                    .padding(.bottom,12)
+                    .accessibilityIdentifier("localModelPreview")
+            } else {
+                composer(compact:geometry.size.height < 300).zIndex(4)
+            }
 
           }
           }
@@ -85,7 +96,7 @@ struct CompanionChatView: View {
         .animation(interfaceAnimation,value:session.quickReplyPanelPresented)
         .animation(.easeInOut(duration:reduceMotion ? 0.12 : 0.18),value:session.voiceInput.phase)
         .animation(interfaceAnimation,value:session.notice ?? session.store.error ?? session.speech.error)
-        .task { await session.speech.check() }
+        .task { if !session.model.isPreviewOnly { await session.speech.check() } }
         .onChange(of:session.store.chatDisplay) { onDisplayChanged?() }
         .onChange(of:session.dismissKeyboardRequest) { editing = false;voiceEditing=false;session.quickReplyPanelPresented=false }
         .onChange(of:session.quickReplyPanelPresented) {
@@ -115,7 +126,7 @@ struct CompanionChatView: View {
                     // scroll-to-bottom stable while the keyboard animates a very short
                     // landscape viewport and a streamed reply changes its content height.
                     VStack(alignment:.leading,spacing:10) {
-                        if session.record.messages.isEmpty && !session.generating {
+                        if !session.model.isPreviewOnly && session.record.messages.isEmpty && !session.generating {
                             invitation.frame(minHeight:max(0,viewport.size.height-24),alignment:.bottom)
                         }
                         ForEach(session.visibleMessages) { message in
@@ -296,7 +307,7 @@ struct CompanionChatView: View {
                     }
                     Color.clear.overlay(alignment:.bottomTrailing) {
                         if session.quickReplyPanelPresented && !session.voiceInput.active {
-                            smartRepliesPanel.frame(width:max(0,min(308,composer.size.width-64)))
+                            smartRepliesPanel.frame(width:max(0,min(270,composer.size.width-72)))
                                 .fixedSize(horizontal:false,vertical:true).padding(.trailing,20)
                                 .offset(y:-composer.size.height-8)
                                 .transition(reduceMotion ? .opacity : .asymmetric(
@@ -310,12 +321,12 @@ struct CompanionChatView: View {
 
     }
     private var smartRepliesPanel:some View {
-        VStack(alignment:.leading,spacing:3) {
+        VStack(alignment:.leading,spacing:2) {
             HStack {
                 Text("灵感接话").font(.system(size:11,weight:.medium)).foregroundStyle(Theme.secondary)
                 Spacer()
                 Button {withAnimation(interfaceAnimation) {session.quickReplyPanelPresented=false}} label: {
-                    Image(systemName:"xmark").font(.system(size:10,weight:.medium)).frame(width:28,height:28)
+                    Image(systemName:"xmark").font(.system(size:9,weight:.medium)).frame(width:23,height:23)
                 }.buttonStyle(.plain).accessibilityLabel("关闭灵感接话").accessibilityIdentifier("closeSmartReplies")
             }.padding(.leading,7)
             if presentedReplies.isEmpty {
@@ -323,7 +334,7 @@ struct CompanionChatView: View {
                     if session.quickRepliesLoading {ProgressView().controlSize(.small)}
                     Text(session.quickRepliesLoading ? "想几个适合你的回答…" : "聊起来后，这里会有适合你的接话。")
                         .font(.system(size:12)).foregroundStyle(Theme.secondary)
-                }.padding(10)
+                }.padding(8)
             }
             ForEach(Array(presentedReplies.enumerated()),id:\.element.id) {index,option in
                 Button {
@@ -332,17 +343,17 @@ struct CompanionChatView: View {
                         editing=false;session.clearMessageFocus();scrollState.returnToLatest();session.sendSuggested(option)
                     }
                 } label: {
-                    HStack(spacing:10) {
-                        Text(option.text).font(.system(size:13)).lineLimit(2).multilineTextAlignment(.leading)
+                    HStack(spacing:7) {
+                        Text(option.text).font(.system(size:12)).lineLimit(2).multilineTextAlignment(.leading)
                         Spacer(minLength:4)
                         Image(systemName:"arrow.up.right").font(.system(size:10,weight:.medium)).foregroundStyle(Theme.secondary.opacity(0.7))
-                    }.padding(.horizontal,10).padding(.vertical,8).frame(maxWidth:.infinity,minHeight:40,alignment:.leading)
-                        .background(Theme.ink.opacity(index==0 ? 0.075 : 0.035),in:RoundedRectangle(cornerRadius:12))
+                    }.padding(.horizontal,9).padding(.vertical,6).frame(maxWidth:.infinity,minHeight:34,alignment:.leading)
+                        .background(Theme.ink.opacity(index==0 ? 0.075 : 0.035),in:RoundedRectangle(cornerRadius:10))
                 }.buttonStyle(ReplySuggestionPressStyle(reduceMotion:reduceMotion))
                     .accessibilityLabel(option.text).accessibilityIdentifier("smartReplyOption-\(index)")
             }
-        }.padding(7).background(Theme.surface.opacity(reduceTransparency ? 1 : 0.96),in:RoundedRectangle(cornerRadius:17))
-            .overlay(RoundedRectangle(cornerRadius:17).stroke(Theme.gradient.opacity(0.24),lineWidth:0.65))
+        }.padding(6).background(Theme.surface.opacity(reduceTransparency ? 1 : 0.96),in:RoundedRectangle(cornerRadius:15))
+            .overlay(RoundedRectangle(cornerRadius:15).stroke(Theme.gradient.opacity(0.24),lineWidth:0.65))
             .shadow(color:.black.opacity(0.18),radius:16,y:5)
             .conversationHitRegion(.control,id:"smartRepliesPanel")
             .accessibilityElement(children:.contain).accessibilityIdentifier("smartRepliesPanel")

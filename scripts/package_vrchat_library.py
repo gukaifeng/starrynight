@@ -75,7 +75,11 @@ def require_selected_inspection(row, snapshot):
         raise ValueError('Selected source/Prefab/Inspector changed; rerun inspect_vrchat_library.py')
 
 
-def assemble(row,folder,stage,order):
+PREVIEW_OPTIONAL_TEXTURES={'_Shadow2ndColorTex','_ShadowColorTex','_RimColorTex',
+    '_MatCapBlendMask','_MatCapTex','_ShadowBorderMask','_ShadowStrengthMask',
+    '_OutlineTex','_RimShadeMask'}
+
+def assemble(row,folder,stage,order,allow_preview_shading=False):
     geometry=json.loads((stage/'Inspection/Portable'/row['role']/'geometry.json').read_text())
     desc=json.loads((folder/'avatar-descriptor.json').read_text())
     controls=json.loads((folder/'avatar-controls.json').read_text())
@@ -83,7 +87,12 @@ def assemble(row,folder,stage,order):
     control_dependencies(controls,json.loads((folder/'avatar-motions.json').read_text()))
     required_missing=[x for x in controls['limitations'] if x['kind'].startswith(('missing-','unsupported-','unknown-'))]
     if required_missing:raise ValueError('Missing source control dependencies: '+json.dumps(required_missing,ensure_ascii=False))
-    if report['materialLimitations']:raise ValueError('Material dependency requires review: '+json.dumps(report['materialLimitations'][:4],ensure_ascii=False))
+    limitations=report['materialLimitations']
+    preview_shading=(allow_preview_shading and limitations and all(
+        item.get('reason')=='Unresolved source texture' and
+        item.get('property') in PREVIEW_OPTIONAL_TEXTURES for item in limitations))
+    if limitations and not preview_shading:
+        raise ValueError('Material dependency requires review: '+json.dumps(limitations[:4],ensure_ascii=False))
     if report['nonlinearMorphFrames']:raise ValueError('Nonlinear morph frames require a dedicated adapter')
     write_json(folder/'avatar-controls.json',controls)
     physics=json.loads((folder/'physics-source.json').read_text())
@@ -151,11 +160,11 @@ def assemble(row,folder,stage,order):
         optional.append('core.autonomy@1')
         m['autonomy']=dict(schemaVersion=1,blink=dict(bindings=[binding(blink)],intervals=[3.2,4.7,5.8,3.9,4.4],closeSeconds=.16,closedSeconds=.035,openSeconds=.26,firstDelay=1.8,suppressGroups=[],suppressOptions=[]))
     if 'performance' in m and len(m['performance']['defaults'])>64:raise ValueError('Renderer visibility budget requires review')
-    authored=ROOT/'services/character_ai/character_profiles.json'
-    profile=json.loads(authored.read_text())['characters'].get(row['id']) if authored.exists() else None
+    authored=ROOT/'ios/CharacterHost/Resources/CharacterPublicProfiles.json'
+    profile=next((entry for entry in json.loads(authored.read_text())['characters'] if entry['id']==row['id']),None) if authored.exists() else None
     if profile:
-        m['display'].update(name=profile['name'],description=profile['presentation']['story'],
-            invitation=profile['presentation']['invitation'],tagline=profile['occupation'])
+        m['display'].update(name=profile['name'],description=profile['story'],
+            invitation=profile['invitation'],tagline=profile['occupation'])
     terms=[]
     audit=json.loads(Path(row['sourceReport']).read_text())
     for package in audit['inventory']['packages']:
@@ -164,16 +173,18 @@ def assemble(row,folder,stage,order):
                 terms.append(asset['path']+'\n'+Path(asset['metadataPath']).read_text(errors='replace'))
     (folder/'LICENSE.txt').write_text('Private user-supplied avatar conversion. No public redistribution permission is implied.\nSource SHA256: '+row['sourceSHA256']+'\n\n'+'\n\n'.join(terms))
     write_json(folder/'source-meta.json',dict(schemaVersion=1,sourceVersion=row['version'],sourceSHA256=row['sourceSHA256'],sourceArchive=row['archive'],prefab=row['prefab'],variants=row['variants'],baseline=report['baseline'],localOnly=True,
+        previewShadingLimitations=limitations if preview_shading else [],
         blinkAdaptation=dict(sourceMorph=blink,timing='host-controlled') if blink else None))
     (folder/'NOTICE.md').write_text('# Private avatar candidate\n\nOriginal geometry, textures and character controls remain subject to their authors’ terms. '+
         'The host uses the MIT-licensed lilToon renderer. VRChat scripts, SDK binaries, platform animations and arbitrary callbacks are not bundled.\n\n'+
-        'See portable-conversion.json and physics-source.json for explicit adaptation limits. This package has not passed device performance testing merely because it is sealed.\n')
+        'See portable-conversion.json and physics-source.json for explicit adaptation limits. This package has not passed device performance testing merely because it is sealed.\n'+
+        ('\nLocal preview only: unresolved optional shading textures are listed in source-meta.json. Visual approval is required before activation.\n' if preview_shading else ''))
     write_json(folder/'character.json',m);seal(folder);validate(folder)
     return dict(role=row['role'],id=row['id'],status='packaged',controls=len(options),groups=len(groups),bytes=sum(p.stat().st_size for p in folder.rglob('*') if p.is_file()),baseline=report['baseline'])
 
 
 def main():
-    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--only');parser.add_argument('--reuse-conversion',action='store_true');args=parser.parse_args()
+    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--only');parser.add_argument('--reuse-conversion',action='store_true');parser.add_argument('--preview-optional-shading',action='store_true');args=parser.parse_args()
     plan=json.loads((ROOT/'.local/vrchat-batch/plan.json').read_text());results=[]
     status=ROOT/'.local/vrchat-batch/package-status.json'
     previous={r['role']:r for r in json.loads(status.read_text()).get('characters',[])} if status.exists() else {}
@@ -193,7 +204,7 @@ def main():
             if not args.reuse_conversion:
                 with (ROOT/'.local/logs'/('vrchat-convert-'+row['role']+'.log')).open('w') as log:
                     subprocess.run([sys.executable,str(ROOT/'scripts/vrchat_portable_convert.py'),'--stage',str(stage),'--role',row['role'],'--output',str(output)],check=True,stdout=log,stderr=subprocess.STDOUT)
-            result=assemble(row,output,stage,order);print('XCP_CANDIDATE',row['role'],result['controls'],result['bytes'],flush=True)
+            result=assemble(row,output,stage,order,args.preview_optional_shading);print('XCP_CANDIDATE',row['role'],result['controls'],result['bytes'],flush=True)
         except Exception as error:
             result=dict(role=row['role'],status='needs-review',reason=str(error));print('XCP_DEFERRED',row['role'],str(error),flush=True)
         results.append(result);previous[row['role']]=result;write_json(status,dict(schemaVersion=1,characters=list(previous.values())))

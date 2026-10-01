@@ -17,7 +17,10 @@ from urllib.parse import urlparse
 import httpx
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT))
+SERVER_ROOT=ROOT.parent/'starrynight-server'
+if not (SERVER_ROOT/'services/character_ai/profiles.py').is_file():
+    raise SystemExit('Character media authoring requires the separate ../starrynight-server checkout')
+sys.path.insert(0, str(SERVER_ROOT))
 from services.character_ai.config import Settings
 from services.character_ai.profiles import PROFILES
 

@@ -119,6 +119,18 @@
         "iPhone 17: Mafuyu and Plum autonomous blink passed"
       ],
       "deliveredAt": "2026-10-01T03:43:49+08:00"
+    },
+    {
+      "id": "vrchat-20261001-preview-04",
+      "status": "simulator-verified-awaiting-device",
+      "characters": [
+        "anime-airi",
+        "anime-marycia",
+        "anime-meiyun",
+        "anime-milltina",
+        "anime-shinano"
+      ],
+      "report": "docs/verification/vrchat-batch-import/preview-04.md"
     }
   ]
 }

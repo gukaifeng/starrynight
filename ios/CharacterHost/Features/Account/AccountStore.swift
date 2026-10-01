@@ -38,6 +38,9 @@ final class AccountStore {
             return Int(receipt.object?["version"]?.number ?? 0)
         }
         isolatedTest = arguments.contains("--ui-testing") || defaults != .standard
+        CharacterAI.authenticationRequired = { account in
+            !arguments.contains("--ui-testing") && PlatformAPI.shared.requiresAuthentication(for:account)
+        }
         var key = "xiaoban.demo-account.v1"
 #if DEBUG
         // Existing viewer/voice tests exercise their own flows with an isolated demo session.
@@ -48,7 +51,7 @@ final class AccountStore {
         }
 #endif
         sessionKey = key
-        if let data = defaults.data(forKey:key),
+        if (isolatedTest || !PlatformAPI.shared.requiresAccountSession), let data = defaults.data(forKey:key),
            let saved = try? JSONDecoder().decode(DemoAccountSession.self,from:data),[DemoAccount.id,DemoAccount.alternateID].contains(saved.accountID) {
             session = saved
         }
@@ -81,6 +84,9 @@ final class AccountStore {
 
     @discardableResult func signIn(_ method:LoginMethod, identifier:String = "", code:String = "") -> Bool {
         guard cloudSession == nil else { return false }
+        guard isolatedTest || !PlatformAPI.shared.requiresAccountSession else {
+            error = "请登录或注册星夜账户。"; return false
+        }
         error = nil
         if method != .wechat {
             let clean = identifier.trimmingCharacters(in:.whitespacesAndNewlines)
@@ -101,7 +107,7 @@ final class AccountStore {
         return true
     }
     func switchDemoIdentity() {
-        guard cloudSession == nil else { return }
+        guard cloudSession == nil, isolatedTest || !PlatformAPI.shared.requiresAccountSession else { return }
         let next = DemoAccountSession(accountID:session?.accountID == DemoAccount.id ? DemoAccount.alternateID : DemoAccount.id,method:.wechat)
         guard let data = try? JSONEncoder().encode(next) else { return }
         defaults.set(data,forKey:sessionKey); session = next; error = nil

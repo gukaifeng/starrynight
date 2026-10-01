@@ -198,6 +198,61 @@
         "width": 0.7,
         "height": 0.46
       }
+    },
+    {
+      "runtimeID": "anime-airi",
+      "asset": "Cover_anime_airi",
+      "environmentID": "sunroom",
+      "focusX": 0.5,
+      "focusY": 0.3,
+      "frameBottom": 0.46,
+      "cameraYaw": 0,
+      "source": "author-supplied",
+      "sourceSHA256": "d7c413fcbb2207ef4dcbe7dae9d3e25145a83fc2524d11bee3853de41360d6dc"
+    },
+    {
+      "runtimeID": "anime-marycia",
+      "asset": "Cover_anime_marycia",
+      "environmentID": "sunroom",
+      "focusX": 0.5,
+      "focusY": 0.3,
+      "frameBottom": 0.46,
+      "cameraYaw": 0,
+      "source": "author-supplied",
+      "sourceSHA256": "7b2a58d52988ee5e43be37b2b088466f3929a097cd5824f323203c77f9331e86"
+    },
+    {
+      "runtimeID": "anime-meiyun",
+      "asset": "Cover_anime_meiyun",
+      "environmentID": "sunroom",
+      "focusX": 0.5,
+      "focusY": 0.3,
+      "frameBottom": 0.46,
+      "cameraYaw": 0,
+      "source": "author-supplied",
+      "sourceSHA256": "fa6ace658b0d03ae39b334ae7d6b4ea63bced37c765053fc953c96a50f316c71"
+    },
+    {
+      "runtimeID": "anime-milltina",
+      "asset": "Cover_anime_milltina",
+      "environmentID": "sunroom",
+      "focusX": 0.5,
+      "focusY": 0.3,
+      "frameBottom": 0.46,
+      "cameraYaw": 0,
+      "source": "author-supplied",
+      "sourceSHA256": "415ed663b4733b40bf02c7defd0571db83d4cdf37ce802fd012fc477d2a3ac38"
+    },
+    {
+      "runtimeID": "anime-shinano",
+      "asset": "Cover_anime_shinano",
+      "environmentID": "sunroom",
+      "focusX": 0.5,
+      "focusY": 0.3,
+      "frameBottom": 0.46,
+      "cameraYaw": 0,
+      "source": "author-supplied",
+      "sourceSHA256": "f05753875e42bc3118f4139770ebb3ec019a23e7e574e5ec063b7eb3269e6773"
     }
   ]
 }
