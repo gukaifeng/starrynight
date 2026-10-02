@@ -11,7 +11,7 @@ import zipfile
 
 CAPABILITIES = {'core.animation@1', 'core.gaze@1', 'core.expression@1', 'core.speech.amplitude@1',
                 'core.speech.viseme@1', 'core.interaction@1', 'core.effects@1', 'core.parameters@1',
-                'core.behavior@1', 'core.posture@1', 'core.secondary-motion@1', 'core.secondary-motion@2', 'core.secondary-motion@3', 'core.secondary-motion@4', 'core.avatar-controls@1', 'core.materials.liltoon@1', 'core.performance@1', 'core.performance@2', 'core.autonomy@1', 'legacy.human-studio@1'}
+                'core.behavior@1', 'core.posture@1', 'core.secondary-motion@1', 'core.secondary-motion@2', 'core.secondary-motion@3', 'core.secondary-motion@4', 'core.avatar-controls@1', 'core.avatar-controls@2', 'core.materials.liltoon@1', 'core.performance@1', 'core.performance@2', 'core.performance@3', 'core.autonomy@1', 'legacy.human-studio@1'}
 CHANNELS = {'body', 'expression', 'effect', 'gaze', 'posture'}
 MAX_BYTES = 256 * 1024 * 1024
 FORBIDDEN = {'.cs','.dll','.dylib','.so','.exe','.shader','.compute','.sh','.py','.js','.unitypackage'}
@@ -204,7 +204,7 @@ def validate(folder, builtin=False):
     if full_materials:
         from portable_avatar import validate_materials
         validate_materials(root,m,read_json,safe_path)
-    primitive_limit=64 if 'core.avatar-controls@1' in required or full_materials else 32
+    primitive_limit=64 if bool({'core.avatar-controls@1','core.avatar-controls@2'} & required) or full_materials else 32
     if vertices>300000 or primitives>primitive_limit: raise ValueError(f'mobile source budget exceeded (300k vertices / {primitive_limit} primitives)')
     if any(len(s.get('joints',[]))>256 for s in doc.get('skins',[])): raise ValueError('skin exceeds 256 joints')
     warnings.append(f'geometry preflight: {vertices} vertices, {primitives} primitives; device FPS still needs measurement')
@@ -266,8 +266,8 @@ def validate_performances(m,model):
         if any(not isinstance(b,dict) or not path(b.get('path')) for b in values):
             fail(label+' path is invalid (paths <=128 UTF-16 units)')
         distinct([b['path'] for b in values],label+' binding')
-    if not isinstance(profile,dict) or profile.get('schemaVersion') not in (1,2):fail('schema is invalid')
-    groups=bounded(profile.get('groups'),6 if profile['schemaVersion']==1 else 32,'groups');options=bounded(profile.get('options'),256,'options')
+    if not isinstance(profile,dict) or profile.get('schemaVersion') not in (1,2,3):fail('schema is invalid')
+    groups=bounded(profile.get('groups'),{1:6,2:32,3:128}[profile['schemaVersion']],'groups');options=bounded(profile.get('options'),2048 if profile['schemaVersion']==3 else 256,'options')
     visible(profile.get('defaults'),'defaults')
     allowed={'expression','pose','hands','ears','tail','appearance'}
     def valid_group(g):
@@ -280,7 +280,7 @@ def validate_performances(m,model):
     ids=[o['id'] for o in options];distinct(ids,'option')
     if 'core.performance@'+str(profile['schemaVersion']) not in set(m['compatibility']['required']+m['compatibility']['optional']):
         fail('profile must declare matching core.performance version')
-    if profile['schemaVersion']==2 and 'core.performance@2' not in m['compatibility']['required']:
+    if profile['schemaVersion']>=2 and 'core.performance@'+str(profile['schemaVersion']) not in m['compatibility']['required']:
         fail('extensible groups require core.performance@2 in required capabilities')
     track_count=0
     for o in options:

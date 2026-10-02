@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "revision": "2026-10-03-sixteen-companions-v1",
+  "policy": "Reuse approved voices and existing artwork/audio. Keep stable role IDs and account-owned histories. Source animation limitations remain explicit.",
+  "characters": {
+    "anime-chiffon": {"voiceSource": "anime-chiffon", "atmosphereSource": "anime-chiffon", "musicSource": "anime-chiffon"},
+    "anime-fiona": {"voiceSource": "anime-lime", "atmosphereSource": "anime-mafuyu", "musicSource": "anime-mafuyu"},
+    "anime-hikarun": {"voiceSource": "anime-plum", "atmosphereSource": "anime-ichigo", "musicSource": "anime-mamehinata"},
+    "anime-ichigo": {"voiceSource": "anime-ichigo", "atmosphereSource": "anime-ichigo", "musicSource": "anime-ichigo"},
+    "anime-koharu": {"voiceSource": "anime-ichigo", "atmosphereSource": "anime-plum", "musicSource": "anime-nozomi"},
+    "anime-lime": {"voiceSource": "anime-lime", "atmosphereSource": "anime-lime", "musicSource": "anime-lime"},
+    "anime-mafuyu": {"voiceSource": "anime-mafuyu", "atmosphereSource": "anime-mafuyu", "musicSource": "anime-mafuyu"},
+    "anime-meiyun": {"voiceSource": "anime-chiffon", "atmosphereSource": "anime-chiffon", "musicSource": "anime-chiffon"},
+    "anime-milfy": {"voiceSource": "anime-mafuyu", "atmosphereSource": "anime-ichigo", "musicSource": "anime-ichigo"},
+    "anime-mao": {"voiceSource": "anime-ichigo", "atmosphereSource": "anime-mafuyu", "musicSource": "anime-torao"},
+    "anime-mizuki": {"voiceSource": "anime-lime", "atmosphereSource": "anime-lime", "musicSource": "anime-lime"},
+    "anime-perula": {"voiceSource": "anime-chiffon", "atmosphereSource": "anime-chiffon", "musicSource": "anime-karin"},
+    "anime-plum": {"voiceSource": "anime-plum", "atmosphereSource": "anime-plum", "musicSource": "anime-plum"},
+    "anime-ramune": {"voiceSource": "anime-mafuyu", "atmosphereSource": "anime-mafuyu", "musicSource": "anime-siska"},
+    "anime-shinano": {"voiceSource": "anime-mafuyu", "atmosphereSource": "anime-lime", "musicSource": "anime-nozomi"},
+    "anime-sio": {"voiceSource": "anime-lime", "atmosphereSource": "anime-lime", "musicSource": "anime-torao"}
+  }
+}

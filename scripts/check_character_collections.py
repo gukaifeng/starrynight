@@ -53,20 +53,27 @@ def validate(resources=None, audit_path=None):
             assert payload[:4] == b'caff', 'Invalid CAF asset'
             actual_hash = hashlib.sha256(payload).hexdigest()
             assert track.get('sha256') == actual_hash, 'Music asset hash differs from collection'
-            assert track['asset'] not in music_assets and actual_hash not in music_hashes, 'Two role options share a recording'
+            assert track['asset'] not in music_assets, 'Two role options share a recording'
             music_assets.add(track['asset']); music_hashes.add(actual_hash); music_ids.add(track['id'])
             authored = audited_tracks.get(track['id'])
             assert authored and authored['sourceModelID'] == c['modelID'], 'Missing role-specific authoring evidence'
             assert authored['asset'] == track['asset'] and authored['sha256'] == actual_hash, 'Audio audit does not match resource'
+            if track.get('reuseSourceModelID'):
+                donor=next((t for t in audit['tracks'] if t['sourceModelID']==track['reuseSourceModelID']),None)
+                assert donor and donor['sha256']==actual_hash and authored.get('reuseSourceModelID')==track['reuseSourceModelID'], 'Undeclared/unverified recording reuse'
+                assert authored['provenance']['kind']=='approved-existing-recording-reuse'
             assert authored['bytes'] == len(payload) and abs(track['duration'] - authored['duration']) < .0001
             assert authored['roundtripPCMIdentical'] and authored['sampleRate'] == 32000 and authored['channels'] == 2
             assert 0 < authored['peak'] < .461 and .012 < authored['rms'] < .08, 'Unbounded music level'
             assert authored['seamStep'] < .002 and authored['seamSlopeStep'] < .003 and authored['dc'] < .00002, 'Unsafe loop join'
     assert music_ids == set(audited_tracks), 'Audio evidence/catalog options differ'
+    for recording in music_hashes:
+        owners={t.get('reuseSourceModelID',t['sourceModelID']) for t in audited_tracks.values() if t['sha256']==recording}
+        assert len(owners)==1, 'Duplicate recording without a common verified reuse source'
     for field in ['pcmSha256', 'scoreSha256']:
-        assert len({track[field] for track in audited_tracks.values()}) == len(music_ids), 'Shared PCM or score under distinct names'
+        assert len({track[field] for track in audited_tracks.values() if not track.get('reuseSourceModelID')}) == sum(not track.get('reuseSourceModelID') for track in audited_tracks.values()), 'Shared PCM or score under distinct names'
     print(f"Character collection v1 integrity PASS: {len(models)} isolated collections, {len(option_ids)} scoped audio options; "
-          f"{len(music_ids)} distinct role-bound lossless recordings, ownership/hashes/loop checks PASS.")
+          f"{len(music_ids)} role-bound lossless recordings (explicit approved reuse allowed), ownership/hashes/loop checks PASS.")
 
 if __name__ == '__main__':
     validate()

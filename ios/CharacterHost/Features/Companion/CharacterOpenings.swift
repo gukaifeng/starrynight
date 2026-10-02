@@ -35,13 +35,16 @@ struct CharacterOpening: Decodable, Sendable {
 
 enum CharacterOpenings {
     struct Catalog:Decodable {let schemaVersion:Int;let characters:[Package]}
-    struct Package:Decodable {let characterID:String;let variants:[CharacterOpening];let legacyVariants:[CharacterOpening]?}
+    struct Package:Decodable {let characterID:String;let variants:[CharacterOpening];let legacyVariants:[CharacterOpening]?;let initialReplies:[String]?}
     private static let packages:[Package] = {
         guard let url=Bundle.main.url(forResource:"CharacterOpenings",withExtension:"json"),
               let data=try? Data(contentsOf:url),let catalog=try? JSONDecoder().decode(Catalog.self,from:data),
               catalog.schemaVersion==1 else {return []}
         return catalog.characters
     }()
+    static func variants(for runtimeID:String) -> [CharacterOpening] {
+        packages.first(where:{$0.characterID==runtimeID})?.variants ?? []
+    }
     static func random(for runtimeID:String) -> CharacterOpening? {
         packages.first(where:{$0.characterID==runtimeID})?.variants.randomElement()
     }
@@ -52,6 +55,9 @@ enum CharacterOpenings {
     /// shown immediately while the optional online ranking warms in parallel.
     static func initialReplies(for runtimeID:String,messageID:String) -> [AIQuickReply] {
         let texts:[String]
+        if let authored=packages.first(where:{$0.characterID==runtimeID})?.initialReplies,authored.count==3 {
+            texts=authored
+        } else {
         switch runtimeID {
         case "anime-kipfel": texts=["想听听书屋里的故事。","你找到的那片叶子呢？","我想和你聊聊今天。"]
         case "anime-mamehinata": texts=["先说说面包房吧！","我们去找一个小冒险。","我想分享今天的开心事。"]
@@ -65,6 +71,7 @@ enum CharacterOpenings {
         case "anime-siska": texts=["一起看看那封信吧。","你发现了什么线索？","我想讲一件想留住的事。"]
         case "anime-plum": texts=["先陪我挑一杯茶吧。","庭院最近有什么变化？","我想和你聊聊今天。"]
         default: texts=[]
+        }
         }
         return texts.enumerated().map { index,text in
             AIQuickReply(id:"opening-local-\(messageID)-\(index)",text:text,likelihood:1-Double(index)*0.2)

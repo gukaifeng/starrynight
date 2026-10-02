@@ -1039,7 +1039,8 @@
         "schemaVersion": {
           "enum": [
             1,
-            2
+            2,
+            3
           ]
         },
         "groups": {
@@ -1067,7 +1068,7 @@
             "additionalProperties": true
           },
           "minItems": 1,
-          "maxItems": 32
+          "maxItems": 128
         },
         "options": {
           "type": "array",
@@ -1250,7 +1251,10 @@
                 "properties": {
                   "kind": {
                     "type": "string",
-                    "enum": ["expression", "action"],
+                    "enum": [
+                      "expression",
+                      "action"
+                    ],
                     "description": "Semantic category independent of author menu group IDs; omitted preserves legacy group inference."
                   },
                   "intent": {
@@ -1318,7 +1322,7 @@
             "additionalProperties": true
           },
           "minItems": 1,
-          "maxItems": 256
+          "maxItems": 2048
         },
         "defaults": {
           "type": "array",
@@ -1393,7 +1397,27 @@
                       ]
                     }
                   }
-                }
+                },
+                "maxItems": 256
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "schemaVersion": {
+                "const": 2
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "groups": {
+                "maxItems": 32
+              },
+              "options": {
+                "maxItems": 256
               }
             }
           }

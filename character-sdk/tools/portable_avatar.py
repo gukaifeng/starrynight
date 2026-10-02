@@ -78,7 +78,7 @@ def validate_materials(root, manifest, read, path):
 
 def validate(root, manifest, read, path, inspect):
     capabilities=set(manifest['compatibility']['required']+manifest['compatibility']['optional'])
-    required='core.avatar-controls@1' in manifest['compatibility']['required']
+    required=bool({'core.avatar-controls@1','core.avatar-controls@2'} & set(manifest['compatibility']['required']))
     if not required:
         if 'core.secondary-motion@4' in capabilities:
             validate_secondary(read(path(root,'secondary-motion.json')),capabilities,inspect(path(root,manifest['source']['model'])),manifest.get('performance',{}).get('options',[]))
@@ -112,11 +112,12 @@ def validate(root, manifest, read, path, inspect):
     schema=read(Path(__file__).resolve().parents[1]/'schemas/avatar-controls.schema.json')
     errors=list(Draft202012Validator(schema).iter_errors(data))
     need(not errors,'schema validation: '+('; '.join(e.message for e in errors[:3])))
-    need(data.get('schemaVersion')==1 and data.get('profile')=='mecanim-portable-v1','unsupported profile/version')
+    version=data.get('schemaVersion')
+    need(version in (1,2) and data.get('profile')==f'mecanim-portable-v{version}' and f'core.avatar-controls@{version}' in manifest['compatibility']['required'],'unsupported profile/version')
     params=index(data['parameters'],'name',512,'parameters')
     for p in params.values():
         need(name(p['name']) and p['kind'] in ('float','int','bool','trigger') and numeric(p['initial']),'invalid parameter')
-    controls=index(data['controls'],'id',256,'controls')
+    controls=index(data['controls'],'id',2048 if version==2 else 256,'controls')
     for c in controls.values():
         need(name(c['id']) and name(c['label']) and name(c['group']) and c['parameter'] in params,'invalid control binding')
         need(c['kind'] in ('toggle','button','slider'),'unsupported control kind')
@@ -124,8 +125,9 @@ def validate(root, manifest, read, path, inspect):
         for g in items(c.get('gates',[]),16,'menu gates'):
             need(g['parameter'] in params and numeric(g['value']),'invalid menu gate')
     options=manifest.get('performance',{}).get('options',[])
-    need({o['control']['id'] for o in options}==set(controls),'manifest and controller options differ')
-    for o in options:need(o['control']==controls[o['control']['id']],'stale embedded control')
+    need({o['control']['id'] for o in options if o.get('control')}==set(controls),'manifest and controller options differ')
+    for o in options:
+        if o.get('control'):need(o['control']==controls[o['control']['id']],'stale embedded control')
     model=inspect(path(root,manifest['source']['model']))
     nodes={n['path'] for n in model['nodes']}
     scale_factors={n['path']:n['scaleFactors'] for n in model['nodes']}
@@ -140,8 +142,11 @@ def validate(root, manifest, read, path, inspect):
         need(times and all(numeric(t) and t>=0 for t in times) and all(a<b for a,b in zip(times,times[1:])),'invalid time sequence')
         for t in items(clip['tracks'],1024,'motion tracks'):
             need(node(t['path']),'track targets missing node')
+            track_times=t.get('times',times)
+            need('times' not in t or version==2,'per-track samples require avatar-controls@2')
+            need(isinstance(track_times,list) and 0<len(track_times)<=len(times) and all(numeric(v) and times[0]<=v<=times[-1] for v in track_times) and all(a<b for a,b in zip(track_times,track_times[1:])),'invalid per-track time sequence')
             for k,axes in (('positions','xyz'),('rotations','xyzw'),('scales','xyz')):
-                need(len(t[k])==len(times),'track/time mismatch')
+                need(len(t[k])==len(track_times),'track/time mismatch')
                 need(all(isinstance(v,dict) and all(a in v and numeric(v[a]) for a in axes) for v in t[k]),'invalid transform sample')
     masks=index(data['masks'],'id',64,'masks')
     for mask in masks.values():

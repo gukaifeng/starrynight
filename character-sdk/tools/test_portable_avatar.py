@@ -62,6 +62,26 @@ class PortableAvatarContractTests(unittest.TestCase):
             dict(path='Head',positions=[dict(x=0,y=float('inf'),z=0)],rotations=[dict(x=0,y=0,z=0,w=1)],scales=[dict(x=1,y=1,z=1)])])]
         with self.assertRaisesRegex(ValueError,'invalid transform sample'):self.check()
 
+    def test_sparse_constant_tracks_require_v2_and_valid_sample_times(self):
+        track=dict(path='Head',times=[0,1],positions=[dict(x=0,y=0,z=0)]*2,
+                   rotations=[dict(x=0,y=0,z=0,w=1)]*2,scales=[dict(x=1,y=1,z=1)]*2)
+        self.documents['avatar-motions.json']['motions']=[dict(guid='clip',duration=1,times=[0,.5,1],tracks=[track])]
+        with self.assertRaisesRegex(ValueError,'require avatar-controls@2'):self.check()
+        self.controls.update(schemaVersion=2,profile='mecanim-portable-v2')
+        self.manifest['compatibility']['required']=['core.avatar-controls@2']
+        self.check()
+        for times in ([0,float('nan')],[0,2],[1,0],[]):
+            track['times']=times
+            with self.assertRaisesRegex(ValueError,'per-track time'):self.check()
+
+    def test_v2_direct_faces_do_not_need_synthetic_controller_parameters(self):
+        self.controls.update(schemaVersion=2,profile='mecanim-portable-v2')
+        self.manifest['compatibility']['required']=['core.avatar-controls@2']
+        self.manifest['performance']['options'].append(dict(id='source-face',morphs=[]))
+        self.check()
+        self.controls['schemaVersion']=1
+        with self.assertRaisesRegex(ValueError,'schema validation|profile/version'):self.check()
+
     def test_local_collider_radius_requires_new_capability_and_uses_parent_scale(self):
         collider=dict(bone='Avatar/Head',radius=1.2,localRadius=True,offset=dict(x=0,y=0,z=0))
         self.documents['secondary-motion.json']['colliders']=[collider]

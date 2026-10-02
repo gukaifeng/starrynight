@@ -5,7 +5,7 @@ description: Inspect and convert user-supplied VRChat avatar archives into this 
 
 # VRChat 角色导入 XCP
 
-目标是保留角色的默认外观和原创表现，把独立资产转换为星夜可验证的角色数据包。批量多作者来源或需要迁移完整原作控制图时，先读 [分批导入参考](references/batch-import.md)，使用 `core.avatar-controls@1` 与 `core.performance@2`。旧两角色的片段/曲线表现管线见 [表现迁移参考](references/performances.md)。基础动作按用户要求和来源声明，不自动补通用九动作。`.unitypackage`、VRChat SDK、源 FX Controller 文件不直接交付 App；审核后的数据图由宿主重建。
+目标是保留角色的默认外观和原创表现，把独立资产转换为星夜可验证的角色数据包。批量多作者来源或需要迁移完整原作控制图时，先读 [分批导入参考](references/batch-import.md)。从已审查预览包恢复控制、脸部和会话，或菜单超过旧容量时，读 [会话投影参考](references/companion-projection.md)，按需使用 `core.avatar-controls@2` 与 `core.performance@3`，旧能力仍兼容。旧两角色的片段/曲线表现管线见 [表现迁移参考](references/performances.md)。基础动作按用户要求和来源声明，不自动补通用九动作。`.unitypackage`、VRChat SDK、源 FX Controller 文件不直接交付 App；审核后的数据图由宿主重建。
 
 遇到作者依赖 Modular Avatar 构建时合并控制器、菜单或骨架时，读 [隔离官方构建参考](references/modular-bake.md)。它使用受信的固定 MA/NDMF 依赖，不执行作者任意代码；来源构建通过仍不能代替材质、粒子、约束、角色媒体与 App 验收。
 
@@ -20,9 +20,9 @@ description: Inspect and convert user-supplied VRChat avatar archives into this 
 
 ## 发布名册与兼容
 
-实际打包由 `assets/characters/active-roster.json` 决定，默认琪宝；不要在技能中用固定数量代替名册。批次由 `assets/characters/import-batches.json` 记录，用户已要求一批完成即安装一批。其他角色来源、候选和历史资料仍在工作区，不代表已发布。公共运行时、标准、材质或交互升级必须兼容并回归全部已发布角色。不要为通过旧的 Luma/初音测试而重新加入已下架模型。
+实际打包与默认角色由 `assets/characters/active-roster.json` 决定；不要在技能中用固定数量代替名册。批次由 `assets/characters/import-batches.json` 记录，用户已要求一批完成即安装一批。其他角色来源、候选和历史资料仍在工作区，不代表已发布。公共运行时、标准、材质或交互升级必须兼容并回归全部已发布角色。不要为通过旧的 Luma/初音测试而重新加入已下架模型。
 
-原作表现入口已外置到聊天输入框上方右侧；声音按钮单击分项设置，定制页不再放音乐。位置按钮操作独立根变换，自动记住该账号/角色的最后状态，移除长按蓄力与方案列表，不构成作者待机／讲话动画，也不改角色源包；参考 [取景编辑及边界](../../../docs/verification/position-controls/README.md)。
+原作表现只在角色开发者页提供手动检查入口，正常会话由AI触发；声音与氛围合并进右上角会话选项，定制页不再放音乐。位置按钮操作独立根变换，自动记住该账号/角色的最后状态，移除长按蓄力与方案列表，不构成作者待机／讲话动画，也不改角色源包；参考 [取景编辑及边界](../../../docs/verification/position-controls/README.md)。
 
 ## 当前可直接运行的检查
 
@@ -91,7 +91,7 @@ python3 scripts/export_unity_ios.py --platform simulator
 bash scripts/build_host.sh
 ```
 
-生成角色目录后同步 `CharacterCollections.json`、`CharacterCoverCatalog.json`。当前用户已授权按人设和原封面调用百炼生成封面、头像、场景，走批次参考中的媒体流程；保留作者原图与哈希，不把 AI 图标成作者原图。`scripts/generate_asset_credits.py` 将包署名带入 iOS。新角色音乐必须独立创作/获得授权，用 `--only ROLE` 增量准备，别覆盖旧角色 CAF。现有 `VrchatImportReview` 是旧两角色的回归入口，新增角色扩充 `VrchatBatchTests`。
+生成角色目录后同步 `CharacterCollections.json`、`CharacterCoverCatalog.json`。用户2026-10-01起明确禁止后续图片生成；复用现有封面、头像、场景并保留来源哈希，不因构建自动调用生图。`scripts/generate_asset_credits.py` 将包署名带入 iOS。角色音乐须有来源许可；本次允许显式复用既有曲目，按会话投影参考记录供体并生成目标自己的CAF及审计；需要新曲目时用 `--only ROLE` 增量准备，别覆盖旧CAF。现有 `VrchatImportReview` 是旧两角色的回归入口，新增角色扩充 `VrchatBatchTests`。
 
 运行完整会话 UI 验证使用 `scripts/test_companion.sh`；现行两角色会话回归为 `ConversationControlsTests`，原作动作数据用 `VrchatOriginalMotionReview` 与 `CharacterPerformanceReview`；旧版 `VrchatCharacterTests` 的入口假设需按当前默认角色核对，方法筛选需带 `()`，必须核验实际执行不为零。手机只尝试一次安装，失败继续 iPhone 模拟器；不为等待手机中断开发。导出器的 catalog stamp 不能代替 GLB/贴图/sidecar 变更后的真正 Setup 和重新导出。
 

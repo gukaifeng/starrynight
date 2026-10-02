@@ -33,7 +33,9 @@ def validate(root=ROOT):
     # they must not acquire generated media merely to pass a release check.
     recipes=read(root / 'assets/characters/media-recipes.json')['characters']
     authored={r['id'] for r in recipes} & roster
-    assert set(roles) == authored and len(roles) == len(catalog['characters']), 'Authored atmosphere roster differs'
+    adaptation_path=root/'assets/characters/companion-adaptations.json'
+    reused={r:e['atmosphereSource'] for r,e in read(adaptation_path)['characters'].items() if e['atmosphereSource']!=r} if adaptation_path.exists() else {}
+    assert set(roles) == authored | (set(reused)&roster) and len(roles) == len(catalog['characters']), 'Authored atmosphere roster differs'
     covers = {entry['runtimeID']: entry for entry in read(native / 'CharacterCoverCatalog.json')['covers']}
     assert set(covers) == roster, 'Cover roster differs'
     hashes = set()
@@ -42,6 +44,11 @@ def validate(root=ROOT):
         assert 0.2 <= entry['density'] <= 1.2
         assert len(entry['palette']) >= 2 and all(re.fullmatch(r'#[0-9A-Fa-f]{6}', value) for value in entry['palette'])
         assert entry['background'] == f'Atmospheres/{role}/background'
+        if role in reused:
+            donor=roles[reused[role]]
+            assert entry.get('reuseSourceModelID')==reused[role] and entry['backgroundSHA256']==donor['backgroundSHA256'], 'Unverified background reuse'
+            assert hashlib.sha256((unity/(entry['background']+'.png')).read_bytes()).hexdigest()==donor['backgroundSHA256']
+            continue
         folder = root / '.local/character-media' / role
         for kind, size in [('cover', (1536, 2048)), ('avatar', (1024, 1024)), ('background', (2048, 2048))]:
             receipt = read(folder / f'{kind}.json')
@@ -62,7 +69,7 @@ def validate(root=ROOT):
                 if kind == 'cover':
                     assert covers[role]['source'] == 'bailian-generated'
                     assert covers[role]['sourceSHA256'] == receipt['sha256']
-    print(f'Character media PASS: {len(roles)} authored media sets, {len(roster)-len(roles)} roles retain source previews, {len(hashes)} verified generated images.')
+    print(f'Character media PASS: {len(authored)} previously generated media sets, {len(set(reused)&roster)} explicit background reuses, {len(hashes)} verified generated images.')
 
 
 if __name__ == '__main__':

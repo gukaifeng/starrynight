@@ -1,0 +1,191 @@
+{
+  "schemaVersion": 1,
+  "revision": "2026-10-03-sixteen-companions-v1",
+  "scope": "Original controls and source facial presets; not counts of distinct continuous body animations",
+  "characters": [
+    {
+      "id": "anime-chiffon",
+      "controls": 31,
+      "facialPresets": 0,
+      "automatic": 12,
+      "speech": "amplitude"
+    },
+    {
+      "id": "anime-fiona",
+      "controls": 77,
+      "facialPresets": 6,
+      "automatic": 44,
+      "speech": "amplitude",
+      "sourceControls": 77,
+      "unavailableControls": 0,
+      "runtimeMotions": 88,
+      "omittedLayerReasons": [
+        "host-stationary-body-baseline",
+        "unresolved-source-motion"
+      ]
+    },
+    {
+      "id": "anime-hikarun",
+      "controls": 42,
+      "facialPresets": 4,
+      "automatic": 21,
+      "speech": "amplitude",
+      "sourceControls": 50,
+      "unavailableControls": 8,
+      "runtimeMotions": 52,
+      "omittedLayerReasons": [
+        "host-stationary-body-baseline",
+        "unresolved-source-motion"
+      ]
+    },
+    {
+      "id": "anime-ichigo",
+      "controls": 46,
+      "facialPresets": 0,
+      "automatic": 13,
+      "speech": "amplitude"
+    },
+    {
+      "id": "anime-koharu",
+      "controls": 92,
+      "facialPresets": 4,
+      "automatic": 11,
+      "speech": "amplitude",
+      "sourceControls": 97,
+      "unavailableControls": 5,
+      "runtimeMotions": 167,
+      "omittedLayerReasons": [
+        "host-stationary-body-baseline",
+        "unresolved-source-motion"
+      ]
+    },
+    {
+      "id": "anime-lime",
+      "controls": 36,
+      "facialPresets": 0,
+      "automatic": 21,
+      "speech": "amplitude"
+    },
+    {
+      "id": "anime-mafuyu",
+      "controls": 51,
+      "facialPresets": 0,
+      "automatic": 8,
+      "speech": "amplitude"
+    },
+    {
+      "id": "anime-meiyun",
+      "controls": 35,
+      "facialPresets": 19,
+      "automatic": 34,
+      "speech": "amplitude",
+      "sourceControls": 40,
+      "unavailableControls": 5,
+      "runtimeMotions": 62,
+      "omittedLayerReasons": [
+        "host-stationary-body-baseline"
+      ]
+    },
+    {
+      "id": "anime-milfy",
+      "controls": 41,
+      "facialPresets": 13,
+      "automatic": 14,
+      "speech": "amplitude",
+      "sourceControls": 41,
+      "unavailableControls": 0,
+      "runtimeMotions": 54,
+      "omittedLayerReasons": [
+        "host-stationary-body-baseline"
+      ]
+    },
+    {
+      "id": "anime-mao",
+      "controls": 152,
+      "facialPresets": 3,
+      "automatic": 9,
+      "speech": "amplitude",
+      "sourceControls": 445,
+      "unavailableControls": 293,
+      "runtimeMotions": 160,
+      "omittedLayerReasons": [
+        "host-stationary-body-baseline",
+        "unresolved-source-motion"
+      ]
+    },
+    {
+      "id": "anime-mizuki",
+      "controls": 110,
+      "facialPresets": 6,
+      "automatic": 14,
+      "speech": "amplitude",
+      "sourceControls": 420,
+      "unavailableControls": 310,
+      "runtimeMotions": 323,
+      "omittedLayerReasons": [
+        "host-stationary-body-baseline",
+        "unresolved-source-motion"
+      ]
+    },
+    {
+      "id": "anime-perula",
+      "controls": 99,
+      "facialPresets": 40,
+      "automatic": 95,
+      "speech": "amplitude",
+      "sourceControls": 107,
+      "unavailableControls": 8,
+      "runtimeMotions": 107,
+      "omittedLayerReasons": [
+        "host-stationary-body-baseline",
+        "unresolved-source-motion"
+      ]
+    },
+    {
+      "id": "anime-plum",
+      "controls": 41,
+      "facialPresets": 0,
+      "automatic": 15,
+      "speech": "amplitude"
+    },
+    {
+      "id": "anime-ramune",
+      "controls": 71,
+      "facialPresets": 25,
+      "automatic": 51,
+      "speech": "amplitude",
+      "sourceControls": 71,
+      "unavailableControls": 0,
+      "runtimeMotions": 201,
+      "omittedLayerReasons": [
+        "host-stationary-body-baseline"
+      ]
+    },
+    {
+      "id": "anime-shinano",
+      "controls": 44,
+      "facialPresets": 23,
+      "automatic": 42,
+      "speech": "amplitude",
+      "sourceControls": 44,
+      "unavailableControls": 0,
+      "runtimeMotions": 57,
+      "omittedLayerReasons": [
+        "host-stationary-body-baseline"
+      ]
+    },
+    {
+      "id": "anime-sio",
+      "controls": 38,
+      "facialPresets": 11,
+      "automatic": 23,
+      "speech": "amplitude",
+      "sourceControls": 38,
+      "unavailableControls": 0,
+      "runtimeMotions": 40,
+      "omittedLayerReasons": [
+        "host-stationary-body-baseline"
+      ]
+    }
+  ]
+}

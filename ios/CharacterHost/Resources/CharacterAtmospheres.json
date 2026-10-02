@@ -16,6 +16,36 @@
       "imageModel": "qwen-image-3.0-pro"
     },
     {
+      "id": "anime-fiona",
+      "title": "雪窗暖茶",
+      "background": "Atmospheres/anime-fiona/background",
+      "effect": "sunbeam",
+      "palette": [
+        "#BDD8E0",
+        "#E9D8BF",
+        "#A9A7B4"
+      ],
+      "density": 0.45,
+      "backgroundSHA256": "a21ff3186bc1eed8a2e211417d0a7d1f44b1a3aa085e02690940e37c889b115e",
+      "imageModel": "existing-artwork-reuse",
+      "reuseSourceModelID": "anime-mafuyu"
+    },
+    {
+      "id": "anime-hikarun",
+      "title": "石桥边的甜香",
+      "background": "Atmospheres/anime-hikarun/background",
+      "effect": "petal",
+      "palette": [
+        "#F5ADAD",
+        "#F8D6AC",
+        "#8EA895"
+      ],
+      "density": 0.65,
+      "backgroundSHA256": "1669725c49d2f863279c545279a329f2f997939308031b8978aa965b53585c57",
+      "imageModel": "existing-artwork-reuse",
+      "reuseSourceModelID": "anime-ichigo"
+    },
+    {
       "id": "anime-ichigo",
       "title": "石桥边的甜香",
       "background": "Atmospheres/anime-ichigo/background",
@@ -27,6 +57,35 @@
       ],
       "density": 0.65,
       "backgroundSHA256": "1669725c49d2f863279c545279a329f2f997939308031b8978aa965b53585c57",
+      "imageModel": "qwen-image-3.0-pro"
+    },
+    {
+      "id": "anime-koharu",
+      "title": "梅巷茶香",
+      "background": "Atmospheres/anime-koharu/background",
+      "effect": "petal",
+      "palette": [
+        "#D79FCA",
+        "#DCD4F1",
+        "#F4D8B7"
+      ],
+      "density": 0.6,
+      "backgroundSHA256": "97104367710703cf09195a5bb931e821ff25a7fb77f060b640dcf64a3c2d2486",
+      "imageModel": "existing-artwork-reuse",
+      "reuseSourceModelID": "anime-plum"
+    },
+    {
+      "id": "anime-lime",
+      "title": "新叶微光",
+      "background": "Atmospheres/anime-lime/background",
+      "effect": "sunbeam",
+      "palette": [
+        "#BCD5C7",
+        "#A6D7E3",
+        "#F0E2B7"
+      ],
+      "density": 0.7,
+      "backgroundSHA256": "1c853da8433e9bae9887b80983756fab38df17fa7b788c892467e6fb9c80d88a",
       "imageModel": "qwen-image-3.0-pro"
     },
     {
@@ -44,9 +103,54 @@
       "imageModel": "qwen-image-3.0-pro"
     },
     {
-      "id": "anime-lime",
+      "id": "anime-meiyun",
+      "title": "雨后花信",
+      "background": "Atmospheres/anime-meiyun/background",
+      "effect": "petal",
+      "palette": [
+        "#F5C5D7",
+        "#D6E5BC",
+        "#C4BADF"
+      ],
+      "density": 0.75,
+      "backgroundSHA256": "d6c3d19f4f52c9e80a2fae36e7e73fb3ab85cc25f89541bc766f64a11cdc556c",
+      "imageModel": "existing-artwork-reuse",
+      "reuseSourceModelID": "anime-chiffon"
+    },
+    {
+      "id": "anime-milfy",
+      "title": "石桥边的甜香",
+      "background": "Atmospheres/anime-milfy/background",
+      "effect": "petal",
+      "palette": [
+        "#F5ADAD",
+        "#F8D6AC",
+        "#8EA895"
+      ],
+      "density": 0.65,
+      "backgroundSHA256": "1669725c49d2f863279c545279a329f2f997939308031b8978aa965b53585c57",
+      "imageModel": "existing-artwork-reuse",
+      "reuseSourceModelID": "anime-ichigo"
+    },
+    {
+      "id": "anime-mao",
+      "title": "雪窗暖茶",
+      "background": "Atmospheres/anime-mao/background",
+      "effect": "sunbeam",
+      "palette": [
+        "#BDD8E0",
+        "#E9D8BF",
+        "#A9A7B4"
+      ],
+      "density": 0.45,
+      "backgroundSHA256": "a21ff3186bc1eed8a2e211417d0a7d1f44b1a3aa085e02690940e37c889b115e",
+      "imageModel": "existing-artwork-reuse",
+      "reuseSourceModelID": "anime-mafuyu"
+    },
+    {
+      "id": "anime-mizuki",
       "title": "新叶微光",
-      "background": "Atmospheres/anime-lime/background",
+      "background": "Atmospheres/anime-mizuki/background",
       "effect": "sunbeam",
       "palette": [
         "#BCD5C7",
@@ -55,7 +159,23 @@
       ],
       "density": 0.7,
       "backgroundSHA256": "1c853da8433e9bae9887b80983756fab38df17fa7b788c892467e6fb9c80d88a",
-      "imageModel": "qwen-image-3.0-pro"
+      "imageModel": "existing-artwork-reuse",
+      "reuseSourceModelID": "anime-lime"
+    },
+    {
+      "id": "anime-perula",
+      "title": "雨后花信",
+      "background": "Atmospheres/anime-perula/background",
+      "effect": "petal",
+      "palette": [
+        "#F5C5D7",
+        "#D6E5BC",
+        "#C4BADF"
+      ],
+      "density": 0.75,
+      "backgroundSHA256": "d6c3d19f4f52c9e80a2fae36e7e73fb3ab85cc25f89541bc766f64a11cdc556c",
+      "imageModel": "existing-artwork-reuse",
+      "reuseSourceModelID": "anime-chiffon"
     },
     {
       "id": "anime-plum",
@@ -70,6 +190,51 @@
       "density": 0.6,
       "backgroundSHA256": "97104367710703cf09195a5bb931e821ff25a7fb77f060b640dcf64a3c2d2486",
       "imageModel": "qwen-image-3.0-pro"
+    },
+    {
+      "id": "anime-ramune",
+      "title": "雪窗暖茶",
+      "background": "Atmospheres/anime-ramune/background",
+      "effect": "sunbeam",
+      "palette": [
+        "#BDD8E0",
+        "#E9D8BF",
+        "#A9A7B4"
+      ],
+      "density": 0.45,
+      "backgroundSHA256": "a21ff3186bc1eed8a2e211417d0a7d1f44b1a3aa085e02690940e37c889b115e",
+      "imageModel": "existing-artwork-reuse",
+      "reuseSourceModelID": "anime-mafuyu"
+    },
+    {
+      "id": "anime-shinano",
+      "title": "新叶微光",
+      "background": "Atmospheres/anime-shinano/background",
+      "effect": "sunbeam",
+      "palette": [
+        "#BCD5C7",
+        "#A6D7E3",
+        "#F0E2B7"
+      ],
+      "density": 0.7,
+      "backgroundSHA256": "1c853da8433e9bae9887b80983756fab38df17fa7b788c892467e6fb9c80d88a",
+      "imageModel": "existing-artwork-reuse",
+      "reuseSourceModelID": "anime-lime"
+    },
+    {
+      "id": "anime-sio",
+      "title": "新叶微光",
+      "background": "Atmospheres/anime-sio/background",
+      "effect": "sunbeam",
+      "palette": [
+        "#BCD5C7",
+        "#A6D7E3",
+        "#F0E2B7"
+      ],
+      "density": 0.7,
+      "backgroundSHA256": "1c853da8433e9bae9887b80983756fab38df17fa7b788c892467e6fb9c80d88a",
+      "imageModel": "existing-artwork-reuse",
+      "reuseSourceModelID": "anime-lime"
     }
   ]
 }

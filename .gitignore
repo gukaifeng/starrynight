@@ -75,6 +75,7 @@ __pycache__/
 /docs/verification/**
 !/docs/verification/**/
 !/docs/verification/**/*.md
+!/docs/verification/sixteen-companions/capability-summary.json
 
 # SDK archives are reproducible from the tracked SDK source and examples.
 /docs/character-standard/deliverables/

@@ -19,9 +19,11 @@ public static class PortableAvatarReview
     [Serializable] class MotionChecks {public int schemaVersion=1,strands,colliders,frames,blinkBindings;public string manifestSHA256;public float maximumRotationDegrees,hairTravel,clothTravel;public bool deviceVerified=false;}
     [Serializable] class RenderChecks {public int schemaVersion=1;public string manifestSHA256,assetFolder,defaultSHA256,eyelidsSHA256;public bool nonemptyPixels=true;}
     public static void Run() => RunRequest(".local/vrchat-batch/review-request.json");
+    public static void RunCompanions16() => RunRequest(".local/vrchat-batch/companions-16/review-request.json");
+    public static void RunCompanionFaces() => RunRequest(".local/vrchat-batch/companions-16/review-request.json",false,true);
     public static void RunModelReview() => RunRequest(".local/vrchat-batch/model-review/review-request.json");
     public static void RenderModelReview() => RunRequest(".local/vrchat-batch/model-review/review-request.json",true);
-    static void RunRequest(string requestPath,bool renderOnly=false)
+    static void RunRequest(string requestPath,bool renderOnly=false,bool facesOnly=false)
     {
         string root=CharacterPackageBuilder.Root;
         var request=JsonUtility.FromJson<Request>(File.ReadAllText(Path.Combine(root,requestPath)));
@@ -84,7 +86,7 @@ public static class PortableAvatarReview
                 PortableAvatarControllerBuilder.Prepare(model,folder,clips.First(c=>c.name=="Idle"));
             }
             var driver=model.GetComponent<AvatarControlDriver>();
-            if(driver && !renderOnly)
+            if(driver && !renderOnly && !facesOnly)
             {
                 string Snapshot() {
                     var parts=new System.Collections.Generic.List<string>();
@@ -155,6 +157,45 @@ public static class PortableAvatarReview
                     File.WriteAllText(checkPath,JsonUtility.ToJson(new Checks {role=role,
                         manifestSHA256=BitConverter.ToString(hash.ComputeHash(File.ReadAllBytes(source+"/character.json"))).Replace("-","").ToLowerInvariant(),
                         controls=checks.ToArray()},true));
+            }
+            if(facesOnly)
+            {
+                var character=model.GetComponent<ViewerCharacter>();
+                var performance=model.AddComponent<CharacterPerformanceDriver>();performance.Bind(character);
+                var checkedFaces=new System.Collections.Generic.List<Check>();
+                foreach(var option in selected.performance.options.Where(o=>o.group=="source-face"))
+                {
+                    performance.Reset();performance.RestoreMorphs();
+                    if(driver){driver.Reset();driver.animator.Update(0);}
+                    void Step() {performance.RestoreMorphs();performance.Step(1f/60);performance.ApplyFrame();}
+                    for(int frame=0;frame<120;frame++)Step();
+                    float[] Weights() => option.morphs.Select(b=>{
+                        var skin=model.transform.Find(b.renderer).GetComponent<SkinnedMeshRenderer>();
+                        return skin.GetBlendShapeWeight(skin.sharedMesh.GetBlendShapeIndex(b.shape));}).ToArray();
+                    var before=Weights();
+                    if(performance.Select(option.id,1)!=null)throw new Exception("SOURCE_FACE_SELECTION_FAILED");
+                    for(int frame=0;frame<120;frame++)Step();
+                    var after=Weights();
+                    bool changed=after.Where((value,i)=>Mathf.Abs(value-before[i])>.01f).Any();
+                    if(after.Any(value=>!float.IsFinite(value)))throw new Exception("SOURCE_FACE_NONFINITE");
+                    var author=driver?.profile.controls.FirstOrDefault();
+                    if(author!=null)driver.Select(author.id,.6f);
+                    float authorValue=author!=null?driver.Get(author.parameter):0;
+                    performance.Reset("source-face");
+                    if(author!=null && Mathf.Abs(driver.Get(author.parameter)-authorValue)>.001f)
+                        throw new Exception("SOURCE_FACE_RESET_CHANGED_AUTHOR_CONTROL");
+                    for(int frame=0;frame<120;frame++)Step();
+                    bool reset=Weights().Where((value,i)=>Mathf.Abs(value-before[i])>.02f).Any()==false;
+                    if(!reset)throw new Exception("SOURCE_FACE_RESET_FAILED: "+selected.id+"/"+option.id);
+                    checkedFaces.Add(new Check {id=option.id,label=option.label,kind=option.kind,changed=changed,resetRestored=reset});
+                }
+                performance.Clear();UnityEngine.Object.DestroyImmediate(model.GetComponent<CharacterPerformanceRestore>());
+                UnityEngine.Object.DestroyImmediate(performance);
+                if(driver){driver.Reset();driver.animator.Update(0);}
+                using(var hash=System.Security.Cryptography.SHA256.Create())
+                    File.WriteAllText(Path.Combine(outputRoot,role+"-faces.json"),JsonUtility.ToJson(new Checks {role=role,
+                        manifestSHA256=BitConverter.ToString(hash.ComputeHash(File.ReadAllBytes(source+"/character.json"))).Replace("-","").ToLowerInvariant(),
+                        controls=checkedFaces.ToArray()},true));
             }
             var motion=AnimeCharacterAdapter.PrepareSecondary(model,folder);
             var motionChecks=new MotionChecks {strands=motion.strands.Length,colliders=motion.colliders.Length,

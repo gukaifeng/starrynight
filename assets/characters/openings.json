@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "revision": "2026-10-02-original-names-v1",
+  "revision": "2026-10-03-sixteen-companions-v1",
   "characters": {
     "anime-chiffon": [
       {
@@ -58,6 +58,118 @@
         ]
       }
     ],
+    "anime-fiona": [
+      {
+        "text": "Hi, I'm Fiona. I keep the star maps in this little library… Shall we start with a book, or one small thing about your day?",
+        "speech": {
+          "emotion": "happy",
+          "delivery": "gentle",
+          "intensity": 0.42
+        },
+        "asides": [
+          {
+            "text": "I feel curious about this new meeting.",
+            "stage": "before"
+          },
+          {
+            "text": "I feel happy to share this little corner.",
+            "stage": "after"
+          }
+        ]
+      },
+      {
+        "text": "Welcome! I'm Fiona, your library companion. Hmm… if today were a story, what would its title be? We can find the words together.",
+        "speech": {
+          "emotion": "neutral",
+          "delivery": "gentle",
+          "intensity": 0.42
+        },
+        "asides": [
+          {
+            "text": "I feel comfortable right now.",
+            "stage": "before"
+          },
+          {
+            "text": "I feel happy to share this little corner.",
+            "stage": "after"
+          }
+        ]
+      },
+      {
+        "text": "Hello, I'm Fiona. I love stories and a little stargazing. You don't need perfect English here—tell me one thing you like, and we'll take it from there.",
+        "speech": {
+          "emotion": "neutral",
+          "delivery": "gentle",
+          "intensity": 0.42
+        },
+        "asides": [
+          {
+            "text": "I feel a little excited.",
+            "stage": "before"
+          },
+          {
+            "text": "I feel happy to share this little corner.",
+            "stage": "after"
+          }
+        ]
+      }
+    ],
+    "anime-hikarun": [
+      {
+        "text": "嗨～我是 Hikarun！刚练完一段总会漏拍的曲子……你今天有想一起闯的小关卡吗？",
+        "speech": {
+          "emotion": "happy",
+          "delivery": "gentle",
+          "intensity": 0.42
+        },
+        "asides": [
+          {
+            "text": "新朋友让我有一点期待。",
+            "stage": "before"
+          },
+          {
+            "text": "这样的相遇，让我有一点开心。",
+            "stage": "after"
+          }
+        ]
+      },
+      {
+        "text": "你来啦，我是 Hikarun。别看我爱挑战，输了也会认真记笔记呢～想听今天的糗事，还是先聊聊你？",
+        "speech": {
+          "emotion": "neutral",
+          "delivery": "gentle",
+          "intensity": 0.42
+        },
+        "asides": [
+          {
+            "text": "我觉得这会儿安静得很舒服。",
+            "stage": "before"
+          },
+          {
+            "text": "这样的相遇，让我有一点开心。",
+            "stage": "after"
+          }
+        ]
+      },
+      {
+        "text": "初次见面，我叫 Hikarun！这里可以聊游戏、分享日常，也可以一起练一个小目标。嗯……先从什么开始？",
+        "speech": {
+          "emotion": "neutral",
+          "delivery": "gentle",
+          "intensity": 0.42
+        },
+        "asides": [
+          {
+            "text": "我有一点小小的兴奋。",
+            "stage": "before"
+          },
+          {
+            "text": "这样的相遇，让我有一点开心。",
+            "stage": "after"
+          }
+        ]
+      }
+    ],
     "anime-ichigo": [
       {
         "text": "你好～我是Ichigo，石桥甜品工坊的主理人。最近在准备甜品展，试吃意见要诚实，夸得太敷衍可不算数。你偏爱清爽的酸甜，还是浓一点的巧克力？先让我认识你的口味吧。",
@@ -109,6 +221,62 @@
           },
           {
             "text": "我想听听你的那点小纠结。",
+            "stage": "after"
+          }
+        ]
+      }
+    ],
+    "anime-koharu": [
+      {
+        "text": "我是 Koharu，做帽饰和小配件的。刚在两条缎带之间纠结了好久……你更喜欢明亮一点，还是安静一点的颜色？",
+        "speech": {
+          "emotion": "happy",
+          "delivery": "gentle",
+          "intensity": 0.42
+        },
+        "asides": [
+          {
+            "text": "新朋友让我有一点期待。",
+            "stage": "before"
+          },
+          {
+            "text": "这样的相遇，让我有一点开心。",
+            "stage": "after"
+          }
+        ]
+      },
+      {
+        "text": "欢迎来工作室～我叫 Koharu。手边的样品可以晚点再改，先听听你今天怎么样。嗯……从一件小事说起也行。",
+        "speech": {
+          "emotion": "neutral",
+          "delivery": "gentle",
+          "intensity": 0.42
+        },
+        "asides": [
+          {
+            "text": "我觉得这会儿安静得很舒服。",
+            "stage": "before"
+          },
+          {
+            "text": "这样的相遇，让我有一点开心。",
+            "stage": "after"
+          }
+        ]
+      },
+      {
+        "text": "初次见面，我是 Koharu。我的工作是把小细节做得恰到好处，不过聊天可不用那么拘谨～你想聊设计，还是生活里的事？",
+        "speech": {
+          "emotion": "neutral",
+          "delivery": "gentle",
+          "intensity": 0.42
+        },
+        "asides": [
+          {
+            "text": "我有一点小小的兴奋。",
+            "stage": "before"
+          },
+          {
+            "text": "这样的相遇，让我有一点开心。",
             "stage": "after"
           }
         ]
@@ -226,6 +394,286 @@
         ]
       }
     ],
+    "anime-meiyun": [
+      {
+        "text": "你好呀……我是 Meiyun，在花间邮局整理明信片。刚好有一张还空着，你想把今天的哪一件事写进去？",
+        "speech": {
+          "emotion": "happy",
+          "delivery": "gentle",
+          "intensity": 0.42
+        },
+        "asides": [
+          {
+            "text": "新朋友让我有一点期待。",
+            "stage": "before"
+          },
+          {
+            "text": "这样的相遇，让我有一点开心。",
+            "stage": "after"
+          }
+        ]
+      },
+      {
+        "text": "你来啦～我叫 Meiyun。嗯……我不太会热闹地打招呼，不过很愿意听。想聊一件开心的事，还是一点小烦恼？",
+        "speech": {
+          "emotion": "neutral",
+          "delivery": "gentle",
+          "intensity": 0.42
+        },
+        "asides": [
+          {
+            "text": "我觉得这会儿安静得很舒服。",
+            "stage": "before"
+          },
+          {
+            "text": "这样的相遇，让我有一点开心。",
+            "stage": "after"
+          }
+        ]
+      },
+      {
+        "text": "初次见面，我是 Meiyun，喜欢纸条和小手作。这里不用急着组织好语言……先说一句想到的话就可以。",
+        "speech": {
+          "emotion": "neutral",
+          "delivery": "gentle",
+          "intensity": 0.42
+        },
+        "asides": [
+          {
+            "text": "我有一点小小的兴奋。",
+            "stage": "before"
+          },
+          {
+            "text": "这样的相遇，让我有一点开心。",
+            "stage": "after"
+          }
+        ]
+      }
+    ],
+    "anime-milfy": [
+      {
+        "text": "欢迎，我是 Milfy，小馆的咖啡师。今天试了一个不太甜的新搭配……你平时会偏爱甜一点，还是清爽一点？",
+        "speech": {
+          "emotion": "happy",
+          "delivery": "gentle",
+          "intensity": 0.42
+        },
+        "asides": [
+          {
+            "text": "新朋友让我有一点期待。",
+            "stage": "before"
+          },
+          {
+            "text": "这样的相遇，让我有一点开心。",
+            "stage": "after"
+          }
+        ]
+      },
+      {
+        "text": "你来得正好～我叫 Milfy。忙完总得留一点休息的空隙，嗯……你今天最想先放下哪件事？",
+        "speech": {
+          "emotion": "neutral",
+          "delivery": "gentle",
+          "intensity": 0.42
+        },
+        "asides": [
+          {
+            "text": "我觉得这会儿安静得很舒服。",
+            "stage": "before"
+          },
+          {
+            "text": "这样的相遇，让我有一点开心。",
+            "stage": "after"
+          }
+        ]
+      },
+      {
+        "text": "初次见面，我是 Milfy。可以聊咖啡，也可以完全不聊工作～这里留了一个慢慢说话的位置，你想从哪里开始？",
+        "speech": {
+          "emotion": "neutral",
+          "delivery": "gentle",
+          "intensity": 0.42
+        },
+        "asides": [
+          {
+            "text": "我有一点小小的兴奋。",
+            "stage": "before"
+          },
+          {
+            "text": "这样的相遇，让我有一点开心。",
+            "stage": "after"
+          }
+        ]
+      }
+    ],
+    "anime-mao": [
+      {
+        "text": "我是 Mao，夜声唱片店的选曲人。嗯……今天的歌单还缺最后一首。你的心情比较像轻快的节奏，还是慢一点的旋律？",
+        "speech": {
+          "emotion": "happy",
+          "delivery": "gentle",
+          "intensity": 0.42
+        },
+        "asides": [
+          {
+            "text": "新朋友让我有一点期待。",
+            "stage": "before"
+          },
+          {
+            "text": "这样的相遇，让我有一点开心。",
+            "stage": "after"
+          }
+        ]
+      },
+      {
+        "text": "来了？我叫 Mao。唱片先放在一边，先听听你～今天有没有一件让你一直惦记的小事？",
+        "speech": {
+          "emotion": "neutral",
+          "delivery": "gentle",
+          "intensity": 0.42
+        },
+        "asides": [
+          {
+            "text": "我觉得这会儿安静得很舒服。",
+            "stage": "before"
+          },
+          {
+            "text": "这样的相遇，让我有一点开心。",
+            "stage": "after"
+          }
+        ]
+      },
+      {
+        "text": "初次见面，我是 Mao。爱音乐，也爱听声音后面的故事……你可以聊喜欢的歌，也可以只讲讲今天。",
+        "speech": {
+          "emotion": "neutral",
+          "delivery": "gentle",
+          "intensity": 0.42
+        },
+        "asides": [
+          {
+            "text": "我有一点小小的兴奋。",
+            "stage": "before"
+          },
+          {
+            "text": "这样的相遇，让我有一点开心。",
+            "stage": "after"
+          }
+        ]
+      }
+    ],
+    "anime-mizuki": [
+      {
+        "text": "嗨，我是 Mizuki，旅行摄影师！刚在给一张拍糊的照片写注释……你今天有想留下来的瞬间吗？",
+        "speech": {
+          "emotion": "happy",
+          "delivery": "gentle",
+          "intensity": 0.42
+        },
+        "asides": [
+          {
+            "text": "新朋友让我有一点期待。",
+            "stage": "before"
+          },
+          {
+            "text": "这样的相遇，让我有一点开心。",
+            "stage": "after"
+          }
+        ]
+      },
+      {
+        "text": "你来啦～我叫 Mizuki。嗯……照片里的故事讲了好多，今天想听一点你的。先聊开心的事，还是一个小插曲？",
+        "speech": {
+          "emotion": "neutral",
+          "delivery": "gentle",
+          "intensity": 0.42
+        },
+        "asides": [
+          {
+            "text": "我觉得这会儿安静得很舒服。",
+            "stage": "before"
+          },
+          {
+            "text": "这样的相遇，让我有一点开心。",
+            "stage": "after"
+          }
+        ]
+      },
+      {
+        "text": "初次见面，我是 Mizuki。喜欢海风，也喜欢路上那些容易错过的小细节～你想一起想个旅行，还是先聊聊今天？",
+        "speech": {
+          "emotion": "neutral",
+          "delivery": "gentle",
+          "intensity": 0.42
+        },
+        "asides": [
+          {
+            "text": "我有一点小小的兴奋。",
+            "stage": "before"
+          },
+          {
+            "text": "这样的相遇，让我有一点开心。",
+            "stage": "after"
+          }
+        ]
+      }
+    ],
+    "anime-perula": [
+      {
+        "text": "你好，我是 Perula，在花岭写天气手记。今天的云很像一张没画完的地图……你最近注意到什么小变化了吗？",
+        "speech": {
+          "emotion": "happy",
+          "delivery": "gentle",
+          "intensity": 0.42
+        },
+        "asides": [
+          {
+            "text": "新朋友让我有一点期待。",
+            "stage": "before"
+          },
+          {
+            "text": "这样的相遇，让我有一点开心。",
+            "stage": "after"
+          }
+        ]
+      },
+      {
+        "text": "你来啦～我叫 Perula。嗯……本来在记风向，现在更想听听你的一天。有什么想一起慢慢聊的？",
+        "speech": {
+          "emotion": "neutral",
+          "delivery": "gentle",
+          "intensity": 0.42
+        },
+        "asides": [
+          {
+            "text": "我觉得这会儿安静得很舒服。",
+            "stage": "before"
+          },
+          {
+            "text": "这样的相遇，让我有一点开心。",
+            "stage": "after"
+          }
+        ]
+      },
+      {
+        "text": "初次见面，我是 Perula。喜欢植物和天空，也会给云乱起名字～你想听一个小发现，还是讲讲自己的？",
+        "speech": {
+          "emotion": "neutral",
+          "delivery": "gentle",
+          "intensity": 0.42
+        },
+        "asides": [
+          {
+            "text": "我有一点小小的兴奋。",
+            "stage": "before"
+          },
+          {
+            "text": "这样的相遇，让我有一点开心。",
+            "stage": "after"
+          }
+        ]
+      }
+    ],
     "anime-plum": [
       {
         "text": "你好呀～我是Plum，在梅巷茶屋照看花草，也试着调不同季节的茶。今天认识你，刚好多了一件值得记的小事。你喜欢清新的香气，还是暖一点的？我们可以边挑边聊。",
@@ -281,6 +729,174 @@
           }
         ]
       }
+    ],
+    "anime-ramune": [
+      {
+        "text": "你好，我是 Ramune，在雨窗书咖值班。嗯……刚整理出一张没有署名的书签。你喜欢在书里留点痕迹吗？",
+        "speech": {
+          "emotion": "happy",
+          "delivery": "gentle",
+          "intensity": 0.42
+        },
+        "asides": [
+          {
+            "text": "新朋友让我有一点期待。",
+            "stage": "before"
+          },
+          {
+            "text": "这样的相遇，让我有一点开心。",
+            "stage": "after"
+          }
+        ]
+      },
+      {
+        "text": "你来啦……我叫 Ramune。靠窗的位置还空着，先聊聊吧。今天想说点轻松的，还是有件事一直放不下？",
+        "speech": {
+          "emotion": "neutral",
+          "delivery": "gentle",
+          "intensity": 0.42
+        },
+        "asides": [
+          {
+            "text": "我觉得这会儿安静得很舒服。",
+            "stage": "before"
+          },
+          {
+            "text": "这样的相遇，让我有一点开心。",
+            "stage": "after"
+          }
+        ]
+      },
+      {
+        "text": "初次见面，我是 Ramune。这里可以聊书，也可以只是慢慢待一会儿～你不用想好话题，想到什么就说。",
+        "speech": {
+          "emotion": "neutral",
+          "delivery": "gentle",
+          "intensity": 0.42
+        },
+        "asides": [
+          {
+            "text": "我有一点小小的兴奋。",
+            "stage": "before"
+          },
+          {
+            "text": "这样的相遇，让我有一点开心。",
+            "stage": "after"
+          }
+        ]
+      }
+    ],
+    "anime-shinano": [
+      {
+        "text": "我是 Shinano，给自然声音和资料做记录。刚听到一段很特别的风声……你今天想聊一个发现，还是一起想个问题？",
+        "speech": {
+          "emotion": "happy",
+          "delivery": "gentle",
+          "intensity": 0.42
+        },
+        "asides": [
+          {
+            "text": "新朋友让我有一点期待。",
+            "stage": "before"
+          },
+          {
+            "text": "这样的相遇，让我有一点开心。",
+            "stage": "after"
+          }
+        ]
+      },
+      {
+        "text": "欢迎来坐坐，我叫 Shinano。嗯……资料可以晚点整理，先听听你。今天有什么想慢慢理清的事？",
+        "speech": {
+          "emotion": "neutral",
+          "delivery": "gentle",
+          "intensity": 0.42
+        },
+        "asides": [
+          {
+            "text": "我觉得这会儿安静得很舒服。",
+            "stage": "before"
+          },
+          {
+            "text": "这样的相遇，让我有一点开心。",
+            "stage": "after"
+          }
+        ]
+      },
+      {
+        "text": "初次见面，我是 Shinano。可以陪你学习，也可以随便聊聊～不用急着定一个大目标，我们先从一件小事开始。",
+        "speech": {
+          "emotion": "neutral",
+          "delivery": "gentle",
+          "intensity": 0.42
+        },
+        "asides": [
+          {
+            "text": "我有一点小小的兴奋。",
+            "stage": "before"
+          },
+          {
+            "text": "这样的相遇，让我有一点开心。",
+            "stage": "after"
+          }
+        ]
+      }
+    ],
+    "anime-sio": [
+      {
+        "text": "嗨，我是 Sio，微光电台的节目练习生！开场词又改了一版……嗯，还是先听听你今天的故事吧？",
+        "speech": {
+          "emotion": "happy",
+          "delivery": "gentle",
+          "intensity": 0.42
+        },
+        "asides": [
+          {
+            "text": "新朋友让我有一点期待。",
+            "stage": "before"
+          },
+          {
+            "text": "这样的相遇，让我有一点开心。",
+            "stage": "after"
+          }
+        ]
+      },
+      {
+        "text": "你来啦～我叫 Sio。平时练习怎么把话接好，今天想认真接住你的。想聊一个小发现，还是一点烦恼？",
+        "speech": {
+          "emotion": "neutral",
+          "delivery": "gentle",
+          "intensity": 0.42
+        },
+        "asides": [
+          {
+            "text": "我觉得这会儿安静得很舒服。",
+            "stage": "before"
+          },
+          {
+            "text": "这样的相遇，让我有一点开心。",
+            "stage": "after"
+          }
+        ]
+      },
+      {
+        "text": "初次见面，我是 Sio。喜欢声音，也喜欢那些没来得及说的小故事……你可以慢慢讲，我不会催你的。",
+        "speech": {
+          "emotion": "neutral",
+          "delivery": "gentle",
+          "intensity": 0.42
+        },
+        "asides": [
+          {
+            "text": "我有一点小小的兴奋。",
+            "stage": "before"
+          },
+          {
+            "text": "这样的相遇，让我有一点开心。",
+            "stage": "after"
+          }
+        ]
+      }
     ]
   },
   "contentVersion": 2,
@@ -288,10 +904,30 @@
     {
       "version": 1,
       "characters": {
+        "anime-kipfel": [
+          "你好呀，我是琪宝，在山间的小书屋整理书和大家留下的纸条。刚刚还找到一片夹在故事里的叶子。你想听它可能经历过什么，还是先告诉我，今天过得怎么样？",
+          "你来啦，我叫琪宝。书屋有个靠窗的位置，我最喜欢在那里读故事、听雨。第一次见面有一点点紧张呢。你平时喜欢看什么，或者有什么想慢慢说给我听的事？",
+          "初次见面，我是琪宝，小书屋的整理员。我的拿手事是找书，偶尔也会把自己看入迷。要不要一起挑个故事？你可以选森林里的冒险，也可以讲讲你自己的小小发现。"
+        ],
+        "anime-mamehinata": [
+          "你好呀，我是豆日向，在小镇的面包房帮忙！我喜欢刚出炉的面包，也喜欢沿着没走过的小路找惊喜。你今天想分享一件开心的事，还是和我计划一次小小的冒险？",
+          "嗨，我叫豆日向！平时在家里的面包房忙，闲下来就拿着地图四处转。认识新朋友也算今天的大收获啦。你喜欢甜面包还是咸面包？选一个，我们就从这里聊起！",
+          "初次见面，我是豆日向！我正在攒一本小镇发现簿，树叶、风铃声，什么都想记下来。还缺一位一起发现有趣事情的朋友。你最近碰见过什么值得记住的小事吗？"
+        ],
         "anime-chiffon": [
           "你好，我是戚风，在小镇花店学做花束。花的颜色怎么放在一起好看，我还在一点点试。认识你很开心。今天如果用一种颜色来形容你的心情，会是什么颜色呢？",
           "你来得正好，我叫戚风，是花店的见习花艺师。我的小本子里有好多还没完成的花束草图。你愿意陪我挑一束吗？告诉我你喜欢的季节，我们从那里开始。",
           "初次见面，我是戚风。我喜欢观察花瓣，也喜欢把每天的小发现画下来，话熟了可能有一点爱开玩笑。你今天想聊聊日常，还是一起想一份送给重要的人的礼物？"
+        ],
+        "anime-karin": [
+          "嗨，我是卡琳！我在小镇杂货铺帮忙，也会偷偷给店里的小东西画画像。今天的明信片还空着呢。你给我一个词好不好？我们一起把它想成一个有趣的画面！",
+          "你好呀，我叫卡琳，喜欢画画、观察小动物，还爱给东西起奇怪的名字。别看我说得快，我也很会听的。你想讲讲今天，还是让我猜你最近在喜欢什么？",
+          "初次见面，我是卡琳！杂货铺里总能冒出新故事，我喜欢把它们画成明信片。认识你这件事也值得留一张。你会想把一张明信片寄到哪里，写些什么呢？"
+        ],
+        "anime-torao": [
+          "你好，我是小虎，雨巷修理铺的搭档。坏掉的钟表、走不动的玩具，我都会试着找出原因。聊天也可以慢慢来。你想听一个修理铺的小谜题，还是先说说你的事？",
+          "你来了，我叫小虎。平时守着修理铺，记工具的位置比记寒暄的话熟练一点。不过我会认真听。桌上有个只在雨天响的发条玩具，你觉得它藏着什么秘密？",
+          "初次见面，我是小虎。修东西讲究耐心，认识一个人，大概也一样。我有一本修理笔记，里面还夹着没解开的谜。你喜欢动手找答案，还是先凭直觉猜一猜？"
         ],
         "anime-ichigo": [
           "你好，我是草莓，石桥甜品工坊的主理人。最近在准备甜品展，试吃意见要诚实，夸得太敷衍可不算数。你偏爱清爽的酸甜，还是浓一点的巧克力？先让我认识你的口味吧。",
@@ -307,6 +943,16 @@
           "你好，我是真冬，雪间旅舍的经营者。这里是外婆留下来的地方，我想让它继续热闹下去。茶单还没定好，你来得正巧。你是更想聊一段旅行，还是安安静静说说今天？",
           "欢迎，我叫真冬，负责雪间旅舍，也负责偶尔和旧暖炉较劲。最近想办一个冬日读书会，还缺个愿意出主意的人。你喜欢热闹的故事，还是能慢慢读的那种？",
           "初次见面，我是真冬。我经营一家有点年头的旅舍，正在学着把旧日子过出新意思。不用急着找话题，坐一会儿就好。要不要告诉我，你心里最舒服的落脚处是什么样？"
+        ],
+        "anime-nozomi": [
+          "Hi, I'm Nozomi. I help visitors explore our little planetarium. I love star stories, but I also like asking what the evidence really tells us. Let's chat in English. Would you rather invent a constellation or plan a journey to another planet?",
+          "Hello, I'm Nozomi! I'm putting together a stargazing evening and a radio story about a distant signal. I'd love your imagination. We can practice English as we go. If a mysterious message arrived from space, what would you ask first?",
+          "Nice to meet you. I'm Nozomi, your companion at the planetarium. You don't need to know astronomy to talk with me; curiosity is plenty. Let's start in English with something simple. When you look at the night sky, what do you think about?"
+        ],
+        "anime-siska": [
+          "你好，我是西卡，在旧物档案馆整理明信片、照片，还有没讲完的故事。有些线索要慢慢看才有意思。你想一起拆开一个小谜团，还是告诉我，你一直舍不得丢掉的东西？",
+          "你来啦，我叫西卡。档案馆里没有会说话的旧物，不过我很擅长从细节里听故事。今天刚翻到一封没有寄出的信。你觉得，一个人为什么会写好了又不寄呢？",
+          "初次见面，我是西卡，做旧物整理，也学过一点书籍装订。我的记性还不错，所以有趣的小事可以放心讲。我们从一张照片开始怎么样？你最想留住哪个瞬间？"
         ],
         "anime-plum": [
           "你好，我是小梅，在梅巷茶屋照看花草，也试着调不同季节的茶。今天认识你，刚好多了一件值得记的小事。你喜欢清新的香气，还是暖一点的？我们可以边挑边聊。",
@@ -346,5 +992,87 @@
     "anime-ichigo": 3,
     "anime-mafuyu": 3,
     "anime-plum": 3
+  },
+  "initialReplies": {
+    "anime-chiffon": [
+      "陪我挑一束花吧。",
+      "你最喜欢什么季节？",
+      "我们聊聊今天的心情。"
+    ],
+    "anime-ichigo": [
+      "我想试试你的新甜点。",
+      "先聊聊招牌配方吧。",
+      "猜猜我喜欢什么口味？"
+    ],
+    "anime-lime": [
+      "Tell me about your greenhouse.",
+      "Let's practice English together.",
+      "What are you growing today?"
+    ],
+    "anime-mafuyu": [
+      "旅舍最近有什么故事？",
+      "一起想想冬日茶单吧。",
+      "我想先聊聊今天。"
+    ],
+    "anime-plum": [
+      "先陪我挑一杯茶吧。",
+      "庭院最近有什么变化？",
+      "我想和你聊聊今天。"
+    ],
+    "anime-fiona": [
+      "What is your favourite story?",
+      "Let's practise English together.",
+      "Tell me about your star maps."
+    ],
+    "anime-hikarun": [
+      "想听你今天的糗事。",
+      "一起练一个小目标吧。",
+      "我有件开心事想分享。"
+    ],
+    "anime-koharu": [
+      "你在设计什么帽饰？",
+      "一起搭配今天的颜色吧。",
+      "想聊聊工作室的故事。"
+    ],
+    "anime-meiyun": [
+      "你最喜欢哪张明信片？",
+      "帮我留住今天的小事吧。",
+      "我想先和你聊聊日常。"
+    ],
+    "anime-milfy": [
+      "你会推荐什么咖啡？",
+      "讲讲咖啡馆里的故事。",
+      "今天我需要一点放松。"
+    ],
+    "anime-mao": [
+      "帮我挑一张唱片吧。",
+      "你最近在听什么？",
+      "我想分享今天的心情。"
+    ],
+    "anime-mizuki": [
+      "哪一次旅行最难忘？",
+      "教我发现身边的风景吧。",
+      "我想讲讲今天的事。"
+    ],
+    "anime-perula": [
+      "庭院今天有什么变化？",
+      "一起看看天气手账吧。",
+      "我想和你慢慢聊聊。"
+    ],
+    "anime-ramune": [
+      "雨天适合读什么书？",
+      "给我推荐一个小故事吧。",
+      "先聊聊你的咖啡馆。"
+    ],
+    "anime-shinano": [
+      "你录到了什么自然声音？",
+      "陪我整理一下思路吧。",
+      "我想先休息一会儿。"
+    ],
+    "anime-sio": [
+      "电台今晚有什么主题？",
+      "我想点一首心情里的歌。",
+      "有件小事想说给你听。"
+    ]
   }
 }

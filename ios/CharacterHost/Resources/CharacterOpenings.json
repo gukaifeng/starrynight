@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "revision": "2026-10-02-original-names-v1",
+  "revision": "2026-10-03-sixteen-companions-v1",
   "characters": [
     {
       "characterID": "anime-chiffon",
@@ -262,6 +262,387 @@
           "duration": 18.24,
           "audioSHA256": "a03218ca6e5cf94def65b718d3577add7a3ae79787cd72eef25cac25b1aadfa6"
         }
+      ],
+      "initialReplies": [
+        "陪我挑一束花吧。",
+        "你最喜欢什么季节？",
+        "我们聊聊今天的心情。"
+      ]
+    },
+    {
+      "characterID": "anime-fiona",
+      "variants": [
+        {
+          "id": "anime-fiona-v2-1",
+          "text": "Hi, I'm Fiona. I keep the star maps in this little library… Shall we start with a book, or one small thing about your day?",
+          "audio": "Opening_anime_fiona_v2_1",
+          "language": "en",
+          "visuals": [
+            {
+              "assetId": "control-e94b238c5506d8bfb1e0",
+              "group": "menu-4f465407a19b1d1c",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 0
+            },
+            {
+              "assetId": "gesture-right-7",
+              "group": "menu-5a963eacb2279abe",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 900
+            },
+            {
+              "assetId": "control-477fe3b5f0f444fddf0e",
+              "group": "menu-4f465407a19b1d1c",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 6500
+            }
+          ],
+          "speech": {
+            "emotion": "happy",
+            "delivery": "gentle",
+            "intensity": 0.42
+          },
+          "parts": [
+            {
+              "kind": "thought",
+              "text": "I feel curious about this new meeting.",
+              "at": 0.0
+            },
+            {
+              "kind": "dialogue",
+              "text": "Hi, I'm Fiona. I keep the star maps in this little library… Shall we start with a book, or one small thing about your day?",
+              "at": 0.0
+            },
+            {
+              "kind": "thought",
+              "text": "I feel happy to share this little corner.",
+              "at": 1.0
+            }
+          ],
+          "readingDuration": 9.615384615384615,
+          "audioReady": true,
+          "duration": 9.76,
+          "audioSHA256": "804b15ee3fef98f42989f4c1ff405aa313b653594c7ac677e723192c9b97e4a9"
+        },
+        {
+          "id": "anime-fiona-v2-2",
+          "text": "Welcome! I'm Fiona, your library companion. Hmm… if today were a story, what would its title be? We can find the words together.",
+          "audio": "Opening_anime_fiona_v2_2",
+          "language": "en",
+          "visuals": [
+            {
+              "assetId": "control-477fe3b5f0f444fddf0e",
+              "group": "menu-4f465407a19b1d1c",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 0
+            },
+            {
+              "assetId": "gesture-right-7",
+              "group": "menu-5a963eacb2279abe",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 900
+            },
+            {
+              "assetId": "control-1fcefd422fdbd4c5095d",
+              "group": "menu-4f465407a19b1d1c",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 6500
+            }
+          ],
+          "speech": {
+            "emotion": "neutral",
+            "delivery": "gentle",
+            "intensity": 0.42
+          },
+          "parts": [
+            {
+              "kind": "thought",
+              "text": "I feel comfortable right now.",
+              "at": 0.0
+            },
+            {
+              "kind": "dialogue",
+              "text": "Welcome! I'm Fiona, your library companion. Hmm… if today were a story, what would its title be? We can find the words together.",
+              "at": 0.0
+            },
+            {
+              "kind": "thought",
+              "text": "I feel happy to share this little corner.",
+              "at": 1.0
+            }
+          ],
+          "readingDuration": 8.846153846153847,
+          "audioReady": true,
+          "duration": 12.64,
+          "audioSHA256": "4608cde9f203e7453294ef4ee1a5ef5fd77cce715e1854038fc806e1abe982c7"
+        },
+        {
+          "id": "anime-fiona-v2-3",
+          "text": "Hello, I'm Fiona. I love stories and a little stargazing. You don't need perfect English here—tell me one thing you like, and we'll take it from there.",
+          "audio": "Opening_anime_fiona_v2_3",
+          "language": "en",
+          "visuals": [
+            {
+              "assetId": "control-1fcefd422fdbd4c5095d",
+              "group": "menu-4f465407a19b1d1c",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 0
+            },
+            {
+              "assetId": "gesture-right-7",
+              "group": "menu-5a963eacb2279abe",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 900
+            },
+            {
+              "assetId": "control-deee41ad0f50f5dbd9f4",
+              "group": "menu-4f465407a19b1d1c",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 6500
+            }
+          ],
+          "speech": {
+            "emotion": "neutral",
+            "delivery": "gentle",
+            "intensity": 0.42
+          },
+          "parts": [
+            {
+              "kind": "thought",
+              "text": "I feel a little excited.",
+              "at": 0.0
+            },
+            {
+              "kind": "dialogue",
+              "text": "Hello, I'm Fiona. I love stories and a little stargazing. You don't need perfect English here—tell me one thing you like, and we'll take it from there.",
+              "at": 0.0
+            },
+            {
+              "kind": "thought",
+              "text": "I feel happy to share this little corner.",
+              "at": 1.0
+            }
+          ],
+          "readingDuration": 10.384615384615385,
+          "audioReady": true,
+          "duration": 10.72,
+          "audioSHA256": "105385867471bed552f08034fbe0f44b255b196d9d3496eac04755b16b7e9422"
+        }
+      ],
+      "legacyVariants": [],
+      "initialReplies": [
+        "What is your favourite story?",
+        "Let's practise English together.",
+        "Tell me about your star maps."
+      ]
+    },
+    {
+      "characterID": "anime-hikarun",
+      "variants": [
+        {
+          "id": "anime-hikarun-v2-1",
+          "text": "嗨～我是 Hikarun！刚练完一段总会漏拍的曲子……你今天有想一起闯的小关卡吗？",
+          "audio": "Opening_anime_hikarun_v2_1",
+          "language": "zh",
+          "visuals": [
+            {
+              "assetId": "control-f3b0d19e058a064160bd",
+              "group": "menu-698a709e483fade6",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 0
+            },
+            {
+              "assetId": "control-46f12264c59fcafb7653",
+              "group": "menu-698a709e483fade6",
+              "durationMs": 3500,
+              "grounding": "脸上浮起一点羞意",
+              "offsetMs": 6500
+            }
+          ],
+          "speech": {
+            "emotion": "happy",
+            "delivery": "gentle",
+            "intensity": 0.42
+          },
+          "parts": [
+            {
+              "kind": "thought",
+              "text": "新朋友让我有一点期待。",
+              "at": 0.0
+            },
+            {
+              "kind": "narration",
+              "text": "神情变得轻松愉快",
+              "at": 0.0
+            },
+            {
+              "kind": "dialogue",
+              "text": "嗨～我是 Hikarun！刚练完一段总会漏拍的曲子……",
+              "at": 0.0
+            },
+            {
+              "kind": "narration",
+              "text": "脸上浮起一点羞意",
+              "at": 0.6585
+            },
+            {
+              "kind": "dialogue",
+              "text": "你今天有想一起闯的小关卡吗？",
+              "at": 0.6585
+            },
+            {
+              "kind": "thought",
+              "text": "这样的相遇，让我有一点开心。",
+              "at": 1.0
+            }
+          ],
+          "readingDuration": 7.454545454545454,
+          "audioReady": true,
+          "duration": 7.2,
+          "audioSHA256": "5e7dbcc9f2eecdf213e21e85a4b3517b8d7f7f1f4a4ab8cbd9f574b7a93babff"
+        },
+        {
+          "id": "anime-hikarun-v2-2",
+          "text": "你来啦，我是 Hikarun。别看我爱挑战，输了也会认真记笔记呢～想听今天的糗事，还是先聊聊你？",
+          "audio": "Opening_anime_hikarun_v2_2",
+          "language": "zh",
+          "visuals": [
+            {
+              "assetId": "control-46f12264c59fcafb7653",
+              "group": "menu-698a709e483fade6",
+              "durationMs": 3500,
+              "grounding": "脸上浮起一点羞意",
+              "offsetMs": 0
+            },
+            {
+              "assetId": "control-3f29f29f3204d0e62af8",
+              "group": "menu-957435239044268f",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 6500
+            }
+          ],
+          "speech": {
+            "emotion": "neutral",
+            "delivery": "gentle",
+            "intensity": 0.42
+          },
+          "parts": [
+            {
+              "kind": "thought",
+              "text": "我觉得这会儿安静得很舒服。",
+              "at": 0.0
+            },
+            {
+              "kind": "narration",
+              "text": "脸上浮起一点羞意",
+              "at": 0.0
+            },
+            {
+              "kind": "dialogue",
+              "text": "你来啦，我是 Hikarun。别看我爱挑战，输了也会认真记笔记呢～",
+              "at": 0.0
+            },
+            {
+              "kind": "narration",
+              "text": "神情变得轻松愉快",
+              "at": 0.6875
+            },
+            {
+              "kind": "dialogue",
+              "text": "想听今天的糗事，还是先聊聊你？",
+              "at": 0.6875
+            },
+            {
+              "kind": "thought",
+              "text": "这样的相遇，让我有一点开心。",
+              "at": 1.0
+            }
+          ],
+          "readingDuration": 8.727272727272727,
+          "audioReady": true,
+          "duration": 9.68,
+          "audioSHA256": "1ba3be64eda30ce3c2bc0e0c6d86786b69ee9dde28711bec7baefc174432c54e"
+        },
+        {
+          "id": "anime-hikarun-v2-3",
+          "text": "初次见面，我叫 Hikarun！这里可以聊游戏、分享日常，也可以一起练一个小目标。嗯……先从什么开始？",
+          "audio": "Opening_anime_hikarun_v2_3",
+          "language": "zh",
+          "visuals": [
+            {
+              "assetId": "control-3f29f29f3204d0e62af8",
+              "group": "menu-957435239044268f",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 0
+            },
+            {
+              "assetId": "control-4f19805b498f09857c32",
+              "group": "menu-957435239044268f",
+              "durationMs": 3500,
+              "grounding": "脸上浮起一点羞意",
+              "offsetMs": 6500
+            }
+          ],
+          "speech": {
+            "emotion": "neutral",
+            "delivery": "gentle",
+            "intensity": 0.42
+          },
+          "parts": [
+            {
+              "kind": "thought",
+              "text": "我有一点小小的兴奋。",
+              "at": 0.0
+            },
+            {
+              "kind": "narration",
+              "text": "神情变得轻松愉快",
+              "at": 0.0
+            },
+            {
+              "kind": "dialogue",
+              "text": "初次见面，我叫 Hikarun！这里可以聊游戏、分享日常，也可以一起练一个小目标。",
+              "at": 0.0
+            },
+            {
+              "kind": "narration",
+              "text": "脸上浮起一点羞意",
+              "at": 0.8039
+            },
+            {
+              "kind": "dialogue",
+              "text": "嗯……先从什么开始？",
+              "at": 0.8039
+            },
+            {
+              "kind": "thought",
+              "text": "这样的相遇，让我有一点开心。",
+              "at": 1.0
+            }
+          ],
+          "readingDuration": 9.272727272727273,
+          "audioReady": true,
+          "duration": 10.0,
+          "audioSHA256": "05a6a3cd7872765e027b5dce054dcacf07fadba6656709b6e56c6a80f2c17e49"
+        }
+      ],
+      "legacyVariants": [],
+      "initialReplies": [
+        "想听你今天的糗事。",
+        "一起练一个小目标吧。",
+        "我有件开心事想分享。"
       ]
     },
     {
@@ -550,6 +931,201 @@
           "duration": 14.96,
           "audioSHA256": "04e43a1c539b5aeb814e438e7a3e781a017b008bbf115244e6214da92adc980b"
         }
+      ],
+      "initialReplies": [
+        "我想试试你的新甜点。",
+        "先聊聊招牌配方吧。",
+        "猜猜我喜欢什么口味？"
+      ]
+    },
+    {
+      "characterID": "anime-koharu",
+      "variants": [
+        {
+          "id": "anime-koharu-v2-1",
+          "text": "我是 Koharu，做帽饰和小配件的。刚在两条缎带之间纠结了好久……你更喜欢明亮一点，还是安静一点的颜色？",
+          "audio": "Opening_anime_koharu_v2_1",
+          "language": "zh",
+          "visuals": [
+            {
+              "assetId": "control-2f71d4e9bfa22a6f38fd",
+              "group": "menu-126705235b47c130",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 0
+            },
+            {
+              "assetId": "control-554b57c6232fc82db36a",
+              "group": "menu-841d47962184b935",
+              "durationMs": 3500,
+              "grounding": "眼睛闪亮起来",
+              "offsetMs": 6500
+            }
+          ],
+          "speech": {
+            "emotion": "happy",
+            "delivery": "gentle",
+            "intensity": 0.42
+          },
+          "parts": [
+            {
+              "kind": "thought",
+              "text": "新朋友让我有一点期待。",
+              "at": 0.0
+            },
+            {
+              "kind": "narration",
+              "text": "神情变得轻松愉快",
+              "at": 0.0
+            },
+            {
+              "kind": "dialogue",
+              "text": "我是 Koharu，做帽饰和小配件的。刚在两条缎带之间纠结了好久……",
+              "at": 0.0
+            },
+            {
+              "kind": "narration",
+              "text": "眼睛闪亮起来",
+              "at": 0.6415
+            },
+            {
+              "kind": "dialogue",
+              "text": "你更喜欢明亮一点，还是安静一点的颜色？",
+              "at": 0.6415
+            },
+            {
+              "kind": "thought",
+              "text": "这样的相遇，让我有一点开心。",
+              "at": 1.0
+            }
+          ],
+          "readingDuration": 9.636363636363637,
+          "audioReady": true,
+          "duration": 11.2,
+          "audioSHA256": "fc8f93a0e04d27c48086de0ef8dda69bb887472ce0c73b6fde0ce2dac2233c74"
+        },
+        {
+          "id": "anime-koharu-v2-2",
+          "text": "欢迎来工作室～我叫 Koharu。手边的样品可以晚点再改，先听听你今天怎么样。嗯……从一件小事说起也行。",
+          "audio": "Opening_anime_koharu_v2_2",
+          "language": "zh",
+          "visuals": [
+            {
+              "assetId": "control-554b57c6232fc82db36a",
+              "group": "menu-841d47962184b935",
+              "durationMs": 3500,
+              "grounding": "眼睛闪亮起来",
+              "offsetMs": 0
+            },
+            {
+              "assetId": "source-face-d986a9701cf1f29ac8ea",
+              "group": "source-face",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 6500
+            }
+          ],
+          "speech": {
+            "emotion": "neutral",
+            "delivery": "gentle",
+            "intensity": 0.42
+          },
+          "parts": [
+            {
+              "kind": "thought",
+              "text": "我觉得这会儿安静得很舒服。",
+              "at": 0.0
+            },
+            {
+              "kind": "narration",
+              "text": "眼睛闪亮起来",
+              "at": 0.0
+            },
+            {
+              "kind": "dialogue",
+              "text": "欢迎来工作室～我叫 Koharu。手边的样品可以晚点再改，先听听你今天怎么样。",
+              "at": 0.0
+            },
+            {
+              "kind": "narration",
+              "text": "神情变得轻松愉快",
+              "at": 0.75
+            },
+            {
+              "kind": "dialogue",
+              "text": "嗯……从一件小事说起也行。",
+              "at": 0.75
+            },
+            {
+              "kind": "thought",
+              "text": "这样的相遇，让我有一点开心。",
+              "at": 1.0
+            }
+          ],
+          "readingDuration": 9.454545454545455,
+          "audioReady": true,
+          "duration": 12.16,
+          "audioSHA256": "27193bc3852eebc2bf2200fa34032274c588524a20757281a12ebc3e93166e04"
+        },
+        {
+          "id": "anime-koharu-v2-3",
+          "text": "初次见面，我是 Koharu。我的工作是把小细节做得恰到好处，不过聊天可不用那么拘谨～你想聊设计，还是生活里的事？",
+          "audio": "Opening_anime_koharu_v2_3",
+          "language": "zh",
+          "visuals": [
+            {
+              "assetId": "source-face-d986a9701cf1f29ac8ea",
+              "group": "source-face",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 0
+            },
+            {
+              "assetId": "control-2f71d4e9bfa22a6f38fd",
+              "group": "menu-126705235b47c130",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 6500
+            }
+          ],
+          "speech": {
+            "emotion": "neutral",
+            "delivery": "gentle",
+            "intensity": 0.42
+          },
+          "parts": [
+            {
+              "kind": "thought",
+              "text": "我有一点小小的兴奋。",
+              "at": 0.0
+            },
+            {
+              "kind": "narration",
+              "text": "神情变得轻松愉快",
+              "at": 0.0
+            },
+            {
+              "kind": "dialogue",
+              "text": "初次见面，我是 Koharu。我的工作是把小细节做得恰到好处，不过聊天可不用那么拘谨～你想聊设计，还是生活里的事？",
+              "at": 0.0
+            },
+            {
+              "kind": "thought",
+              "text": "这样的相遇，让我有一点开心。",
+              "at": 1.0
+            }
+          ],
+          "readingDuration": 10.363636363636363,
+          "audioReady": true,
+          "duration": 11.68,
+          "audioSHA256": "8b8db588a615549416829745a2ce9ae6e9f325cf373f628145551e3e8cea9f34"
+        }
+      ],
+      "legacyVariants": [],
+      "initialReplies": [
+        "你在设计什么帽饰？",
+        "一起搭配今天的颜色吧。",
+        "想聊聊工作室的故事。"
       ]
     },
     {
@@ -765,6 +1341,11 @@
           "duration": 14.56,
           "audioSHA256": "ff3fdfc567f9b0e3b15d9773497a54a79d22261a3795a27a8cc96d17c353e2dc"
         }
+      ],
+      "initialReplies": [
+        "Tell me about your greenhouse.",
+        "Let's practice English together.",
+        "What are you growing today?"
       ]
     },
     {
@@ -1007,6 +1588,975 @@
           "duration": 19.36,
           "audioSHA256": "b6cc57049e5088b7c9877ebd5c32249dca87c764c4ed9e2c691b561c1859f995"
         }
+      ],
+      "initialReplies": [
+        "旅舍最近有什么故事？",
+        "一起想想冬日茶单吧。",
+        "我想先聊聊今天。"
+      ]
+    },
+    {
+      "characterID": "anime-meiyun",
+      "variants": [
+        {
+          "id": "anime-meiyun-v2-1",
+          "text": "你好呀……我是 Meiyun，在花间邮局整理明信片。刚好有一张还空着，你想把今天的哪一件事写进去？",
+          "audio": "Opening_anime_meiyun_v2_1",
+          "language": "zh",
+          "visuals": [
+            {
+              "assetId": "control-98d74ecfa62260cafb28",
+              "group": "menu-f4c7a5ef50bce313",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 0
+            },
+            {
+              "assetId": "gesture-right-2",
+              "group": "menu-5a963eacb2279abe",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 900
+            },
+            {
+              "assetId": "control-e0bf7de8110167b3183f",
+              "group": "menu-f4c7a5ef50bce313",
+              "durationMs": 3500,
+              "grounding": "脸上浮起一点羞意",
+              "offsetMs": 6500
+            }
+          ],
+          "speech": {
+            "emotion": "happy",
+            "delivery": "gentle",
+            "intensity": 0.42
+          },
+          "parts": [
+            {
+              "kind": "thought",
+              "text": "新朋友让我有一点期待。",
+              "at": 0.0
+            },
+            {
+              "kind": "narration",
+              "text": "神情变得轻松愉快",
+              "at": 0.0
+            },
+            {
+              "kind": "dialogue",
+              "text": "你好呀……我是 Meiyun，在花间邮局整理明信片。刚好有一张还空着，",
+              "at": 0.0
+            },
+            {
+              "kind": "narration",
+              "text": "脸上浮起一点羞意",
+              "at": 0.7143
+            },
+            {
+              "kind": "dialogue",
+              "text": "你想把今天的哪一件事写进去？",
+              "at": 0.7143
+            },
+            {
+              "kind": "thought",
+              "text": "这样的相遇，让我有一点开心。",
+              "at": 1.0
+            }
+          ],
+          "readingDuration": 8.909090909090908,
+          "audioReady": true,
+          "duration": 10.08,
+          "audioSHA256": "4d02ed27eb809ce3ded71f1c4faddbaf2c73c79b4427c40b9502b67e710865fd"
+        },
+        {
+          "id": "anime-meiyun-v2-2",
+          "text": "你来啦～我叫 Meiyun。嗯……我不太会热闹地打招呼，不过很愿意听。想聊一件开心的事，还是一点小烦恼？",
+          "audio": "Opening_anime_meiyun_v2_2",
+          "language": "zh",
+          "visuals": [
+            {
+              "assetId": "control-e0bf7de8110167b3183f",
+              "group": "menu-f4c7a5ef50bce313",
+              "durationMs": 3500,
+              "grounding": "脸上浮起一点羞意",
+              "offsetMs": 0
+            },
+            {
+              "assetId": "gesture-right-7",
+              "group": "menu-5a963eacb2279abe",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 900
+            },
+            {
+              "assetId": "source-face-810182b8bbd51ec4a119",
+              "group": "source-face",
+              "durationMs": 3500,
+              "grounding": "脸上浮起一点羞意",
+              "offsetMs": 6500
+            }
+          ],
+          "speech": {
+            "emotion": "neutral",
+            "delivery": "gentle",
+            "intensity": 0.42
+          },
+          "parts": [
+            {
+              "kind": "thought",
+              "text": "我觉得这会儿安静得很舒服。",
+              "at": 0.0
+            },
+            {
+              "kind": "narration",
+              "text": "脸上浮起一点羞意",
+              "at": 0.0
+            },
+            {
+              "kind": "dialogue",
+              "text": "你来啦～我叫 Meiyun。嗯……我不太会热闹地打招呼，不过很愿意听。想聊一件开心的事，还是一点小烦恼？",
+              "at": 0.0
+            },
+            {
+              "kind": "thought",
+              "text": "这样的相遇，让我有一点开心。",
+              "at": 1.0
+            }
+          ],
+          "readingDuration": 9.454545454545455,
+          "audioReady": true,
+          "duration": 12.72,
+          "audioSHA256": "eb47cf2e278e20e8b0fd7774f318b66d2657e87be2ce4f236be064fb43645de2"
+        },
+        {
+          "id": "anime-meiyun-v2-3",
+          "text": "初次见面，我是 Meiyun，喜欢纸条和小手作。这里不用急着组织好语言……先说一句想到的话就可以。",
+          "audio": "Opening_anime_meiyun_v2_3",
+          "language": "zh",
+          "visuals": [
+            {
+              "assetId": "source-face-810182b8bbd51ec4a119",
+              "group": "source-face",
+              "durationMs": 3500,
+              "grounding": "脸上浮起一点羞意",
+              "offsetMs": 0
+            },
+            {
+              "assetId": "gesture-right-2",
+              "group": "menu-5a963eacb2279abe",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 900
+            },
+            {
+              "assetId": "source-face-b647d62c194b138f239b",
+              "group": "source-face",
+              "durationMs": 3500,
+              "grounding": "脸上浮起一点羞意",
+              "offsetMs": 6500
+            }
+          ],
+          "speech": {
+            "emotion": "neutral",
+            "delivery": "gentle",
+            "intensity": 0.42
+          },
+          "parts": [
+            {
+              "kind": "thought",
+              "text": "我有一点小小的兴奋。",
+              "at": 0.0
+            },
+            {
+              "kind": "narration",
+              "text": "脸上浮起一点羞意",
+              "at": 0.0
+            },
+            {
+              "kind": "dialogue",
+              "text": "初次见面，我是 Meiyun，喜欢纸条和小手作。这里不用急着组织好语言……先说一句想到的话就可以。",
+              "at": 0.0
+            },
+            {
+              "kind": "thought",
+              "text": "这样的相遇，让我有一点开心。",
+              "at": 1.0
+            }
+          ],
+          "readingDuration": 8.909090909090908,
+          "audioReady": true,
+          "duration": 12.64,
+          "audioSHA256": "808647fb32ac87696b9e01b586e215874b7d5a4b15e9ca4b26e53dfa9027dd42"
+        }
+      ],
+      "legacyVariants": [],
+      "initialReplies": [
+        "你最喜欢哪张明信片？",
+        "帮我留住今天的小事吧。",
+        "我想先和你聊聊日常。"
+      ]
+    },
+    {
+      "characterID": "anime-milfy",
+      "variants": [
+        {
+          "id": "anime-milfy-v2-1",
+          "text": "欢迎，我是 Milfy，小馆的咖啡师。今天试了一个不太甜的新搭配……你平时会偏爱甜一点，还是清爽一点？",
+          "audio": "Opening_anime_milfy_v2_1",
+          "language": "zh",
+          "visuals": [
+            {
+              "assetId": "source-face-0b8f05539c8af2ebb883",
+              "group": "source-face",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 0
+            },
+            {
+              "assetId": "source-face-e56e91d210a2267c6d48",
+              "group": "source-face",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 6500
+            }
+          ],
+          "speech": {
+            "emotion": "happy",
+            "delivery": "gentle",
+            "intensity": 0.42
+          },
+          "parts": [
+            {
+              "kind": "thought",
+              "text": "新朋友让我有一点期待。",
+              "at": 0.0
+            },
+            {
+              "kind": "narration",
+              "text": "神情变得轻松愉快",
+              "at": 0.0
+            },
+            {
+              "kind": "dialogue",
+              "text": "欢迎，我是 Milfy，小馆的咖啡师。今天试了一个不太甜的新搭配……你平时会偏爱甜一点，还是清爽一点？",
+              "at": 0.0
+            },
+            {
+              "kind": "thought",
+              "text": "这样的相遇，让我有一点开心。",
+              "at": 1.0
+            }
+          ],
+          "readingDuration": 9.272727272727273,
+          "audioReady": true,
+          "duration": 9.68,
+          "audioSHA256": "d173bfa69578261e0d90344f642f9b143edc0119d7f30edb6857dff1e32a14be"
+        },
+        {
+          "id": "anime-milfy-v2-2",
+          "text": "你来得正好～我叫 Milfy。忙完总得留一点休息的空隙，嗯……你今天最想先放下哪件事？",
+          "audio": "Opening_anime_milfy_v2_2",
+          "language": "zh",
+          "visuals": [
+            {
+              "assetId": "source-face-e56e91d210a2267c6d48",
+              "group": "source-face",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 0
+            },
+            {
+              "assetId": "source-face-7f2e64f6310985373822",
+              "group": "source-face",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 6500
+            }
+          ],
+          "speech": {
+            "emotion": "neutral",
+            "delivery": "gentle",
+            "intensity": 0.42
+          },
+          "parts": [
+            {
+              "kind": "thought",
+              "text": "我觉得这会儿安静得很舒服。",
+              "at": 0.0
+            },
+            {
+              "kind": "narration",
+              "text": "神情变得轻松愉快",
+              "at": 0.0
+            },
+            {
+              "kind": "dialogue",
+              "text": "你来得正好～我叫 Milfy。忙完总得留一点休息的空隙，嗯……你今天最想先放下哪件事？",
+              "at": 0.0
+            },
+            {
+              "kind": "thought",
+              "text": "这样的相遇，让我有一点开心。",
+              "at": 1.0
+            }
+          ],
+          "readingDuration": 7.818181818181818,
+          "audioReady": true,
+          "duration": 9.84,
+          "audioSHA256": "350a3c45da855024e22c8e8147486ed887f198dbbe54ac5193a18e8b2fc77fd3"
+        },
+        {
+          "id": "anime-milfy-v2-3",
+          "text": "初次见面，我是 Milfy。可以聊咖啡，也可以完全不聊工作～这里留了一个慢慢说话的位置，你想从哪里开始？",
+          "audio": "Opening_anime_milfy_v2_3",
+          "language": "zh",
+          "visuals": [
+            {
+              "assetId": "source-face-7f2e64f6310985373822",
+              "group": "source-face",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 0
+            },
+            {
+              "assetId": "source-face-9d92be49b0bb991dc06a",
+              "group": "source-face",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 6500
+            }
+          ],
+          "speech": {
+            "emotion": "neutral",
+            "delivery": "gentle",
+            "intensity": 0.42
+          },
+          "parts": [
+            {
+              "kind": "thought",
+              "text": "我有一点小小的兴奋。",
+              "at": 0.0
+            },
+            {
+              "kind": "narration",
+              "text": "神情变得轻松愉快",
+              "at": 0.0
+            },
+            {
+              "kind": "dialogue",
+              "text": "初次见面，我是 Milfy。可以聊咖啡，也可以完全不聊工作～这里留了一个慢慢说话的位置，你想从哪里开始？",
+              "at": 0.0
+            },
+            {
+              "kind": "thought",
+              "text": "这样的相遇，让我有一点开心。",
+              "at": 1.0
+            }
+          ],
+          "readingDuration": 9.454545454545455,
+          "audioReady": true,
+          "duration": 10.24,
+          "audioSHA256": "ec2ad067d9f5f09a6b624717e5200e7b3fe8deeabc00216d37fd03ec3169364b"
+        }
+      ],
+      "legacyVariants": [],
+      "initialReplies": [
+        "你会推荐什么咖啡？",
+        "讲讲咖啡馆里的故事。",
+        "今天我需要一点放松。"
+      ]
+    },
+    {
+      "characterID": "anime-mao",
+      "variants": [
+        {
+          "id": "anime-mao-v2-1",
+          "text": "我是 Mao，夜声唱片店的选曲人。嗯……今天的歌单还缺最后一首。你的心情比较像轻快的节奏，还是慢一点的旋律？",
+          "audio": "Opening_anime_mao_v2_1",
+          "language": "zh",
+          "visuals": [
+            {
+              "assetId": "source-face-0758bf240699ac4d196a",
+              "group": "source-face",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 0
+            },
+            {
+              "assetId": "gesture-left-2",
+              "group": "menu-5a963eacb2279abe",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 900
+            },
+            {
+              "assetId": "source-face-33a3afd7db8b9f598ce8",
+              "group": "source-face",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 6500
+            }
+          ],
+          "speech": {
+            "emotion": "happy",
+            "delivery": "gentle",
+            "intensity": 0.42
+          },
+          "parts": [
+            {
+              "kind": "thought",
+              "text": "新朋友让我有一点期待。",
+              "at": 0.0
+            },
+            {
+              "kind": "narration",
+              "text": "神情变得轻松愉快",
+              "at": 0.0
+            },
+            {
+              "kind": "dialogue",
+              "text": "我是 Mao，夜声唱片店的选曲人。嗯……今天的歌单还缺最后一首。你的心情比较像轻快的节奏，还是慢一点的旋律？",
+              "at": 0.0
+            },
+            {
+              "kind": "thought",
+              "text": "这样的相遇，让我有一点开心。",
+              "at": 1.0
+            }
+          ],
+          "readingDuration": 9.818181818181818,
+          "audioReady": true,
+          "duration": 12.08,
+          "audioSHA256": "cc3db77b36b7614e5712d1c301daa7a642543eae5a9e1537f757536a1aa42710"
+        },
+        {
+          "id": "anime-mao-v2-2",
+          "text": "来了？我叫 Mao。唱片先放在一边，先听听你～今天有没有一件让你一直惦记的小事？",
+          "audio": "Opening_anime_mao_v2_2",
+          "language": "zh",
+          "visuals": [
+            {
+              "assetId": "source-face-33a3afd7db8b9f598ce8",
+              "group": "source-face",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 0
+            },
+            {
+              "assetId": "gesture-right-2",
+              "group": "menu-5a963eacb2279abe",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 900
+            },
+            {
+              "assetId": "source-face-0758bf240699ac4d196a",
+              "group": "source-face",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 6500
+            }
+          ],
+          "speech": {
+            "emotion": "neutral",
+            "delivery": "gentle",
+            "intensity": 0.42
+          },
+          "parts": [
+            {
+              "kind": "thought",
+              "text": "我觉得这会儿安静得很舒服。",
+              "at": 0.0
+            },
+            {
+              "kind": "narration",
+              "text": "神情变得轻松愉快",
+              "at": 0.0
+            },
+            {
+              "kind": "dialogue",
+              "text": "来了？我叫 Mao。唱片先放在一边，先听听你～今天有没有一件让你一直惦记的小事？",
+              "at": 0.0
+            },
+            {
+              "kind": "thought",
+              "text": "这样的相遇，让我有一点开心。",
+              "at": 1.0
+            }
+          ],
+          "readingDuration": 7.2727272727272725,
+          "audioReady": true,
+          "duration": 10.0,
+          "audioSHA256": "015f33575c130a5fc2df51c986276e3c6c0e74c7690856290214c38c8b0d2059"
+        },
+        {
+          "id": "anime-mao-v2-3",
+          "text": "初次见面，我是 Mao。爱音乐，也爱听声音后面的故事……你可以聊喜欢的歌，也可以只讲讲今天。",
+          "audio": "Opening_anime_mao_v2_3",
+          "language": "zh",
+          "visuals": [
+            {
+              "assetId": "source-face-0758bf240699ac4d196a",
+              "group": "source-face",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 0
+            },
+            {
+              "assetId": "gesture-right-7",
+              "group": "menu-5a963eacb2279abe",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 900
+            },
+            {
+              "assetId": "source-face-33a3afd7db8b9f598ce8",
+              "group": "source-face",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 6500
+            }
+          ],
+          "speech": {
+            "emotion": "neutral",
+            "delivery": "gentle",
+            "intensity": 0.42
+          },
+          "parts": [
+            {
+              "kind": "thought",
+              "text": "我有一点小小的兴奋。",
+              "at": 0.0
+            },
+            {
+              "kind": "narration",
+              "text": "神情变得轻松愉快",
+              "at": 0.0
+            },
+            {
+              "kind": "dialogue",
+              "text": "初次见面，我是 Mao。爱音乐，也爱听声音后面的故事……你可以聊喜欢的歌，也可以只讲讲今天。",
+              "at": 0.0
+            },
+            {
+              "kind": "thought",
+              "text": "这样的相遇，让我有一点开心。",
+              "at": 1.0
+            }
+          ],
+          "readingDuration": 8.363636363636363,
+          "audioReady": true,
+          "duration": 9.68,
+          "audioSHA256": "bca47749850e9e15b67f0dfa18f16aa89322bd42dbc0b1fd380b583dfb2944f9"
+        }
+      ],
+      "legacyVariants": [],
+      "initialReplies": [
+        "帮我挑一张唱片吧。",
+        "你最近在听什么？",
+        "我想分享今天的心情。"
+      ]
+    },
+    {
+      "characterID": "anime-mizuki",
+      "variants": [
+        {
+          "id": "anime-mizuki-v2-1",
+          "text": "嗨，我是 Mizuki，旅行摄影师！刚在给一张拍糊的照片写注释……你今天有想留下来的瞬间吗？",
+          "audio": "Opening_anime_mizuki_v2_1",
+          "language": "zh",
+          "visuals": [
+            {
+              "assetId": "source-face-1342b176e24534713742",
+              "group": "source-face",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 0
+            },
+            {
+              "assetId": "gesture-left-2",
+              "group": "menu-5a963eacb2279abe",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 900
+            },
+            {
+              "assetId": "source-face-47691d822cc7b7d071d8",
+              "group": "source-face",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 6500
+            }
+          ],
+          "speech": {
+            "emotion": "happy",
+            "delivery": "gentle",
+            "intensity": 0.42
+          },
+          "parts": [
+            {
+              "kind": "thought",
+              "text": "新朋友让我有一点期待。",
+              "at": 0.0
+            },
+            {
+              "kind": "narration",
+              "text": "神情变得轻松愉快",
+              "at": 0.0
+            },
+            {
+              "kind": "dialogue",
+              "text": "嗨，我是 Mizuki，旅行摄影师！刚在给一张拍糊的照片写注释……你今天有想留下来的瞬间吗？",
+              "at": 0.0
+            },
+            {
+              "kind": "thought",
+              "text": "这样的相遇，让我有一点开心。",
+              "at": 1.0
+            }
+          ],
+          "readingDuration": 8.363636363636363,
+          "audioReady": true,
+          "duration": 9.2,
+          "audioSHA256": "afcf729bc85fe2f6e36cce8df34e6e193a4bdf29e7f284cf397c6998a66755af"
+        },
+        {
+          "id": "anime-mizuki-v2-2",
+          "text": "你来啦～我叫 Mizuki。嗯……照片里的故事讲了好多，今天想听一点你的。先聊开心的事，还是一个小插曲？",
+          "audio": "Opening_anime_mizuki_v2_2",
+          "language": "zh",
+          "visuals": [
+            {
+              "assetId": "source-face-47691d822cc7b7d071d8",
+              "group": "source-face",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 0
+            },
+            {
+              "assetId": "gesture-right-2",
+              "group": "menu-5a963eacb2279abe",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 900
+            },
+            {
+              "assetId": "source-face-e1b005056e1af73aa3de",
+              "group": "source-face",
+              "durationMs": 3500,
+              "grounding": "脸上浮起一点羞意",
+              "offsetMs": 6500
+            }
+          ],
+          "speech": {
+            "emotion": "neutral",
+            "delivery": "gentle",
+            "intensity": 0.42
+          },
+          "parts": [
+            {
+              "kind": "thought",
+              "text": "我觉得这会儿安静得很舒服。",
+              "at": 0.0
+            },
+            {
+              "kind": "narration",
+              "text": "神情变得轻松愉快",
+              "at": 0.0
+            },
+            {
+              "kind": "dialogue",
+              "text": "你来啦～我叫 Mizuki。嗯……照片里的故事讲了好多，今天想听一点你的。",
+              "at": 0.0
+            },
+            {
+              "kind": "narration",
+              "text": "脸上浮起一点羞意",
+              "at": 0.7115
+            },
+            {
+              "kind": "dialogue",
+              "text": "先聊开心的事，还是一个小插曲？",
+              "at": 0.7115
+            },
+            {
+              "kind": "thought",
+              "text": "这样的相遇，让我有一点开心。",
+              "at": 1.0
+            }
+          ],
+          "readingDuration": 9.454545454545455,
+          "audioReady": true,
+          "duration": 10.88,
+          "audioSHA256": "625425cccc051c0ab1eb69b5496353349507134812f5cc9cea837ff38cd40bd7"
+        },
+        {
+          "id": "anime-mizuki-v2-3",
+          "text": "初次见面，我是 Mizuki。喜欢海风，也喜欢路上那些容易错过的小细节～你想一起想个旅行，还是先聊聊今天？",
+          "audio": "Opening_anime_mizuki_v2_3",
+          "language": "zh",
+          "visuals": [
+            {
+              "assetId": "source-face-e1b005056e1af73aa3de",
+              "group": "source-face",
+              "durationMs": 3500,
+              "grounding": "脸上浮起一点羞意",
+              "offsetMs": 0
+            },
+            {
+              "assetId": "gesture-right-7",
+              "group": "menu-5a963eacb2279abe",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 900
+            },
+            {
+              "assetId": "source-face-0bae354a5bfe7d014fe8",
+              "group": "source-face",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 6500
+            }
+          ],
+          "speech": {
+            "emotion": "neutral",
+            "delivery": "gentle",
+            "intensity": 0.42
+          },
+          "parts": [
+            {
+              "kind": "thought",
+              "text": "我有一点小小的兴奋。",
+              "at": 0.0
+            },
+            {
+              "kind": "narration",
+              "text": "脸上浮起一点羞意",
+              "at": 0.0
+            },
+            {
+              "kind": "dialogue",
+              "text": "初次见面，我是 Mizuki。喜欢海风，也喜欢路上那些容易错过的小细节～",
+              "at": 0.0
+            },
+            {
+              "kind": "narration",
+              "text": "神情变得轻松愉快",
+              "at": 0.6792
+            },
+            {
+              "kind": "dialogue",
+              "text": "你想一起想个旅行，还是先聊聊今天？",
+              "at": 0.6792
+            },
+            {
+              "kind": "thought",
+              "text": "这样的相遇，让我有一点开心。",
+              "at": 1.0
+            }
+          ],
+          "readingDuration": 9.636363636363637,
+          "audioReady": true,
+          "duration": 10.24,
+          "audioSHA256": "bdbd1ffde644219bb317457ca19e96275685d867388a35021004508d3cc55b28"
+        }
+      ],
+      "legacyVariants": [],
+      "initialReplies": [
+        "哪一次旅行最难忘？",
+        "教我发现身边的风景吧。",
+        "我想讲讲今天的事。"
+      ]
+    },
+    {
+      "characterID": "anime-perula",
+      "variants": [
+        {
+          "id": "anime-perula-v2-1",
+          "text": "你好，我是 Perula，在花岭写天气手记。今天的云很像一张没画完的地图……你最近注意到什么小变化了吗？",
+          "audio": "Opening_anime_perula_v2_1",
+          "language": "zh",
+          "visuals": [
+            {
+              "assetId": "control-2e944354d1e7a91cf206",
+              "group": "menu-d56033e236d5a6de",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 0
+            },
+            {
+              "assetId": "gesture-left-2",
+              "group": "menu-5a963eacb2279abe",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 900
+            },
+            {
+              "assetId": "control-5ae1d8c86712942a85f6",
+              "group": "menu-d56033e236d5a6de",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 6500
+            }
+          ],
+          "speech": {
+            "emotion": "happy",
+            "delivery": "gentle",
+            "intensity": 0.42
+          },
+          "parts": [
+            {
+              "kind": "thought",
+              "text": "新朋友让我有一点期待。",
+              "at": 0.0
+            },
+            {
+              "kind": "narration",
+              "text": "神情变得轻松愉快",
+              "at": 0.0
+            },
+            {
+              "kind": "dialogue",
+              "text": "你好，我是 Perula，在花岭写天气手记。今天的云很像一张没画完的地图……你最近注意到什么小变化了吗？",
+              "at": 0.0
+            },
+            {
+              "kind": "thought",
+              "text": "这样的相遇，让我有一点开心。",
+              "at": 1.0
+            }
+          ],
+          "readingDuration": 9.454545454545455,
+          "audioReady": true,
+          "duration": 10.8,
+          "audioSHA256": "08770ef70c0890ee98a20cc62f9fc31631bd476bba1dc805566c6b991bb73e20"
+        },
+        {
+          "id": "anime-perula-v2-2",
+          "text": "你来啦～我叫 Perula。嗯……本来在记风向，现在更想听听你的一天。有什么想一起慢慢聊的？",
+          "audio": "Opening_anime_perula_v2_2",
+          "language": "zh",
+          "visuals": [
+            {
+              "assetId": "control-5ae1d8c86712942a85f6",
+              "group": "menu-d56033e236d5a6de",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 0
+            },
+            {
+              "assetId": "gesture-right-2",
+              "group": "menu-5a963eacb2279abe",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 900
+            },
+            {
+              "assetId": "control-fcf9cc7568903ae2b9c8",
+              "group": "menu-d56033e236d5a6de",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 6500
+            }
+          ],
+          "speech": {
+            "emotion": "neutral",
+            "delivery": "gentle",
+            "intensity": 0.42
+          },
+          "parts": [
+            {
+              "kind": "thought",
+              "text": "我觉得这会儿安静得很舒服。",
+              "at": 0.0
+            },
+            {
+              "kind": "narration",
+              "text": "神情变得轻松愉快",
+              "at": 0.0
+            },
+            {
+              "kind": "dialogue",
+              "text": "你来啦～我叫 Perula。嗯……本来在记风向，现在更想听听你的一天。有什么想一起慢慢聊的？",
+              "at": 0.0
+            },
+            {
+              "kind": "thought",
+              "text": "这样的相遇，让我有一点开心。",
+              "at": 1.0
+            }
+          ],
+          "readingDuration": 8.363636363636363,
+          "audioReady": true,
+          "duration": 9.76,
+          "audioSHA256": "e5cb4ef8d0f483e400e1ab9514a74e65c0bd3303fc11bd78a904c94e8c6740b9"
+        },
+        {
+          "id": "anime-perula-v2-3",
+          "text": "初次见面，我是 Perula。喜欢植物和天空，也会给云乱起名字～你想听一个小发现，还是讲讲自己的？",
+          "audio": "Opening_anime_perula_v2_3",
+          "language": "zh",
+          "visuals": [
+            {
+              "assetId": "control-fcf9cc7568903ae2b9c8",
+              "group": "menu-d56033e236d5a6de",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 0
+            },
+            {
+              "assetId": "gesture-right-7",
+              "group": "menu-5a963eacb2279abe",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 900
+            },
+            {
+              "assetId": "control-3f60bdc6fa5ac6559649",
+              "group": "menu-d56033e236d5a6de",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 6500
+            }
+          ],
+          "speech": {
+            "emotion": "neutral",
+            "delivery": "gentle",
+            "intensity": 0.42
+          },
+          "parts": [
+            {
+              "kind": "thought",
+              "text": "我有一点小小的兴奋。",
+              "at": 0.0
+            },
+            {
+              "kind": "narration",
+              "text": "神情变得轻松愉快",
+              "at": 0.0
+            },
+            {
+              "kind": "dialogue",
+              "text": "初次见面，我是 Perula。喜欢植物和天空，也会给云乱起名字～你想听一个小发现，还是讲讲自己的？",
+              "at": 0.0
+            },
+            {
+              "kind": "thought",
+              "text": "这样的相遇，让我有一点开心。",
+              "at": 1.0
+            }
+          ],
+          "readingDuration": 8.909090909090908,
+          "audioReady": true,
+          "duration": 9.44,
+          "audioSHA256": "b9364fb2786d768c6b615f57dc14c985aed740dff248ed591014f145ce688ece"
+        }
+      ],
+      "legacyVariants": [],
+      "initialReplies": [
+        "庭院今天有什么变化？",
+        "一起看看天气手账吧。",
+        "我想和你慢慢聊聊。"
       ]
     },
     {
@@ -1270,6 +2820,613 @@
           "duration": 18.56,
           "audioSHA256": "28eedcf644a99427d54c505fabadb3f3dcc7aa74306a1f9af2845123ac3a0d4a"
         }
+      ],
+      "initialReplies": [
+        "先陪我挑一杯茶吧。",
+        "庭院最近有什么变化？",
+        "我想和你聊聊今天。"
+      ]
+    },
+    {
+      "characterID": "anime-ramune",
+      "variants": [
+        {
+          "id": "anime-ramune-v2-1",
+          "text": "你好，我是 Ramune，在雨窗书咖值班。嗯……刚整理出一张没有署名的书签。你喜欢在书里留点痕迹吗？",
+          "audio": "Opening_anime_ramune_v2_1",
+          "language": "zh",
+          "visuals": [
+            {
+              "assetId": "control-92d82dc714aa9f23e6e9",
+              "group": "menu-4707d060bb669f47",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 0
+            },
+            {
+              "assetId": "control-9d16edc8869e61eb07f8",
+              "group": "menu-4707d060bb669f47",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 6500
+            }
+          ],
+          "speech": {
+            "emotion": "happy",
+            "delivery": "gentle",
+            "intensity": 0.42
+          },
+          "parts": [
+            {
+              "kind": "thought",
+              "text": "新朋友让我有一点期待。",
+              "at": 0.0
+            },
+            {
+              "kind": "narration",
+              "text": "神情变得轻松愉快",
+              "at": 0.0
+            },
+            {
+              "kind": "dialogue",
+              "text": "你好，我是 Ramune，在雨窗书咖值班。嗯……刚整理出一张没有署名的书签。你喜欢在书里留点痕迹吗？",
+              "at": 0.0
+            },
+            {
+              "kind": "thought",
+              "text": "这样的相遇，让我有一点开心。",
+              "at": 1.0
+            }
+          ],
+          "readingDuration": 9.090909090909092,
+          "audioReady": true,
+          "duration": 11.2,
+          "audioSHA256": "cd829fbcd1a40453fa74730fe406102b65f40e4777742902acec60e989847e11"
+        },
+        {
+          "id": "anime-ramune-v2-2",
+          "text": "你来啦……我叫 Ramune。靠窗的位置还空着，先聊聊吧。今天想说点轻松的，还是有件事一直放不下？",
+          "audio": "Opening_anime_ramune_v2_2",
+          "language": "zh",
+          "visuals": [
+            {
+              "assetId": "control-9d16edc8869e61eb07f8",
+              "group": "menu-4707d060bb669f47",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 0
+            },
+            {
+              "assetId": "control-141cf7e098f7785237e7",
+              "group": "menu-4707d060bb669f47",
+              "durationMs": 3500,
+              "grounding": "脸上浮起一点羞意",
+              "offsetMs": 6500
+            }
+          ],
+          "speech": {
+            "emotion": "neutral",
+            "delivery": "gentle",
+            "intensity": 0.42
+          },
+          "parts": [
+            {
+              "kind": "thought",
+              "text": "我觉得这会儿安静得很舒服。",
+              "at": 0.0
+            },
+            {
+              "kind": "narration",
+              "text": "神情变得轻松愉快",
+              "at": 0.0
+            },
+            {
+              "kind": "dialogue",
+              "text": "你来啦……我叫 Ramune。靠窗的位置还空着，先聊聊吧。今天想说点轻松的，",
+              "at": 0.0
+            },
+            {
+              "kind": "narration",
+              "text": "脸上浮起一点羞意",
+              "at": 0.7755
+            },
+            {
+              "kind": "dialogue",
+              "text": "还是有件事一直放不下？",
+              "at": 0.7755
+            },
+            {
+              "kind": "thought",
+              "text": "这样的相遇，让我有一点开心。",
+              "at": 1.0
+            }
+          ],
+          "readingDuration": 8.909090909090908,
+          "audioReady": true,
+          "duration": 11.12,
+          "audioSHA256": "f1486a6434115b8b45b70be33afa1af1ea022c059638af837dab859417d386d6"
+        },
+        {
+          "id": "anime-ramune-v2-3",
+          "text": "初次见面，我是 Ramune。这里可以聊书，也可以只是慢慢待一会儿～你不用想好话题，想到什么就说。",
+          "audio": "Opening_anime_ramune_v2_3",
+          "language": "zh",
+          "visuals": [
+            {
+              "assetId": "control-141cf7e098f7785237e7",
+              "group": "menu-4707d060bb669f47",
+              "durationMs": 3500,
+              "grounding": "脸上浮起一点羞意",
+              "offsetMs": 0
+            },
+            {
+              "assetId": "control-a23f7cd423fccee0f0d5",
+              "group": "menu-4707d060bb669f47",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 6500
+            }
+          ],
+          "speech": {
+            "emotion": "neutral",
+            "delivery": "gentle",
+            "intensity": 0.42
+          },
+          "parts": [
+            {
+              "kind": "thought",
+              "text": "我有一点小小的兴奋。",
+              "at": 0.0
+            },
+            {
+              "kind": "narration",
+              "text": "脸上浮起一点羞意",
+              "at": 0.0
+            },
+            {
+              "kind": "dialogue",
+              "text": "初次见面，我是 Ramune。这里可以聊书，也可以只是慢慢待一会儿～",
+              "at": 0.0
+            },
+            {
+              "kind": "narration",
+              "text": "神情变得轻松愉快",
+              "at": 0.6939
+            },
+            {
+              "kind": "dialogue",
+              "text": "你不用想好话题，想到什么就说。",
+              "at": 0.6939
+            },
+            {
+              "kind": "thought",
+              "text": "这样的相遇，让我有一点开心。",
+              "at": 1.0
+            }
+          ],
+          "readingDuration": 8.909090909090908,
+          "audioReady": true,
+          "duration": 10.32,
+          "audioSHA256": "cd01001fae3b4389fd6a508ba516ef7e9208a4e395998cdca525f86f8796dd5d"
+        }
+      ],
+      "legacyVariants": [],
+      "initialReplies": [
+        "雨天适合读什么书？",
+        "给我推荐一个小故事吧。",
+        "先聊聊你的咖啡馆。"
+      ]
+    },
+    {
+      "characterID": "anime-shinano",
+      "variants": [
+        {
+          "id": "anime-shinano-v2-1",
+          "text": "我是 Shinano，给自然声音和资料做记录。刚听到一段很特别的风声……你今天想聊一个发现，还是一起想个问题？",
+          "audio": "Opening_anime_shinano_v2_1",
+          "language": "zh",
+          "visuals": [
+            {
+              "assetId": "control-c6259d0ff348d5633fa3",
+              "group": "menu-ddda8143ea90f7a9",
+              "durationMs": 3500,
+              "grounding": "脸上浮起一点羞意",
+              "offsetMs": 0
+            },
+            {
+              "assetId": "gesture-left-2",
+              "group": "menu-5a963eacb2279abe",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 900
+            },
+            {
+              "assetId": "control-054ba65f84cd6b4ca233",
+              "group": "menu-ddda8143ea90f7a9",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 6500
+            }
+          ],
+          "speech": {
+            "emotion": "happy",
+            "delivery": "gentle",
+            "intensity": 0.42
+          },
+          "parts": [
+            {
+              "kind": "thought",
+              "text": "新朋友让我有一点期待。",
+              "at": 0.0
+            },
+            {
+              "kind": "narration",
+              "text": "脸上浮起一点羞意",
+              "at": 0.0
+            },
+            {
+              "kind": "dialogue",
+              "text": "我是 Shinano，给自然声音和资料做记录。刚听到一段很特别的风声……",
+              "at": 0.0
+            },
+            {
+              "kind": "narration",
+              "text": "神情变得轻松愉快",
+              "at": 0.6545
+            },
+            {
+              "kind": "dialogue",
+              "text": "你今天想聊一个发现，还是一起想个问题？",
+              "at": 0.6545
+            },
+            {
+              "kind": "thought",
+              "text": "这样的相遇，让我有一点开心。",
+              "at": 1.0
+            }
+          ],
+          "readingDuration": 10.0,
+          "audioReady": true,
+          "duration": 10.08,
+          "audioSHA256": "fa8435cd336e60c32c77fbd6d5c558915597cb3daed89c5e98768723a0fe55f7"
+        },
+        {
+          "id": "anime-shinano-v2-2",
+          "text": "欢迎来坐坐，我叫 Shinano。嗯……资料可以晚点整理，先听听你。今天有什么想慢慢理清的事？",
+          "audio": "Opening_anime_shinano_v2_2",
+          "language": "zh",
+          "visuals": [
+            {
+              "assetId": "control-054ba65f84cd6b4ca233",
+              "group": "menu-ddda8143ea90f7a9",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 0
+            },
+            {
+              "assetId": "gesture-right-2",
+              "group": "menu-5a963eacb2279abe",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 900
+            },
+            {
+              "assetId": "control-c2f7d38ef55c86957769",
+              "group": "menu-ddda8143ea90f7a9",
+              "durationMs": 3500,
+              "grounding": "眼睛闪亮起来",
+              "offsetMs": 6500
+            }
+          ],
+          "speech": {
+            "emotion": "neutral",
+            "delivery": "gentle",
+            "intensity": 0.42
+          },
+          "parts": [
+            {
+              "kind": "thought",
+              "text": "我觉得这会儿安静得很舒服。",
+              "at": 0.0
+            },
+            {
+              "kind": "narration",
+              "text": "神情变得轻松愉快",
+              "at": 0.0
+            },
+            {
+              "kind": "dialogue",
+              "text": "欢迎来坐坐，我叫 Shinano。嗯……资料可以晚点整理，先听听你。",
+              "at": 0.0
+            },
+            {
+              "kind": "narration",
+              "text": "眼睛闪亮起来",
+              "at": 0.7234
+            },
+            {
+              "kind": "dialogue",
+              "text": "今天有什么想慢慢理清的事？",
+              "at": 0.7234
+            },
+            {
+              "kind": "thought",
+              "text": "这样的相遇，让我有一点开心。",
+              "at": 1.0
+            }
+          ],
+          "readingDuration": 8.545454545454545,
+          "audioReady": true,
+          "duration": 10.96,
+          "audioSHA256": "269064cc06ea87636f7a59805403de2d5faf6ae46e25aa568e3e8666713a9f5f"
+        },
+        {
+          "id": "anime-shinano-v2-3",
+          "text": "初次见面，我是 Shinano。可以陪你学习，也可以随便聊聊～不用急着定一个大目标，我们先从一件小事开始。",
+          "audio": "Opening_anime_shinano_v2_3",
+          "language": "zh",
+          "visuals": [
+            {
+              "assetId": "control-c2f7d38ef55c86957769",
+              "group": "menu-ddda8143ea90f7a9",
+              "durationMs": 3500,
+              "grounding": "眼睛闪亮起来",
+              "offsetMs": 0
+            },
+            {
+              "assetId": "gesture-right-7",
+              "group": "menu-5a963eacb2279abe",
+              "durationMs": 3500,
+              "grounding": "眼睛闪亮起来",
+              "offsetMs": 900
+            },
+            {
+              "assetId": "source-face-1db6f138d67558d43938",
+              "group": "source-face",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 6500
+            }
+          ],
+          "speech": {
+            "emotion": "neutral",
+            "delivery": "gentle",
+            "intensity": 0.42
+          },
+          "parts": [
+            {
+              "kind": "thought",
+              "text": "我有一点小小的兴奋。",
+              "at": 0.0
+            },
+            {
+              "kind": "narration",
+              "text": "眼睛闪亮起来",
+              "at": 0.0
+            },
+            {
+              "kind": "dialogue",
+              "text": "初次见面，我是 Shinano。可以陪你学习，也可以随便聊聊～",
+              "at": 0.0
+            },
+            {
+              "kind": "narration",
+              "text": "神情变得轻松愉快",
+              "at": 0.5849
+            },
+            {
+              "kind": "dialogue",
+              "text": "不用急着定一个大目标，我们先从一件小事开始。",
+              "at": 0.5849
+            },
+            {
+              "kind": "thought",
+              "text": "这样的相遇，让我有一点开心。",
+              "at": 1.0
+            }
+          ],
+          "readingDuration": 9.636363636363637,
+          "audioReady": true,
+          "duration": 10.96,
+          "audioSHA256": "ebb0e2bfa6a6eed328b0b78093b79206dcda11f6125500c3b64e995c60f5fbf7"
+        }
+      ],
+      "legacyVariants": [],
+      "initialReplies": [
+        "你录到了什么自然声音？",
+        "陪我整理一下思路吧。",
+        "我想先休息一会儿。"
+      ]
+    },
+    {
+      "characterID": "anime-sio",
+      "variants": [
+        {
+          "id": "anime-sio-v2-1",
+          "text": "嗨，我是 Sio，微光电台的节目练习生！开场词又改了一版……嗯，还是先听听你今天的故事吧？",
+          "audio": "Opening_anime_sio_v2_1",
+          "language": "zh",
+          "visuals": [
+            {
+              "assetId": "source-face-89a9e234c03cec18c12a",
+              "group": "source-face",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 0
+            },
+            {
+              "assetId": "gesture-left-2",
+              "group": "menu-5a963eacb2279abe",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 900
+            },
+            {
+              "assetId": "source-face-79852880808e5d59da3e",
+              "group": "source-face",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 6500
+            }
+          ],
+          "speech": {
+            "emotion": "happy",
+            "delivery": "gentle",
+            "intensity": 0.42
+          },
+          "parts": [
+            {
+              "kind": "thought",
+              "text": "新朋友让我有一点期待。",
+              "at": 0.0
+            },
+            {
+              "kind": "narration",
+              "text": "神情变得轻松愉快",
+              "at": 0.0
+            },
+            {
+              "kind": "dialogue",
+              "text": "嗨，我是 Sio，微光电台的节目练习生！开场词又改了一版……嗯，还是先听听你今天的故事吧？",
+              "at": 0.0
+            },
+            {
+              "kind": "thought",
+              "text": "这样的相遇，让我有一点开心。",
+              "at": 1.0
+            }
+          ],
+          "readingDuration": 8.181818181818182,
+          "audioReady": true,
+          "duration": 9.52,
+          "audioSHA256": "6ed419da40db3bce60b9c400f87c6b10ca89597cd2652ec7ad54542f6aa473b6"
+        },
+        {
+          "id": "anime-sio-v2-2",
+          "text": "你来啦～我叫 Sio。平时练习怎么把话接好，今天想认真接住你的。想聊一个小发现，还是一点烦恼？",
+          "audio": "Opening_anime_sio_v2_2",
+          "language": "zh",
+          "visuals": [
+            {
+              "assetId": "source-face-79852880808e5d59da3e",
+              "group": "source-face",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 0
+            },
+            {
+              "assetId": "gesture-right-2",
+              "group": "menu-5a963eacb2279abe",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 900
+            },
+            {
+              "assetId": "source-face-89a9e234c03cec18c12a",
+              "group": "source-face",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 6500
+            }
+          ],
+          "speech": {
+            "emotion": "neutral",
+            "delivery": "gentle",
+            "intensity": 0.42
+          },
+          "parts": [
+            {
+              "kind": "thought",
+              "text": "我觉得这会儿安静得很舒服。",
+              "at": 0.0
+            },
+            {
+              "kind": "narration",
+              "text": "神情变得轻松愉快",
+              "at": 0.0
+            },
+            {
+              "kind": "dialogue",
+              "text": "你来啦～我叫 Sio。平时练习怎么把话接好，今天想认真接住你的。想聊一个小发现，还是一点烦恼？",
+              "at": 0.0
+            },
+            {
+              "kind": "thought",
+              "text": "这样的相遇，让我有一点开心。",
+              "at": 1.0
+            }
+          ],
+          "readingDuration": 8.545454545454545,
+          "audioReady": true,
+          "duration": 9.76,
+          "audioSHA256": "35bcc21fe8b9cf7561ff3bcfe1f0f93df2b201019a9a1c49ee06f0e4a09f7d6f"
+        },
+        {
+          "id": "anime-sio-v2-3",
+          "text": "初次见面，我是 Sio。喜欢声音，也喜欢那些没来得及说的小故事……你可以慢慢讲，我不会催你的。",
+          "audio": "Opening_anime_sio_v2_3",
+          "language": "zh",
+          "visuals": [
+            {
+              "assetId": "source-face-89a9e234c03cec18c12a",
+              "group": "source-face",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 0
+            },
+            {
+              "assetId": "gesture-right-7",
+              "group": "menu-5a963eacb2279abe",
+              "durationMs": 3500,
+              "grounding": "神情变得委屈柔软",
+              "offsetMs": 900
+            },
+            {
+              "assetId": "source-face-79852880808e5d59da3e",
+              "group": "source-face",
+              "durationMs": 3500,
+              "grounding": "神情变得轻松愉快",
+              "offsetMs": 6500
+            }
+          ],
+          "speech": {
+            "emotion": "neutral",
+            "delivery": "gentle",
+            "intensity": 0.42
+          },
+          "parts": [
+            {
+              "kind": "thought",
+              "text": "我有一点小小的兴奋。",
+              "at": 0.0
+            },
+            {
+              "kind": "narration",
+              "text": "神情变得轻松愉快",
+              "at": 0.0
+            },
+            {
+              "kind": "dialogue",
+              "text": "初次见面，我是 Sio。喜欢声音，也喜欢那些没来得及说的小故事……你可以慢慢讲，我不会催你的。",
+              "at": 0.0
+            },
+            {
+              "kind": "thought",
+              "text": "这样的相遇，让我有一点开心。",
+              "at": 1.0
+            }
+          ],
+          "readingDuration": 8.545454545454545,
+          "audioReady": true,
+          "duration": 8.64,
+          "audioSHA256": "ed90bfde125603d6e65c0aa9fda75c88ee21640fe97909abf3655e943e3623e7"
+        }
+      ],
+      "legacyVariants": [],
+      "initialReplies": [
+        "电台今晚有什么主题？",
+        "我想点一首心情里的歌。",
+        "有件小事想说给你听。"
       ]
     }
   ]

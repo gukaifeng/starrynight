@@ -52,7 +52,7 @@ namespace ModelSpace
         public static void Validate(CharacterPerformanceProfile p)
         {
             if(p==null)return;
-            if((p.schemaVersion!=1 && p.schemaVersion!=2) || p.groups==null || p.groups.Length>(p.schemaVersion==1 ? 6 : 32) || p.options==null || p.options.Length>256 || p.defaults==null || p.defaults.Length>64)
+            if((p.schemaVersion!=1 && p.schemaVersion!=2 && p.schemaVersion!=3) || p.groups==null || p.groups.Length>(p.schemaVersion==1 ? 6 : p.schemaVersion==2 ? 32 : 128) || p.options==null || p.options.Length>(p.schemaVersion==3 ? 2048 : 256) || p.defaults==null || p.defaults.Length>64)
                 throw new ArgumentException("PERFORMANCE_SCHEMA_INVALID");
             if(p.groups.Any(g=>g==null || !Name(g.id) || (p.schemaVersion==1 ? !Groups.Contains(g.id) : !System.Text.RegularExpressions.Regex.IsMatch(g.id,@"^[a-z][a-z0-9_.-]{0,63}$")) || !Name(g.label)) || p.groups.Select(g=>g.id).Distinct().Count()!=p.groups.Length)
                 throw new ArgumentException("PERFORMANCE_GROUP_INVALID");
@@ -273,7 +273,11 @@ namespace ModelSpace
             if(!string.IsNullOrEmpty(group) && !character.Manifest.performance.groups.Any(g=>g.id==group))return "PERFORMANCE_GROUP_UNKNOWN";
             if(string.IsNullOrEmpty(group) || group=="interaction")character.GetComponent<CharacterPetFeedback>()?.ResetMode();
             var avatar=character.GetComponent<AvatarControlDriver>();
-            if(avatar)avatar.Reset(string.IsNullOrEmpty(group)?"":character.Manifest.performance.options.First(o=>o.group==group).control?.group ?? "",false);
+            if(avatar) {
+                if(string.IsNullOrEmpty(group))avatar.Reset("",false);
+                else {var authorGroup=character.Manifest.performance.options.FirstOrDefault(o=>o.group==group && !string.IsNullOrEmpty(o.control?.id))?.control?.group;
+                    if(!string.IsNullOrEmpty(authorGroup))avatar.Reset(authorGroup,false);}
+            }
             foreach(var entry in entries)
                 if(string.IsNullOrEmpty(group) || entry.spec.group==group)
                 {entry.selected=entry.spec.defaultOn;entry.elapsed=0;entry.transientPlaying=false;if(entry.animation!=null && entry.selected && entry.spec.kind!="toggle") {entry.animation.time=0;entry.animation.enabled=true;}}

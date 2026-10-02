@@ -49,6 +49,20 @@ class PerformanceContractTests(unittest.TestCase):
         self.m['compatibility']['required']=['core.performance@2'];self.validate()
         self.m['compatibility']['required']=[]
         with self.assertRaisesRegex(ValueError,'matching core.performance'):self.validate()
+
+    def test_v3_expands_source_menus_without_loosening_older_profiles(self):
+        p=self.m['performance'];p['schemaVersion']=3
+        p['groups'] += [{'id':'author.group'+str(i),'label':'原作分组'} for i in range(33)]
+        self.m['compatibility']['required']=['core.performance@3'];self.validate()
+        p['schemaVersion']=2;self.m['compatibility']['required']=['core.performance@2']
+        with self.assertRaises(ValueError):self.validate()
+        p['schemaVersion']=3;self.m['compatibility']['required']=['core.performance@3']
+        p['groups']=p['groups'][:2]
+        base=copy.deepcopy(p['options'][0]);base.pop('morphTracks')
+        p['options']=[dict(copy.deepcopy(base),id='original-face-'+str(i)) for i in range(257)]
+        self.validate()
+        p['schemaVersion']=2;self.m['compatibility']['required']=['core.performance@2']
+        with self.assertRaises(ValueError):self.validate()
     def test_total_track_budget_cannot_be_split_across_options(self):
         def exceed(p):
             base=p['options'][0];base['morphTracks']=[track(),track('blink')]

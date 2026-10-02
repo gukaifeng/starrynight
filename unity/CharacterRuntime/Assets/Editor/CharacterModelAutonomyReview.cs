@@ -9,6 +9,11 @@ using UnityEngine;
 // A manually posed eyelid screenshot alone does not prove automatic blinking.
 public static class CharacterModelAutonomyReview
 {
+    public static void RunPrepared()
+    {
+        UnityEditor.SceneManagement.EditorSceneManager.OpenScene("Assets/Scenes/ViewerScene.unity");
+        Validate(UnityEngine.Object.FindFirstObjectByType<ViewerController>());
+    }
     [Serializable] sealed class Check {
         public string id;public int frames,hostBlinkCount;
         public bool authoredAllowsBlink;
@@ -23,7 +28,7 @@ public static class CharacterModelAutonomyReview
         var checks=new System.Collections.Generic.List<Check>();
         bool[] active=viewer.characters.Select(c=>c.gameObject.activeSelf).ToArray();
         try {
-            foreach(var character in viewer.characters.Where(c=>c.Manifest.speech.mode=="none" && CharacterAutonomyContract.Supported(c.Manifest))) {
+            foreach(var character in viewer.characters.Where(c=>CharacterAutonomyContract.Supported(c.Manifest))) {
                 foreach(var other in viewer.characters)other.gameObject.SetActive(other==character);
                 var bindings=character.Manifest.autonomy.blink.bindings;
                 var skins=bindings.Select(b=>CharacterContract.Resolve(character.transform,b.renderer).GetComponent<SkinnedMeshRenderer>()).ToArray();

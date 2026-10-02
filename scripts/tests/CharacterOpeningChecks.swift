@@ -20,7 +20,7 @@ import Foundation
                 continue
             }
             for index in 1...3 {
-                guard let opening=CharacterOpenings.find(model.runtimeID+"-v2-\(index)") else {
+                guard let opening=CharacterOpenings.variants(for:model.runtimeID).dropFirst(index-1).first else {
                     throw NSError(domain:"OpeningChecks",code:2,userInfo:[NSLocalizedDescriptionKey:"Missing opening for "+model.id])
                 }
                 let pcm=try await opening.pcm()
@@ -29,7 +29,9 @@ import Foundation
                 let parts=opening.script(characterID:model.id).beats[0].parts ?? []
                 try require(parts.filter {$0.kind == "thought" && $0.isVisible}.count==2,"Every introduction needs two visible inner asides")
                 try require(parts.filter {$0.kind == "dialogue"}.map(\.text).joined()==opening.text,"Aside composition must preserve every spoken character")
-                try require(CharacterOpenings.find(model.runtimeID+"-\(index)")?.audioReady == true,"Old first-meeting audio must remain replayable")
+                if ["anime-chiffon","anime-ichigo","anime-lime","anime-mafuyu","anime-plum"].contains(model.runtimeID) {
+                    try require(CharacterOpenings.find(model.runtimeID+"-\(index)")?.audioReady == true,"Old first-meeting audio must remain replayable")
+                }
                 let suggestions=CharacterOpenings.initialReplies(for:model.runtimeID,messageID:"test-message")
                 try require(suggestions.count==3 && Set(suggestions.map(\.text)).count==3,
                             "Every bundled introduction needs three immediately visible replies")

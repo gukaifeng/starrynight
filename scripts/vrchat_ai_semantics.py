@@ -50,11 +50,29 @@ def hints(controls,motions):
         for graph in controls['controllers']:
             if graph['playable']!=5:continue
             states={s['id']:s for s in graph['states']}
+            blends={b['id']:b for b in graph.get('blends',[])}
+            def selected_clips(identity,seen=frozenset()):
+                if identity in clips:return [clips[identity]]
+                if identity not in blends or identity in seen:return []
+                blend=blends[identity];children=blend['children']
+                if not children:return []
+                if blend['kind']==0:
+                    value=values.get(blend['x'],0)
+                    distance=min(abs(c['threshold']-value) for c in children)
+                    chosen=[c for c in children if abs(c['threshold']-value)<=distance+1e-6]
+                elif blend['kind']==4:
+                    chosen=[c for c in children if values.get(c.get('parameter'),0)>0]
+                else:
+                    x=values.get(blend['x'],0);y=values.get(blend['y'],0)
+                    distance=min((c['x']-x)**2+(c['y']-y)**2 for c in children)
+                    chosen=[c for c in children if (c['x']-x)**2+(c['y']-y)**2<=distance+1e-6]
+                return [clip for c in chosen for clip in selected_clips(c['motion'],seen|{identity})]
             for transition in graph['transitions']:
                 conditions=transition['conditions']
                 if not any(c['parameter']==control['parameter'] for c in conditions) or not all(holds(c,values) for c in conditions):continue
-                state=states.get(transition['target']);motion=clips.get(state['motion']) if state else None
-                if motion and (hint:=classify(motion)):candidates.append((hint,motion))
+                state=states.get(transition['target'])
+                for motion in selected_clips(state['motion']) if state else []:
+                    if hint:=classify(motion):candidates.append((hint,motion))
         intents={c[0]['intent'] for c in candidates}
         if len(intents)!=1:continue
         result[control['id']]=candidates[0][0]

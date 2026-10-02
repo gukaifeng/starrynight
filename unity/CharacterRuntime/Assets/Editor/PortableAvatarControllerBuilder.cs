@@ -29,7 +29,7 @@ public static class PortableAvatarControllerBuilder
     [Serializable] class Skin {public string path;public bool enabled;}
     [Serializable] class MotionList {public MotionSpec[] motions;}
     [Serializable] class MotionSpec {public string guid,name;public bool loop;public float duration;public float[] times;public Track[] tracks;public Curve[] curves;public ObjectCurve[] objects;}
-    [Serializable] class Track {public string path;public Vector3[] positions,scales;public Quaternion[] rotations;}
+    [Serializable] class Track {public string path;public float[] times;public Vector3[] positions,scales;public Quaternion[] rotations;}
     [Serializable] class Key {public float time,value,inTangent,outTangent,inWeight,outWeight;public int weightedMode;public bool steppedIn,steppedOut;}
     [Serializable] class Curve {public string path,component,property;public Key[] keys;}
     [Serializable] class ObjectCurve {public string path,component,property;public ObjectKey[] keys;}
@@ -42,7 +42,7 @@ public static class PortableAvatarControllerBuilder
     {
         string path=folder+"/avatar-controls.json";if(!File.Exists(path))return;
         var data=JsonUtility.FromJson<Data>(File.ReadAllText(path));
-        if(data.schemaVersion!=1 || data.controllers.Length>8 || data.controls.Length>2048)throw new Exception("AVATAR_CONTROL_SCHEMA_INVALID");
+        if((data.schemaVersion!=1 && data.schemaVersion!=2) || data.controllers.Length>8 || data.controls.Length>2048)throw new Exception("AVATAR_CONTROL_SCHEMA_INVALID");
         var root=character.transform.Find("Avatar");if(!root)throw new Exception("AVATAR_CONTROL_ROOT_MISSING");
         var manifest=JsonUtility.FromJson<CharacterManifest>(File.ReadAllText(folder+"/character.json"));
         var automaticControls=new HashSet<string>((manifest.performance?.options ?? Array.Empty<CharacterPerformanceOption>())
@@ -92,11 +92,12 @@ public static class PortableAvatarControllerBuilder
                 if(!string.IsNullOrEmpty(track.path) && !root.Find(track.path))continue;
                 void Axis(string prop,int axis,int dimensions)
                 {
-                    var keys=new Keyframe[source.times.Length];
+                    var sampleTimes=track.times?.Length>0?track.times:source.times;
+                    var keys=new Keyframe[sampleTimes.Length];
                     for(int i=0;i<keys.Length;i++)
                     {
                         float value=prop=="m_LocalPosition"?track.positions[i][axis]:prop=="m_LocalScale"?track.scales[i][axis]:track.rotations[i][axis];
-                        keys[i]=new Keyframe(source.times[i],value);
+                        keys[i]=new Keyframe(sampleTimes[i],value);
                     }
                     var curve=new AnimationCurve(keys);
                     for(int i=0;i<keys.Length;i++) {AnimationUtility.SetKeyLeftTangentMode(curve,i,AnimationUtility.TangentMode.Linear);AnimationUtility.SetKeyRightTangentMode(curve,i,AnimationUtility.TangentMode.Linear);}

@@ -1,14 +1,20 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://starrynight.example/character-sdk/avatar-controls.schema.json",
-  "title": "XCP core.avatar-controls@1 / Mecanim portable controller data",
+  "title": "XCP core.avatar-controls@1/@2 / Mecanim portable controller data",
   "type": "object",
   "properties": {
     "schemaVersion": {
-      "const": 1
+      "enum": [
+        1,
+        2
+      ]
     },
     "profile": {
-      "const": "mecanim-portable-v1"
+      "enum": [
+        "mecanim-portable-v1",
+        "mecanim-portable-v2"
+      ]
     },
     "parameters": {
       "type": "array",
@@ -49,7 +55,7 @@
       "items": {
         "$ref": "#/$defs/control"
       },
-      "maxItems": 256
+      "maxItems": 2048
     },
     "controllers": {
       "type": "array",
@@ -170,5 +176,45 @@
       ],
       "additionalProperties": true
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "schemaVersion": {
+            "const": 1
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "profile": {
+            "const": "mecanim-portable-v1"
+          },
+          "controls": {
+            "maxItems": 256
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "schemaVersion": {
+            "const": 2
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "profile": {
+            "const": "mecanim-portable-v2"
+          },
+          "controls": {
+            "maxItems": 2048
+          }
+        }
+      }
+    }
+  ]
 }
