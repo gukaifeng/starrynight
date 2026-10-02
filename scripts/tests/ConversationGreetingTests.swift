@@ -43,6 +43,12 @@ struct ConversationGreetingTests {
         check(context(.characterSelection,met,true).scene == "characterSwitch","Selecting a known role is distinguished from first meeting")
         check(context(.foregroundReturn,met,true).scene == "foregroundReturn","Background return has its own context")
         var old = CharacterRecord(profile:original.profile,messages:[CompanionMessage(role:"user",text:"今天有点累",date:morning)])
+        old.serverAcknowledgedOpeningID="opening-ack"
+        let acknowledged=try JSONDecoder().decode(CharacterRecord.self,from:JSONEncoder().encode(old))
+        check(acknowledged.serverAcknowledgedOpeningID=="opening-ack","An acknowledged opening survives reconstruction")
+        var reset=acknowledged;reset.resetConversation(UUID().uuidString)
+        check(reset.serverAcknowledgedOpeningID==nil,"A conversation reset requires a new opening registration")
+        old.serverAcknowledgedOpeningID=nil
         let oldData = try JSONEncoder().encode(old)
         check(!String(decoding:oldData,as:UTF8.self).contains("greeting"),"Legacy shape has no required greeting metadata")
         let migrated = try JSONDecoder().decode(CharacterRecord.self,from:oldData)
@@ -66,8 +72,10 @@ struct ConversationGreetingTests {
         restored.activateAccount("guest")
         check(restored.record(other.id).greeting == nil,"Different roles do not inherit greetings")
         check(ConversationGreetingPolicy.shouldIntroduce(restored.record(other.id)),"A different role introduces itself independently")
+        restored.update(model.id) {$0.serverAcknowledgedOpeningID="guest-opening-ack"}
         check(restored.importGuest(into:DemoAccount.id),"Newly logged-in account can keep its guest relationship")
         restored.activateAccount(DemoAccount.id)
+        check(restored.record(model.id).serverAcknowledgedOpeningID==nil,"Adopted records re-register under the new server owner")
         check(context(.conversationReturn,restored.record(model.id),true).scene == "conversationReturn","Login does not reintroduce an already met character")
         check(!ConversationGreetingPolicy.shouldIntroduce(restored.record(model.id)),"Guest-to-account adoption keeps the introduction consumed")
         return "PASS: \(checks) greeting context, persistence, account/role isolation and guest budget checks"

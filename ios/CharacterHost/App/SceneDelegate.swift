@@ -57,6 +57,15 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 #endif
 #endif
 #if DEBUG && targetEnvironment(simulator)
+        if ProcessInfo.processInfo.arguments.contains("--developer-float-check") {
+            isolatedGoalFixture=true
+            let folder=FileManager.default.temporaryDirectory.appendingPathComponent("developer-float-\(UUID())/journal.json")
+            let session=CompanionSession(store:CompanionStore(storageURL:folder,arguments:[]),model:.defaultCharacter,soundscape:CompanionSoundscape())
+            let controller=ViewerOverlayController()
+            controller.setModel(.defaultCharacter);controller.setCompanion(session)
+            window.rootViewController=controller
+            return
+        }
         if ProcessInfo.processInfo.arguments.contains("--goal-page-fixture") {
             isolatedGoalFixture = true
             let store=CompanionStore()

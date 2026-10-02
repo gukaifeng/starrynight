@@ -8,6 +8,21 @@ import CryptoKit
         func require(_ value: Bool, _ message: String) throws {
             if !value { throw NSError(domain:"SpeechPlaybackCheck",code:1,userInfo:[NSLocalizedDescriptionKey:message]) }
         }
+        func pcmData(_ samples:[Int16])->Data {samples.withUnsafeBytes {Data($0)}}
+        let quiet=pcmData(Array(repeating:7,count:7200))
+        let voiced=pcmData([20,Int16.min,60,80]+Array(repeating:800,count:2400))
+        var onset=SpeechOnset()
+        try require(onset.accept(Data(quiet.prefix(4800))).isEmpty,"Short low-level prefix must wait for safe onset")
+        let trimmed=onset.accept(Data(quiet.dropFirst(4800))+voiced)
+        try require(onset.removedFrames==6000 && trimmed==Data(quiet.dropFirst(12000))+voiced,"Trim is bounded and preserves every voiced sample, including Int16.min")
+        try require(onset.accept(voiced)==voiced && onset.finish().isEmpty,"Inner pauses must never be trimmed")
+        var immediate=SpeechOnset()
+        try require(immediate.accept(voiced)==voiced && immediate.removedFrames==0,"An immediate soft onset retains its first samples")
+        var short=SpeechOnset();let whisper=pcmData(Array(repeating:20,count:800))
+        _=short.accept(whisper)
+        try require(short.finish()==whisper,"Short quiet vocalizations remain intact")
+        var preRoll=SpeechOnset();let pad=pcmData(Array(repeating:7,count:2400))
+        try require(preRoll.accept(pad+voiced)==Data(pad.dropFirst(1441*2))+voiced && preRoll.removedFrames==1441,"Forty milliseconds protects the soft onset")
         let soundscape = CompanionSoundscape()
         soundscape.setVolume(0); soundscape.setActive(true)
         let scope = "audio-regression:"+UUID().uuidString
@@ -104,6 +119,25 @@ import CryptoKit
         try require(try await speech.cachedReplay(script,messageID:message),"Cached replay missed")
         try require(speech.audibleSegments == 4 && played == ["speech","vocal","speech","vocal"],"Replay skipped the vocal-only beat")
         try require(regressions == 0,"Cached speech timestamps moved backwards")
+        // A server preparation download is playable before its candidate is
+        // consumed, in a reconstructed disk cache; account scopes cannot read it.
+        var prepared=script;prepared.messageId=UUID().uuidString;prepared.beats=Array(prepared.beats.prefix(1))
+        let preparedID=UUID(uuidString:prepared.messageId)!
+        let paddedPCM=quiet+pcm
+        speech.cachePrepared([AIPreparedClip(id:UUID().uuidString,script:prepared,audio:[AIPreparedAudio(beatId:"speech",data:paddedPCM.base64EncodedString())])])
+        let preparedDisk=SpeechClipCache(directory:CacheLocations.live.speech)
+        let preparedPlayer=CloudSpeech(soundscape:soundscape,api:api,cacheScope:scope,clipCache:preparedDisk)
+        try require(preparedPlayer.hasCached(prepared),"Prepared PCM was not durably downloaded")
+        let other=CloudSpeech(soundscape:soundscape,api:api,cacheScope:scope+":other",clipCache:preparedDisk)
+        try require(!other.hasCached(prepared),"Prepared voice leaked between account scopes")
+        let preparedTrace=VoiceTimeline.shared.begin(account:scope,character:api.characterID,kind:"prefetched_cache_check")
+        try require(try await preparedPlayer.cachedReplay(prepared,messageID:preparedID,traceID:preparedTrace),"Prepared offline playback failed")
+        let prefetchedOutput=VoiceTimeline.shared.records.first(where:{$0.id==preparedTrace})?.marks["first_output"]
+        try require(prefetchedOutput != nil,"Prepared playback had no actual mixer output")
+        try require(abs((preparedPlayer.durations[preparedID] ?? 0)-Double(paddedPCM.count-12000)/48000)<0.001,"Playback duration must account for removed padding")
+        let rawWave=preparedDisk.data(preparedDisk.key(scope:scope,text:prepared.messageId+"|speech",speed:1))!
+        try require(Data(rawWave.dropFirst(44))==paddedPCM,"Onset filtering must preserve the original durable recording")
+        try? FileManager.default.removeItem(at:CacheLocations.live.speech.appendingPathComponent(preparedDisk.key(scope:scope,text:prepared.messageId+"|speech",speed:1)+".wav"))
         // Relaunch equivalent: no shared memory cache and no reachable provider.
         let disk=SpeechClipCache(directory:CacheLocations.live.speech)
         let fresh=CloudSpeech(soundscape:soundscape,api:api,cacheScope:scope,clipCache:disk)
@@ -163,6 +197,6 @@ import CryptoKit
         try require(traces.contains(where:{$0.flags["audio_source"]=="持久语音缓存"}),"Durable replay source was not recorded")
         let encoded=try JSONEncoder().encode(traces)
         try require(!String(decoding:encoded,as:UTF8.self).contains("Audio regression"),"Diagnostics stored dialogue content")
-        return "PASS: real audio metering, cache replay, monotonic lip-sync, bounded queue, cancellation and detailed persisted voice traces; zero network calls."
+        return "PASS: real audio metering, cache replay, monotonic lip-sync, bounded queue, cancellation and detailed persisted voice traces; prefetched PCM first output \(Int(prefetchedOutput ?? -1)) ms (simulator audio fixture), zero network calls."
     }
 }

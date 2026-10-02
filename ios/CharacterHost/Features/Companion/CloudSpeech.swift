@@ -100,6 +100,8 @@ private final class MicrophonePCM: @unchecked Sendable {
     @ObservationIgnored private var buffers = 0
     @ObservationIgnored private var beat = ""
     @ObservationIgnored private var beatPCM = Data()
+    @ObservationIgnored private var beatSourcePCM = Data()
+    @ObservationIgnored private var onset = SpeechOnset()
     @ObservationIgnored private var totalDuration = 0.0
     @ObservationIgnored private var beatStartTime = 0.0
     @ObservationIgnored private var beatFrames = 0
@@ -148,6 +150,19 @@ private final class MicrophonePCM: @unchecked Sendable {
         isBusy = true; totalDuration = 0; beatStartTime = 0; beatFrames = 0; playbackElapsed = 0; onState?("thinking")
     }
     private func key(_ beat: String) -> String { clipCache.key(scope:cacheScope,text:cacheMessage+"|"+beat,speed:1) }
+    func cachePrepared(_ clips:[AIPreparedClip]) {
+        let generation=clipCache.generation
+        for clip in clips {
+            for audio in clip.audio {
+                guard let data=Data(base64Encoded:audio.data),!data.isEmpty,data.count%2==0 else {continue}
+                clipCache.insert(Self.wave(data),key:clipCache.key(scope:cacheScope,text:clip.script.messageId+"|"+audio.beatId,speed:1),generation:generation)
+            }
+        }
+    }
+    func hasCached(_ script:AIScript)->Bool {
+        let beats=script.beats.filter(\.hasAudio)
+        return !beats.isEmpty && beats.allSatisfy {clipCache.data(clipCache.key(scope:cacheScope,text:script.messageId+"|"+$0.beatId,speed:1)) != nil}
+    }
     func accept(_ event: AIEvent) async throws {
         let timeline=VoiceTimeline.shared
         if let trace=event.traceId {voiceTrace=trace}
@@ -161,7 +176,7 @@ private final class MicrophonePCM: @unchecked Sendable {
             timeline.span(voiceTrace,"audio.previous_drain",start:stage,beat:event.beatId)
             timer?.invalidate(); timer = nil; playbackSegment = UUID()
             player?.stop(); engine?.stop(); engine = nil; player = nil
-            beat = event.beatId ?? ""; beatPCM = Data(); beatFrames = 0; measured = false; beatDuration=nil
+            beat = event.beatId ?? ""; beatPCM = Data(); beatSourcePCM = Data(); onset = SpeechOnset(); beatFrames = 0; measured = false; beatDuration=nil
             beatStartTime = totalDuration; playbackElapsed = beatStartTime; playbackLevel = 0
             onFrame?(playbackElapsed,0)
             segmentAudible=presentationActive
@@ -199,6 +214,8 @@ private final class MicrophonePCM: @unchecked Sendable {
             timeline.span(voiceTrace,"audio.base64",start:decoding,beat:beat,bytes:data.count)
             append(data)
         case "segment.audio.ready":
+            schedulePCM(onset.finish())
+            timeline.flag(voiceTrace,"audio.onset_padding_removed_ms."+beat,String(Double(onset.removedFrames)/24))
             // The full byte count is known before draining, so reveal stages
             // while sound is actually playing, not when downloading finishes.
             beatDuration=Double(beatPCM.count)/48000
@@ -206,8 +223,8 @@ private final class MicrophonePCM: @unchecked Sendable {
             // Backgrounding/stopping playback must not discard downloaded audio.
             if !beatPCM.isEmpty {
                 let start=voiceTrace.map {timeline.now($0)} ?? 0
-                clipCache.insert(Self.wave(beatPCM),key:key(beat),generation:cacheGeneration)
-                timeline.span(voiceTrace,"audio.cache_write",start:start,beat:beat,bytes:beatPCM.count)
+                clipCache.insert(Self.wave(beatSourcePCM),key:key(beat),generation:cacheGeneration)
+                timeline.span(voiceTrace,"audio.cache_write",start:start,beat:beat,bytes:beatSourcePCM.count)
             }
             let draining=voiceTrace.map {timeline.now($0)} ?? 0
             try await drain()
@@ -239,6 +256,11 @@ private final class MicrophonePCM: @unchecked Sendable {
     }
     private func append(_ data: Data) {
         guard data.count.isMultiple(of:2),data.count <= 24000*2*15 else {return}
+        beatSourcePCM.append(data)
+        schedulePCM(onset.accept(data))
+    }
+    private func schedulePCM(_ data:Data) {
+        guard !data.isEmpty else {return}
         if !segmentAudible {
             beatPCM.append(data);beatFrames += data.count/2
             return
@@ -478,7 +500,7 @@ private final class MicrophonePCM: @unchecked Sendable {
         recordingLimit?.cancel(); recordingLimit = nil; capture?.finish(); capture = nil
         recordingTimeout?.cancel();recordingTimeout=nil
         microphone?.stop(); microphone = nil; socket?.cancel(with:.goingAway,reason:nil); socket = nil
-        buffers = 0; beatPCM = Data(); isRecording = false; recordingEnded=false;inputLevel=0;finish()
+        buffers = 0; beatPCM = Data(); beatSourcePCM = Data(); onset = SpeechOnset(); isRecording = false; recordingEnded=false;inputLevel=0;finish()
     }
     private static func wave(_ pcm: Data) -> Data {
         var output = Data("RIFF".utf8)

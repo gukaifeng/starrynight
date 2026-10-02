@@ -9,6 +9,7 @@ private final class TouchThroughView: UIView {
     var capturesInspection = false
     weak var inspectionEntry:UIView?
     weak var viewingEntry:UIView?
+    weak var developerEntry:UIView?
     weak var inspectionDock:UIView?
     weak var inspectionPanel:UIView?
     var inspectionPassesBody = true
@@ -84,7 +85,7 @@ private final class TouchThroughView: UIView {
     }
     override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
         if capturesInspection, let characterTouchView {
-            for panel in [inspectionEntry,viewingEntry,inspectionDock].compactMap({$0}) where !panel.isHidden && panel.alpha>0.01 {
+            for panel in [inspectionEntry,viewingEntry,developerEntry,inspectionDock].compactMap({$0}) where !panel.isHidden && panel.alpha>0.01 {
                 let local=panel.convert(point,from:self)
                 if panel.bounds.contains(local),let hit=panel.hitTest(local,with:event) { return hit }
             }
@@ -134,6 +135,33 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
     private var viewEditorHost:LanguageHostingController<CharacterViewEditorPanel>?
     private let positionButton=UIButton(type:.system)
     private let viewingButton=UIButton(type:.system)
+    private var developerButton:UIButton?
+    private var developerLocation:CGPoint?
+#if STARRY_TEST_TOOLS
+    @objc private func openDeveloper() {
+        guard let session=chatSession else {return}
+        UIImpactFeedbackGenerator(style:.light).impactOccurred(intensity:0.45)
+        presentConversationPanel(height:560) {
+            CharacterDeveloperPanel(model:self.model,store:session.store,session:session,performanceState:self.characterPerformance,
+                onSelect:{[weak self] id,on in self?.onSelectPerformance?(id,on)},
+                onReset:{[weak self] group in self?.onResetPerformance?(group)},
+                onAdjust:{[weak self] id,value in self?.onAdjustPerformance?(id,value)},
+                onVisibility:{[weak self] visible in self?.resizePerformancePanel(visible)})
+        }
+    }
+    @objc private func dragDeveloper(_ pan:UIPanGestureRecognizer) {
+        guard let button=developerButton else {return}
+        let delta=pan.translation(in:view);pan.setTranslation(.zero,in:view)
+        let safe=view.safeAreaInsets
+        let x=max(safe.left+24,min(view.bounds.width-safe.right-24,button.center.x+delta.x))
+        let y=max(safe.top+30,min(view.bounds.height-safe.bottom-88,button.center.y+delta.y))
+        developerLocation=CGPoint(x:x/view.bounds.width,y:y/view.bounds.height)
+        button.center=CGPoint(x:x,y:y)
+        if pan.state == .ended {
+            UserDefaults.standard.set([Double(developerLocation!.x),Double(developerLocation!.y)],forKey:"StarryNight.developerButton.position")
+        }
+    }
+#endif
     private var viewingOnly=false
     private var positionSessions:[Int:(session:CompanionSession,account:String)]=[:]
     var onLoadCharacterView:((CharacterViewPose,Bool)->Void)?
@@ -597,6 +625,7 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
         customizationButton.isUserInteractionEnabled = session == nil
         backButton.isHidden = session != nil
         chatHost = nil; chatSession = session; chatEditing = false; chatComposerFrame = .zero;viewingOnly=false
+        developerButton?.isHidden=session == nil
         (view as? TouchThroughView)?.messageRegions = [:]
         // Only the visible identity occupies the upper-left touch area. Keeping
         // the old wide centered hit target here would swallow model gestures.
@@ -717,6 +746,22 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
         view.addSubview(positionButton)
         viewingButton.addTarget(self,action:#selector(toggleViewing),for:.touchUpInside)
         view.addSubview(viewingButton)
+#if STARRY_TEST_TOOLS
+        let debug=UIButton(type:.system)
+        debug.setImage(UIImage(systemName:"curlybraces",withConfiguration:UIImage.SymbolConfiguration(pointSize:13,weight:.medium)),for:.normal)
+        debug.tintColor=UIColor(Theme.ink).withAlphaComponent(0.50)
+        debug.backgroundColor=UIColor(Theme.background).withAlphaComponent(0.18)
+        debug.layer.cornerRadius=22
+        debug.accessibilityLabel="角色开发者";debug.accessibilityHint="轻点打开，拖动可调整位置"
+        debug.accessibilityIdentifier="openCharacterDeveloper"
+        debug.addTarget(self,action:#selector(openDeveloper),for:.touchUpInside)
+        debug.addGestureRecognizer(UIPanGestureRecognizer(target:self,action:#selector(dragDeveloper(_:))))
+        debug.isHidden=chatSession == nil;view.addSubview(debug);developerButton=debug
+        (view as? TouchThroughView)?.developerEntry=debug
+        if let saved=UserDefaults.standard.array(forKey:"StarryNight.developerButton.position") as? [Double],saved.count==2 {
+            developerLocation=CGPoint(x:saved[0],y:saved[1])
+        }
+#endif
         (view as? TouchThroughView)?.viewingEntry=viewingButton
         (view as? TouchThroughView)?.inspectionEntry=positionButton
         touchSurface.onGesture = { [weak self] value in self?.onNativeGesture?(value) }
@@ -731,7 +776,7 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
         touchSurface.observeEditing(in:view) { [weak self] point,target in
             guard let self,self.viewEditor.isOpen,self.viewEditor.section == .position,self.gestureInputAvailable,self.view.isUserInteractionEnabled else {return false}
             if (self.view as? TouchThroughView)?.inspectionPanelOwns(point) == true {return false}
-            for excluded in [self.positionButton,self.viewingButton,self.dockHost?.view].compactMap({$0}) where !excluded.isHidden && excluded.alpha>0.01 {
+            for excluded in [self.positionButton,self.viewingButton,self.developerButton,self.dockHost?.view].compactMap({$0}) where !excluded.isHidden && excluded.alpha>0.01 {
                 if excluded.bounds.contains(excluded.convert(point,from:self.view)) {return false}
             }
             return true
@@ -880,7 +925,7 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
         if viewEditor.isOpen {
             guard gestureInputAvailable,presentedViewController==nil else {return false}
             let point=touch.location(in:view)
-            for excluded in [viewEditorHost?.view,positionButton,viewingButton,dockHost?.view].compactMap({$0}) where !excluded.isHidden && excluded.alpha>0.01 {
+            for excluded in [viewEditorHost?.view,positionButton,viewingButton,developerButton,dockHost?.view].compactMap({$0}) where !excluded.isHidden && excluded.alpha>0.01 {
                 if excluded.bounds.contains(excluded.convert(point,from:view)) {return false}
             }
             // Only a completed tap dismisses. Panning or pinching outside the
@@ -976,6 +1021,12 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
         viewingButton.frame=CGRect(x:positionButton.frame.minX-64,y:positionButton.frame.minY,width:60,height:44)
         view.bringSubviewToFront(viewingButton)
         view.bringSubviewToFront(positionButton)
+        if let debug=developerButton {
+            let point=developerLocation ?? CGPoint(x:0.92,y:0.32)
+            debug.frame=CGRect(x:max(safe.left+2,min(size.width-safe.right-46,point.x*size.width-22)),
+                y:max(safe.top+8,min(size.height-safe.bottom-110,point.y*size.height-22)),width:44,height:44)
+            view.bringSubviewToFront(debug)
+        }
         var insets = AdaptiveViewerLayout.Insets(top:safe.top,left:safe.left,bottom:safe.bottom,right:safe.right)
         // Composition belongs to the character, not to the current sheet, keyboard
         // or chat height. The window safe area also handles notch/island rotation.

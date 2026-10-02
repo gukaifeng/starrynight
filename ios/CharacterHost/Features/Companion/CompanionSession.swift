@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+@MainActor private final class PreparedPlayback {var task:Task<Bool,Error>?}
 
 @MainActor @Observable
 final class CompanionSession {
@@ -106,11 +107,22 @@ final class CompanionSession {
     @ObservationIgnored private var activeScript: AIScript?
     @ObservationIgnored private var performedBeats = Set<String>()
     @ObservationIgnored private var registeredOpening:String?
+    @ObservationIgnored private var openingRegistrationTask:Task<Void,Error>?
     private func registerOpeningContext() async throws {
         guard let script=record.messages.first(where:{$0.aiScript?.openingID != nil})?.aiScript,
-              registeredOpening != script.messageId else {return}
-        try await api.registerOpening(script,resetID:record.conversationResetID ?? "")
-        try Task.checkCancellation();registeredOpening=script.messageId
+              registeredOpening != script.messageId,record.serverAcknowledgedOpeningID != script.messageId else {return}
+        if let pending=openingRegistrationTask {try await pending.value;return}
+        let reset=record.conversationResetID ?? ""
+        let registration=Task { @MainActor [weak self] in
+            guard let self else {throw CancellationError()}
+            defer {self.openingRegistrationTask=nil}
+            try await api.registerOpening(script,resetID:reset)
+            guard store.accountID==ownerID,record.conversationResetID ?? "" == reset else {throw CancellationError()}
+            registeredOpening=script.messageId
+            store.update(model.id) {$0.serverAcknowledgedOpeningID=script.messageId}
+        }
+        openingRegistrationTask=registration
+        try await registration.value
     }
     var record: CharacterRecord {
         var value = store.record(model.id)
@@ -390,11 +402,15 @@ final class CompanionSession {
             guard let self else { return }
             VoiceTimeline.shared.mark(voiceTrace,"request_task_started")
             var received = false
+            let localPlayback=PreparedPlayback()
+            defer {localPlayback.task?.cancel()}
             let audio=ReplyAudioPump { [weak self] event in
                 guard let self,self.token==current,self.store.accountID==self.ownerID else {throw CancellationError()}
                 if event.type=="audio.completed" {
+                    if let cachedPlayback=localPlayback.task {_ = try await cachedPlayback.value;return}
                     if !self.muted {self.speech.finish();self.replyReveal.finish();self.emit("state.idle")}
                 } else {
+                    if localPlayback.task != nil {return}
                     if !self.muted {try await self.speech.accept(event)}
                     if event.type=="audio.error",let script=self.activeScript {self.playSilentVisuals(script);self.revealSilently(script)}
                 }
@@ -430,10 +446,16 @@ final class CompanionSession {
                                 record.greeting = ConversationGreetingHistory(count:(record.greeting?.count ?? 0)+1,lastDate:Date(),lastText:script.text,lastEntryID:entry.id)
                             }
                         }
-                        self.scheduleReactionPreparation(delay:0.2)
-                        self.scheduleQuickReplies(script)
+                        if event.coreStreaming != true {
+                            self.scheduleReactionPreparation(delay:0.2)
+                            self.scheduleQuickReplies(script)
+                        }
                         if !self.muted {
-                            self.speech.prepare(message.id,script:script,traceID:voiceTrace)
+                            if event.prepared==true,event.coreStreaming != true,self.speech.hasCached(script) {
+                                localPlayback.task=Task { @MainActor in
+                                    try await self.speech.cachedReplay(script,messageID:message.id,traceID:voiceTrace)
+                                }
+                            } else {self.speech.prepare(message.id,script:script,traceID:voiceTrace)}
                             // React when the text arrives, even while voice is
                             // connecting. Audio onset then aligns/renews the beat.
                             if self.presentationActive,let first=script.beats.first {
@@ -445,10 +467,23 @@ final class CompanionSession {
                     case "reply.script.updated":
                         guard let script=event.script,let id=UUID(uuidString:script.messageId) else {return}
                         if self.activeScript?.messageId==script.messageId {self.activeScript=script}
+                        self.replyReveal.update(script)
                         self.store.update(self.model.id) { record in
                             if let index=record.messages.firstIndex(where:{$0.id==id}) {
                                 record.messages[index].aiScript=script
+                                record.messages[index].text=script.text
+                                if let goals=script.goalState {var experience=record.together;experience.goals=goals;record.experiences=experience}
+                                if let source=record.messages.last(where:{$0.role=="user"}) {
+                                    var together=record.together
+                                    for text in script.memorySuggestions ?? [] where !record.memories.contains(where:{$0.text==text}) && !together.suggestions.contains(where:{$0.text==text}) {
+                                        together.suggestions.append(MemorySuggestion(sourceMessageID:source.id,text:text))
+                                    }
+                                    together.suggestions=Array(together.suggestions.suffix(12));record.experiences=together
+                                }
                             }
+                        }
+                        if event.coreComplete == true {
+                            self.scheduleReactionPreparation(delay:0.2);self.scheduleQuickReplies(script)
                         }
                     case "reply.visuals.updated":
                         guard let script=event.script,script.characterId==self.model.id,
@@ -523,7 +558,8 @@ final class CompanionSession {
                 try await Task.sleep(for:.seconds(delay))
                 guard let self,self.token==current,self.store.accountID==self.ownerID,
                       !self.generating,!self.voiceInput.active,!self.speech.isRecording,self.input.isEmpty else {return}
-                let body=self.requestBody("",trigger:"idle")
+                var body=self.requestBody("",trigger:"idle")
+                var cached:[String]=[]
                 try await self.registerOpeningContext()
                 self.reactionPreparationLease=body["request_id"] as? String
                 var status=try await self.api.prepareReactions(body)
@@ -532,6 +568,9 @@ final class CompanionSession {
                     guard self.token==current,self.store.accountID==self.ownerID,
                           self.presentationActive,!Task.isCancelled else {return}
                     self.preparedReactionReady=status.ready
+                    let clips=status.preparedClips ?? [];self.speech.cachePrepared(clips)
+                    cached=Array((cached+clips.map(\.id)).suffix(32))
+                    if status.preparedClips != nil {body["cached_preparation_ids"]=cached}
                     let required=["shake","pinch_in","pinch_out","app_launch","return"]
                     let missing=required.contains {(status.ready[$0] ?? 0)==0}
                     if !status.preparing,!missing {break}
@@ -582,10 +621,14 @@ final class CompanionSession {
                 var body=self.requestBody("",trigger:"idle");body["source_message_id"]=script.messageId
                 try await self.registerOpeningContext()
                 var response=try await self.api.quickReplies(body,prepare:true)
+                var cached:[String]=[]
                 for _ in 0..<30 {
                     guard !Task.isCancelled,self.token==current,self.store.accountID==self.ownerID,
                           self.quickReplySource==response.sourceMessageId.lowercased() else {return}
-                    if !response.options.isEmpty {self.quickReplies=response.options;self.onPreparationChanged?();return}
+                    if !response.options.isEmpty {self.quickReplies=response.options;self.quickRepliesLoading=false;self.onPreparationChanged?()}
+                    let clips=response.preparedClips ?? [];self.speech.cachePrepared(clips)
+                    cached=Array((cached+clips.map(\.id)).suffix(32))
+                    if response.preparedClips != nil {body["cached_preparation_ids"]=cached}
                     if !response.preparing {return}
                     try await Task.sleep(for:.milliseconds(500))
                     response=try await self.api.quickReplies(body,prepare:false)

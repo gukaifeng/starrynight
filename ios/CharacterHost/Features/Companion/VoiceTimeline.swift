@@ -158,6 +158,7 @@ enum VoiceStage {
             "audio.cache_write":"持久语音缓存写入","audio.cache_read":"持久语音缓存读取","audio.drain":"等待扬声器播放完成",
             "microphone.permission":"麦克风权限","microphone.engine":"麦克风引擎启动","asr.socket_ready":"等待识别服务就绪",
             "first_output":"首次检测到音频输出","first_audio_received":"首个音频到达","text_received":"回复文字到达",
+            "model_first_token":"模型首 token","first_sentence_validated":"首句校验就绪","core_generation_completed":"核心生成完成",
             "context.load":"加载上下文","preparation.claim":"检查预缓存","preparation.yield_to_foreground":"等待后台任务让出资源",
             "preparation.priority_queue":"预生成优先级排队","plan.quality_review":"语言与去重检查","reply.commit":"保存对话与关系",
             "tts.generate":"语音模型生成","audio.cache_lookup":"服务端缓存检查","audio.ordered_queue_wait":"服务端分段顺序排队",
@@ -166,6 +167,7 @@ enum VoiceStage {
         let network=["network.dns":"DNS 解析","network.tcp":"TCP 连接（含 TLS 时可能重叠）","network.tls":"TLS 握手","network.upload":"上传请求","network.response_wait":"等待服务器首个响应","network.download":"响应流持续时间（含生成等待）","conversation.prepare_request":"整理对话与请求","conversation.register_opening":"注册内置首句上下文"]
         if let title=network[key] {return title}
         let purpose=key.contains(".suggestions") ? "接话预测" : key.contains(".performance") ? "表演规划" : key.contains(".tts") ? "语音模型" : "对话模型"
+        if key == "model.plan.stream" {return "对话模型流式生成"}
         if key.hasPrefix("model.") {
             if key.hasSuffix(".http") {return purpose+"请求（含网络与推理）"}
             if key.hasSuffix(".json_decode") {return purpose+" JSON 解码"}

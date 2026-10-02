@@ -89,11 +89,12 @@ struct CharacterRecord: Codable, Sendable {
     var conversationResetID:String? = nil
     var conversationResetVersion:Int? = nil
     var pendingDeletionID:String? = nil
+    var serverAcknowledgedOpeningID:String? = nil
     var lastViewPose: CharacterViewPose { (viewPose ?? viewLibrary?.selected ?? .original).normalized }
     mutating func resetConversation(_ id:String,version:Int=0) {
         messages=[];memories=[];greeting=nil
         experiences=CompanionExperiences(preferences:together.preferences)
-        conversationResetID=id;conversationResetVersion=version;pendingDeletionID=nil
+        conversationResetID=id;conversationResetVersion=version;pendingDeletionID=nil;serverAcknowledgedOpeningID=nil
     }
 }
 struct ConversationGreetingHistory: Codable, Sendable {

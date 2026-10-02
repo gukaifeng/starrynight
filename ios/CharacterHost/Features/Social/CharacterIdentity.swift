@@ -163,7 +163,6 @@ struct CharacterDetailsPanel: View {
     @State private var imageExport: ConversationExportSnapshot?
     @State private var showingAuthor = false
     @State private var showingCredits = false
-    @State private var showingDeveloper = false
     @State private var confirmingUnsubscribe = false
     @State private var loadedPublicProfile:CharacterPublicProfile?
     @State private var editorClose = SoftPanelCloseRequest()
@@ -177,15 +176,7 @@ struct CharacterDetailsPanel: View {
     private var motion:Animation { .easeInOut(duration:reduceMotion ? 0.15 : 0.28) }
     var body: some View {
         ZStack(alignment:.topLeading) {
-            if showingDeveloper {
-#if STARRY_TEST_TOOLS
-                CharacterDeveloperPanel(model:model,store:store,session:session,performanceState:performanceState,
-                    onSelect:onSelectPerformance,onReset:onResetPerformance,onAdjust:onAdjustPerformance,
-                    onVisibility:onPerformanceVisibility,onOpenConversation:{onChat()})
-                    .environment(\.softPanelCloseRequest,editorClose)
-                    .environment(\.softPanelDismiss,{editorClose.request()}).transition(.opacity)
-#endif
-            } else if showingAuthor, let author = library.author(for:model.id) {
+            if showingAuthor, let author = library.author(for:model.id) {
                 AnyView(AuthorProfilePanel(authorID:author.id,library:library,store:store,portraits:portraits,
                     onOpenCharacter:{ id,customize in onOpenCharacter?(id,customize) }))
                     .environment(\.softPanelCloseRequest,editorClose)
@@ -311,18 +302,6 @@ struct CharacterDetailsPanel: View {
                     } label: { Label("模型素材与原始署名",systemImage:"doc.text").font(.system(size:11)).foregroundStyle(Theme.secondary).frame(minHeight:44) }
                         .buttonStyle(.plain).accessibilityIdentifier("characterCreditsButton")
                     if let error = library.error { Text(LocalizedStringKey(error)).font(.caption).foregroundStyle(Theme.peach) }
-#if STARRY_TEST_TOOLS
-                    Button {
-                        beginChild {showingDeveloper=false}
-                        withAnimation(motion) {showingDeveloper=true}
-                    } label: {
-                        HStack(spacing:8) {
-                            Image(systemName:"hammer")
-                            Text("角色开发者页面")
-                            Spacer();Image(systemName:"chevron.right").font(.system(size:10))
-                        }.font(.system(size:12)).foregroundStyle(Theme.secondary).frame(minHeight:44).contentShape(Rectangle())
-                    }.buttonStyle(.plain).accessibilityIdentifier("openCharacterDeveloper")
-#endif
                     HStack(spacing:8) {
                         Image(systemName:"sparkles").font(.system(size:12))
                         Text(model.isPreviewOnly ? "本地模型预览 · 暂未制作语音与对话" : "听着专属音乐，把重要的话留在共同记忆里。")

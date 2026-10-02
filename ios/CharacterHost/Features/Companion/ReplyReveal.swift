@@ -18,6 +18,10 @@ struct ReplyReveal {
         if next>(counts[beatID] ?? 0) {counts[beatID]=next;revision += 1}
     }
     func count(_ id:UUID,beat:String)->Int? {messageID==id ? counts[beat] ?? 0 : nil}
+    mutating func update(_ script:AIScript) {
+        guard messageID?.uuidString.lowercased()==script.messageId.lowercased() else {return}
+        beats=script.beats;revision += 1
+    }
     mutating func finish() {
         guard messageID != nil else {return}
         messageID=nil;counts=[:];beats=[];revision += 1

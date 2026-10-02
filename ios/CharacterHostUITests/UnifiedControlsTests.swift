@@ -4,12 +4,8 @@ import UIKit
 extension XCUIApplication {
     @MainActor func openCharacterDeveloper(file:StaticString = #filePath,line:UInt = #line) {
         if buttons["closeCharacterDeveloper"].exists {return}
-        if !buttons["closeCharacterDetails"].exists {buttons["customizationButton"].tap()}
+        if buttons["closeCharacterDetails"].exists {buttons["closeCharacterDetails"].tap()}
         let entry=buttons["openCharacterDeveloper"]
-        for _ in 0..<8 {
-            if entry.isHittable {break}
-            scrollViews.firstMatch.swipeUp()
-        }
         XCTAssertTrue(entry.isHittable,file:file,line:line);entry.tap()
         XCTAssertTrue(buttons["closeCharacterDeveloper"].waitForExistence(timeout:5),file:file,line:line)
     }
@@ -22,8 +18,7 @@ extension XCUIApplication {
         buttons["closeCharacterPerformance"].tap()
         XCTAssertTrue(buttons["closeCharacterDeveloper"].waitForExistence(timeout:5))
         buttons["closeCharacterDeveloper"].tap()
-        XCTAssertTrue(buttons["closeCharacterDetails"].waitForExistence(timeout:5))
-        if !returnToProfile {buttons["closeCharacterDetails"].tap()}
+        if returnToProfile {buttons["customizationButton"].tap();XCTAssertTrue(buttons["closeCharacterDetails"].waitForExistence(timeout:5))}
     }
 
     @MainActor func openCustomization(_ section:String? = nil,file:StaticString = #filePath,line:UInt = #line) {

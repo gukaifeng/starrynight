@@ -28,7 +28,11 @@ final class CompanionStore {
             let role = String(key.dropFirst("guest:".count))
             let destination = id == DemoAccount.id ? role : id + ":" + role
             guard next.characters[destination] == nil else { continue }
-            next.characters[destination] = record
+            var adopted = record
+            // The server acknowledgment belongs to the guest owner; the new
+            // account must register the opening in its own conversation.
+            adopted.serverAcknowledgedOpeningID = nil
+            next.characters[destination] = adopted
         }
         if next.defaultNicknames?[id] == nil && !guestNickname.isEmpty {
             var names = next.defaultNicknames ?? [:]; names[id] = guestNickname; next.defaultNicknames = names

@@ -13,7 +13,14 @@ struct AIQuickReplySet:Decodable {
     let sourceMessageId:String
     let options:[AIQuickReply]
     let preparing:Bool
+    var preparedClips:[AIPreparedClip]?
 }
+struct AIPreparedClip:Decodable,Sendable {
+    var id:String
+    var script:AIScript
+    var audio:[AIPreparedAudio]
+}
+struct AIPreparedAudio:Decodable,Sendable {var beatId:String;var data:String}
 
 struct AIScript: Codable, Sendable {
     var messageId: String
@@ -97,6 +104,8 @@ struct AIEvent: Decodable, Sendable {
     var visuals: [AIVisual]?
     var prepared: Bool?
     var preparationInflight:Bool?
+    var coreStreaming:Bool?
+    var coreComplete:Bool?
     var traceId:String?
     var serverAtMs:Double?
     var trace:VoiceServerTrace?
@@ -107,6 +116,7 @@ struct AIReactionPoolStatus:Decodable,Sendable {
     var ready:[String:Int]
     var preparing:Bool
     var kinds:[String:String]
+    var preparedClips:[AIPreparedClip]?
 }
 private struct AIReactionPause:Decodable,Sendable {var paused:Bool}
 enum AIConnectionError: LocalizedError {
