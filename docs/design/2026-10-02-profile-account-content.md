@@ -33,4 +33,19 @@
 - 服务端真实 PG/Redis、多副本、身份不变与撤销、反馈和资源访问隔离测试记录在独立仓库；不调用付费 AI。
 - 未重新导出/生成角色图片、音色、模型或音乐；未跑长时 Unity 性能测试。
 
-云端部署和手机实际安装以最终交付记录为准，不把签名编译通过当作已安装。
+## 实际交付
+
+- 云端已切到 `20261002T024344Z-efff1e2563c8`，公共 HTTPS 的 25 项验证通过；原 AI worker 没有重启，备份与旧代码保留。
+- 客户端源码提交 626da8f，服务端实现 efff1e2、部署记录 ce24edd 已推送到各自 origin/main。
+- iPhone 17 的 devicectl 安装成功，版本 0.86.0 / 116，沿用既有 bundle 和本地资料。远程启动被 iOS 锁屏保护拒绝（Locked），不是安装失败或已验证真机界面；用户解锁后可直接打开。
+- 既有未跟踪的 VRChat SDK 设计文档保留原样，不纳入本轮提交。验证截图与真实安装/连接结果在 .local 留存，不上传受限角色画面。
+
+## 关键问题与处理
+
+- 保留 Huma 校验、SCS/Redis 会话与 SSE 取消，换框架只改变 Gin 路由适配。实际 Gin 中间件流式测试验证首包刷新和客户端断开传播。
+- 新的角色发布清单在 PostgreSQL 参数推断中不能直接编码 Go struct，修正为显式 JSON 序列化与 jsonb cast；真实集成通过，未用内存替身绕过。
+- Go 模块下载遇到直连 IPv6 超时，按命令使用 goproxy.cn 重试，继续校验 go.sum，没有关闭依赖验证。
+- 资料 UI 第一次测试使用了错误的 tab-my 标识，改为实际 tab-mine 后通过；普通 SwiftUI Section footer 重载错误按正确 header/footer 形式修复。
+- 账号/密码变更时已在途同步可能带旧 token 返回 401；新增 token 与账户双重检查，旧请求被丢弃并以当前凭证重新同步，不让旧错误影响新登录。资料版本只向前更新，防止迟到回包覆盖新编辑。
+
+实际服务器发布记录在独立仓库 [云端验证记录](https://github.com/gukaifeng/starrynight-server/blob/main/docs/account-assets-release-2026-10-02.md)。
