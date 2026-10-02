@@ -112,6 +112,13 @@ import UIKit
         }
         do {
             try ensure(owner);account.syncStatus="正在同步"
+            // A restored pre-upgrade Keychain session has no public handle.
+            // Fetch identity on activation instead of requiring another login.
+            if needsRestore || account.cloudSession?.user.starryId==nil {
+                let value=try await call("GET","/v1/me")
+                let decoder=JSONDecoder();decoder.keyDecodingStrategy = .convertFromSnakeCase
+                account.updateCloudUser(try decoder.decode(PlatformUser.self,from:JSONEncoder().encode(value)))
+            }
             if !state.hydrated {
                 if !account.cloudShouldImportLocal {
                     let subscriptions=try await relations("subscriptions"),follows=try await relations("follows")

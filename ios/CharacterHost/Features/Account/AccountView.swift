@@ -46,7 +46,7 @@ struct AccountView: View {
 
             if let cloud = account.cloudSession {
                 Section("个人资料") {
-                    accountRow("星夜号",value:cloud.user.id,identifier:"immutableAccountID")
+                    accountRow("星夜号",value:cloud.user.publicNumber,identifier:"immutableAccountID")
                         .textSelection(.enabled)
                     NavigationLink { AccountProfileEditor(account:account) } label: {Label("编辑资料",systemImage:"person.crop.circle")}
                         .accessibilityIdentifier("editAccountProfile")
@@ -70,7 +70,7 @@ struct AccountView: View {
                     .listRowBackground(Theme.surface)
             } else {
             Section {
-                accountRow("星夜号",value:account.session?.accountID ?? DemoAccount.id,identifier:"accountID")
+                accountRow("星夜号",value:"XY100000000001",identifier:"accountID")
                 if let session = account.session {
                     accountRow("本次登录",value:session.method.title,identifier:"accountLoginMethod")
                 }
@@ -151,14 +151,25 @@ struct UserAccountAvatar: View {
     var size:CGFloat
     var signed = true
     var symbol:String?
+    var preview:UIImage? = nil
+    @State private var photo:UIImage?
     var body:some View {
         ZStack {
             Circle().fill(LinearGradient(colors:[Theme.card,Theme.background],startPoint:.topLeading,endPoint:.bottomTrailing))
-            Image(systemName:AccountProfileEditor.avatarSymbols.contains(symbol ?? "") ? symbol! : signed ? "person.crop.circle.fill" : "person.crop.circle")
-                .font(.system(size:size * 0.63,weight:.ultraLight)).foregroundStyle(Theme.accent.opacity(0.85))
+            if let image=preview ?? photo {Image(uiImage:image).resizable().scaledToFill().frame(width:size,height:size).clipShape(Circle())}
+            else if (symbol ?? "starry-cat-v1").hasPrefix("starry-") || symbol=="moon" || symbol==nil {StarryDefaultAvatar(kind:symbol ?? "starry-cat-v1").clipShape(Circle())}
+            else {Image(systemName:AccountProfileEditor.avatarSymbols.contains(symbol ?? "") ? symbol! : "sparkles")
+                .font(.system(size:size * 0.63,weight:.ultraLight)).foregroundStyle(Theme.accent.opacity(0.85))}
         }
         .frame(width:size,height:size)
         .overlay(Circle().stroke(Theme.accent.opacity(0.25),lineWidth:1))
         .accessibilityHidden(true)
+        .task(id:symbol) {
+            photo=nil
+            guard let reference=symbol,reference.hasPrefix("upload:"),let session=PlatformAPI.shared.activeSession else{return}
+            if let data=try? await AccountAvatarCache.shared.load(reference:reference,session:session),PlatformAPI.shared.activeSession?.user.id==session.user.id {
+                photo=UIImage(data:data)
+            }
+        }
     }
 }

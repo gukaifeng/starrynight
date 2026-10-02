@@ -10,7 +10,7 @@ struct ProfileHelpView:View {
                 Text("不显示只隐藏消息条目。重置会清空该角色的对话和记忆，需要二次确认。")
             }.listRowBackground(Theme.surface)
             Section("账户与同步") {
-                Text("登录后，订阅、关注、设置、对话与共同记忆跟随账户。星夜号永久不变，登录账号可以修改。")
+                Text("登录后，订阅、关注、设置、对话与共同记忆跟随账户。星夜号由系统分配，当前不可修改；登录账号可以修改。")
                 Text("微信、短信与邮箱验证仍在接入准备中，目前使用账号和密码登录。")
             }.listRowBackground(Theme.surface)
             Section {NavigationLink("意见反馈") {ProfileFeedbackView(account:account)}}.listRowBackground(Theme.surface)

@@ -18,6 +18,14 @@ final class AccountStore {
     @ObservationIgnored private let defaults: UserDefaults
     @ObservationIgnored private let sessionKey: String
     var isSignedIn: Bool { session != nil }
+    func uploadAvatar(_ data:Data) async throws {
+        guard let remote=cloudSession else{throw PlatformError.status(401)}
+        let result=try await PlatformAPI.shared.request("PUT","/v1/me/avatar",token:remote.token,
+            body:.object(["expected_version":.number(Double(remote.user.version)),"image":.string(data.base64EncodedString())]))
+        guard cloudSession?.token==remote.token else{throw CancellationError()}
+        guard let version=result.object?["version"]?.number,let profile=result.object?["data"]?.object else{throw PlatformError.invalidResponse}
+        updateCloudProfile(version:Int(version),profile:profile);onSync?()
+    }
     func saveProfile(_ patch:[String:JSONValue]) async throws {
         guard let remote=cloudSession else {throw PlatformError.status(401)}
         let result=try await PlatformAPI.shared.request("PATCH","/v1/me",token:remote.token,
@@ -42,6 +50,11 @@ final class AccountStore {
         remote.user.version = version; remote.user.profile = profile
         cloudSession = remote; PlatformAPI.shared.activeSession = remote
         if !isolatedTest { do { try PlatformCredentials.write(remote) } catch { self.error = error.localizedDescription } }
+    }
+    func updateCloudUser(_ user:PlatformUser) {
+        guard var remote=cloudSession,remote.user.id==user.id,user.version>=remote.user.version else{return}
+        remote.user=user;cloudSession=remote;PlatformAPI.shared.activeSession=remote
+        if !isolatedTest {do {try PlatformCredentials.write(remote)} catch {self.error=error.localizedDescription}}
     }
 
     init(defaults:UserDefaults = .standard, arguments:[String] = ProcessInfo.processInfo.arguments) {
@@ -85,7 +98,7 @@ final class AccountStore {
         }
 #if DEBUG && targetEnvironment(simulator)
         if arguments.contains("--ui-testing") && arguments.contains("--profile-page-fixture") {
-            let user=PlatformUser(id:"01993629-8410-7000-8000-000000000001",username:"profile_fixture",guest:false,version:1,
+            let user=PlatformUser(id:"01993629-8410-7000-8000-000000000001",username:"profile_fixture",starryId:"XY100000000001",guest:false,version:1,
                 profile:["display_name":.string("小星"),"bio":.string("收藏日常里的温柔"),"avatar":.string("moon.stars.fill"),"gender":.string("unspecified")])
             cloudSession=PlatformSession(token:"fixture-not-a-server-token",expiresAt:"2099-01-01T00:00:00Z",user:user)
             session=DemoAccountSession(accountID:user.id,method:.password)

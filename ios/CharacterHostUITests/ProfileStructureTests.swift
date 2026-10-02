@@ -7,13 +7,16 @@ final class ProfileStructureTests:XCTestCase {
         app.launch();defer {app.terminate()}
         XCTAssertTrue(app.buttons["tab-mine"].waitForExistence(timeout:15));app.buttons["tab-mine"].tap()
         XCTAssertTrue(app.otherElements["myPage"].waitForExistence(timeout:5))
-        XCTAssertTrue(app.staticTexts["profileAccountID"].label.contains("01993629-8410-7000-8000-000000000001"))
+        XCTAssertTrue(app.staticTexts["profileAccountID"].label.contains("XY100000000001"))
         XCTAssertTrue(app.buttons["profileTool-privacy"].exists);XCTAssertTrue(app.buttons["profileTool-help"].exists)
         app.buttons["accountCenterButton"].tap()
         XCTAssertTrue(app.buttons["editAccountProfile"].waitForExistence(timeout:5));app.buttons["editAccountProfile"].tap()
         XCTAssertTrue(app.textFields["profileNameInput"].waitForExistence(timeout:5))
         XCTAssertEqual(app.textFields["profileNameInput"].value as? String,"小星")
         XCTAssertFalse(app.textFields["immutableAccountID"].exists)
+        XCTAssertTrue(app.buttons["chooseAccountPhoto"].exists)
+        XCTAssertTrue(app.buttons["avatar-starry-cat-v1"].exists)
+        app.buttons["avatar-starry-bunny-v1"].tap()
         let shot=XCTAttachment(screenshot:XCUIScreen.main.screenshot());shot.name="account-profile-editor";shot.lifetime = .keepAlways;add(shot)
     }
     @MainActor func testDiscoveryHasNoFeaturedShelfOrCardAuthor() {

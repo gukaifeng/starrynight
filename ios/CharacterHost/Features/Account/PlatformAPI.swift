@@ -1,14 +1,16 @@
 import Foundation
 import Security
 
-struct PlatformUser: Codable, Equatable {
+struct PlatformUser: Codable, Equatable, Sendable {
     let id, username: String
+    var starryId: String? = nil
     let guest: Bool
     var version: Int
     var profile: [String:JSONValue]
     var displayName: String { profile["display_name"]?.string ?? username }
+    @MainActor var publicNumber: String { starryId ?? L10n.text("同步中…") }
 }
-struct PlatformSession: Codable, Equatable {
+struct PlatformSession: Codable, Equatable, Sendable {
     let token: String
     let expiresAt: String
     var user: PlatformUser

@@ -117,7 +117,7 @@ struct MyPage: View {
                         .font(.system(size:20,weight:.semibold,design:.rounded)).lineLimit(1)
                     Image(systemName:"chevron.right").font(.system(size:9,weight:.medium)).foregroundStyle(Theme.secondary.opacity(0.7))
                 }
-                Text(signed ? L10n.text("星夜号：") + (coordinator.account.cloudSession.map { $0.user.id } ?? coordinator.account.session?.accountID ?? "") : L10n.text("游客 · 正在开始的故事"))
+                Text(signed ? L10n.text("星夜号：") + (coordinator.account.cloudSession.map { $0.user.publicNumber } ?? "XY100000000001") : L10n.text("游客 · 正在开始的故事"))
                     .font(.system(size:10)).foregroundStyle(Theme.secondary).lineLimit(1).accessibilityIdentifier("profileAccountID")
             }.frame(maxWidth:.infinity,alignment:.leading)
         }.padding(.vertical,4).contentShape(Rectangle())
