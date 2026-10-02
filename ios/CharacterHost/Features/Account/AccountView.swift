@@ -70,7 +70,7 @@ struct AccountView: View {
                     .listRowBackground(Theme.surface)
             } else {
             Section {
-                accountRow("星夜号",value:"XY100000000001",identifier:"accountID")
+                accountRow("星夜号",value:L10n.text("登录后分配"),identifier:"accountID")
                 if let session = account.session {
                     accountRow("本次登录",value:session.method.title,identifier:"accountLoginMethod")
                 }
@@ -157,7 +157,7 @@ struct UserAccountAvatar: View {
         ZStack {
             Circle().fill(LinearGradient(colors:[Theme.card,Theme.background],startPoint:.topLeading,endPoint:.bottomTrailing))
             if let image=preview ?? photo {Image(uiImage:image).resizable().scaledToFill().frame(width:size,height:size).clipShape(Circle())}
-            else if (symbol ?? "starry-cat-v1").hasPrefix("starry-") || symbol=="moon" || symbol==nil {StarryDefaultAvatar(kind:symbol ?? "starry-cat-v1").clipShape(Circle())}
+            else if (symbol ?? "starry-orbit-v1").hasPrefix("starry-") || symbol=="moon" || symbol==nil {StarryDefaultAvatar(kind:symbol ?? "starry-orbit-v1").clipShape(Circle())}
             else {Image(systemName:AccountProfileEditor.avatarSymbols.contains(symbol ?? "") ? symbol! : "sparkles")
                 .font(.system(size:size * 0.63,weight:.ultraLight)).foregroundStyle(Theme.accent.opacity(0.85))}
         }

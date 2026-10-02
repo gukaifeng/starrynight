@@ -44,8 +44,8 @@ struct MyPage: View {
                             .frame(width:44,height:44).contentShape(Rectangle())
                     }.buttonStyle(.plain).accessibilityLabel("设置").accessibilityIdentifier("profileSettingsButton")
                 }
-                Text(signed ? (coordinator.account.cloudSession?.user.profile["bio"]?.string ?? coordinator.library.currentAuthor?.bio ?? "让日常的小事，也有人认真听。") : "先聊一会儿，喜欢的话就留下来。")
-                    .font(.system(size:12)).foregroundStyle(Theme.secondary).lineSpacing(3).lineLimit(2)
+                Text(signed ? (coordinator.account.cloudSession?.user.profile["bio"]?.string ?? "在星夜，遇见温柔。") : "先聊一会儿，喜欢的话就留下来。")
+                    .font(.system(size:14)).foregroundStyle(Theme.secondary).lineSpacing(3).lineLimit(2)
                     .frame(maxWidth:.infinity,alignment:.leading).accessibilityIdentifier("profileBio")
                 HStack(spacing:0) {
                     statistic(coordinator.library.subscriptions.count,title:"订阅",identifier:"mySubscriptionsButton") { showingSubscriptions = true }
@@ -61,7 +61,7 @@ struct MyPage: View {
                     toolRow("帮助与反馈",symbol:"questionmark.circle",page:"help")
                 }.background(Theme.surface.opacity(0.55),in:RoundedRectangle(cornerRadius:18))
                 Text("星夜 · "+(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""))
-                    .font(.system(size:10)).foregroundStyle(Theme.secondary.opacity(0.6)).frame(maxWidth:.infinity).padding(.top,4)
+                    .font(.system(size:12)).foregroundStyle(Theme.secondary.opacity(0.6)).frame(maxWidth:.infinity).padding(.top,4)
             }.padding(.horizontal,24).padding(.top,20).padding(.bottom,20)
         }.scrollIndicators(.hidden)
             .softSheet(isPresented:$showingTools,height:860) {
@@ -117,8 +117,8 @@ struct MyPage: View {
                         .font(.system(size:20,weight:.semibold,design:.rounded)).lineLimit(1)
                     Image(systemName:"chevron.right").font(.system(size:9,weight:.medium)).foregroundStyle(Theme.secondary.opacity(0.7))
                 }
-                Text(signed ? L10n.text("星夜号：") + (coordinator.account.cloudSession.map { $0.user.publicNumber } ?? "XY100000000001") : L10n.text("游客 · 正在开始的故事"))
-                    .font(.system(size:10)).foregroundStyle(Theme.secondary).lineLimit(1).accessibilityIdentifier("profileAccountID")
+                Text(signed ? L10n.text("星夜号：") + (coordinator.account.cloudSession.map { $0.user.publicNumber } ?? L10n.text("登录后分配")) : L10n.text("游客 · 正在开始的故事"))
+                    .font(.system(size:12)).foregroundStyle(Theme.secondary).lineLimit(1).accessibilityIdentifier("profileAccountID")
             }.frame(maxWidth:.infinity,alignment:.leading)
         }.padding(.vertical,4).contentShape(Rectangle())
         }.buttonStyle(.plain).accessibilityIdentifier("accountCenterButton")
@@ -128,7 +128,7 @@ struct MyPage: View {
         Button {toolsPage=page;showingTools=true} label: {
             HStack(spacing:12) {
                 Image(systemName:symbol).font(.system(size:16,weight:.regular)).foregroundStyle(Theme.accent).frame(width:22)
-                Text(LocalizedStringKey(title)).font(.system(size:13))
+                Text(LocalizedStringKey(title)).font(.system(size:14))
                 Spacer();Image(systemName:"chevron.right").font(.system(size:9)).foregroundStyle(Theme.secondary)
             }.padding(.horizontal,16).frame(minHeight:50).contentShape(Rectangle())
         }.buttonStyle(.plain).accessibilityIdentifier("profileTool-"+page)
@@ -139,8 +139,8 @@ struct MyPage: View {
                 ? AnyLayout(VStackLayout(alignment:.center,spacing:3))
                 : AnyLayout(HStackLayout(alignment:.firstTextBaseline,spacing:5))
             layout {
-                Text("\(value)").font(.system(size:18,weight:.semibold,design:.rounded)).monospacedDigit()
-                Text(LocalizedStringKey(title)).font(.system(size:11)).foregroundStyle(Theme.secondary)
+                Text("\(value)").font(.system(size:20,weight:.semibold,design:.rounded)).monospacedDigit()
+                Text(LocalizedStringKey(title)).font(.system(size:14)).foregroundStyle(Theme.secondary)
                     .lineLimit(1).minimumScaleFactor(0.85)
             }.frame(maxWidth:.infinity,minHeight:44).contentShape(Rectangle())
         }.buttonStyle(.plain).accessibilityIdentifier(identifier).accessibilityLabel("\(value) \(title)")
@@ -302,7 +302,7 @@ struct ProfileSettingsView: View {
                     .environment(\.softPanelDismiss,{chatDisplayClose.request()}).transition(.opacity)
 #endif
             } else if showingNickname {
-                DefaultNicknamePanel(store:coordinator.companionStore)
+                DefaultNicknamePanel(store:coordinator.companionStore,models:coordinator.library.discover)
                     .environment(\.softPanelCloseRequest,chatDisplayClose)
                     .environment(\.softPanelDismiss,{ chatDisplayClose.request() })
                     .transition(.opacity)

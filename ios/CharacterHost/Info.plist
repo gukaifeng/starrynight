@@ -30,6 +30,8 @@
 	<string>将语音发送至星夜 AI 服务及阿里云百炼，实时转成可编辑文字。确认发送后才进入对话。</string>
 	<key>NSMotionUsageDescription</key>
 	<string>在对话中识别主动摇晃，让角色作出回应。运动数据仅在本机处理。</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>选择照片作为星夜头像。你可以只允许选中的照片，也可以允许全部照片。</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>开发版连接同一网络中的星夜 AI 服务，完成真实对话和语音。</string>
 	<key>NSAppTransportSecurity</key>

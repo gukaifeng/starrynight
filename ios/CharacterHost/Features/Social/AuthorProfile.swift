@@ -14,7 +14,7 @@ struct AuthorProfile: Codable, Identifiable, Equatable, Sendable {
     static let avatarChoices = ["moon", "leaf", "sparkle", "sun", "cloud", "wave"]
     static func initial(id: String, accountID: String) -> Self {
         Self(id: id, name: accountID == DemoAccount.id ? "星夜体验者 A" : accountID == DemoAccount.alternateID ? "星夜体验者 B" : "星夜创作者",
-             bio: "把想象中的伙伴，带到你身边。", avatar: accountID == DemoAccount.alternateID ? "leaf" : "moon")
+             bio: "在星夜，遇见温柔。", avatar: "moon")
     }
     func matches(_ query: String) -> Bool {
         let text = (name + " " + bio + " " + handle).folding(options: [.caseInsensitive, .diacriticInsensitive, .widthInsensitive], locale: .current)

@@ -1,14 +1,17 @@
 import SwiftUI
 import PhotosUI
+import Photos
 
 struct AccountProfileEditor:View {
     let account:AccountStore
     static let avatarSymbols=["moon.stars.fill","sparkles","sun.max.fill","leaf.fill","cat.fill","person.crop.circle.fill"]
-    static let starryAvatars=["starry-cat-v1","starry-bunny-v1","starry-orbit-v1"]
+    static let starryAvatars=["starry-orbit-v1"]
     @State private var name=""
     @State private var bio=""
     @State private var gender="unspecified"
-    @State private var avatar="starry-cat-v1"
+    @State private var avatar="starry-orbit-v1"
+    @State private var showingPhotos=false
+    @State private var photoPermissionDenied=false
     @State private var selectedPhoto:PhotosPickerItem?
     @State private var photoData:Data?
     @State private var processing=false
@@ -23,10 +26,10 @@ struct AccountProfileEditor:View {
                     Button {avatar=choice;photoData=nil;selectedPhoto=nil} label: {
                         StarryDefaultAvatar(kind:choice).frame(width:44,height:44).clipShape(Circle())
                             .overlay(Circle().stroke(Theme.accent.opacity(avatar==choice ? 0.9 : 0.08),lineWidth:2))
-                    }.buttonStyle(.plain).accessibilityLabel(choice=="starry-cat-v1" ? "小夜猫" : choice=="starry-bunny-v1" ? "月亮兔" : "小星球")
+                    }.buttonStyle(.plain).accessibilityLabel("小星球")
                         .accessibilityIdentifier("avatar-"+choice)
                 };Spacer(minLength:0)
-                    PhotosPicker(selection:$selectedPhoto,matching:.images) {Image(systemName:"photo.badge.plus").font(.system(size:20,weight:.light)).frame(width:44,height:44)}
+                    Button {choosePhoto()} label: {Image(systemName:"photo.badge.plus").font(.system(size:20,weight:.light)).frame(width:44,height:44)}
                         .accessibilityLabel("从相册选择头像").accessibilityIdentifier("chooseAccountPhoto")
                 }
                 if processing {ProgressView("正在准备头像…")}
@@ -41,8 +44,13 @@ struct AccountProfileEditor:View {
                     .disabled(saving || processing || name.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty || name.count>48 || bio.count>500)
                     .accessibilityIdentifier("saveAccountProfile")
             }.listRowBackground(Theme.surface)
-        }.scrollContentBackground(.hidden).background(Theme.background).navigationTitle("编辑资料").navigationBarTitleDisplayMode(.inline)
-            .task {guard let p=account.cloudSession?.user.profile else{return};name=p["display_name"]?.string ?? "";bio=p["bio"]?.string ?? "";gender=p["gender"]?.string ?? "unspecified";avatar=p["avatar"]?.string ?? avatar}
+        }.font(.system(size:14)).tint(Theme.accent).scrollContentBackground(.hidden).background(Theme.background).navigationTitle("编辑资料").navigationBarTitleDisplayMode(.inline)
+            .photosPicker(isPresented:$showingPhotos,selection:$selectedPhoto,matching:.images)
+            .alert("需要照片访问权限",isPresented:$photoPermissionDenied) {
+                Button("前往设置") {if let url=URL(string:UIApplication.openSettingsURLString){UIApplication.shared.open(url)}}
+                Button("取消",role:.cancel) {}
+            } message:{Text("你可以只允许选中的照片，也可以允许访问全部照片，用来选择自己的头像。")}
+            .task {guard let p=account.cloudSession?.user.profile else{return};name=p["display_name"]?.string ?? "";bio=p["bio"]?.string ?? "在星夜，遇见温柔。";gender=p["gender"]?.string ?? "unspecified";let saved=p["avatar"]?.string ?? avatar;avatar=["starry-cat-v1","starry-bunny-v1"].contains(saved) ? "starry-orbit-v1" : saved}
             .task(id:selectedPhoto) {
                 guard let item=selectedPhoto else{return}
                 processing=true;defer{processing=false}
@@ -52,6 +60,14 @@ struct AccountProfileEditor:View {
                     try Task.checkCancellation();photoData=result;error=nil
                 } catch is CancellationError {} catch {self.error="这张照片暂时无法使用，请换一张。"}
             }
+    }
+    private func choosePhoto() {
+        Task {@MainActor in
+            let current=PHPhotoLibrary.authorizationStatus(for:.readWrite)
+            let status=current == .notDetermined ? await PHPhotoLibrary.requestAuthorization(for:.readWrite) : current
+            if status == .authorized || status == .limited {showingPhotos=true}
+            else {photoPermissionDenied=true}
+        }
     }
     private func save() {
         saving=true;error=nil

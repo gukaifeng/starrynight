@@ -92,6 +92,29 @@
           }
         }
       }
+    },
+    "NSPhotoLibraryUsageDescription": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择照片作为星夜头像。你可以只允许选中的照片，也可以允许全部照片。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "選擇照片作為星夜頭像。你可以只允許選取的照片，也可以允許全部照片。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose a StarryNight profile photo. You can allow selected photos or your full library."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

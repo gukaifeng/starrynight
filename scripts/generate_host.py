@@ -153,7 +153,7 @@ settings={'PRODUCT_NAME':'$(TARGET_NAME)','PRODUCT_BUNDLE_IDENTIFIER':'com.model
     'FRAMEWORK_SEARCH_PATHS':['$(inherited)','$(BUILT_PRODUCTS_DIR)'],
     'OTHER_LDFLAGS':['$(inherited)','-lc++','-framework','CoreML','-framework','Accelerate'],
     'GCC_ENABLE_CPP_EXCEPTIONS':'YES',
-    'CODE_SIGN_STYLE':'Automatic','CURRENT_PROJECT_VERSION':'119','MARKETING_VERSION':'0.89.0',
+    'CODE_SIGN_STYLE':'Automatic','CURRENT_PROJECT_VERSION':'120','MARKETING_VERSION':'0.90.0',
     'ENABLE_USER_SCRIPT_SANDBOXING':'NO','SUPPORTS_MACCATALYST':'NO','SWIFT_EMIT_LOC_STRINGS':'YES',
     'ARCHS':'arm64','ENABLE_DEBUG_DYLIB':'NO','ASSETCATALOG_COMPILER_APPICON_NAME':'AppIcon'}
 if args.native_ui_fixture:
@@ -220,6 +220,7 @@ info={'CFBundleDevelopmentRegion':'zh-Hans','CFBundleLocalizations':['zh-Hans','
     'CFBundlePackageType':'APPL','CFBundleShortVersionString':'$(MARKETING_VERSION)','CFBundleVersion':'$(CURRENT_PROJECT_VERSION)',
     'NSMicrophoneUsageDescription':'将语音发送至星夜 AI 服务及阿里云百炼，实时转成可编辑文字。确认发送后才进入对话。',
     'NSMotionUsageDescription':'在对话中识别主动摇晃，让角色作出回应。运动数据仅在本机处理。',
+    'NSPhotoLibraryUsageDescription':'选择照片作为星夜头像。你可以只允许选中的照片，也可以允许全部照片。',
     'NSLocalNetworkUsageDescription':'开发版连接同一网络中的星夜 AI 服务，完成真实对话和语音。',
     'NSAppTransportSecurity':{'NSAllowsLocalNetworking':True},
     'LSRequiresIPhoneOS':True,'UILaunchScreen':{'UIColorName':'LaunchNight'},'UIUserInterfaceStyle':'Dark',

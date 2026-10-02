@@ -98,8 +98,8 @@ final class AccountStore {
         }
 #if DEBUG && targetEnvironment(simulator)
         if arguments.contains("--ui-testing") && arguments.contains("--profile-page-fixture") {
-            let user=PlatformUser(id:"01993629-8410-7000-8000-000000000001",username:"profile_fixture",starryId:"XY100000000001",guest:false,version:1,
-                profile:["display_name":.string("小星"),"bio":.string("收藏日常里的温柔"),"avatar":.string("moon.stars.fill"),"gender":.string("unspecified")])
+            let user=PlatformUser(id:"01993629-8410-7000-8000-000000000001",username:"profile_fixture",starryId:"xy1",guest:false,version:1,
+                profile:["display_name":.string("小星"),"bio":.string("收藏日常里的温柔"),"avatar":.string("starry-orbit-v1"),"gender":.string("unspecified")])
             cloudSession=PlatformSession(token:"fixture-not-a-server-token",expiresAt:"2099-01-01T00:00:00Z",user:user)
             session=DemoAccountSession(accountID:user.id,method:.password)
         }
