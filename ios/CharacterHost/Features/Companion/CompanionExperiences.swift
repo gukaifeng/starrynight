@@ -47,6 +47,7 @@ struct StoryProgress: Codable, Equatable, Sendable {
     var updatedAt = Date()
 }
 struct CompanionExperiences: Codable, Sendable {
+    var goals: ConversationGoals? = nil
     var preferences = TogetherPreferences()
     var stories: [String:StoryProgress] = [:]
     var activeStoryID: String? = nil

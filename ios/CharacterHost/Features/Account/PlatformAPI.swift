@@ -14,7 +14,7 @@ struct PlatformSession: Codable, Equatable {
     var user: PlatformUser
 }
 /// Preserves unknown server fields across app upgrades and merge patches.
-indirect enum JSONValue: Codable, Equatable {
+indirect enum JSONValue: Codable, Equatable, Sendable {
     case object([String:Self]), array([Self]), string(String), number(Double), bool(Bool), null
     init(from decoder:Decoder) throws {
         let c = try decoder.singleValueContainer()

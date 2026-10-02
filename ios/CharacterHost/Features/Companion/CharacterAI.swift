@@ -23,6 +23,7 @@ struct AIScript: Codable, Sendable {
     var idleDecision: String?
     var memorySuggestions: [String]?
     var openingID: String? = nil
+    var goalState: ConversationGoals? = nil
 }
 struct AIBeat: Codable, Sendable, Identifiable {
     var beatId: String

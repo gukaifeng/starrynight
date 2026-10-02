@@ -336,6 +336,10 @@ final class CompanionSession {
     func requestBody(_ text:String,trigger:String)->[String:Any] {
         Self.requestBody(store:store,model:model,text:text,trigger:trigger)
     }
+    func goalDirectionChanged() {
+        // A reply prepared under the previous direction must never be delivered.
+        stop(); quickReplies=[];scheduleReactionPreparation(delay:0.2)
+    }
     static func requestBody(store:CompanionStore,model:ModelDescriptor,text:String,trigger:String)->[String:Any] {
         let record=store.record(model.id)
         let p = record.together.preferences.normalized
@@ -405,6 +409,7 @@ final class CompanionSession {
                         message.storyID=self.record.together.activeStoryID
                         if self.presentationActive,!self.record.messages.contains(where:{$0.id==message.id}) {self.replyReveal.begin(message.id,script:script)}
                         self.store.update(self.model.id) { record in
+                            if let goals=script.goalState {var experience=record.together;experience.goals=goals;record.experiences=experience}
                             if !record.messages.contains(where:{ $0.id == message.id }) { record.messages.append(message) }
                             if let source = record.messages.last(where:{ $0.role == "user" }) {
                                 var together = record.together

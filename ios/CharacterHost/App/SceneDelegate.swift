@@ -7,6 +7,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     private var startupWindow:UIWindow?
     private var startup:AppStartupController?
     private var bootstrapTask:Task<Void,Never>?
+    private var isolatedGoalFixture = false
 
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
         guard let windowScene = scene as? UIWindowScene else { return }
@@ -24,6 +25,14 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         }
 #endif
 #if DEBUG && targetEnvironment(simulator)
+        if ProcessInfo.processInfo.arguments.contains("--goal-page-fixture") {
+            isolatedGoalFixture = true
+            let store=CompanionStore()
+            let model=ModelDescriptor.all.first { $0.id=="anime-ichigo" } ?? ModelDescriptor.defaultCharacter
+            let session=CompanionSession(store:store,model:model,soundscape:CompanionSoundscape())
+            window.rootViewController=LanguageHostingController(rootView:TogetherPanel(session:session).preferredColorScheme(.dark))
+            return
+        }
         if ProcessInfo.processInfo.arguments.contains("--language-check") {
             window.rootViewController=LanguageHostingController(rootView:AppLanguageFixture());return
         }
@@ -148,6 +157,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         bootstrap(in:windowScene)
     }
     private func bootstrap(in windowScene:UIWindowScene) {
+        guard !isolatedGoalFixture else { return }
 #if DEBUG && targetEnvironment(simulator)
         if ProcessInfo.processInfo.arguments.contains(where: { ["--language-check", "--opening-check", "--voice-atmosphere-check", "--reply-flow-check", "--conversation-presentation-check", "--chat-input-check", "--speech-playback-check", "--greeting-core-check", "--view-presets-check", "--experience-core-check", "--export-core-check", "--export-ui-check", "--social-core-check", "--cache-core-check", "--market-core-check"].contains($0) }) { return }
 #endif

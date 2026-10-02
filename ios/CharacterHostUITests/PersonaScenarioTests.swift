@@ -23,6 +23,7 @@ final class PersonaScenarioTests:XCTestCase {
             XCTAssertTrue(together.waitForExistence(timeout:8))
             for _ in 0..<4 {if together.isHittable {break};app.swipeUp()}
             together.tap()
+            app.segmentedControls["togetherTabs"].buttons["故事"].tap()
             XCTAssertTrue(app.buttons["start-story-"+route].waitForExistence(timeout:8))
             XCTAssertEqual(app.staticTexts["englishOnlyBadge"].exists,role == "lime")
             XCTAssertFalse(app.buttons["start-story-siska-blank-page"].exists)

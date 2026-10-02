@@ -2,7 +2,7 @@ import SwiftUI
 
 struct TogetherPanel: View {
     let session: CompanionSession
-    @State private var tab = "故事"
+    @State private var tab = "方向"
     @State private var preferences: TogetherPreferences
     @State private var mood = "平静"
     @State private var note = ""
@@ -52,11 +52,12 @@ struct TogetherPanel: View {
             PanelPageHeader("和\(session.record.profile.name)一起",subtitle:"把相处，变成自己的故事",backID:"closeTogetherButton")
             VStack(spacing:14) {
                 Picker("一起",selection:$tab) {
-                    ForEach(["故事","相处","时光","更多"],id:\.self) { Text(LocalizedStringKey($0)).tag($0) }
+                    ForEach(["方向","故事","相处","时光"],id:\.self) { Text(LocalizedStringKey($0)).tag($0) }
                 }.pickerStyle(.segmented).accessibilityIdentifier("togetherTabs")
                 ScrollView {
                     VStack(alignment:.leading,spacing:18) {
                         switch tab {
+                        case "方向": ConversationGoalsPanel(session:session)
                         case "相处": relationship
                         case "时光": journal
                         case "更多": futureFeatures
@@ -132,12 +133,6 @@ struct TogetherPanel: View {
                     .font(.system(size:11)).foregroundStyle(Theme.secondary)
             }
             textEntry("让对方了解你",placeholder:"兴趣、近况，或想一起做的事",text:$preferences.aboutMe,id:"togetherAboutMe")
-            VStack(alignment:.leading,spacing:9) {
-                caption("我们的关系")
-                Picker("我们的关系",selection:$preferences.relationship) {
-                    ForEach(["朋友","搭档","知己"],id:\.self) { Text(LocalizedStringKey($0)) }
-                }.pickerStyle(.segmented).accessibilityIdentifier("togetherRelationship")
-            }
             VStack(alignment:.leading,spacing:9) {
                 caption("当我有心事时")
                 Picker("回应偏好",selection:$preferences.responseStyle) {
