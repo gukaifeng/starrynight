@@ -18,8 +18,27 @@ final class AccountStore {
     @ObservationIgnored private let defaults: UserDefaults
     @ObservationIgnored private let sessionKey: String
     var isSignedIn: Bool { session != nil }
+    func saveProfile(_ patch:[String:JSONValue]) async throws {
+        guard let remote=cloudSession else {throw PlatformError.status(401)}
+        let result=try await PlatformAPI.shared.request("PATCH","/v1/me",token:remote.token,
+            body:.object(["expected_version":.number(Double(remote.user.version)),"patch":.object(patch)]))
+        guard cloudSession?.user.id==remote.user.id else {throw CancellationError()}
+        guard let version=result.object?["version"]?.number,let profile=result.object?["data"]?.object else {throw PlatformError.invalidResponse}
+        updateCloudProfile(version:Int(version),profile:profile);onSync?()
+    }
+    func updateCredentials(_ action:String,fields:[String:JSONValue]) async throws {
+        guard let remote=cloudSession else {throw PlatformError.status(401)}
+        let result=try await PlatformAPI.shared.request("POST","/v1/me/"+action,token:remote.token,body:.object(fields))
+        guard cloudSession?.user.id==remote.user.id else {throw CancellationError()}
+        let decoder=JSONDecoder();decoder.keyDecodingStrategy = .convertFromSnakeCase
+        let next=try decoder.decode(PlatformSession.self,from:JSONEncoder().encode(result))
+        guard next.user.id==remote.user.id else {throw PlatformError.invalidResponse}
+        if !isolatedTest {try PlatformCredentials.write(next)}
+        cloudSession=next;PlatformAPI.shared.activeSession=next;needsReauthentication=false;onSync?()
+    }
     func updateCloudProfile(version:Int,profile:[String:JSONValue]) {
         guard var remote = cloudSession else { return }
+        guard version>=remote.user.version else {return}
         remote.user.version = version; remote.user.profile = profile
         cloudSession = remote; PlatformAPI.shared.activeSession = remote
         if !isolatedTest { do { try PlatformCredentials.write(remote) } catch { self.error = error.localizedDescription } }
@@ -64,6 +83,14 @@ final class AccountStore {
             cloudSession = saved; PlatformAPI.shared.activeSession = saved
             session = DemoAccountSession(accountID:saved.user.id,method:saved.user.guest ? .testGuest : .password)
         }
+#if DEBUG && targetEnvironment(simulator)
+        if arguments.contains("--ui-testing") && arguments.contains("--profile-page-fixture") {
+            let user=PlatformUser(id:"01993629-8410-7000-8000-000000000001",username:"profile_fixture",guest:false,version:1,
+                profile:["display_name":.string("小星"),"bio":.string("收藏日常里的温柔"),"avatar":.string("moon.stars.fill"),"gender":.string("unspecified")])
+            cloudSession=PlatformSession(token:"fixture-not-a-server-token",expiresAt:"2099-01-01T00:00:00Z",user:user)
+            session=DemoAccountSession(accountID:user.id,method:.password)
+        }
+#endif
     }
 
     func authenticate(action:String,username:String = "",password:String = "",name:String = "") async {

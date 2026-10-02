@@ -9,6 +9,8 @@ struct MyPage: View {
     @State private var pendingEntry: (String,Bool)?
     @State private var showingCreations = false
     @State private var showingConversations = false
+    @State private var toolsPage:String?
+    @State private var showingTools=false
     private var chattedModels:[ModelDescriptor] {
         coordinator.companionStore.currentRecords.filter { !$0.value.messages.isEmpty }.keys
             .compactMap { coordinator.library.model($0) }.sorted {
@@ -42,7 +44,7 @@ struct MyPage: View {
                             .frame(width:44,height:44).contentShape(Rectangle())
                     }.buttonStyle(.plain).accessibilityLabel("设置").accessibilityIdentifier("profileSettingsButton")
                 }
-                Text(signed ? (coordinator.library.currentAuthor?.bio ?? "让日常的小事，也有人认真听。") : "先聊一会儿，喜欢的话就留下来。")
+                Text(signed ? (coordinator.account.cloudSession?.user.profile["bio"]?.string ?? coordinator.library.currentAuthor?.bio ?? "让日常的小事，也有人认真听。") : "先聊一会儿，喜欢的话就留下来。")
                     .font(.system(size:12)).foregroundStyle(Theme.secondary).lineSpacing(3).lineLimit(2)
                     .frame(maxWidth:.infinity,alignment:.leading).accessibilityIdentifier("profileBio")
                 HStack(spacing:0) {
@@ -53,8 +55,24 @@ struct MyPage: View {
                 }.padding(.vertical,4)
                     .background(Theme.surface.opacity(0.35),in:RoundedRectangle(cornerRadius:16))
                 if let error = coordinator.library.error { Text(LocalizedStringKey(error)).font(.caption).foregroundStyle(Theme.peach) }
+                VStack(spacing:0) {
+                    toolRow("存储与缓存",symbol:"internaldrive",page:"storage")
+                    toolRow("隐私与数据",symbol:"hand.raised",page:"privacy")
+                    toolRow("帮助与反馈",symbol:"questionmark.circle",page:"help")
+                }.background(Theme.surface.opacity(0.55),in:RoundedRectangle(cornerRadius:18))
+                Text("星夜 · "+(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""))
+                    .font(.system(size:10)).foregroundStyle(Theme.secondary.opacity(0.6)).frame(maxWidth:.infinity).padding(.top,4)
             }.padding(.horizontal,24).padding(.top,20).padding(.bottom,20)
         }.scrollIndicators(.hidden)
+            .softSheet(isPresented:$showingTools,height:860) {
+                NavigationStack {
+                    Group {
+                        if toolsPage=="storage" {CacheSettingsView(coordinator:coordinator)}
+                        else if toolsPage=="privacy" {ProfilePrivacyView(account:coordinator.account)}
+                        else {ProfileHelpView(account:coordinator.account)}
+                    }.toolbar {ToolbarItem(placement:.topBarLeading) {PanelBackButton(identifier:"closeProfileTools")}}
+                }.foregroundStyle(Theme.ink).tint(Theme.accent).softSheetSurface()
+            }
             .softSheet(isPresented:$showingSettings,height:860) {
                 ProfileSettingsView(coordinator:coordinator,onClose:{ showingSettings = false })
             }
@@ -90,7 +108,8 @@ struct MyPage: View {
     private var identity:some View {
         Button { if signed { showingAccount = true } else { coordinator.requestLogin() } } label: {
         HStack(spacing:12) {
-            if let author = coordinator.library.currentAuthor, signed { AuthorAvatar(author:author,size:56) }
+            if let remote=coordinator.account.cloudSession {UserAccountAvatar(size:56,symbol:remote.user.profile["avatar"]?.string)}
+            else if let author = coordinator.library.currentAuthor, signed { AuthorAvatar(author:author,size:56) }
             else { UserAccountAvatar(size:56,signed:signed) }
             VStack(alignment:.leading,spacing:6) {
                 HStack(spacing:7) {
@@ -98,12 +117,21 @@ struct MyPage: View {
                         .font(.system(size:20,weight:.semibold,design:.rounded)).lineLimit(1)
                     Image(systemName:"chevron.right").font(.system(size:9,weight:.medium)).foregroundStyle(Theme.secondary.opacity(0.7))
                 }
-                Text(signed ? L10n.text("星夜号：") + (coordinator.account.cloudSession.map { $0.user.guest ? L10n.text("测试体验") : $0.user.username } ?? coordinator.account.session?.accountID ?? "") : L10n.text("游客 · 正在开始的故事"))
+                Text(signed ? L10n.text("星夜号：") + (coordinator.account.cloudSession.map { $0.user.id } ?? coordinator.account.session?.accountID ?? "") : L10n.text("游客 · 正在开始的故事"))
                     .font(.system(size:10)).foregroundStyle(Theme.secondary).lineLimit(1).accessibilityIdentifier("profileAccountID")
             }.frame(maxWidth:.infinity,alignment:.leading)
         }.padding(.vertical,4).contentShape(Rectangle())
         }.buttonStyle(.plain).accessibilityIdentifier("accountCenterButton")
             .accessibilityHint(signed ? "打开账户" : "登录星夜")
+    }
+    private func toolRow(_ title:String,symbol:String,page:String) -> some View {
+        Button {toolsPage=page;showingTools=true} label: {
+            HStack(spacing:12) {
+                Image(systemName:symbol).font(.system(size:16,weight:.regular)).foregroundStyle(Theme.accent).frame(width:22)
+                Text(LocalizedStringKey(title)).font(.system(size:13))
+                Spacer();Image(systemName:"chevron.right").font(.system(size:9)).foregroundStyle(Theme.secondary)
+            }.padding(.horizontal,16).frame(minHeight:50).contentShape(Rectangle())
+        }.buttonStyle(.plain).accessibilityIdentifier("profileTool-"+page)
     }
     private func statistic(_ value:Int,title:String,identifier:String,action:@escaping ()->Void) -> some View {
         Button(action:action) {

@@ -30,7 +30,7 @@ struct AccountView: View {
         List {
             Section {
                 HStack(spacing:14) {
-                    UserAccountAvatar(size:56)
+                    UserAccountAvatar(size:56,symbol:account.cloudSession?.user.profile["avatar"]?.string)
                     VStack(alignment:.leading,spacing:6) {
                         Text(account.cloudSession?.user.displayName ?? (DemoAccount.name + (account.session?.accountID == DemoAccount.alternateID ? " B" : " A")))
                             .font(.headline)
@@ -45,6 +45,16 @@ struct AccountView: View {
             .listRowInsets(EdgeInsets(top:10,leading:16,bottom:10,trailing:16))
 
             if let cloud = account.cloudSession {
+                Section("个人资料") {
+                    accountRow("星夜号",value:cloud.user.id,identifier:"immutableAccountID")
+                        .textSelection(.enabled)
+                    NavigationLink { AccountProfileEditor(account:account) } label: {Label("编辑资料",systemImage:"person.crop.circle")}
+                        .accessibilityIdentifier("editAccountProfile")
+                    if !cloud.user.guest {
+                        NavigationLink { AccountSecurityView(account:account,onDeleted:onSignOut) } label: {Label("账户安全",systemImage:"lock.shield")}
+                            .accessibilityIdentifier("accountSecurity")
+                    }
+                }.listRowBackground(Theme.surface)
                 Section {
                     if !cloud.user.guest { accountRow("账号",value:cloud.user.username,identifier:"serverUsername") }
                     accountRow("资料同步",value:account.syncStatus,identifier:"accountSyncStatus")
@@ -140,10 +150,11 @@ struct AccountView: View {
 struct UserAccountAvatar: View {
     var size:CGFloat
     var signed = true
+    var symbol:String?
     var body:some View {
         ZStack {
             Circle().fill(LinearGradient(colors:[Theme.card,Theme.background],startPoint:.topLeading,endPoint:.bottomTrailing))
-            Image(systemName:signed ? "person.crop.circle.fill" : "person.crop.circle")
+            Image(systemName:AccountProfileEditor.avatarSymbols.contains(symbol ?? "") ? symbol! : signed ? "person.crop.circle.fill" : "person.crop.circle")
                 .font(.system(size:size * 0.63,weight:.ultraLight)).foregroundStyle(Theme.accent.opacity(0.85))
         }
         .frame(width:size,height:size)

@@ -1,7 +1,7 @@
 import Foundation
 
 enum MarketShelf: String, CaseIterable, Identifiable {
-    case recommended = "精选", all = "全部", creators = "创作者"
+    case recommended = "精选", all = "全部", creators = "用户作品"
     var id: String { rawValue }
 }
 enum MarketSort: String, CaseIterable, Identifiable {
@@ -10,7 +10,7 @@ enum MarketSort: String, CaseIterable, Identifiable {
 }
 struct MarketQuery: Equatable {
     var text = ""
-    var shelf = MarketShelf.recommended
+    var shelf = MarketShelf.all
     var category = "全部"
     var sort = MarketSort.recommended
     var subscribedOnly = false

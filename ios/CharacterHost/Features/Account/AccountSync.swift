@@ -80,8 +80,18 @@ import UIKit
     private func call(_ method:String,_ path:String,_ body:JSONValue?=nil) async throws -> JSONValue {
         let captured=owner
         guard let session=account.cloudSession,session.user.id==captured else{throw CancellationError()}
-        let result=try await api.request(method,path,token:session.token,body:body)
-        try ensure(captured);return result
+        do {
+            let result=try await api.request(method,path,token:session.token,body:body)
+            try ensure(captured)
+            guard account.cloudSession?.token==session.token else {again=true;throw CancellationError()}
+            return result
+        } catch {
+            try ensure(captured)
+            // A password/name change rotates the token while a sync request may
+            // still be in flight. Its stale 401 must not sign out the new session.
+            if account.cloudSession?.token != session.token {again=true;throw CancellationError()}
+            throw error
+        }
     }
     private func synchronize() async {
         guard !deletionSuspended else {return}
