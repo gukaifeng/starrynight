@@ -17,7 +17,15 @@ struct AccountProfileEditor:View {
     @State private var processing=false
     @State private var saving=false
     @State private var error:String?
-    @Environment(\.dismiss) private var dismiss
+    private struct Draft:Equatable {
+        var name:String;var bio:String;var gender:String;var avatar:String;var photo:Data?
+        var valid:Bool {!name.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty && name.count<=48 && bio.count<=500}
+    }
+    @State private var savedDraft:Draft?
+    @State private var uploadedPhoto:Data?
+    @State private var editingOwner:String?
+    @State private var debounceTask:Task<Void,Never>?
+    private var draft:Draft {Draft(name:name,bio:bio,gender:gender,avatar:avatar,photo:photoData)}
     var body:some View {
         Form {
             Section {
@@ -39,18 +47,17 @@ struct AccountProfileEditor:View {
             } footer:{Text("星夜号自动生成且不可修改。昵称、头像和简介可随时调整。")}
                 .listRowBackground(Theme.surface)
             if let error {Section {Text(error).foregroundStyle(Theme.peach)}.listRowBackground(Theme.surface)}
-            Section {
-                Button {save()} label: {HStack {Spacer();if saving {ProgressView()};Text("保存资料");Spacer()}}
-                    .disabled(saving || processing || name.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty || name.count>48 || bio.count>500)
-                    .accessibilityIdentifier("saveAccountProfile")
-            }.listRowBackground(Theme.surface)
+            if saving {Section {ProgressView()}.listRowBackground(Theme.surface)}
         }.font(.system(size:14)).tint(Theme.accent).scrollContentBackground(.hidden).background(Theme.background).navigationTitle("编辑资料").navigationBarTitleDisplayMode(.inline)
             .photosPicker(isPresented:$showingPhotos,selection:$selectedPhoto,matching:.images)
             .alert("需要照片访问权限",isPresented:$photoPermissionDenied) {
                 Button("前往设置") {if let url=URL(string:UIApplication.openSettingsURLString){UIApplication.shared.open(url)}}
                 Button("取消",role:.cancel) {}
             } message:{Text("你可以只允许选中的照片，也可以允许访问全部照片，用来选择自己的头像。")}
-            .task {guard let p=account.cloudSession?.user.profile else{return};name=p["display_name"]?.string ?? "";bio=p["bio"]?.string ?? "在星夜，遇见温柔。";gender=p["gender"]?.string ?? "unspecified";let saved=p["avatar"]?.string ?? avatar;avatar=["starry-cat-v1","starry-bunny-v1"].contains(saved) ? "starry-orbit-v1" : saved}
+            .task {guard editingOwner==nil,let user=account.cloudSession?.user else{return};let p=user.profile;name=p["display_name"]?.string ?? "";bio=p["bio"]?.string ?? "在星夜，遇见温柔。";gender=p["gender"]?.string ?? "unspecified";let saved=p["avatar"]?.string ?? avatar;avatar=["starry-cat-v1","starry-bunny-v1"].contains(saved) ? "starry-orbit-v1" : saved;editingOwner=user.id;savedDraft=draft}
+            .onChange(of:draft) {_,_ in scheduleSave()}
+            .onSubmit {save()}
+            .onDisappear {debounceTask?.cancel();save()}
             .task(id:selectedPhoto) {
                 guard let item=selectedPhoto else{return}
                 processing=true;defer{processing=false}
@@ -61,6 +68,14 @@ struct AccountProfileEditor:View {
                 } catch is CancellationError {} catch {self.error="这张照片暂时无法使用，请换一张。"}
             }
     }
+    private func scheduleSave() {
+        debounceTask?.cancel()
+        guard editingOwner != nil,draft != savedDraft else {return}
+        debounceTask=Task {@MainActor in
+            do {try await Task.sleep(for:.milliseconds(450));try Task.checkCancellation();save()}
+            catch {}
+        }
+    }
     private func choosePhoto() {
         Task {@MainActor in
             let current=PHPhotoLibrary.authorizationStatus(for:.readWrite)
@@ -70,16 +85,28 @@ struct AccountProfileEditor:View {
         }
     }
     private func save() {
+        guard !saving,!processing,draft.valid,draft != savedDraft,
+              let owner=editingOwner,account.cloudSession?.user.id==owner else{return}
         saving=true;error=nil
         Task {@MainActor in
             defer {saving=false}
             do {
-                if let photoData {try await account.uploadAvatar(photoData)}
-                var fields:[String:JSONValue]=["display_name":.string(name.trimmingCharacters(in:.whitespacesAndNewlines)),"bio":.string(bio),"gender":.string(gender)]
-                if photoData==nil {fields["avatar"] = .string(avatar)}
-                try await account.saveProfile(fields);dismiss()
+                // One writer owns profile versions. Edits made while an upload
+                // is in flight are sent in the next iteration, never overwritten.
+                while draft != savedDraft,draft.valid,!processing {
+                    guard account.cloudSession?.user.id==owner else {throw CancellationError()}
+                    let snapshot=draft
+                    let usingUpload=account.cloudSession?.user.profile["avatar"]?.string?.hasPrefix("upload:") == true
+                    if let photo=snapshot.photo,photo != uploadedPhoto || !usingUpload {
+                        try await account.uploadAvatar(photo);uploadedPhoto=photo
+                    }
+                    guard account.cloudSession?.user.id==owner else {throw CancellationError()}
+                    var fields:[String:JSONValue]=["display_name":.string(snapshot.name.trimmingCharacters(in:.whitespacesAndNewlines)),"bio":.string(snapshot.bio),"gender":.string(snapshot.gender)]
+                    if snapshot.photo==nil {fields["avatar"] = .string(snapshot.avatar)}
+                    try await account.saveProfile(fields);savedDraft=snapshot
+                }
             }
-            catch is CancellationError {} catch {self.error=error.localizedDescription}
+            catch is CancellationError {} catch {self.error=error.localizedDescription;account.error=error.localizedDescription}
         }
     }
 }

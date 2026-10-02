@@ -45,7 +45,7 @@ struct MyPage: View {
                     }.buttonStyle(.plain).accessibilityLabel("设置").accessibilityIdentifier("profileSettingsButton")
                 }
                 Text(signed ? (coordinator.account.cloudSession?.user.profile["bio"]?.string ?? "在星夜，遇见温柔。") : "先聊一会儿，喜欢的话就留下来。")
-                    .font(.system(size:14)).foregroundStyle(Theme.secondary).lineSpacing(3).lineLimit(2)
+                    .font(.system(size:15)).foregroundStyle(Theme.secondary).lineSpacing(3).lineLimit(2)
                     .frame(maxWidth:.infinity,alignment:.leading).accessibilityIdentifier("profileBio")
                 HStack(spacing:0) {
                     statistic(coordinator.library.subscriptions.count,title:"订阅",identifier:"mySubscriptionsButton") { showingSubscriptions = true }
@@ -54,14 +54,14 @@ struct MyPage: View {
                     statistic(chattedModels.count,title:"聊过",identifier:"myConversationsButton") { showingConversations = true }
                 }.padding(.vertical,4)
                     .background(Theme.surface.opacity(0.35),in:RoundedRectangle(cornerRadius:16))
-                if let error = coordinator.library.error { Text(LocalizedStringKey(error)).font(.caption).foregroundStyle(Theme.peach) }
+                if let error = coordinator.library.error { Text(LocalizedStringKey(error)).font(.system(size:15)).foregroundStyle(Theme.peach) }
                 VStack(spacing:0) {
                     toolRow("存储与缓存",symbol:"internaldrive",page:"storage")
                     toolRow("隐私与数据",symbol:"hand.raised",page:"privacy")
                     toolRow("帮助与反馈",symbol:"questionmark.circle",page:"help")
                 }.background(Theme.surface.opacity(0.55),in:RoundedRectangle(cornerRadius:18))
                 Text("星夜 · "+(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""))
-                    .font(.system(size:12)).foregroundStyle(Theme.secondary.opacity(0.6)).frame(maxWidth:.infinity).padding(.top,4)
+                    .font(.system(size:15)).foregroundStyle(Theme.secondary.opacity(0.6)).frame(maxWidth:.infinity).padding(.top,4)
             }.padding(.horizontal,24).padding(.top,20).padding(.bottom,20)
         }.scrollIndicators(.hidden)
             .softSheet(isPresented:$showingTools,height:860) {
@@ -114,11 +114,11 @@ struct MyPage: View {
             VStack(alignment:.leading,spacing:6) {
                 HStack(spacing:7) {
                     Text(signed ? coordinator.account.cloudSession?.user.displayName ?? coordinator.library.currentAuthor?.name ?? L10n.text("星夜体验者") : L10n.text("初来星夜"))
-                        .font(.system(size:20,weight:.semibold,design:.rounded)).lineLimit(1)
+                        .font(.system(size:15,weight:.semibold)).lineLimit(1)
                     Image(systemName:"chevron.right").font(.system(size:9,weight:.medium)).foregroundStyle(Theme.secondary.opacity(0.7))
                 }
                 Text(signed ? L10n.text("星夜号：") + (coordinator.account.cloudSession.map { $0.user.publicNumber } ?? L10n.text("登录后分配")) : L10n.text("游客 · 正在开始的故事"))
-                    .font(.system(size:12)).foregroundStyle(Theme.secondary).lineLimit(1).accessibilityIdentifier("profileAccountID")
+                    .font(.system(size:15)).foregroundStyle(Theme.secondary).lineLimit(1).accessibilityIdentifier("profileAccountID")
             }.frame(maxWidth:.infinity,alignment:.leading)
         }.padding(.vertical,4).contentShape(Rectangle())
         }.buttonStyle(.plain).accessibilityIdentifier("accountCenterButton")
@@ -128,7 +128,7 @@ struct MyPage: View {
         Button {toolsPage=page;showingTools=true} label: {
             HStack(spacing:12) {
                 Image(systemName:symbol).font(.system(size:16,weight:.regular)).foregroundStyle(Theme.accent).frame(width:22)
-                Text(LocalizedStringKey(title)).font(.system(size:14))
+                Text(LocalizedStringKey(title)).font(.system(size:15))
                 Spacer();Image(systemName:"chevron.right").font(.system(size:9)).foregroundStyle(Theme.secondary)
             }.padding(.horizontal,16).frame(minHeight:50).contentShape(Rectangle())
         }.buttonStyle(.plain).accessibilityIdentifier("profileTool-"+page)
@@ -139,8 +139,8 @@ struct MyPage: View {
                 ? AnyLayout(VStackLayout(alignment:.center,spacing:3))
                 : AnyLayout(HStackLayout(alignment:.firstTextBaseline,spacing:5))
             layout {
-                Text("\(value)").font(.system(size:20,weight:.semibold,design:.rounded)).monospacedDigit()
-                Text(LocalizedStringKey(title)).font(.system(size:14)).foregroundStyle(Theme.secondary)
+                Text("\(value)").font(.system(size:15,weight:.semibold)).monospacedDigit()
+                Text(LocalizedStringKey(title)).font(.system(size:15)).foregroundStyle(Theme.secondary)
                     .lineLimit(1).minimumScaleFactor(0.85)
             }.frame(maxWidth:.infinity,minHeight:44).contentShape(Rectangle())
         }.buttonStyle(.plain).accessibilityIdentifier(identifier).accessibilityLabel("\(value) \(title)")
@@ -149,7 +149,7 @@ struct MyPage: View {
     private var conversations:some View {
         LazyVStack(spacing:10) {
             if chattedModels.isEmpty {
-                Text("还没有聊过的角色，去认识一个新伙伴吧。").font(.subheadline).foregroundStyle(Theme.secondary).padding(.vertical,20)
+                Text("还没有聊过的角色，去认识一个新伙伴吧。").font(.system(size:15)).foregroundStyle(Theme.secondary).padding(.vertical,20)
                 Button("去发现") { showingConversations = false; coordinator.navigate(.discover) }.buttonStyle(NightPrimaryButton())
             }
             ForEach(chattedModels) { model in
@@ -157,9 +157,9 @@ struct MyPage: View {
                     HStack(spacing:12) {
                         CharacterAvatar(model:model,profile:coordinator.profile(for:model),portraits:coordinator.portraits,size:42)
                         VStack(alignment:.leading,spacing:6) {
-                            Text(coordinator.profile(for:model).name).font(.subheadline.weight(.medium))
+                            Text(coordinator.profile(for:model).name).font(.system(size:15,weight:.medium))
                             Text(coordinator.companionStore.record(model.id).messages.last?.text ?? "")
-                                .font(.caption).foregroundStyle(Theme.secondary).lineLimit(1)
+                                .font(.system(size:15)).foregroundStyle(Theme.secondary).lineLimit(1)
                         }.frame(maxWidth:.infinity,alignment:.leading)
                         Image(systemName:"chevron.right").font(.system(size:10)).foregroundStyle(Theme.secondary)
                     }.padding(12).background(Theme.surface,in:RoundedRectangle(cornerRadius:18))
@@ -170,7 +170,7 @@ struct MyPage: View {
     private var subscriptions:some View {
         VStack(spacing:10) {
             if coordinator.library.subscriptions.isEmpty {
-                Text("还没有订阅的角色。去发现，遇见一个喜欢的伙伴。").font(.subheadline).foregroundStyle(Theme.secondary).frame(maxWidth:.infinity,alignment:.leading).padding(.vertical,20)
+                Text("还没有订阅的角色。去发现，遇见一个喜欢的伙伴。").font(.system(size:15)).foregroundStyle(Theme.secondary).frame(maxWidth:.infinity,alignment:.leading).padding(.vertical,20)
                 Button("去发现") { showingSubscriptions = false; coordinator.navigate(.discover) }.buttonStyle(NightPrimaryButton())
             }
             ForEach(coordinator.library.subscriptions,id:\.self) { id in
@@ -180,49 +180,49 @@ struct MyPage: View {
                             HStack(spacing:12) {
                                 CharacterAvatar(model:model,profile:coordinator.profile(for:model),portraits:coordinator.portraits,size:44)
                                 VStack(alignment:.leading,spacing:5) {
-                                    Text(coordinator.profile(for:model).name).font(.subheadline.weight(.medium))
-                                    Text(L10n.text("作者 · ") + (coordinator.library.author(for:id)?.name ?? "暂不可用")).font(.caption).foregroundStyle(Theme.secondary)
+                                    Text(coordinator.profile(for:model).name).font(.system(size:15,weight:.medium))
+                                    Text(L10n.text("作者 · ") + (coordinator.library.author(for:id)?.name ?? "暂不可用")).font(.system(size:15)).foregroundStyle(Theme.secondary)
                                 }
                             }.frame(maxWidth:.infinity,alignment:.leading)
                         }.buttonStyle(.plain)
                         Button("取消订阅") { coordinator.library.subscribe(id,false) }
-                            .font(.system(size:11)).foregroundStyle(Theme.secondary).frame(minHeight:44)
+                            .font(.system(size:15)).foregroundStyle(Theme.secondary).frame(minHeight:44)
                             .accessibilityIdentifier("unsubscribe-"+id)
                     }.padding(12).background(Theme.surface.opacity(Theme.panelOpacity),in:RoundedRectangle(cornerRadius:18))
                 } else {
                     HStack(spacing:12) {
                         Image(systemName:"person.crop.circle.badge.questionmark").font(.title2).foregroundStyle(Theme.secondary)
                         VStack(alignment:.leading,spacing:5) {
-                            Text("暂不可用的角色").font(.subheadline)
-                            Text("作品已收起，聊天记录仍保留。").font(.caption).foregroundStyle(Theme.secondary)
+                            Text("暂不可用的角色").font(.system(size:15))
+                            Text("作品已收起，聊天记录仍保留。").font(.system(size:15)).foregroundStyle(Theme.secondary)
                         }.frame(maxWidth:.infinity,alignment:.leading)
-                        Button("取消订阅") { coordinator.library.subscribe(id,false) }.font(.system(size:11)).frame(minHeight:44)
+                        Button("取消订阅") { coordinator.library.subscribe(id,false) }.font(.system(size:15)).frame(minHeight:44)
                             .accessibilityIdentifier("unsubscribe-"+id)
                     }.padding(12).background(Theme.surface,in:RoundedRectangle(cornerRadius:18))
                 }
             }
-            if let error = coordinator.library.error { Text(LocalizedStringKey(error)).font(.caption).foregroundStyle(Theme.peach) }
+            if let error = coordinator.library.error { Text(LocalizedStringKey(error)).font(.system(size:15)).foregroundStyle(Theme.peach) }
         }
     }
     private var creations:some View {
         VStack(spacing:12) {
             if coordinator.library.creations.isEmpty {
-                Text("把想象里的伙伴，带到身边。").font(.subheadline).foregroundStyle(Theme.secondary).padding(.vertical,20)
+                Text("把想象里的伙伴，带到身边。").font(.system(size:15)).foregroundStyle(Theme.secondary).padding(.vertical,20)
                 Button("创建角色") { showingCreations = false; coordinator.navigate(.create) }.buttonStyle(NightPrimaryButton())
             }
             ForEach(coordinator.library.creations) { item in
                 if let model = coordinator.library.model(item.id) {
                     VStack(alignment:.leading,spacing:8) {
                         HStack {
-                            Button(coordinator.profile(for:model).name) { open(item.id) }.font(.subheadline.weight(.medium))
-                            Spacer(); Text(item.published ? "本机公开" : "仅自己").font(.caption).foregroundStyle(Theme.secondary)
+                            Button(coordinator.profile(for:model).name) { open(item.id) }.font(.system(size:15,weight:.medium))
+                            Spacer(); Text(item.published ? "本机公开" : "仅自己").font(.system(size:15)).foregroundStyle(Theme.secondary)
                         }
                         HStack {
                             Button(item.published ? "设为私有" : "发布到发现") {
                                 coordinator.library.publish(item.id,value:!item.published,profile:coordinator.profile(for:model))
                             }.accessibilityIdentifier("publish-"+item.id)
                             Spacer()
-                        }.font(.caption).frame(minHeight:38)
+                        }.font(.system(size:15)).frame(minHeight:38)
                     }.padding(16).background(Theme.surface,in:RoundedRectangle(cornerRadius:18))
                 }
             }
@@ -264,7 +264,7 @@ private struct MyCreationsPanel<Content:View>:View {
                                         AuthorAvatar(author:author,size:32)
                                         VStack(alignment:.leading,spacing:4) {
                                             Text("我的作者主页").font(.system(size:13,weight:.medium))
-                                            Text("个人介绍与公开作品").font(.system(size:11)).foregroundStyle(Theme.secondary)
+                                            Text("个人介绍与公开作品").font(.system(size:15)).foregroundStyle(Theme.secondary)
                                         }
                                         Spacer(minLength:8)
                                         Image(systemName:"chevron.right").font(.system(size:10)).foregroundStyle(Theme.secondary)
@@ -332,7 +332,7 @@ struct ProfileSettingsView: View {
                             Spacer()
                             Text(coordinator.companionStore.defaultNickname.isEmpty ? "未设置" : coordinator.companionStore.defaultNickname)
                                 .lineLimit(1).foregroundStyle(Theme.secondary)
-                            Image(systemName:"chevron.right").font(.caption).foregroundStyle(Theme.secondary)
+                            Image(systemName:"chevron.right").font(.system(size:15)).foregroundStyle(Theme.secondary)
                         }
                     }.accessibilityIdentifier("defaultNicknameSettingsButton")
                     Button {
@@ -346,7 +346,7 @@ struct ProfileSettingsView: View {
                             Spacer()
                             Text("\(Int(coordinator.companionStore.chatDisplay.normalized.fontSize))")
                                 .foregroundStyle(Theme.secondary)
-                            Image(systemName:"chevron.right").font(.caption).foregroundStyle(Theme.secondary)
+                            Image(systemName:"chevron.right").font(.system(size:15)).foregroundStyle(Theme.secondary)
                         }
                     }.accessibilityIdentifier("chatDisplaySettingsButton")
                     NavigationLink { AppLanguageSettingsView() } label: { Label("语言",systemImage:"globe") }
@@ -375,7 +375,7 @@ struct ProfileSettingsView: View {
                             Label("切换到体验身份 " + (coordinator.account.session?.accountID == DemoAccount.id ? "B" : "A"),systemImage:"person.2")
                         }.accessibilityIdentifier("switchDemoIdentity")
                         Text("当前为本机体验。角色订阅、作者关注和对话按身份独立保存，公开作品尚未同步到网络。")
-                            .font(.caption).foregroundStyle(Theme.secondary)
+                            .font(.system(size:15)).foregroundStyle(Theme.secondary)
                     }.listRowBackground(Theme.surface)
                 }
             }.scrollContentBackground(.hidden).scrollIndicators(.hidden).background(Theme.background)

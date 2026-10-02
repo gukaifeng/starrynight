@@ -3,7 +3,7 @@ import XCTest
 final class ConversationPresentationTests: XCTestCase {
     @MainActor func testLoadingAndGrowingReplyStayAtMeasuredBottom() {
         continueAfterFailure=false
-        let app=XCUIApplication();app.launchArguments=["--ui-testing","--conversation-presentation-check"]
+        let app=XCUIApplication();app.launchArguments=["--ui-testing","--conversation-presentation-check","-starry.app.language.v1","zh-Hans"]
         app.launch();defer {app.terminate()}
         let scroll=app.scrollViews["chatMessages"]
         XCTAssertTrue(scroll.waitForExistence(timeout:20))
@@ -40,7 +40,7 @@ final class ConversationPresentationTests: XCTestCase {
     }
     @MainActor func testNewMessagesAndLateNarrationReturnFromHistory() {
         continueAfterFailure=false
-        let app=XCUIApplication();app.launchArguments=["--ui-testing","--conversation-presentation-check"]
+        let app=XCUIApplication();app.launchArguments=["--ui-testing","--conversation-presentation-check","-starry.app.language.v1","zh-Hans"]
         app.launch();defer {app.terminate()}
         let scroll=app.scrollViews["chatMessages"]
         XCTAssertTrue(scroll.waitForExistence(timeout:20))

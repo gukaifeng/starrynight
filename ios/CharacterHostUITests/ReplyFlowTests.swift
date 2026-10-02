@@ -3,7 +3,7 @@ import XCTest
 final class ReplyFlowTests:XCTestCase {
     @MainActor func testAsidesArriveBetweenLinesWhileVoiceIsPlaying() {
         continueAfterFailure=false
-        let app=XCUIApplication();app.launchArguments=["--ui-testing","--reply-flow-check"]
+        let app=XCUIApplication();app.launchArguments=["--ui-testing","--reply-flow-check","-starry.app.language.v1","zh-Hans"]
         app.launch();defer {app.terminate()}
         XCTAssertTrue(app.buttons["startReplyFlow"].waitForExistence(timeout:20))
         app.buttons["startReplyFlow"].tap()

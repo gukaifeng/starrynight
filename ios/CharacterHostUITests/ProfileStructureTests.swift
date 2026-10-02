@@ -7,7 +7,7 @@ final class ProfileStructureTests:XCTestCase {
         app.launch();defer {app.terminate()}
         XCTAssertTrue(app.buttons["tab-mine"].waitForExistence(timeout:15));app.buttons["tab-mine"].tap()
         XCTAssertTrue(app.otherElements["myPage"].waitForExistence(timeout:5))
-        XCTAssertTrue(app.staticTexts["profileAccountID"].label.contains("xy1"))
+        XCTAssertTrue(app.staticTexts["profileAccountID"].label.contains("xy100000001"))
         XCTAssertEqual(app.staticTexts["profileBio"].label,"收藏日常里的温柔")
         XCTAssertTrue(app.buttons["profileTool-privacy"].exists);XCTAssertTrue(app.buttons["profileTool-help"].exists)
         app.buttons["accountCenterButton"].tap()
@@ -16,10 +16,19 @@ final class ProfileStructureTests:XCTestCase {
         XCTAssertEqual(app.textFields["profileNameInput"].value as? String,"小星")
         XCTAssertFalse(app.textFields["immutableAccountID"].exists)
         XCTAssertTrue(app.buttons["chooseAccountPhoto"].exists)
+        XCTAssertFalse(app.buttons["saveAccountProfile"].exists)
         XCTAssertTrue(app.buttons["avatar-starry-orbit-v1"].exists)
         XCTAssertFalse(app.buttons["avatar-starry-cat-v1"].exists)
         XCTAssertFalse(app.buttons["avatar-starry-bunny-v1"].exists)
         app.buttons["avatar-starry-orbit-v1"].tap()
+        let name=app.textFields["profileNameInput"]
+        name.tap();name.typeText(String(repeating:XCUIKeyboardKey.delete.rawValue,count:2)+"Nova")
+        // Leave immediately: dismissal flushes the pending debounce without a
+        // save button. Reopening must read the updated account profile.
+        app.navigationBars.buttons.element(boundBy:0).tap()
+        app.buttons["editAccountProfile"].tap()
+        XCTAssertTrue(name.waitForExistence(timeout:5))
+        XCTAssertEqual(name.value as? String,"Nova")
         let shot=XCTAttachment(screenshot:XCUIScreen.main.screenshot());shot.name="account-profile-editor";shot.lifetime = .keepAlways;add(shot)
     }
     @MainActor func testUnifiedNicknamePageSavesRolePriorityAndInheritance() {

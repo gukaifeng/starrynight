@@ -28,6 +28,17 @@ final class AccountStore {
     }
     func saveProfile(_ patch:[String:JSONValue]) async throws {
         guard let remote=cloudSession else {throw PlatformError.status(401)}
+#if DEBUG && targetEnvironment(simulator)
+        // Profile UI regression tests use a deliberately invalid server token.
+        // This boundary exists only in the explicit isolated simulator fixture.
+        if isolatedTest,remote.token=="fixture-not-a-server-token",remote.user.username=="profile_fixture" {
+            try await Task.sleep(for:.milliseconds(80))
+            guard cloudSession?.user.id==remote.user.id else {throw CancellationError()}
+            var profile=remote.user.profile
+            for (key,value) in patch {profile[key]=value}
+            updateCloudProfile(version:remote.user.version+1,profile:profile);return
+        }
+#endif
         let result=try await PlatformAPI.shared.request("PATCH","/v1/me",token:remote.token,
             body:.object(["expected_version":.number(Double(remote.user.version)),"patch":.object(patch)]))
         guard cloudSession?.user.id==remote.user.id else {throw CancellationError()}
@@ -98,7 +109,7 @@ final class AccountStore {
         }
 #if DEBUG && targetEnvironment(simulator)
         if arguments.contains("--ui-testing") && arguments.contains("--profile-page-fixture") {
-            let user=PlatformUser(id:"01993629-8410-7000-8000-000000000001",username:"profile_fixture",starryId:"xy1",guest:false,version:1,
+            let user=PlatformUser(id:"01993629-8410-7000-8000-000000000001",username:"profile_fixture",starryId:"xy100000001",guest:false,version:1,
                 profile:["display_name":.string("小星"),"bio":.string("收藏日常里的温柔"),"avatar":.string("starry-orbit-v1"),"gender":.string("unspecified")])
             cloudSession=PlatformSession(token:"fixture-not-a-server-token",expiresAt:"2099-01-01T00:00:00Z",user:user)
             session=DemoAccountSession(accountID:user.id,method:.password)

@@ -83,6 +83,7 @@ final class CompanionSession {
     @ObservationIgnored private var shakeTask: Task<Void,Never>?
     @ObservationIgnored private var revealTask: Task<Void,Never>?
     @ObservationIgnored private var reactionPreparationTask: Task<Void,Never>?
+    @ObservationIgnored private var reactionPreparationGeneration=UUID()
     @ObservationIgnored private var reactionPreparationLease:String?
     @ObservationIgnored private var quickReplyTask:Task<Void,Never>?
     private(set) var quickReplies:[AIQuickReply]=[]
@@ -503,7 +504,11 @@ final class CompanionSession {
         reactionPreparationTask?.cancel()
         guard !api.requiresAuthentication,presentationActive,CharacterAI.reactionPreparationEnabled,!(isGuest && store.guestLimitReached) else {return}
         let current=token
+        let generation=UUID();reactionPreparationGeneration=generation
         reactionPreparationTask=Task { @MainActor [weak self] in
+            defer {
+                if let self,self.reactionPreparationGeneration==generation {self.reactionPreparationTask=nil}
+            }
             do {
                 // Start while the current voice is playing, not three seconds
                 // after it ends. Foreground events can adopt in-flight work.
@@ -514,10 +519,20 @@ final class CompanionSession {
                 try await self.registerOpeningContext()
                 self.reactionPreparationLease=body["request_id"] as? String
                 var status=try await self.api.prepareReactions(body)
-                for _ in 0..<60 {
-                    guard self.token==current,!Task.isCancelled else {return}
+                var lastAttempt=ContinuousClock.now
+                for _ in 0..<90 {
+                    guard self.token==current,self.store.accountID==self.ownerID,
+                          self.presentationActive,!Task.isCancelled else {return}
                     self.preparedReactionReady=status.ready
-                    if !status.preparing {break}
+                    let required=["shake","pinch_in","pinch_out","app_launch","return"]
+                    let missing=required.contains {(status.ready[$0] ?? 0)==0}
+                    if !status.preparing,!missing {break}
+                    // A failed provider/TTS attempt is not a full buffer. Match
+                    // the worker's backoff, keep the retry count bounded and
+                    // reuse ready rows instead of generating them again.
+                    if !status.preparing,missing,lastAttempt.duration(to:.now) >= .seconds(31) {
+                        status=try await self.api.prepareReactions(body);lastAttempt = .now
+                    }
                     try await Task.sleep(for:.seconds(2))
                     status=try await self.api.reactionStatus(body)
                 }

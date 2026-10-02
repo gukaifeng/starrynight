@@ -130,7 +130,7 @@ struct CompanionChatView: View {
                             invitation.frame(minHeight:max(0,viewport.size.height-24),alignment:.bottom)
                         }
                         ForEach(session.visibleMessages) { message in
-                            messageView(message).id(message.id)
+                            messageView(message,availableWidth:viewport.size.width).id(message.id)
                                 .transition(reduceMotion ? .opacity : .opacity.combined(with:.offset(y:10)).combined(with:.scale(scale:0.98,anchor:.bottomTrailing)))
                         }
                         if session.generating {
@@ -385,7 +385,7 @@ struct CompanionChatView: View {
             editing = false; session.clearMessageFocus(); scrollState.returnToLatest(); session.send()
         }
     }
-    private func messageView(_ message: CompanionMessage) -> some View {
+    private func messageView(_ message: CompanionMessage,availableWidth:CGFloat) -> some View {
         VStack(alignment:message.role == "user" ? .trailing : .leading,spacing:0) {
             if message.role == "assistant" {
                 VStack(alignment:.leading,spacing:0) {
@@ -406,7 +406,12 @@ struct CompanionChatView: View {
                     .overlay { RoundedRectangle(cornerRadius:22).stroke(Theme.gradient.opacity(session.focusedMessageID == message.id ? 0.65 : 0.08),lineWidth:0.6) }
             }
             if message.interrupted { Text("已停止生成").font(.caption2).foregroundStyle(Theme.secondary) }
-        }.conversationHitRegion(.message,id:message.id.uuidString)
+        }
+            // Reserve the opposite side for clear speaker identity, including
+            // long replies and translations. Use the actual chat viewport so
+            // compact phones, landscape and tablet columns share this rule.
+            .frame(maxWidth:max(0,min(520,(availableWidth-44)*0.82)),alignment:message.role == "user" ? .trailing : .leading)
+            .conversationHitRegion(.message,id:message.id.uuidString)
             .frame(maxWidth:.infinity,alignment:message.role == "user" ? .trailing : .leading)
     }
 }
