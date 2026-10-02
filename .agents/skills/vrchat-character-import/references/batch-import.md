@@ -27,6 +27,14 @@ python3 scripts/prepare_vrc_reference_data.py
 
 `--reuse-conversion` 仅用于输入几何/运动/转换器未变、重建元数据时；转换器或 Inspector 改动后重跑相应步骤。转换回执绑定工具和几何、二进制、采样、站姿、源审计哈希；旧回执无签名时也拒绝复用。inspection stamp 绑定 source/tool SHA 和 Prefab，不能手工补 stamp 代替重跑。此检查只影响候选重建，不会使已安装的旧 XCP 包失效。
 
+### 缺原作动作时的外观预览（仅在用户授权该降级范围后）
+
+角色有完整本体但可达控制图缺 VRChat 平台动作时，可以用 `package_vrchat_library.py --only ROLE --visual-only` 建立独立 `.local/vrchat-batch/visual/ROLE`。它仍需真实 source SHA、Prefab、完整几何及原材质转换；不把缺失动作替换为空动作。预览包有明确 `visualOnly` 与 `unavailableSourceControls` 标记，原作控制菜单为空，声音/AI/音乐仍由 `activate_vrchat_batch.py --preview-only` 禁用。完整 `converted/ROLE` 和来源档案不变。
+
+预览中的默认衣服/道具若依赖未迁移的穿着姿态，必须先看 `render/ROLE.png`；需要隐藏时只改私有预览副本，并在转换回执 `visualHiddenUnposedGarments` 及批次报告逐项登记。存储图元或包体超限时，可只封默认可见网格、在预览副本缩小纹理；不可扩大 SDK 安全预算，也不可把裁减后的包称为原作完整能力。若 Idle 将人物移出画面，可用该角色检查阶段的 `host-standing.json` 替换预览 Idle，回执须标为宿主站姿适配。原作附属件、动画和物理仍保留在完整转换结果供后续升级。
+
+Unity `PortableAvatarReview.Run` 会优先取有 `character.json` 的 `visual/ROLE`，渲染图及零项控制检查均绑定 manifest SHA。`activate_vrchat_batch.py` 仅在显式 `visualOnly=true` 时允许零项控制，仍需隔离渲染文件、来源封面和 XCP 校验。旧严格包继续要求逐项原作控制与复位。新版与旧版若并行比较，必须用不同稳定 ID 与不同 `display.thumbnail`，不能覆盖旧角色对话数据。激活以后再做整库导出、模拟器会话和可用真机安装；设备 FPS、人物动效与原作功能分别验收。
+
 预检生成私有 `capability-preflight.json`，重新解析源图，并标记旧 inspection 是否需要更新。`graph-ready` 不等于可发布：材质、包预算、真实画面、控制复位、AI 数据与设备验证仍需完成。SDK 动画引用与未知 GUID 分开列出；官方索引仅从固定哈希的本机 SDK ZIP 读取路径，不提取或打包动画。不要把平台提供的 motion 误报为作者漏装文件，也不能因为官方索引中找得到名字就把它标成宿主已支持。
 
 新材质固定官方 lilToon 2.3.4，由脚本恢复；禁止加载来源中的任意 shader/Editor/C#/DLL。VRChat SDK 3.10.5 仅从固定哈希档案提取官方 mask 数据到私有缓存，平台动画和 SDK 二进制不进入 App。引用确实缺失不能全局 ignore；精确中性手 fallback 之外的缺 motion 留待补齐。

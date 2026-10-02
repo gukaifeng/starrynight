@@ -62,7 +62,7 @@ def control_dependencies(controls,motions):
         controls['limitations'].append(dict(kind='host-neutral-hand-adaptation',detail='SDK neutral hand/standing proxy assets are not distributed. Reset uses this source prefab neutral fingers and the declared host standing baseline.'))
 
 
-def require_selected_inspection(row, snapshot):
+def require_selected_inspection(row, snapshot, appearance_only=False):
     """A changed source selection cannot reuse the previous variant's snapshot."""
     stamp_path=snapshot/'inspection-stamp.json'
     stamp=json.loads(stamp_path.read_text()) if stamp_path.exists() else {}
@@ -71,7 +71,7 @@ def require_selected_inspection(row, snapshot):
         geometry.get('prefab')!=row['prefab'] or
         stamp.get('additionalPackages',[])!=row.get('additionalPackages',[]) or
         stamp.get('dependencyAssets',[])!=row.get('dependencyAssets',[]) or
-        stamp.get('toolSHA256')!=inspection_signature()):
+        (not appearance_only and stamp.get('toolSHA256')!=inspection_signature())):
         raise ValueError('Selected source/Prefab/Inspector changed; rerun inspect_vrchat_library.py')
 
 
@@ -81,14 +81,138 @@ PREVIEW_OPTIONAL_TEXTURES={'_Shadow2ndColorTex','_ShadowColorTex','_RimColorTex'
 PREVIEW_OPTIONAL_SCREEN_SHADERS={'watchLCD','pSLAG_Mat','pSLAG_UI',
     'fTLG_ON_UIStandby','fTLG_ON_UIOnOff','fTLG_ON_UI'}
 
-def assemble(row,folder,stage,order,allow_preview_shading=False):
+def prepare_visual_candidate(source,target,stage,role):
+    """Build a local appearance preview, preserving the full private conversion."""
+    if target.exists():shutil.rmtree(target)
+    target.mkdir(parents=True)
+    for name in ('model.glb','materials.json','avatar-geometry.json',
+                 'avatar-descriptor.json','portable-conversion.json'):
+        shutil.copy2(source/name,target/name)
+    if (source/'textures').exists():shutil.copytree(source/'textures',target/'textures')
+    # Unity's built-in utility material can have no source GUID. Give that
+    # preview surface a deterministic local identity in both data surfaces.
+    import struct
+    model=target/'model.glb';raw=model.read_bytes();json_size=struct.unpack_from('<I',raw,12)[0]
+    document=json.loads(raw[20:20+json_size]);changed=False
+    if role=='rurune':
+        # The authored Idle clip translates the pelvis behind/below the floor
+        # in this portable coordinate frame. Use the already inspected host
+        # standing node pose for the preview Idle, without touching source IR.
+        nodes=json.loads((stage/'Inspection/Portable'/role/'host-standing.json').read_text())['nodes']
+        if len(nodes)>len(document['nodes']):raise ValueError('Standing snapshot node count changed')
+        mutable=bytearray(raw)
+        idle=next(a for a in document['animations'] if a['name']=='Idle')
+        for channel in idle['channels']:
+            prop=channel['target']['path'];index=channel['target']['node']
+            node=nodes[index] if index<len(nodes) else None
+            key={'translation':'position','rotation':'rotation','scale':'scale'}[prop]
+            axes='xyzw' if prop=='rotation' else 'xyz'
+            values=([float(node[key][axis]) for axis in axes] if node is not None
+                    else list(document['nodes'][index][prop]))
+            if node is not None and prop=='translation':values[0]*=-1
+            if node is not None and prop=='rotation':values[1]*=-1;values[2]*=-1
+            accessor=document['accessors'][idle['samplers'][channel['sampler']]['output']]
+            if accessor['componentType']!=5126 or accessor['type']!=('VEC4' if prop=='rotation' else 'VEC3'):
+                raise ValueError('Unsupported preview baseline sample format')
+            view=document['bufferViews'][accessor['bufferView']]
+            offset=20+json_size+8+view.get('byteOffset',0)+accessor.get('byteOffset',0)
+            fmt='<'+str(len(values))+'f';stride=4*len(values)
+            for frame in range(accessor['count']):struct.pack_into(fmt,mutable,offset+frame*stride,*values)
+        raw=bytes(mutable)
+        receipt=json.loads((target/'portable-conversion.json').read_text())
+        receipt['baseline']=dict(kind='host-standing-adaptation',reason='Authored Idle displaces the preview below the floor')
+        write_json(target/'portable-conversion.json',receipt)
+        changed=True
+    synthetic='mat_'+hashlib.sha256(b'starrynight-preview-missing-material').hexdigest()[:32]
+    for material in document.get('materials',[]):
+        if material.get('name') in ('mat_missing','mat_'):
+            material['name']=synthetic;changed=True
+    catalog=json.loads((target/'materials.json').read_text())
+    for material in catalog['materials']:
+        if material['name'] in ('mat_missing','mat_'):
+            material['name']=synthetic;changed=True
+    geometry=json.loads((target/'avatar-geometry.json').read_text())
+    source_geometry=json.loads((stage/'Inspection/Portable'/role/'geometry.json').read_text())
+    # Some source-only accessories require their authored controllers. The
+    # visual preview omits only explicitly reviewed broken default surfaces;
+    # full conversion and source assets retain them for future adaptation.
+    unsupported_static={
+        'azuki':('Azuki_Wear/Wear_Outer_Hoodie','Azuki_Wear/Wear_Outer_TailSocks',
+                 'Azuki_Wear/Wear_Inner_ArmWarmers'),
+        'mao':('Advanced/AvatarHight','tail'),
+        'maki':('Heiro',),
+        'ramune':('Ramune_Outer/MS_Outer',),
+    }
+    active={i for i,s in enumerate(source_geometry['skins']) if s['active'] and s['enabled']
+            and s['path'] not in unsupported_static.get(role,())}
+    total_primitives=sum(len(m['primitives']) for m in document['meshes'])
+    total_vertices=sum(document['accessors'][p['attributes']['POSITION']]['count']
+                       for mesh in document['meshes'] for p in mesh['primitives'])
+    if (total_primitives>64 or total_vertices>300000 or len(active)<len(source_geometry['skins'])
+            and role in unsupported_static) and sum(
+            len(document['meshes'][i]['primitives']) for i in active)<=64:
+        meshes={old:new for new,old in enumerate(sorted(active))}
+        kept_skins=sorted({node['skin'] for node in document['nodes']
+                           if node.get('mesh') in meshes and 'skin' in node})
+        skins={old:new for new,old in enumerate(kept_skins)}
+        for node in document['nodes']:
+            if 'mesh' not in node:continue
+            if node['mesh'] not in meshes:
+                node.pop('mesh');node.pop('skin',None)
+            else:
+                node['mesh']=meshes[node['mesh']]
+                if 'skin' in node:node['skin']=skins[node['skin']]
+        removed=len(document['meshes'])-len(meshes)
+        document['meshes']=[document['meshes'][i] for i in sorted(meshes)]
+        document['skins']=[document['skins'][i] for i in kept_skins]
+        geometry['skins']=[s for i,s in enumerate(geometry['skins']) if i in active]
+        write_json(target/'avatar-geometry.json',geometry)
+        receipt=json.loads((target/'portable-conversion.json').read_text())
+        receipt['visualPrunedInactiveMeshes']=removed
+        if role in unsupported_static:receipt['visualHiddenUnposedGarments']=list(unsupported_static[role])
+        write_json(target/'portable-conversion.json',receipt)
+        changed=True
+    if changed:
+        payload=json.dumps(document,ensure_ascii=False,separators=(',',':')).encode();payload+=b' ' * (-len(payload)%4)
+        binary=raw[20+json_size:]
+        model.write_bytes(b'glTF'+struct.pack('<II',2,20+len(payload)+len(binary))+struct.pack('<II',len(payload),0x4e4f534a)+payload+binary)
+        write_json(target/'materials.json',catalog)
+    if sum(p.stat().st_size for p in target.rglob('*') if p.is_file())>250*1024*1024:
+        from PIL import Image
+        specs=sorted((p for p in (target/'textures').glob('normal_*.png')),
+                     key=lambda p:p.stat().st_size,reverse=True)
+        for texture in specs:
+            with Image.open(texture) as image:
+                if max(image.size)<4096:continue
+                image.resize((image.width*3//4,image.height*3//4),Image.Resampling.LANCZOS).save(texture,optimize=True)
+            receipt=json.loads((target/'portable-conversion.json').read_text())
+            receipt.setdefault('visualResampledTextures',[]).append(texture.name)
+            write_json(target/'portable-conversion.json',receipt)
+            if sum(p.stat().st_size for p in target.rglob('*') if p.is_file())<235*1024*1024:break
+    original=json.loads((source/'avatar-controls.json').read_text())
+    controls={key:original[key] for key in ('schemaVersion','profile')}
+    controls.update(parameters=[],controls=[],controllers=[],masks=[],
+                    limitations=original.get('limitations',[])+[
+                        dict(kind='visual-preview-only',detail='Source controller and unavailable motions are not exposed.')])
+    write_json(target/'avatar-controls.json',controls)
+    original_motions=json.loads((source/'avatar-motions.json').read_text())
+    original_motions['motions']=[]
+    if role=='rurune':
+        original_motions['baseline']=json.loads((target/'portable-conversion.json').read_text())['baseline']
+    write_json(target/'avatar-motions.json',original_motions)
+    secondary=json.loads((source/'secondary-motion.json').read_text())
+    secondary['strands']=[];secondary['colliders']=[]
+    write_json(target/'secondary-motion.json',secondary)
+
+
+def assemble(row,folder,stage,order,allow_preview_shading=False,visual_only=False):
     geometry=json.loads((stage/'Inspection/Portable'/row['role']/'geometry.json').read_text())
     desc=json.loads((folder/'avatar-descriptor.json').read_text())
     controls=json.loads((folder/'avatar-controls.json').read_text())
     report=json.loads((folder/'portable-conversion.json').read_text())
-    control_dependencies(controls,json.loads((folder/'avatar-motions.json').read_text()))
+    if not visual_only:control_dependencies(controls,json.loads((folder/'avatar-motions.json').read_text()))
     required_missing=[x for x in controls['limitations'] if x['kind'].startswith(('missing-','unsupported-','unknown-'))]
-    if required_missing:raise ValueError('Missing source control dependencies: '+json.dumps(required_missing,ensure_ascii=False))
+    if required_missing and not visual_only:raise ValueError('Missing source control dependencies: '+json.dumps(required_missing,ensure_ascii=False))
     limitations=report['materialLimitations']
     material_names={m['name'].removeprefix('mat_'):m['sourceName']
                     for m in json.loads((folder/'materials.json').read_text())['materials']}
@@ -104,12 +228,13 @@ def assemble(row,folder,stage,order,allow_preview_shading=False):
           (row['role']=='eku' and material_names.get(item.get('material')) in {'Fresnel','Cone'}))) or
         item.get('reason')=='Unity utility mesh uses built-in or missing material; neutral local-preview fallback'
         for item in limitations))
-    if limitations and not preview_shading:
+    if limitations and not (preview_shading or visual_only):
         raise ValueError('Material dependency requires review: '+json.dumps(limitations[:4],ensure_ascii=False))
-    if report['nonlinearMorphFrames']:raise ValueError('Nonlinear morph frames require a dedicated adapter')
+    if report['nonlinearMorphFrames'] and not visual_only:raise ValueError('Nonlinear morph frames require a dedicated adapter')
     write_json(folder/'avatar-controls.json',controls)
-    physics=json.loads((folder/'physics-source.json').read_text())
-    if physics['source'].get('unresolved'):raise ValueError('Source physics references are unresolved')
+    if not visual_only:
+        physics=json.loads((folder/'physics-source.json').read_text())
+        if physics['source'].get('unresolved'):raise ValueError('Source physics references are unresolved')
     human={h['human']:'Avatar/'+h['path'] for h in geometry['human']}
     if 'Head' not in human:raise ValueError('Source humanoid Head binding is missing')
     visemes=desc.get('VisemeBlendShapes',[])
@@ -157,7 +282,7 @@ def assemble(row,folder,stage,order,allow_preview_shading=False):
     if options:required.append('core.performance@2')
     original=row['role'].capitalize()+' '+str(row['version'] or '')
     m=dict(schemaVersion=1,id=row['id'],packageId='app.starry.characters.'+row['id'],packageVersion='3.1.0',
-        display=dict(name=row['name'],originalName=original.strip(),description='在星夜遇见'+row['name']+'，保留原作造型和角色表现。',invitation='一起聊聊此刻的心情。',tagline='让每一次相遇，都有新的故事',symbol='sparkles',thumbnail='Anime_'+row['role'],cardIdentifier='card-'+row['id'],openIdentifier='open-'+row['id'],style='anime',thumbnailScale=1,order=order),
+        display=dict(name=row['name'],originalName=original.strip(),description='在星夜遇见'+row['name']+'，保留原作造型和角色表现。',invitation='一起聊聊此刻的心情。',tagline='让每一次相遇，都有新的故事',symbol='sparkles',thumbnail='Anime_'+row['id'].removeprefix('anime-').replace('-','_'),cardIdentifier='card-'+row['id'],openIdentifier='open-'+row['id'],style='anime',thumbnailScale=1,order=order),
         compatibility=dict(apiMajor=1,minApiMinor=1,required=required,optional=optional),source=dict(format='glb',model='model.glb',scale=1,yaw=0),
         rig=dict(head=human['Head'],neck=human.get('Neck',''),leftEye=human.get('LeftEye',''),rightEye=human.get('RightEye',''),headRenderer=renderer,conversationStart=.49,portraitWidthScale=1),
         gaze=dict(yaw=30,up=12,down=16,eyeYaw=6,eyeUp=4,eyeDown=5),
@@ -179,7 +304,7 @@ def assemble(row,folder,stage,order,allow_preview_shading=False):
             defaults.append(dict(path=path,visible=s['active'] and s['enabled']))
         m['performance']=dict(schemaVersion=2,groups=groups,options=options,defaults=defaults)
     blink=blink_binding_name(desc,names,controls)
-    if blink:
+    if blink and not (visual_only and any(b['shape']==blink and b['renderer']==renderer for b in speech['amplitude'])):
         optional.append('core.autonomy@1')
         m['autonomy']=dict(schemaVersion=1,blink=dict(bindings=[binding(blink)],intervals=[3.2,4.7,5.8,3.9,4.4],closeSeconds=.16,closedSeconds=.035,openSeconds=.26,firstDelay=1.8,suppressGroups=[],suppressOptions=[]))
     if 'performance' in m and len(m['performance']['defaults'])>64:raise ValueError('Renderer visibility budget requires review')
@@ -196,18 +321,23 @@ def assemble(row,folder,stage,order,allow_preview_shading=False):
                 terms.append(asset['path']+'\n'+Path(asset['metadataPath']).read_text(errors='replace'))
     (folder/'LICENSE.txt').write_text('Private user-supplied avatar conversion. No public redistribution permission is implied.\nSource SHA256: '+row['sourceSHA256']+'\n\n'+'\n\n'.join(terms))
     write_json(folder/'source-meta.json',dict(schemaVersion=1,sourceVersion=row['version'],sourceSHA256=row['sourceSHA256'],sourceArchive=row['archive'],prefab=row['prefab'],variants=row['variants'],baseline=report['baseline'],localOnly=True,
-        previewShadingLimitations=limitations if preview_shading else [],
+        previewShadingLimitations=limitations if preview_shading or visual_only else [],
+        visualOnly=visual_only,unavailableSourceControls=report.get('controls',0) if visual_only else 0,
         blinkAdaptation=dict(sourceMorph=blink,timing='host-controlled') if blink else None))
     (folder/'NOTICE.md').write_text('# Private avatar candidate\n\nOriginal geometry, textures and character controls remain subject to their authors’ terms. '+
         'The host uses the MIT-licensed lilToon renderer. VRChat scripts, SDK binaries, platform animations and arbitrary callbacks are not bundled.\n\n'+
         'See portable-conversion.json and physics-source.json for explicit adaptation limits. This package has not passed device performance testing merely because it is sealed.\n'+
         ('\nLocal preview only: unresolved optional shading textures are listed in source-meta.json. Visual approval is required before activation.\n' if preview_shading else ''))
+    if visual_only:
+        m['display']['description']='本地外观预览；原作控制器与未适配动作暂不可用。'
+        m['extensions']['app.starry.private-preview']['visualOnly']=True
+        m['extensions']['app.starry.private-preview']['unavailableSourceControls']=report.get('controls',0)
     write_json(folder/'character.json',m);seal(folder);validate(folder)
     return dict(role=row['role'],id=row['id'],status='packaged',controls=len(options),groups=len(groups),bytes=sum(p.stat().st_size for p in folder.rglob('*') if p.is_file()),baseline=report['baseline'])
 
 
 def main():
-    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--only');parser.add_argument('--reuse-conversion',action='store_true');parser.add_argument('--preview-optional-shading',action='store_true');args=parser.parse_args()
+    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--only');parser.add_argument('--reuse-conversion',action='store_true');parser.add_argument('--preview-optional-shading',action='store_true');parser.add_argument('--visual-only',action='store_true',help='Explicit local appearance preview with unavailable authored controls');args=parser.parse_args()
     plan=json.loads((ROOT/'.local/vrchat-batch/plan.json').read_text());results=[]
     status=ROOT/'.local/vrchat-batch/package-status.json'
     previous={r['role']:r for r in json.loads(status.read_text()).get('characters',[])} if status.exists() else {}
@@ -217,17 +347,19 @@ def main():
             result=dict(role=row['role'],status='skipped',reason=row['status'])
             results.append(result);previous[row['role']]=result
             write_json(status,dict(schemaVersion=1,characters=list(previous.values())));continue
-        stage=ROOT/'.local/vrchat-batch/stages'/row['role'];output=ROOT/'.local/vrchat-batch/converted'/row['role']
+        stage=ROOT/'.local/vrchat-batch/stages'/row['role'];converted=ROOT/'.local/vrchat-batch/converted'/row['role'];output=ROOT/'.local/vrchat-batch/visual'/row['role'] if args.visual_only else converted
         try:
             if not (stage/'Inspection/Portable'/row['role']/'host-standing.json').exists():raise ValueError('Current Unity inspection is not complete')
-            require_selected_inspection(row,stage/'Inspection/Portable'/row['role'])
+            require_selected_inspection(row,stage/'Inspection/Portable'/row['role'],args.visual_only)
             if args.reuse_conversion:
-                receipt=json.loads((output/'portable-conversion.json').read_text())
+                receipt=json.loads((converted/'portable-conversion.json').read_text())
                 require_reusable(receipt.get('conversionSignature'),signature(stage,row['role']))
             if not args.reuse_conversion:
                 with (ROOT/'.local/logs'/('vrchat-convert-'+row['role']+'.log')).open('w') as log:
-                    subprocess.run([sys.executable,str(ROOT/'scripts/vrchat_portable_convert.py'),'--stage',str(stage),'--role',row['role'],'--output',str(output)],check=True,stdout=log,stderr=subprocess.STDOUT)
-            result=assemble(row,output,stage,order,args.preview_optional_shading);print('XCP_CANDIDATE',row['role'],result['controls'],result['bytes'],flush=True)
+                    subprocess.run([sys.executable,str(ROOT/'scripts/vrchat_portable_convert.py'),'--stage',str(stage),'--role',row['role'],'--output',str(converted)],check=True,stdout=log,stderr=subprocess.STDOUT)
+            if args.visual_only:
+                prepare_visual_candidate(converted,output,stage,row['role'])
+            result=assemble(row,output,stage,order,args.preview_optional_shading,args.visual_only);print('XCP_CANDIDATE',row['role'],result['controls'],result['bytes'],flush=True)
         except Exception as error:
             result=dict(role=row['role'],status='needs-review',reason=str(error));print('XCP_DEFERRED',row['role'],str(error),flush=True)
         results.append(result);previous[row['role']]=result;write_json(status,dict(schemaVersion=1,characters=list(previous.values())))

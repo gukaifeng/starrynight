@@ -21,8 +21,10 @@ public static class PortableAvatarReview
         var request=JsonUtility.FromJson<Request>(File.ReadAllText(root+"/.local/vrchat-batch/review-request.json"));
         foreach(string role in request.roles)
         {
-            string source=root+"/.local/vrchat-batch/converted/"+role;
-            string folder="Assets/CharacterPackages/Imported/anime-"+role;
+            string visual=root+"/.local/vrchat-batch/visual/"+role;
+            string source=File.Exists(visual+"/character.json")?visual:root+"/.local/vrchat-batch/converted/"+role;
+            var selected=JsonUtility.FromJson<CharacterManifest>(File.ReadAllText(source+"/character.json"));
+            string folder="Assets/CharacterPackages/Imported/"+selected.id;
             foreach(string file in Directory.GetFiles(source,"*",SearchOption.AllDirectories))
             {
                 string target=folder+file.Substring(source.Length);
@@ -42,7 +44,7 @@ public static class PortableAvatarReview
             clips.First(c=>c.name=="Idle").SampleAnimation(model,0);
             var geometry=JsonUtility.FromJson<Geometry>(File.ReadAllText(root+"/.local/vrchat-batch/stages/"+role+"/Inspection/Portable/"+role+"/geometry.json"));
             foreach(var n in geometry.nodes) {var t=model.transform.Find("Avatar"+(n.path==""?"":"/"+n.path));if(t)t.gameObject.SetActive(n.active);}
-            foreach(var s in geometry.skins) {var t=model.transform.Find("Avatar/"+s.path);if(t)t.GetComponent<Renderer>().enabled=s.enabled;}
+            foreach(var s in geometry.skins) {var t=model.transform.Find("Avatar/"+s.path);if(t && t.TryGetComponent<Renderer>(out var renderer))renderer.enabled=s.enabled;}
             PortableToonMaterialBuilder.Prepare(model,folder);
             PortableAvatarControllerBuilder.Prepare(model,folder,clips.First(c=>c.name=="Idle"));
             var driver=model.GetComponent<AvatarControlDriver>();

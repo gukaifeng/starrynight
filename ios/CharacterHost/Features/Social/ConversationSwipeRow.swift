@@ -28,7 +28,13 @@ struct ConversationSwipeRow<Content:View>:View {
                 guard Date()>=ignoreTapUntil else {return}
                 if revealedID==id {withAnimation(motion) {revealedID=nil}}
                 else {onOpen()}
-            } label: {content().frame(maxWidth:.infinity,alignment:.leading)}
+            } label: {
+                content().frame(maxWidth:.infinity,alignment:.leading)
+                    .overlay(alignment:.trailing) {
+                        LinearGradient(colors:[.clear,Theme.card.opacity(0.75)],startPoint:.leading,endPoint:.trailing)
+                            .frame(width:22).opacity(progress).allowsHitTesting(false)
+                    }
+            }
                 .frame(maxWidth:.infinity).clipped().contentShape(Rectangle())
                 .buttonStyle(ConversationRowButtonStyle()).accessibilityIdentifier("message-"+id)
                 .allowsHitTesting(!locked)
@@ -43,6 +49,11 @@ struct ConversationSwipeRow<Content:View>:View {
                 }.font(.system(size:12,weight:.medium)).foregroundStyle(.white).buttonStyle(.plain)
                     .frame(width:136).frame(width:136*progress,alignment:.trailing).clipped()
                     .padding(.leading,8*progress).opacity(progress)
+                    .background(alignment:.leading) {
+                        LinearGradient(colors:[Theme.card.opacity(0.75),Theme.card.opacity(0.18),.clear],
+                            startPoint:.leading,endPoint:.trailing)
+                            .frame(width:22).offset(x:-8).opacity(progress).allowsHitTesting(false)
+                    }
                     .allowsHitTesting(progress>0.95 && !locked).accessibilityHidden(progress<0.95)
                     .zIndex(1)
             }

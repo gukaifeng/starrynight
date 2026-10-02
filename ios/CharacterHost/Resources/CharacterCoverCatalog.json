@@ -297,6 +297,237 @@
       "cameraYaw": 0,
       "source": "author-supplied",
       "sourceSHA256": "0fba9d29864b2faae2aa261cd59acc2deb4546b11d13c59a0da74b5b1f2aaf9f"
+    },
+    {
+      "runtimeID": "anime-kipfel-v111",
+      "asset": "Cover_anime_kipfel_v111",
+      "environmentID": "sunroom",
+      "focusX": 0.5,
+      "focusY": 0.3,
+      "frameBottom": 0.46,
+      "cameraYaw": 0,
+      "source": "author-supplied",
+      "sourceSHA256": "3ebfbf8a17d57f026f75ca45b809d6d92ff8d6da4adec34904893931cc223190"
+    },
+    {
+      "runtimeID": "anime-azuki",
+      "asset": "Cover_anime_azuki",
+      "environmentID": "sunroom",
+      "focusX": 0.5,
+      "focusY": 0.3,
+      "frameBottom": 0.46,
+      "cameraYaw": 0,
+      "source": "author-supplied",
+      "sourceSHA256": "d15becbb3ab0d00ec8d125a9601de63fc997c3dc65482598d3a3fba04f002f91"
+    },
+    {
+      "runtimeID": "anime-cornet",
+      "asset": "Cover_anime_cornet",
+      "environmentID": "sunroom",
+      "focusX": 0.5,
+      "focusY": 0.3,
+      "frameBottom": 0.46,
+      "cameraYaw": 0,
+      "source": "author-supplied",
+      "sourceSHA256": "034877607497e8ad2d71aa6ef6d07c74d255a9e1c46deca833d05301612de952"
+    },
+    {
+      "runtimeID": "anime-fiona",
+      "asset": "Cover_anime_fiona",
+      "environmentID": "sunroom",
+      "focusX": 0.5,
+      "focusY": 0.3,
+      "frameBottom": 0.46,
+      "cameraYaw": 0,
+      "source": "author-supplied",
+      "sourceSHA256": "0401241b036fb02f60a06b011865fe71ae83d87d9888a85805dd1fcd909dce2e"
+    },
+    {
+      "runtimeID": "anime-elusion",
+      "asset": "Cover_anime_elusion",
+      "environmentID": "sunroom",
+      "focusX": 0.5,
+      "focusY": 0.3,
+      "frameBottom": 0.46,
+      "cameraYaw": 0,
+      "source": "author-supplied",
+      "sourceSHA256": "c87a1605947d5b17bfd7151a457406b8d5a182ba3dcade77de0c757de2d16927"
+    },
+    {
+      "runtimeID": "anime-hikarun",
+      "asset": "Cover_anime_hikarun",
+      "environmentID": "sunroom",
+      "focusX": 0.5,
+      "focusY": 0.3,
+      "frameBottom": 0.46,
+      "cameraYaw": 0,
+      "source": "author-supplied",
+      "sourceSHA256": "4c7f1a8dbe80c7b651cb8ad49eb5bb73c3b68f3253547ff163f2ca6044b30d2c"
+    },
+    {
+      "runtimeID": "anime-kumaly",
+      "asset": "Cover_anime_kumaly",
+      "environmentID": "sunroom",
+      "focusX": 0.5,
+      "focusY": 0.3,
+      "frameBottom": 0.46,
+      "cameraYaw": 0,
+      "source": "author-supplied",
+      "sourceSHA256": "470554cd208c49c45b660605b7002c671566a0b9fc62c714f4aebde18c2c3368"
+    },
+    {
+      "runtimeID": "anime-kikyo",
+      "asset": "Cover_anime_kikyo",
+      "environmentID": "sunroom",
+      "focusX": 0.5,
+      "focusY": 0.3,
+      "frameBottom": 0.46,
+      "cameraYaw": 0,
+      "source": "author-supplied",
+      "sourceSHA256": "dd08331d26d1d66b0f115898df0c7445426dfb5ecc6494a6fd8280b87c82b7a5"
+    },
+    {
+      "runtimeID": "anime-lasyusha",
+      "asset": "Cover_anime_lasyusha",
+      "environmentID": "sunroom",
+      "focusX": 0.5,
+      "focusY": 0.3,
+      "frameBottom": 0.46,
+      "cameraYaw": 0,
+      "source": "author-supplied",
+      "sourceSHA256": "fac1242122b15633c4cf0ccda6eaafb0ecf5ae3ee82c3ba3b844fb5e3515853c"
+    },
+    {
+      "runtimeID": "anime-maki",
+      "asset": "Cover_anime_maki",
+      "environmentID": "sunroom",
+      "focusX": 0.5,
+      "focusY": 0.3,
+      "frameBottom": 0.46,
+      "cameraYaw": 0,
+      "source": "author-supplied",
+      "sourceSHA256": "f1109d5c0ce934602c2240cd4093dc4740f1e7987e4a4c1683709aa400e94c0c"
+    },
+    {
+      "runtimeID": "anime-mao",
+      "asset": "Cover_anime_mao",
+      "environmentID": "sunroom",
+      "focusX": 0.5,
+      "focusY": 0.3,
+      "frameBottom": 0.46,
+      "cameraYaw": 0,
+      "source": "author-supplied",
+      "sourceSHA256": "2fb553060192d230727cf0f6096831a259a5ee7310d90db2cf0f0f11c4945b68"
+    },
+    {
+      "runtimeID": "anime-mashu",
+      "asset": "Cover_anime_mashu",
+      "environmentID": "sunroom",
+      "focusX": 0.5,
+      "focusY": 0.3,
+      "frameBottom": 0.46,
+      "cameraYaw": 0,
+      "source": "author-supplied",
+      "sourceSHA256": "2118f9099a4c364243bd446bbf0186c9e41be8251ecee15e3294fd46dc12acb9"
+    },
+    {
+      "runtimeID": "anime-mizuki",
+      "asset": "Cover_anime_mizuki",
+      "environmentID": "sunroom",
+      "focusX": 0.5,
+      "focusY": 0.3,
+      "frameBottom": 0.46,
+      "cameraYaw": 0,
+      "source": "author-supplied",
+      "sourceSHA256": "26efe1ea1385638614d26df4d75e8965519a50854aec2373f1b2b16a42e82808"
+    },
+    {
+      "runtimeID": "anime-nemesis",
+      "asset": "Cover_anime_nemesis",
+      "environmentID": "sunroom",
+      "focusX": 0.5,
+      "focusY": 0.3,
+      "frameBottom": 0.46,
+      "cameraYaw": 0,
+      "source": "author-supplied",
+      "sourceSHA256": "bbb1181e5943e1a72aa4cf11669187fd4d67c09ff5975ddc9185a00a195399ad"
+    },
+    {
+      "runtimeID": "anime-nochica",
+      "asset": "Cover_anime_nochica",
+      "environmentID": "sunroom",
+      "focusX": 0.5,
+      "focusY": 0.3,
+      "frameBottom": 0.46,
+      "cameraYaw": 0,
+      "source": "author-supplied",
+      "sourceSHA256": "bf1a29d29010191aa502a9817d4eb4b2b1ec9b4813a19c5771b3b546265e0515"
+    },
+    {
+      "runtimeID": "anime-perula",
+      "asset": "Cover_anime_perula",
+      "environmentID": "sunroom",
+      "focusX": 0.5,
+      "focusY": 0.3,
+      "frameBottom": 0.46,
+      "cameraYaw": 0,
+      "source": "author-supplied",
+      "sourceSHA256": "407de87f83f41da541a82929c29fba38bbf8b0895c77d1d91cf4fcbe7cbaf317"
+    },
+    {
+      "runtimeID": "anime-ramune",
+      "asset": "Cover_anime_ramune",
+      "environmentID": "sunroom",
+      "focusX": 0.5,
+      "focusY": 0.3,
+      "frameBottom": 0.46,
+      "cameraYaw": 0,
+      "source": "author-supplied",
+      "sourceSHA256": "32f6c2724977fb8360eab600b676344549df2c2fe2d2c20e5ae71af1c9c50150"
+    },
+    {
+      "runtimeID": "anime-ririka",
+      "asset": "Cover_anime_ririka",
+      "environmentID": "sunroom",
+      "focusX": 0.5,
+      "focusY": 0.3,
+      "frameBottom": 0.46,
+      "cameraYaw": 0,
+      "source": "author-supplied",
+      "sourceSHA256": "b0bace9ea8e803d7d36c99c5dca400b581907240f5b79ed839f1652562500756"
+    },
+    {
+      "runtimeID": "anime-rurune",
+      "asset": "Cover_anime_rurune",
+      "environmentID": "sunroom",
+      "focusX": 0.5,
+      "focusY": 0.3,
+      "frameBottom": 0.46,
+      "cameraYaw": 0,
+      "source": "author-supplied",
+      "sourceSHA256": "b7adeb14e0e82c1025378795f9d904e6e911b7ce98da9a79a7b8b35de8fff835"
+    },
+    {
+      "runtimeID": "anime-shiratsume",
+      "asset": "Cover_anime_shiratsume",
+      "environmentID": "sunroom",
+      "focusX": 0.5,
+      "focusY": 0.3,
+      "frameBottom": 0.46,
+      "cameraYaw": 0,
+      "source": "author-supplied",
+      "sourceSHA256": "f2c6cc3b5e59aa96eb353f9d383a0caffd9ad051067a2798dd8e2f78d4ac6161"
+    },
+    {
+      "runtimeID": "anime-koharu",
+      "asset": "Cover_anime_koharu",
+      "environmentID": "sunroom",
+      "focusX": 0.5,
+      "focusY": 0.3,
+      "frameBottom": 0.46,
+      "cameraYaw": 0,
+      "source": "author-supplied",
+      "sourceSHA256": "e882b9c2827c57a6df32e399c7a39b8cf632af07eaa6e96c4ab7b26bd0134dea"
     }
   ]
 }

@@ -1,6 +1,47 @@
 import XCTest
 
 final class MarketplaceUITests:XCTestCase {
+    @MainActor func testFinalVisualPreviewModelsOpen() {
+        for (name,id) in [("真央","anime-mao"),("Ramune","anime-ramune"),
+                          ("露露奈","anime-rurune"),("小春","anime-koharu")] {
+            let app=launch()
+            let search=app.textFields["discoverSearch"]
+            XCTAssertTrue(search.waitForExistence(timeout:12))
+            search.tap();search.typeText(name+"\n")
+            let card=app.buttons["discover-open-"+id]
+            XCTAssertTrue(card.waitForExistence(timeout:8),name)
+            card.tap()
+            let open=app.buttons["profileChatButton"]
+            XCTAssertTrue(open.waitForExistence(timeout:5))
+            XCTAssertEqual(open.label,"查看模型")
+            open.tap()
+            XCTAssertTrue(app.staticTexts["localModelPreview"].waitForExistence(timeout:35),name)
+            XCTAssertFalse(app.textViews["chatInput"].exists)
+            capture("visual-preview-"+id)
+            app.terminate()
+        }
+    }
+    @MainActor func testVisualPreviewBatchKeepsBothKipfelVersions() {
+        for (name,id) in [("小猫·新版","anime-kipfel-v111"),("Azuki","anime-azuki"),
+                          ("可露","anime-cornet"),("Fiona","anime-fiona")] {
+            let app=launch()
+            let search=app.textFields["discoverSearch"]
+            XCTAssertTrue(search.waitForExistence(timeout:12))
+            search.tap();search.typeText(name+"\n")
+            let card=app.buttons["discover-open-"+id]
+            XCTAssertTrue(card.waitForExistence(timeout:8),name)
+            card.tap()
+            let open=app.buttons["profileChatButton"]
+            XCTAssertTrue(open.waitForExistence(timeout:5))
+            XCTAssertEqual(open.label,"查看模型")
+            open.tap()
+            XCTAssertTrue(app.staticTexts["localModelPreview"].waitForExistence(timeout:30),name)
+            XCTAssertFalse(app.textViews["chatInput"].exists)
+            app.terminate()
+        }
+        let app=launch()
+        XCTAssertTrue(app.buttons["discover-open-anime-kipfel"].waitForExistence(timeout:12),"旧版小猫仍应保留")
+    }
     @MainActor func testThirdLocalPreviewBatchOpensWithoutComposer() {
         for (name,id) in [("意可蕾","anime-eku"),("Sio","anime-sio")] {
             let app=launch()
@@ -125,6 +166,22 @@ final class MarketplaceUITests:XCTestCase {
         row.swipeLeft(); app.buttons["hideConversation-anime-kipfel"].tap()
         app.buttons["undoHideConversation"].tap()
         XCTAssertTrue(row.exists)
+    }
+    @MainActor func testConversationCardKeepsResetBehindSecondPage() {
+        let app=launch()
+        app.buttons["tab-messages"].tap()
+        let row=app.buttons["message-anime-kipfel"]
+        XCTAssertTrue(row.waitForExistence(timeout:8))
+        row.tap()
+        XCTAssertTrue(app.staticTexts["你们的故事"].waitForExistence(timeout:5))
+        XCTAssertTrue(app.buttons["enterConversation-anime-kipfel"].exists)
+        XCTAssertFalse(app.buttons["resetConversation-anime-kipfel"].exists)
+        app.buttons["moreConversationActions-anime-kipfel"].tap()
+        XCTAssertTrue(app.buttons["resetConversation-anime-kipfel"].waitForExistence(timeout:3))
+        app.buttons["backConversationDetail"].tap()
+        XCTAssertFalse(app.buttons["resetConversation-anime-kipfel"].exists)
+        app.buttons["closeConversationDetail"].tap()
+        XCTAssertTrue(row.waitForExistence(timeout:5))
     }
     @MainActor private func launch() -> XCUIApplication {
         continueAfterFailure = false; XCUIDevice.shared.orientation = .portrait

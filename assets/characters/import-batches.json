@@ -171,6 +171,123 @@
       "deviceLaunch": "passed",
       "deviceFrameRate": "not-measured",
       "deliveredAt": "2026-10-02T02:30:16+08:00"
+    },
+    {
+      "id": "vrchat-20261002-visual-07",
+      "status": "delivered-visual-only",
+      "characters": [
+        "anime-kipfel-v111",
+        "anime-azuki",
+        "anime-cornet",
+        "anime-fiona"
+      ],
+      "report": "docs/verification/vrchat-batch-import/visual-07.md",
+      "scope": "visualOnly: original controls remain disabled until source dependencies are adapted",
+      "simulatorChecks": [
+        "41-character Unity simulator export and collection integrity passed",
+        "iPhone 17 UI opened Mao, Ramune, Rurune and Koharu previews; all 21 visual-only roles were inspected in isolated Unity renders",
+        "Earlier 24-character UI pass opened Kipfel v1.1.1, Azuki, Cornet and Fiona"
+      ],
+      "appVersion": "0.84.0",
+      "buildNumber": 114,
+      "device": "iPhone 17",
+      "deviceInstall": "passed",
+      "deviceLaunch": "passed-by-devicectl; visual review pending",
+      "deviceFrameRate": "not-measured",
+      "deliveredAt": "2026-10-02T08:54:14+08:00"
+    },
+    {
+      "id": "vrchat-20261002-visual-08",
+      "status": "delivered-visual-only",
+      "characters": [
+        "anime-elusion",
+        "anime-hikarun",
+        "anime-kumaly",
+        "anime-kikyo",
+        "anime-lasyusha"
+      ],
+      "report": "docs/verification/vrchat-batch-import/visual-08.md",
+      "scope": "visualOnly: original controls remain disabled until source dependencies are adapted",
+      "simulatorChecks": [
+        "41-character Unity simulator export and collection integrity passed",
+        "iPhone 17 UI opened Mao, Ramune, Rurune and Koharu previews; all 21 visual-only roles were inspected in isolated Unity renders"
+      ],
+      "appVersion": "0.84.0",
+      "buildNumber": 114,
+      "device": "iPhone 17",
+      "deviceInstall": "passed",
+      "deviceLaunch": "passed-by-devicectl; visual review pending",
+      "deviceFrameRate": "not-measured",
+      "deliveredAt": "2026-10-02T08:54:14+08:00"
+    },
+    {
+      "id": "vrchat-20261002-visual-09",
+      "status": "delivered-visual-only",
+      "characters": [
+        "anime-maki",
+        "anime-mao",
+        "anime-mashu",
+        "anime-mizuki"
+      ],
+      "report": "docs/verification/vrchat-batch-import/visual-09.md",
+      "scope": "visualOnly: original controls remain disabled until source dependencies are adapted",
+      "simulatorChecks": [
+        "41-character Unity simulator export and collection integrity passed",
+        "iPhone 17 UI opened Mao, Ramune, Rurune and Koharu previews; all 21 visual-only roles were inspected in isolated Unity renders"
+      ],
+      "appVersion": "0.84.0",
+      "buildNumber": 114,
+      "device": "iPhone 17",
+      "deviceInstall": "passed",
+      "deviceLaunch": "passed-by-devicectl; visual review pending",
+      "deviceFrameRate": "not-measured",
+      "deliveredAt": "2026-10-02T08:54:14+08:00"
+    },
+    {
+      "id": "vrchat-20261002-visual-10",
+      "status": "delivered-visual-only",
+      "characters": [
+        "anime-nemesis",
+        "anime-nochica",
+        "anime-perula",
+        "anime-ramune"
+      ],
+      "report": "docs/verification/vrchat-batch-import/visual-10.md",
+      "scope": "visualOnly: original controls remain disabled until source dependencies are adapted",
+      "simulatorChecks": [
+        "41-character Unity simulator export and collection integrity passed",
+        "iPhone 17 UI opened Mao, Ramune, Rurune and Koharu previews; all 21 visual-only roles were inspected in isolated Unity renders"
+      ],
+      "appVersion": "0.84.0",
+      "buildNumber": 114,
+      "device": "iPhone 17",
+      "deviceInstall": "passed",
+      "deviceLaunch": "passed-by-devicectl; visual review pending",
+      "deviceFrameRate": "not-measured",
+      "deliveredAt": "2026-10-02T08:54:14+08:00"
+    },
+    {
+      "id": "vrchat-20261002-visual-11",
+      "status": "delivered-visual-only",
+      "characters": [
+        "anime-ririka",
+        "anime-rurune",
+        "anime-shiratsume",
+        "anime-koharu"
+      ],
+      "report": "docs/verification/vrchat-batch-import/visual-11.md",
+      "scope": "visualOnly: original controls remain disabled until source dependencies are adapted",
+      "simulatorChecks": [
+        "41-character Unity simulator export and collection integrity passed",
+        "iPhone 17 UI opened Mao, Ramune, Rurune and Koharu previews; all 21 visual-only roles were inspected in isolated Unity renders"
+      ],
+      "appVersion": "0.84.0",
+      "buildNumber": 114,
+      "device": "iPhone 17",
+      "deviceInstall": "passed",
+      "deviceLaunch": "passed-by-devicectl; visual review pending",
+      "deviceFrameRate": "not-measured",
+      "deliveredAt": "2026-10-02T08:54:14+08:00"
     }
   ]
 }

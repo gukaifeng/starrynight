@@ -32,14 +32,19 @@ def main():
     covers=json.loads((res/'CharacterCoverCatalog.json').read_text())
     roster=json.loads((ROOT/'assets/characters/active-roster.json').read_text())
     for identity in batch['characters']:
-        row=rows[identity];source=ROOT/'.local/vrchat-batch/converted'/row['role']
+        row=rows[identity]
+        visual=ROOT/'.local/vrchat-batch/visual'/row['role']
+        source=visual if (visual/'character.json').is_file() else ROOT/'.local/vrchat-batch/converted'/row['role']
         manifest,_=validate(source)
+        if manifest['id']!=identity:raise ValueError('Candidate identity mismatch: '+identity)
         review=json.loads((ROOT/'.local/vrchat-batch/render'/(row['role']+'-controls.json')).read_text())
         if review.get('role')!=row['role'] or review.get('manifestSHA256')!=hashlib.sha256((source/'character.json').read_bytes()).hexdigest():
             raise ValueError('Review is absent or belongs to an older package: '+identity)
         if {c['id'] for c in review['controls']}!={o['control']['id'] for o in manifest.get('performance',{}).get('options',[])}:
             raise ValueError('Review does not cover every source control: '+identity)
-        if not review['controls'] or not all(c.get('resetRestored') for c in review['controls']):raise ValueError('Missing control/reset review: '+identity)
+        appearance_only=manifest.get('extensions',{}).get('app.starry.private-preview',{}).get('visualOnly',False)
+        if not appearance_only and not review['controls']:raise ValueError('Missing control/reset review: '+identity)
+        if not all(c.get('resetRestored') for c in review['controls']):raise ValueError('Missing control/reset review: '+identity)
         art=Path(plan['sourceRoot'])/row['sourceFolder']/row['cover']
         if not art.is_file():raise ValueError('Missing supplied cover: '+identity)
         target=ROOT/'character-packages/imported'/identity
