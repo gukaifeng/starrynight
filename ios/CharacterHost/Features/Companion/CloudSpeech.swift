@@ -110,6 +110,7 @@ private final class MicrophonePCM: @unchecked Sendable {
     @ObservationIgnored private var playbackSegment = UUID()
     @ObservationIgnored private var cacheGeneration = UUID()
     @ObservationIgnored private var cacheMessage = ""
+    @ObservationIgnored private var repairBeats:Set<String> = []
     @ObservationIgnored private var measured = false
     @ObservationIgnored private var timer: Timer?
     @ObservationIgnored private var presentationActive=true
@@ -146,22 +147,27 @@ private final class MicrophonePCM: @unchecked Sendable {
         VoiceTimeline.shared.mark(voiceTrace,"playback_prepare")
         VoiceTimeline.shared.flag(voiceTrace,"speech_volume",String(soundscape.speechVolume))
         cacheGeneration = clipCache.generation
+        repairBeats=Set(script.beats.filter{ReplyDisplayText.needsSpeechRepair($0.dialogue?.text ?? "")}.map(\.beatId))
         durationHints=Dictionary(uniqueKeysWithValues:script.beats.map {($0.beatId,$0.readingDuration ?? max(1.8,Double($0.dialogue?.text.count ?? 0)/5.5))})
         isBusy = true; totalDuration = 0; beatStartTime = 0; beatFrames = 0; playbackElapsed = 0; onState?("thinking")
     }
-    private func key(_ beat: String) -> String { clipCache.key(scope:cacheScope,text:cacheMessage+"|"+beat,speed:1) }
+    private func key(_ beat: String) -> String { clipCache.key(scope:cacheScope,text:cacheMessage+"|"+beat,speed:1,repair:repairBeats.contains(beat)) }
+    private func cachedKey(_ script:AIScript,_ beat:String)->String {
+        let repair=ReplyDisplayText.needsSpeechRepair(script.beats.first{$0.beatId==beat}?.dialogue?.text ?? "")
+        return clipCache.key(scope:cacheScope,text:script.messageId+"|"+beat,speed:1,repair:repair)
+    }
     func cachePrepared(_ clips:[AIPreparedClip]) {
         let generation=clipCache.generation
         for clip in clips {
             for audio in clip.audio {
                 guard let data=Data(base64Encoded:audio.data),!data.isEmpty,data.count%2==0 else {continue}
-                clipCache.insert(Self.wave(data),key:clipCache.key(scope:cacheScope,text:clip.script.messageId+"|"+audio.beatId,speed:1),generation:generation)
+                clipCache.insert(Self.wave(data),key:cachedKey(clip.script,audio.beatId),generation:generation)
             }
         }
     }
     func hasCached(_ script:AIScript)->Bool {
         let beats=script.beats.filter(\.hasAudio)
-        return !beats.isEmpty && beats.allSatisfy {clipCache.data(clipCache.key(scope:cacheScope,text:script.messageId+"|"+$0.beatId,speed:1)) != nil}
+        return !beats.isEmpty && beats.allSatisfy {clipCache.data(cachedKey(script,$0.beatId)) != nil}
     }
     func accept(_ event: AIEvent) async throws {
         let timeline=VoiceTimeline.shared
@@ -338,7 +344,7 @@ private final class MicrophonePCM: @unchecked Sendable {
             finish();return true
         }
         let keys = script.beats.filter { $0.hasAudio }.map { $0.beatId }
-        let cached = keys.map { clipCache.data(clipCache.key(scope:cacheScope,text:script.messageId+"|"+$0,speed:1)) }
+        let cached = keys.map { clipCache.data(cachedKey(script,$0)) }
         timeline.span(id,"audio.cache_read",start:reading)
         guard !keys.isEmpty, cached.allSatisfy({ $0 != nil }) else {timeline.flag(id,"audio_source","本地缓存缺失");if traceID==nil {timeline.finish(id,status:"cache_miss")};return false }
         prepare(messageID,script:script,traceID:id)

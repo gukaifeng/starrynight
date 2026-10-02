@@ -32,7 +32,8 @@ struct AIReplyContent: View {
         VStack(alignment:.leading,spacing:7) {
             if let script = message.aiScript {
                 ForEach(script.beats) { beat in
-                  if let parts=beat.parts {
+                  if let rawParts=beat.parts {
+                    let parts=ReplyDisplayText.repaired(rawParts)
                     ForEach(Array(parts.prefix(reveal.count(message.id,beat:beat.beatId) ?? parts.count).enumerated()),id:\.offset) { index,part in
                         if part.isVisible {
                             let text = translated(part.text,beat.beatId + ".part.\(index)")

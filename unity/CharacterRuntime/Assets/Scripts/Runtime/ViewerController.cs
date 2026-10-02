@@ -118,6 +118,10 @@ namespace ModelSpace
         public string[] resourceCharacterIDs=Array.Empty<string>();
         Coroutine pendingCharacterLoad;
         int characterLoadSequence;
+        int activeResourceLoads;
+        AsyncOperation resourceUnload;
+        bool releaseScheduled;
+        readonly System.Collections.Generic.HashSet<string> loadingBundles=new System.Collections.Generic.HashSet<string>();
         readonly System.Collections.Generic.Dictionary<string,BridgePayload> downloads=new System.Collections.Generic.Dictionary<string,BridgePayload>();
         readonly System.Collections.Generic.Dictionary<string,AssetBundle> loadedBundles=new System.Collections.Generic.Dictionary<string,AssetBundle>();
         public Camera viewCamera;
@@ -199,6 +203,7 @@ namespace ModelSpace
             character = model.GetComponent<ViewerCharacter>();
             if (!character) throw new InvalidOperationException("模型目录缺失，请重新导出 Unity 工程");
             character.ApplyContract();
+            character.PrepareRenderAssets();
             activeModelId = character.modelId;
             actions?.Initialize(model, viewCamera, OnAction);
             posture.Bind(character,actions);
@@ -238,11 +243,12 @@ namespace ModelSpace
             var selected = Array.Find(characters ?? Array.Empty<ViewerCharacter>(), c => c && c.modelId == id);
             if (!selected) {
                 if(!Array.Exists(resourceCharacterIDs,c=>c==id) && !downloads.ContainsKey(id))throw new ArgumentException("请先下载这个角色");
-                if(pendingCharacterLoad!=null)StopCoroutine(pendingCharacterLoad);
+                // Unity async requests cannot be cancelled by StopCoroutine.
+                // Let stale requests finish under the resource fence instead.
                 pendingCharacterLoad=StartCoroutine(LoadCharacter(id,request,++characterLoadSequence));return;
             }
             characterLoadSequence++;
-            if(pendingCharacterLoad!=null) {StopCoroutine(pendingCharacterLoad);pendingCharacterLoad=null;}
+            pendingCharacterLoad=null;
             if(!hasSelectedModel && selected == character) {
                 // Awake already bound the bundled default. Do not bind it a second time
                 // on the first host handshake; all user settings follow before reveal.
@@ -261,16 +267,26 @@ namespace ModelSpace
         }
         IEnumerator LoadCharacter(string id,string request,int sequence)
         {
+            while(resourceUnload!=null && !resourceUnload.isDone)yield return null;
+            if(sequence!=characterLoadSequence)yield break;
+            activeResourceLoads++;
+            try {
             GameObject asset=null;
             if(downloads.TryGetValue(id,out var installed)) {
+                while(loadingBundles.Contains(id))yield return null;
+                if(sequence!=characterLoadSequence)yield break;
                 if(!loadedBundles.TryGetValue(id,out var bundle)) {
+                    loadingBundles.Add(id);
+                    try {
                     var read=AssetBundle.LoadFromFileAsync(installed.bundlePath,installed.bundleCRC);yield return read;
                     bundle=read.assetBundle;
                     if(!bundle){Emit("error",request,"下载的角色包无法打开，请重新下载");yield break;}
                     loadedBundles[id]=bundle;
                     var background=bundle.LoadAssetAsync<Texture2D>("background");yield return background;
                     CharacterImageBackdrop.Downloaded[id]=background.asset as Texture2D;
+                    } finally {loadingBundles.Remove(id);}
                 }
+                if(sequence!=characterLoadSequence)yield break;
                 var prefab=bundle.LoadAssetAsync<GameObject>("character");yield return prefab;asset=prefab.asset as GameObject;
             } else {var load=Resources.LoadAsync<GameObject>("Characters/"+id);yield return load;asset=load.asset as GameObject;}
             if(sequence!=characterLoadSequence)yield break;
@@ -280,24 +296,36 @@ namespace ModelSpace
             var instance=Instantiate(asset);instance.SetActive(false);
             var actor=instance.GetComponent<ViewerCharacter>();
             if(!actor || actor.modelId!=id) {Destroy(instance);Emit("error",request,"角色资源校验失败");yield break;}
+            string validationError=null;
+            try {actor.ApplyContract();actor.PrepareRenderAssets();}
+            catch(Exception error) {validationError=error.Message;}
+            if(validationError!=null) {Destroy(instance);Debug.LogError("CHARACTER_LOAD_INVALID "+id+" "+validationError);Emit("error",request,"角色资源不完整，请重新进入或重新下载");yield break;}
             var list=new System.Collections.Generic.List<ViewerCharacter>(characters.Where(c=>c));list.Add(actor);characters=list.ToArray();
             SelectModel(id,request);
+            } finally {
+                activeResourceLoads--;
+                if(sequence==characterLoadSequence)pendingCharacterLoad=null;
+                ScheduleResourceRelease();
+            }
         }
         void TrimCharacterCache(ViewerCharacter keep)
         {
             var retained=characters.Where(c=>c && c!=keep).LastOrDefault();
             foreach(var c in characters)if(c && c!=keep && c!=retained)Destroy(c.gameObject);
             characters=retained?new[]{retained,keep}:new[]{keep};
-            StartCoroutine(ReleaseCharacterResources());
+            ScheduleResourceRelease();
         }
+        void ScheduleResourceRelease() {if(!releaseScheduled && Application.isPlaying) {releaseScheduled=true;StartCoroutine(ReleaseCharacterResources());}}
         IEnumerator ReleaseCharacterResources() {
             yield return null;
-            if(pendingCharacterLoad==null)foreach(string id in loadedBundles.Keys.ToArray())
+            while(activeResourceLoads>0 || resourceUnload!=null && !resourceUnload.isDone)yield return null;
+            foreach(string id in loadedBundles.Keys.ToArray())
                 if(!characters.Any(c=>c && c.modelId==id)) {
                     CharacterImageBackdrop.Downloaded.Remove(id);
                     loadedBundles[id].Unload(true);loadedBundles.Remove(id);
                 }
-            yield return Resources.UnloadUnusedAssets();
+            resourceUnload=Resources.UnloadUnusedAssets();yield return resourceUnload;
+            resourceUnload=null;releaseScheduled=false;
         }
         IEnumerator PrewarmCharacter(BridgeCommand command)
         {
@@ -305,6 +333,9 @@ namespace ModelSpace
             if(!Array.Exists(resourceCharacterIDs,c=>c==id)) {Emit("modelPrewarmFailed",command.requestId,"MODEL_UNAVAILABLE");yield break;}
             // Remote actors are loaded only after an explicit verified install.
             if(downloads.ContainsKey(id)){Emit("modelPrewarmFailed",command.requestId,"DEFER_REMOTE_LOAD");yield break;}
+            while(resourceUnload!=null && !resourceUnload.isDone)yield return null;
+            activeResourceLoads++;
+            try {
             var load=Resources.LoadAsync<GameObject>("Characters/"+id);yield return load;
             if(command.presentationId!=presentation)yield break;
             var candidate=Array.Find(characters,c=>c && c.modelId==id);
@@ -315,6 +346,7 @@ namespace ModelSpace
                 else Destroy(instance);
             }
             Emit(candidate?"modelPrewarmed":"modelPrewarmFailed",command.requestId,candidate?id:"MODEL_UNAVAILABLE");
+            } finally {activeResourceLoads--;ScheduleResourceRelease();}
         }
         IEnumerator Start()
         {

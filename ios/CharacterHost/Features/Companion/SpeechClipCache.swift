@@ -25,10 +25,10 @@ import CryptoKit
         var folder=self.directory;var values=URLResourceValues();values.isExcludedFromBackup=true
         try? folder.setResourceValues(values)
     }
-    func key(scope:String,text:String,speed:Double) -> String {
+    func key(scope:String,text:String,speed:Double,repair:Bool=false) -> String {
         // Refresh pre-sanitizer audio too: old clips may have spoken stage
         // directions. New playback uses the same voice and clean spoken text.
-        SHA256.hash(data:Data((scope+"|qwen-audio-3.1-designed-v2-spoken-v2|"+String(speed)+"|"+text).utf8)).map { String(format:"%02x",$0) }.joined()
+        SHA256.hash(data:Data((scope+"|qwen-audio-3.1-designed-v2-spoken-v2|"+String(speed)+"|"+text+(repair ? "|annotations-v3" : "")).utf8)).map { String(format:"%02x",$0) }.joined()
     }
     func data(_ key:String) -> Data? {
         let url = directory.appendingPathComponent(key+".wav")
@@ -66,9 +66,13 @@ import CryptoKit
         for message in messages {
             guard let script=message.aiScript else {continue}
             for beat in script.beats {
-                let value=key(scope:scope,text:script.messageId+"|"+beat.beatId,speed:1)
-                memory.removeObject(forKey:value as NSString)
-                try? FileManager.default.removeItem(at:directory.appendingPathComponent(value+".wav"))
+                let repaired=ReplyDisplayText.needsSpeechRepair(beat.dialogue?.text ?? "")
+                // A reset removes both the retired clip and its repaired replay.
+                for repair in Set([false,repaired]) {
+                    let value=key(scope:scope,text:script.messageId+"|"+beat.beatId,speed:1,repair:repair)
+                    memory.removeObject(forKey:value as NSString)
+                    try? FileManager.default.removeItem(at:directory.appendingPathComponent(value+".wav"))
+                }
             }
         }
     }

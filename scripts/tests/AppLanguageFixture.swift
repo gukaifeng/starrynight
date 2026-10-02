@@ -68,6 +68,29 @@ struct AppLanguageFixture: View {
             let nested=ReplyDisplayText.pieces("不只是花哦。（轻翻着手账本，（眼睛变得亮晶晶）\n唇角噙着温柔笑意）像雨后的痕迹。")
             try require(nested.count==3 && nested[1].aside && !nested[1].text.contains("（") && nested[1].text.contains("唇角"),"Nested aside must remain one styled region")
             try require(ReplyDisplayText.pieces("当然可以（我想试试看").last?.aside==true,"Unclosed aside remains styled")
+            let reported="（我头都晕了，好过分）\n（露出一点小小不满）\n你是不是晃上瘾了！（扶着额头，）\n（神情变得轻松愉快）\n故作痛苦）\n再晃我可就要罢工，不让你试吃了。"
+            let plain=ReplyDisplayText.pieces(reported).filter{!$0.aside}.map(\.text).joined()
+            try require(!plain.contains("故作痛苦") && !plain.contains("扶着额头") && plain.contains("再晃我可就要罢工"),"Reported orphan action stays nonverbal")
+            let broken=[AIReplyPart(kind:"dialogue",text:"你是不是晃上瘾了！（扶着额头，",at:0),
+                AIReplyPart(kind:"narration",text:"神情变得轻松愉快",at:0.5),
+                AIReplyPart(kind:"dialogue",text:"故作痛苦）再晃我可就要罢工了。",at:0.5)]
+            let fixed=ReplyDisplayText.repaired(broken)
+            try require(fixed.count==broken.count && fixed[1].text==broken[1].text && fixed[2].at==broken[2].at,"Repair preserves part indexes and reveal timing")
+            try require(ReplyDisplayText.pieces(fixed[2].text).first?.aside==true,"Closing fragment retains annotation depth across structured narration")
+            try require(ReplyDisplayText.pieces("你说得对）").map(\.text).joined()=="你说得对","Orphan glyph removed without deleting speech")
+            try require(ReplyDisplayText.pieces("好呀（揉着额头)").last?.aside==true,"Mixed width parentheses")
+            try require(ReplyDisplayText.needsSpeechRepair(reported) && !ReplyDisplayText.needsSpeechRepair("明天（如果有空）再聊。") && !ReplyDisplayText.needsSpeechRepair("维生素（B12）是这个名字。"),"Selective old-audio invalidation")
+            let folder=FileManager.default.temporaryDirectory.appendingPathComponent("annotation-cache-"+UUID().uuidString)
+            defer {try? FileManager.default.removeItem(at:folder)}
+            let cache=SpeechClipCache(directory:folder), scope="annotation-fixture"
+            let script=AIScript(messageId:"legacy",characterId:"fixture",text:reported,
+                beats:[AIBeat(beatId:"b",dialogue:.init(text:reported),narrations:[],visuals:[])])
+            let old=cache.key(scope:scope,text:"legacy|b",speed:1), repaired=cache.key(scope:scope,text:"legacy|b",speed:1,repair:true)
+            let unrelated=cache.key(scope:scope,text:"other|b",speed:1)
+            try require(old != repaired && unrelated==cache.key(scope:scope,text:"other|b",speed:1,repair:false),"Normal clip keys remain compatible")
+            for key in [old,repaired,unrelated] {cache.insert(Data([1,2]),key:key)}
+            cache.removeConversation(scope:scope,messages:[CompanionMessage(role:"assistant",text:reported,aiScript:script)])
+            try require(cache.data(old)==nil && cache.data(repaired)==nil && cache.data(unrelated) != nil,"Reset removes both legacy and repaired audio, preserving other conversations")
             return "PASS: system fallback, explicit preference, relaunch, 3 catalogs, language detection"
         } catch {return "FAIL: \(error)"}
     }

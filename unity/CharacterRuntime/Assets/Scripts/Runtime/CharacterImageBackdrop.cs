@@ -21,7 +21,7 @@ namespace ModelSpace
             view=camera;
             if(catalog==null) {var data=Resources.Load<TextAsset>("CharacterAtmospheres");if(data) catalog=JsonUtility.FromJson<CharacterAtmosphereCatalog>(data.text);}
             Current=catalog?.schemaVersion==1 ? Array.Find(catalog.characters,c=>c.id==role) : null;
-            var texture=Downloaded.TryGetValue(role,out var remote)?remote:(Current==null ? null : Resources.Load<Texture2D>(Current.background));
+            var texture=!string.IsNullOrEmpty(role) && Downloaded.TryGetValue(role,out var remote)?remote:(Current==null ? null : Resources.Load<Texture2D>(Current.background));
             if(!texture) {if(renderer) renderer.enabled=false;return false;}
             if(!renderer)
             {

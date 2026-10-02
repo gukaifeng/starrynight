@@ -29,6 +29,24 @@ namespace ModelSpace
         public bool useAuthoredRestBounds;
         public Bounds authoredRestBounds;
         public CharacterPortrait portrait;
+        // Imported GLB skin bounds can describe an old pose/root. Keep a
+        // conservative actor envelope for culling, without recomputing every
+        // skin every frame or changing the authored portrait framing.
+        public void PrepareRenderAssets()
+        {
+            var envelope=RestBounds();envelope.Expand(envelope.size.magnitude*.12f);
+            foreach(var skin in GetComponentsInChildren<SkinnedMeshRenderer>(true))
+            {
+                if(!skin.sharedMesh)throw new System.InvalidOperationException("CHARACTER_SKIN_MISSING: "+skin.name);
+                var local=skin.localBounds;
+                for(int corner=0;corner<8;corner++)
+                    local.Encapsulate(skin.transform.InverseTransformPoint(envelope.center+Vector3.Scale(envelope.extents,
+                        new Vector3((corner&1)==0?-1:1,(corner&2)==0?-1:1,(corner&4)==0?-1:1))));
+                skin.localBounds=local;
+                if(skin.sharedMaterials.Length<skin.sharedMesh.subMeshCount || System.Array.Exists(skin.sharedMaterials,m=>!m || !m.shader))
+                    throw new System.InvalidOperationException("CHARACTER_MATERIAL_MISSING: "+skin.name);
+            }
+        }
         public Bounds FramingBounds(string action)
         {
             var envelope = System.Array.Find(framingEnvelopes ?? System.Array.Empty<FramingEnvelope>(), e => e.action == action);
