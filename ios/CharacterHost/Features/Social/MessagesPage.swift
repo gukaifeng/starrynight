@@ -14,18 +14,14 @@ struct MessagesPage: View {
     @State private var swipeRestoreTask:Task<Void,Never>?
     @State private var detailCandidate:ModelDescriptor?
     @State private var showingConversationDetail=false
-    @State private var showingDetailActions=false
     @State private var pendingDetailEntry:String?
-    @State private var pendingDetailReset:ModelDescriptor?
     private func showConversation(_ model:ModelDescriptor) {
         revealedConversation=nil
-        detailCandidate=model;showingDetailActions=false;showingConversationDetail=true
+        detailCandidate=model;showingConversationDetail=true
     }
     private func detailDismissed() {
-        detailCandidate=nil;showingDetailActions=false
-        if let model=pendingDetailReset {
-            pendingDetailReset=nil;confirmDeletion(model)
-        } else if let id=pendingDetailEntry {
+        detailCandidate=nil
+        if let id=pendingDetailEntry {
             pendingDetailEntry=nil;coordinator.openCharacter(id)
         }
     }
@@ -128,12 +124,12 @@ struct MessagesPage: View {
         }.onChange(of:coordinator.companionStore.accountID) {
             swipeRestoreTask?.cancel();revealedConversation=nil
             search = ""; hiddenNotice = nil; hiddenPresented = false;showingDeletionConfirmation=false;deletionCandidate=nil;deletionError=nil
-            showingConversationDetail=false;detailCandidate=nil;pendingDetailEntry=nil;pendingDetailReset=nil
+            showingConversationDetail=false;detailCandidate=nil;pendingDetailEntry=nil
         }
             .onDisappear {swipeRestoreTask?.cancel()}
             .accessibilityElement(children:.contain).accessibilityIdentifier("messagesPage")
             .softSheet(isPresented:$hiddenPresented,height:440) { hiddenConversations }
-            .softSheet(isPresented:$showingConversationDetail,height:580,onDismiss:detailDismissed) {
+            .softSheet(isPresented:$showingConversationDetail,height:590,onDismiss:detailDismissed) {
                 if let model=detailCandidate {conversationDetail(model)}
             }
             .onChange(of:showingDeletionConfirmation) {if !showingDeletionConfirmation {deletionDialogClosed()}}
@@ -148,94 +144,14 @@ struct MessagesPage: View {
     }
     private func conversationDetail(_ model:ModelDescriptor) -> some View {
         let profile=coordinator.profile(for:model)
-        let record=coordinator.companionStore.record(model.id)
-        let count=record.messages.count
-        let userTurns=record.messages.filter { $0.role == "user" }.count
-        let first=record.messages.first?.date
-        let last=record.messages.last
-        let bond=count >= 100 ? "很有默契" : count >= 24 ? "渐渐熟悉" : count > 0 ? "正在相识" : "等待初见"
-        return VStack(spacing:0) {
-            PanelPageHeader(showingDetailActions ? "会话管理" : "你们的故事",
-                subtitle:showingDetailActions ? "由你决定，这段相处如何继续" : "和 \(profile.name) 的相处片段",
-                backID:showingDetailActions ? "backConversationDetail" : "closeConversationDetail",
-                backAction:{if showingDetailActions {withAnimation(.easeInOut(duration:0.26)) {showingDetailActions=false}} else {showingConversationDetail=false}})
-            if showingDetailActions {
-                VStack(alignment:.leading,spacing:16) {
-                    Text("重新认识").font(.system(size:20,weight:.semibold))
-                    Text("重置会清空与这个角色的全部对话、记忆及相处进度。角色订阅和个人设置仍会保留。这个操作无法撤销。")
-                        .font(.system(size:13)).foregroundStyle(Theme.secondary).lineSpacing(5)
-                    Button(role:.destructive) {
-                        pendingDetailReset=model;showingConversationDetail=false
-                    } label: {
-                        Label("重置角色",systemImage:"arrow.counterclockwise")
-                            .font(.system(size:14,weight:.medium)).frame(maxWidth:.infinity,minHeight:48)
-                    }.buttonStyle(.plain).foregroundStyle(Color(hex:0xF1A2AD))
-                        .background(Color(hex:0xC54659).opacity(0.16),in:RoundedRectangle(cornerRadius:16))
-                        .accessibilityIdentifier("resetConversation-"+model.id)
-                    Text("下一步会再次确认。")
-                        .font(.system(size:11)).foregroundStyle(Theme.secondary)
-                }.padding(24).frame(maxWidth:.infinity,alignment:.leading)
-                    .transition(.opacity.combined(with:.offset(y:10)))
-                Spacer(minLength:0)
-            } else {
-                VStack(alignment:.leading,spacing:18) {
-                    HStack(spacing:14) {
-                        CharacterAvatar(model:model,profile:profile,portraits:coordinator.portraits,size:60,floatingEnabled:false)
-                        VStack(alignment:.leading,spacing:5) {
-                            Text(profile.name).font(.system(size:20,weight:.semibold)).lineLimit(1)
-                            Text("羁绊 · \(bond)").font(.system(size:12,weight:.medium)).foregroundStyle(Theme.accent)
-                        }
-                        Spacer(minLength:0)
-                    }
-                    HStack(spacing:8) {
-                        relationshipMetric("聊过",value:"\(count) 句")
-                        relationshipMetric("你说过",value:"\(userTurns) 句")
-                        relationshipMetric("记住",value:"\(record.memories.count) 件")
-                    }
-                    VStack(alignment:.leading,spacing:7) {
-                        Text("最近的一句").font(.system(size:11,weight:.medium)).foregroundStyle(Theme.secondary)
-                        Text(last.map { ($0.role == "user" ? "你：" : "\(profile.name)：")+$0.text } ?? "你们的故事，还等着第一句话。")
-                            .font(.system(size:13)).lineLimit(3).lineSpacing(3)
-                        if let first {
-                            Text("初见于 \(first.formatted(.dateTime.year().month().day()))")
-                                .font(.system(size:11)).foregroundStyle(Theme.secondary)
-                        }
-                    }.padding(15).frame(maxWidth:.infinity,alignment:.leading)
-                        .background(Theme.card.opacity(0.7),in:RoundedRectangle(cornerRadius:16))
-                    Button {
-                        pendingDetailEntry=model.id;showingConversationDetail=false
-                    } label: {
-                        HStack {
-                            Image(systemName:"bubble.left.and.bubble.right").font(.system(size:14))
-                            Text("进入会话").font(.system(size:14,weight:.semibold))
-                        }.frame(maxWidth:.infinity,minHeight:48)
-                    }.buttonStyle(.plain).foregroundStyle(Theme.background)
-                        .background(Theme.gradient,in:RoundedRectangle(cornerRadius:16))
-                        .accessibilityIdentifier("enterConversation-"+model.id)
-                    HStack(spacing:8) {
-                        Button {hide(model);showingConversationDetail=false} label: {
-                            Label("不显示",systemImage:"eye.slash")
-                                .frame(maxWidth:.infinity,minHeight:44)
-                        }.accessibilityIdentifier("detailHideConversation-"+model.id)
-                        Button {withAnimation(.easeInOut(duration:0.26)) {showingDetailActions=true}} label: {
-                            Label("更多",systemImage:"ellipsis")
-                                .frame(maxWidth:.infinity,minHeight:44)
-                        }.accessibilityIdentifier("moreConversationActions-"+model.id)
-                    }.font(.system(size:12,weight:.medium)).buttonStyle(.plain)
-                        .foregroundStyle(Theme.secondary)
-                        .background(Theme.card.opacity(0.55),in:RoundedRectangle(cornerRadius:15))
-                }.padding(.horizontal,24).padding(.top,6)
-                    .transition(.opacity.combined(with:.offset(y:-10)))
-                Spacer(minLength:0)
+        let summary=ConversationRelationshipSummary(record:coordinator.companionStore.record(model.id),
+            nickname:coordinator.companionStore.effectiveNickname(for:model.id))
+        return ConversationInfoCard(name:profile.name,characterID:model.id,summary:summary,
+            onEnter:{pendingDetailEntry=model.id;showingConversationDetail=false},
+            onHide:{hide(model);showingConversationDetail=false},
+            onReset:{try await coordinator.resetConversation(model.id)}) {
+                CharacterAvatar(model:model,profile:profile,portraits:coordinator.portraits,size:52,floatingEnabled:false)
             }
-        }.foregroundStyle(Theme.ink).softSheetSurface()
-    }
-    private func relationshipMetric(_ title:String,value:String) -> some View {
-        VStack(alignment:.leading,spacing:5) {
-            Text(value).font(.system(size:15,weight:.semibold)).lineLimit(1)
-            Text(title).font(.system(size:10)).foregroundStyle(Theme.secondary)
-        }.frame(maxWidth:.infinity,alignment:.leading).padding(12)
-            .background(Theme.card.opacity(0.55),in:RoundedRectangle(cornerRadius:14))
     }
     private var hiddenConversations: some View {
         VStack(spacing:0) {
@@ -316,7 +232,7 @@ struct MessagesPage: View {
                     Spacer()
                     if let last { Text(last.date,format:.dateTime.month().day().hour().minute()).font(.system(size:10)).foregroundStyle(Theme.secondary) }
                 }
-                Text(last.map { ($0.role == "user" ? "你：" : "")+$0.text } ?? "已订阅 · 轻点开始聊天")
+                Text(last.map { ($0.role == "user" ? "你：" : "")+$0.text } ?? L10n.text("已订阅 · 查看相处资料"))
                     .font(.system(size:13)).foregroundStyle(Theme.secondary).lineLimit(1)
             }
         }.padding(.vertical,11).overlay(alignment:.bottom) { Rectangle().fill(Theme.line.opacity(0.6)).frame(height:0.5).padding(.leading,54) }

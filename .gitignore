@@ -10,6 +10,8 @@ build/
 **/xcuserdata/
 *.xcuserstate
 ios/Config/Local.xcconfig
+ios/CharacterHost-NativeUI.xcodeproj/
+ios/StarryNight-NativeUI.xcworkspace/
 *.mobileprovision
 *.p12
 *.pfx

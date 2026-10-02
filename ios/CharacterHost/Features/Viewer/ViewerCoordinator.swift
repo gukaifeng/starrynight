@@ -129,6 +129,9 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
         guard !shellStarted else { return }; shellStarted = true
         activateLibrary()
 #if DEBUG && targetEnvironment(simulator)
+        if MessageConversationFixture.enabled {
+            MessageConversationFixture.seed(companionStore);selectedTab = .messages
+        }
         if ProcessInfo.processInfo.arguments.contains("--conversation-gesture-fixture") {
             ConversationGestureFixture.seed(companionStore)
         }
@@ -357,6 +360,12 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
         openViewer(model,asCompanion:true)
     }
     func deleteConversation(_ id:String) async throws {
+        try await clearConversation(id,hideFromList:true)
+    }
+    func resetConversation(_ id:String) async throws {
+        try await clearConversation(id,hideFromList:false)
+    }
+    private func clearConversation(_ id:String,hideFromList:Bool) async throws {
         let owner=companionStore.accountID
         let reset=companionStore.record(id).pendingDeletionID ?? UUID().uuidString.lowercased()
         if companion?.model.id==id {companion?.stop();companion?.clearMessageFocus()}
@@ -367,12 +376,19 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
         // Persist the nonce before any network change. A partial failure blocks
         // new turns/outbox uploads and a retry completes the same deletion.
         try companionStore.applyCloudBatch {companionStore.update(id){$0.pendingDeletionID=reset}}
-        let confirmed=try await CharacterAI(accountID:owner,characterID:id).deleteConversation(resetID:reset)
+        let confirmed:ConversationResetReceipt
+#if DEBUG && targetEnvironment(simulator)
+        if MessageConversationFixture.enabled {confirmed=try await MessageConversationFixture.resetReceipt(reset)}
+        else {confirmed=try await CharacterAI(accountID:owner,characterID:id).deleteConversation(resetID:reset)}
+#else
+        confirmed=try await CharacterAI(accountID:owner,characterID:id).deleteConversation(resetID:reset)
+#endif
         guard owner==companionStore.accountID else {throw CancellationError()}
         let messages=companionStore.record(id).messages
         try companionStore.applyCloudBatch {companionStore.update(id){$0.resetConversation(confirmed.resetID,version:confirmed.version)}}
         SpeechClipCache.shared.removeConversation(scope:owner+"|"+id,messages:messages)
-        _ = library.hideConversation(id,latestMessage:nil)
+        if hideFromList {_ = library.hideConversation(id,latestMessage:nil)}
+        else {_ = library.restoreConversation(id)}
         NotificationCenter.default.post(name:.accountDataChanged,object:nil)
     }
     private func configureAppearance(_ profile: CharacterProfile, immediate: Bool = false) {

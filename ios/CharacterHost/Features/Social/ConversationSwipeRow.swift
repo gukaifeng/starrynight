@@ -30,9 +30,12 @@ struct ConversationSwipeRow<Content:View>:View {
                 else {onOpen()}
             } label: {
                 content().frame(maxWidth:.infinity,alignment:.leading)
-                    .overlay(alignment:.trailing) {
-                        LinearGradient(colors:[.clear,Theme.card.opacity(0.75)],startPoint:.leading,endPoint:.trailing)
-                            .frame(width:22).opacity(progress).allowsHitTesting(false)
+                    .mask {
+                        HStack(spacing:0) {
+                            Rectangle().fill(.black)
+                            LinearGradient(colors:[.black,.black.opacity(1-progress)],startPoint:.leading,endPoint:.trailing)
+                                .frame(width:24)
+                        }
                     }
             }
                 .frame(maxWidth:.infinity).clipped().contentShape(Rectangle())
@@ -49,14 +52,16 @@ struct ConversationSwipeRow<Content:View>:View {
                 }.font(.system(size:12,weight:.medium)).foregroundStyle(.white).buttonStyle(.plain)
                     .frame(width:136).frame(width:136*progress,alignment:.trailing).clipped()
                     .padding(.leading,8*progress).opacity(progress)
-                    .background(alignment:.leading) {
-                        LinearGradient(colors:[Theme.card.opacity(0.75),Theme.card.opacity(0.18),.clear],
-                            startPoint:.leading,endPoint:.trailing)
-                            .frame(width:22).offset(x:-8).opacity(progress).allowsHitTesting(false)
-                    }
                     .allowsHitTesting(progress>0.95 && !locked).accessibilityHidden(progress<0.95)
                     .zIndex(1)
             }
+        }.background(alignment:.trailing) {
+            // One continuous surface crosses the content/action boundary. The
+            // label's trailing mask blends into it instead of ending at a seam.
+            LinearGradient(colors:[Theme.background.opacity(0),Theme.card.opacity(0.6),Color(hex:0xAC3E4E).opacity(0.12)],
+                startPoint:.leading,endPoint:.trailing)
+                .frame(width:reveal+32).clipShape(RoundedRectangle(cornerRadius:18))
+                .opacity(progress).allowsHitTesting(false)
         }.clipped().contentShape(Rectangle())
             .background(ConversationRowPan(enabled:!locked,
                 onChange:{translation,began in
