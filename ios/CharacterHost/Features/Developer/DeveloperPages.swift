@@ -22,7 +22,10 @@ struct CharacterDeveloperPanel:View {
     }
     var body:some View {
         ZStack {
-            if destination == "ai" {
+            if destination == "voice" {
+                VoiceTimingPanel(account:store.accountID,character:model.id)
+                    .environment(\.softPanelCloseRequest,childClose).environment(\.softPanelDismiss,{childClose.request()}).transition(.opacity)
+            } else if destination == "ai" {
                 AIInspectionPanel(model:model,store:store,draft:session?.input ?? "")
                     .environment(\.softPanelCloseRequest,childClose).environment(\.softPanelDismiss,{childClose.request()})
                     .transition(.opacity)
@@ -38,6 +41,7 @@ struct CharacterDeveloperPanel:View {
                         VStack(alignment:.leading,spacing:14) {
                             Text("开发构建专用").font(.system(size:11,weight:.medium)).foregroundStyle(Theme.accent)
                             DeveloperEntry(title:"AI 设定检查",detail:"完整设定、提示词、上下文与实际请求",symbol:"curlybraces",id:"openAIInspector") {open("ai")}
+                            DeveloperEntry(title:"语音耗时",detail:"生成、网络、缓存、排队与播放的逐次拆解",symbol:"waveform.path",id:"openCharacterVoiceTimings") {open("voice")}
                             if performanceState != nil,model.performance != nil {
                                 DeveloperEntry(title:"角色表现",detail:"手动检查原生表情、动作和物理能力",symbol:"theatermasks",id:"profilePerformanceButton") {open("performance")}
                             } else {
@@ -63,10 +67,14 @@ struct AppDeveloperPanel:View {
     let coordinator:ViewerCoordinator
     var onOpenCharacter:(String)->Void
     @State private var selected:ModelDescriptor?
+    @State private var voiceTimings=false
     @State private var childClose=SoftPanelCloseRequest()
     var body:some View {
         ZStack {
-            if let selected {
+            if voiceTimings {
+                VoiceTimingPanel(account:coordinator.companionStore.accountID)
+                    .environment(\.softPanelCloseRequest,childClose).environment(\.softPanelDismiss,{childClose.request()}).transition(.opacity)
+            } else if let selected {
                 CharacterDeveloperPanel(model:selected,store:coordinator.companionStore,onOpenConversation:{onOpenCharacter(selected.id)})
                     .environment(\.softPanelCloseRequest,childClose).environment(\.softPanelDismiss,{childClose.request()})
                     .id(selected.id).transition(.opacity)
@@ -76,6 +84,11 @@ struct AppDeveloperPanel:View {
                     ScrollView {
                         VStack(alignment:.leading,spacing:14) {
                             Text("开发构建 · 不随正式版本分发").font(.system(size:12,weight:.medium)).foregroundStyle(Theme.accent)
+                            DeveloperEntry(title:"语音耗时",detail:"所有角色的逐次耗时、服务端快照与日志导出",symbol:"waveform.path",id:"openAppVoiceTimings") {
+                                childClose=SoftPanelCloseRequest()
+                                childClose.begin {withAnimation(.easeInOut(duration:0.2)) {voiceTimings=false}}
+                                withAnimation(.easeInOut(duration:0.2)) {voiceTimings=true}
+                            }
                             VStack(alignment:.leading,spacing:8) {
                                 let info=Bundle.main.infoDictionary ?? [:]
                                 Text("版本 \(info["CFBundleShortVersionString"] as? String ?? "—") (\(info["CFBundleVersion"] as? String ?? "—"))")

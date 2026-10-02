@@ -157,6 +157,12 @@ import CryptoKit
         do {try await cancelledPump.finish();try require(false,"Cancelled audio worker reported success")}
         catch is CancellationError {}
         try require(cancelled && !nextBeatAccepted,"Cancellation left audio from the old turn queued")
-        return "PASS: real audio metering, cache replay, monotonic lip-sync, nonblocking queue, late visuals, hidden-tab drain and PCM cache, playback restoration, duration and worker cancellation; zero network calls."
+        let traces=VoiceTimeline.shared.records.filter {$0.account==scope}
+        try require(traces.contains(where:{$0.marks["first_output"] != nil && $0.spans.contains(where:{$0.name=="audio.pcm_convert"})}),"Voice trace missed real output or PCM conversion")
+        try require(traces.contains(where:{$0.spans.contains(where:{$0.name=="audio.cache_write"}) && $0.spans.contains(where:{$0.name=="audio.drain" && $0.durationMs>50})}),"Voice trace omitted cache I/O or real speaker drain")
+        try require(traces.contains(where:{$0.flags["audio_source"]=="持久语音缓存"}),"Durable replay source was not recorded")
+        let encoded=try JSONEncoder().encode(traces)
+        try require(!String(decoding:encoded,as:UTF8.self).contains("Audio regression"),"Diagnostics stored dialogue content")
+        return "PASS: real audio metering, cache replay, monotonic lip-sync, bounded queue, cancellation and detailed persisted voice traces; zero network calls."
     }
 }

@@ -97,6 +97,10 @@ struct AIEvent: Decodable, Sendable {
     var visuals: [AIVisual]?
     var prepared: Bool?
     var preparationInflight:Bool?
+    var traceId:String?
+    var serverAtMs:Double?
+    var trace:VoiceServerTrace?
+    var receivedAt:Double?
 }
 struct AIReactionPoolStatus:Decodable,Sendable {
     var capacity:Int
@@ -157,6 +161,27 @@ private final class AIStreamCancellation: @unchecked Sendable {
 private final class AINoRedirect: NSObject, URLSessionTaskDelegate, Sendable {
     func urlSession(_ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse,
                     newRequest request: URLRequest, completionHandler: @escaping @Sendable (URLRequest?) -> Void) { completionHandler(nil) }
+    func urlSession(_ session:URLSession,task:URLSessionTask,didFinishCollecting metrics:URLSessionTaskMetrics) {
+        guard let id=task.originalRequest?.value(forHTTPHeaderField:"X-Starry-Voice-Trace") else {return}
+        let origin=metrics.taskInterval.start
+        var spans:[VoiceSpan]=[]
+        var reused=false
+        for (index,metric) in metrics.transactionMetrics.enumerated() {
+            reused = reused || metric.isReusedConnection
+            for (name,start,end) in [("network.dns",metric.domainLookupStartDate,metric.domainLookupEndDate),
+                ("network.tcp",metric.connectStartDate,metric.connectEndDate),("network.tls",metric.secureConnectionStartDate,metric.secureConnectionEndDate),
+                ("network.upload",metric.requestStartDate,metric.requestEndDate),("network.response_wait",metric.requestEndDate,metric.responseStartDate),
+                ("network.download",metric.responseStartDate,metric.responseEndDate)] {
+                if let start,let end {spans.append(VoiceSpan(name:name,startMs:max(0,start.timeIntervalSince(origin)*1000),durationMs:max(0,end.timeIntervalSince(start)*1000),beatId:"transaction-\(index)"))}
+            }
+        }
+        let values=spans;let connection=reused
+        Task { @MainActor in
+            let offset=VoiceTimeline.shared.records.last(where:{$0.id==id})?.marks["request_sent"] ?? 0
+            for var value in values {value.startMs+=offset;VoiceTimeline.shared.add(id,value)}
+            VoiceTimeline.shared.flag(id,"connection_reused",connection ? "是；DNS/TLS 可能没有本次耗时" : "否")
+        }
+    }
 }
 
 @MainActor final class CharacterAI {
@@ -294,23 +319,33 @@ private final class AINoRedirect: NSObject, URLSessionTaskDelegate, Sendable {
         let _:Acknowledgement=try await configuration("/v1/conversations/"+characterID+"/opening",body:[
             "opening_id":id,"message_id":script.messageId,"conversation_reset":resetID])
     }
-    func events(path: String, body: [String:Any]?, consume: (AIEvent) async throws -> Void) async throws {
+    func events(path: String, body: [String:Any]?, traceID:String?=nil,consume: (AIEvent) async throws -> Void) async throws {
 #if DEBUG && targetEnvironment(simulator)
         if ConversationContinuityFixture.enabled {
             try await ConversationContinuityFixture.events(characterID:characterID,body:body,consume:consume);return
         }
 #endif
         var request = try request(path); request.httpMethod = "POST"
+        let timeline=VoiceTimeline.shared
+        let traceID=traceID ?? timeline.begin(account:accountID,character:characterID,kind:path.hasSuffix("/audio") ? "replay" : body?["trigger"] as? String ?? "reply")
+        request.setValue(traceID,forHTTPHeaderField:"X-Starry-Voice-Trace")
         request.setValue("application/json",forHTTPHeaderField:"Content-Type")
         request.setValue("text/event-stream",forHTTPHeaderField:"Accept")
         // Older gateways ignore this header and keep their original event order.
         request.setValue("timeline-v2",forHTTPHeaderField:"X-Starry-Reply-Mode")
         request.setValue("parallel-v1",forHTTPHeaderField:"X-Starry-Performance-Mode")
+        let encoding=timeline.now(traceID)
         if let body { request.httpBody = try JSONSerialization.data(withJSONObject:body) }
+        timeline.span(traceID,"request.encode",start:encoding)
         let cancellation=AIStreamCancellation()
+        let networkStart=timeline.now(traceID)
+        defer {timeline.span(traceID,"network.stream",start:networkStart)}
         do {
           try await withTaskCancellationHandler {
+            let headers=timeline.now(traceID);timeline.mark(traceID,"request_sent")
             let (bytes, response) = try await session.bytes(for:request)
+            timeline.span(traceID,"http.headers_wait",start:headers)
+            timeline.mark(traceID,"response_headers")
             cancellation.install(bytes.task)
             defer { cancellation.cancel() }
             guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
@@ -324,23 +359,31 @@ private final class AINoRedirect: NSObject, URLSessionTaskDelegate, Sendable {
                 try Task.checkCancellation()
                 guard line.hasPrefix("data: ") else { continue }
                 guard line.utf8.count < 512*1024 else { throw AIConnectionError.remote("EVENT_TOO_LARGE") }
-                let event = try decoder.decode(AIEvent.self,from:Data(line.dropFirst(6).utf8))
+                let decoding=timeline.now(traceID)
+                var event = try decoder.decode(AIEvent.self,from:Data(line.dropFirst(6).utf8))
+                event.traceId=traceID;event.receivedAt=ProcessInfo.processInfo.systemUptime
+                timeline.span(traceID,"sse.decode",start:decoding,bytes:line.utf8.count)
+                timeline.receive(traceID,event:event)
                 if event.type == "reply.error" { throw AIConnectionError.remote(event.code ?? "ERROR") }
                 if event.type == "reply.completed" || (path.hasSuffix("/audio") && ["segment.audio.ready","audio.error"].contains(event.type)) { completed = true }
+                let consuming=timeline.now(traceID)
                 try await consume(event)
+                timeline.span(traceID,"sse.consume",start:consuming,beat:event.beatId)
             }
             guard completed else { throw AIConnectionError.remote("STREAM_INTERRUPTED") }
+            timeline.mark(traceID,"network_complete")
           } onCancel: { cancellation.cancel() }
-        } catch is CancellationError { throw CancellationError() }
-        catch let error as AIConnectionError { throw error }
-        catch { if Task.isCancelled { throw CancellationError() }; throw AIConnectionError.unavailable }
+        } catch is CancellationError {timeline.finish(traceID,status:"cancelled");throw CancellationError() }
+        catch let error as AIConnectionError {timeline.flag(traceID,"error_type","AIConnectionError");timeline.finish(traceID,status:"failed");throw error }
+        catch {timeline.flag(traceID,"error_type",String(describing:type(of:error)));timeline.finish(traceID,status:Task.isCancelled ? "cancelled" : "failed");if Task.isCancelled { throw CancellationError() }; throw AIConnectionError.unavailable }
     }
-    func socket(nickname: String) throws -> URLSessionWebSocketTask {
+    func socket(nickname: String,traceID:String?=nil) throws -> URLSessionWebSocketTask {
         var request = try request("/v1/asr/" + characterID)
         var parts = URLComponents(url:request.url!,resolvingAgainstBaseURL:false)!
         parts.scheme = parts.scheme == "https" ? "wss" : "ws"
         parts.queryItems = [URLQueryItem(name:"nickname",value:nickname)]
         request.url = parts.url
+        if let traceID {request.setValue(traceID,forHTTPHeaderField:"X-Starry-Voice-Trace")}
         return session.webSocketTask(with:request)
     }
 }

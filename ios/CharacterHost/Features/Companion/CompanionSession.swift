@@ -377,14 +377,18 @@ final class CompanionSession {
         guard !model.isPreviewOnly else { return }
         guard !api.requiresAuthentication else {return}
         guard record.pendingDeletionID==nil else {return}
+        let voiceTrace=VoiceTimeline.shared.begin(account:ownerID,character:model.id,kind:trigger)
+        let preparing=VoiceTimeline.shared.now(voiceTrace)
         stop(preservePreparation:true);quickReplies=[];quickReplySource=nil
         let current = token; generating = true; beginTurn(); emit("state.thinking")
         var body=requestBody(text,trigger:trigger)
         if let entry { body["entry_id"] = entry.id.uuidString }
         if let interaction {body["interaction"]=interaction}
         if let quickReplyID {body["quick_reply_id"]=quickReplyID}
+        VoiceTimeline.shared.span(voiceTrace,"conversation.prepare_request",start:preparing)
         task = Task { @MainActor [weak self] in
             guard let self else { return }
+            VoiceTimeline.shared.mark(voiceTrace,"request_task_started")
             var received = false
             let audio=ReplyAudioPump { [weak self] event in
                 guard let self,self.token==current,self.store.accountID==self.ownerID else {throw CancellationError()}
@@ -397,8 +401,10 @@ final class CompanionSession {
             }
             defer {audio.cancel()}
             do {
+                let opening=VoiceTimeline.shared.now(voiceTrace)
                 try await registerOpeningContext()
-                try await api.events(path:"/v1/conversations/"+model.id+"/messages",body:body) { [weak self] event in
+                VoiceTimeline.shared.span(voiceTrace,"conversation.register_opening",start:opening)
+                try await api.events(path:"/v1/conversations/"+model.id+"/messages",body:body,traceID:voiceTrace) { [weak self] event in
                     guard let self, current == self.token, self.store.accountID == self.ownerID else { throw CancellationError() }
                     switch event.type {
                     case "reply.narration.ready":
@@ -427,7 +433,7 @@ final class CompanionSession {
                         self.scheduleReactionPreparation(delay:0.2)
                         self.scheduleQuickReplies(script)
                         if !self.muted {
-                            self.speech.prepare(message.id,script:script)
+                            self.speech.prepare(message.id,script:script,traceID:voiceTrace)
                             // React when the text arrives, even while voice is
                             // connecting. Audio onset then aligns/renews the beat.
                             if self.presentationActive,let first=script.beats.first {
@@ -467,6 +473,7 @@ final class CompanionSession {
                 try await audio.finish()
                 guard current == token else { return }
                 generating = false; speech.finish()
+                VoiceTimeline.shared.finish(voiceTrace)
                 if !muted && speech.error == nil {replyReveal.finish()}
                 if !muted, let script=activeScript { playSilentVisuals(script) }
                 // Each group has its own bounded restore timer. Finishing a
@@ -475,6 +482,7 @@ final class CompanionSession {
                 if reactionPreparationTask==nil {scheduleReactionPreparation(delay:0.2)}
                 scheduleIdle()
             } catch {
+                VoiceTimeline.shared.finish(voiceTrace,status:Task.isCancelled ? "cancelled" : "failed")
                 guard current == token, !Task.isCancelled else { return }
                 generating = false; speech.stop()
                 replyReveal.finish()
@@ -624,12 +632,13 @@ final class CompanionSession {
         guard !muted else { notice = "请先在声音面板调高角色语音音量。"; return }
         guard let script = message.aiScript else { return }
         stop(); let current = token; activeScript = script; beginTurn()
+        let voiceTrace=VoiceTimeline.shared.begin(account:ownerID,character:model.id,kind:"replay",message:script.messageId)
         task = Task { @MainActor [weak self] in
             guard let self else { return }
             do {
-                if try await speech.cachedReplay(script,messageID:message.id) { playSilentVisuals(script); return }
-                speech.prepare(message.id,script:script)
-                try await api.events(path:"/v1/conversations/"+model.id+"/messages/"+script.messageId+"/audio",body:nil) { [weak self] event in
+                if try await speech.cachedReplay(script,messageID:message.id,traceID:voiceTrace) { playSilentVisuals(script); return }
+                speech.prepare(message.id,script:script,traceID:voiceTrace)
+                try await api.events(path:"/v1/conversations/"+model.id+"/messages/"+script.messageId+"/audio",body:nil,traceID:voiceTrace) { [weak self] event in
                     guard let self, self.token == current else { throw CancellationError() }
                     try await self.speech.accept(event)
                 }

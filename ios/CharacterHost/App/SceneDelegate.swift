@@ -42,6 +42,19 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         if ProcessInfo.processInfo.arguments.contains("--connection-check") {
             window.rootViewController=LanguageHostingController(rootView:AIConnectionDiagnostics());return
         }
+#if DEBUG && targetEnvironment(simulator)
+        if ProcessInfo.processInfo.arguments.contains("--voice-timeline-review") {
+            Task { @MainActor in
+                for _ in 0..<100 {
+                    if let record=VoiceTimeline.shared.records.last(where:{$0.account.hasPrefix("audio-regression:") && $0.marks["first_output"] != nil}) {
+                        window.rootViewController=LanguageHostingController(rootView:VoiceTimingPanel(account:record.account,initialSelection:record.id));return
+                    }
+                    try? await Task.sleep(for:.milliseconds(20))
+                }
+            }
+            return
+        }
+#endif
 #endif
 #if DEBUG && targetEnvironment(simulator)
         if ProcessInfo.processInfo.arguments.contains("--goal-page-fixture") {
@@ -178,7 +191,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     private func bootstrap(in windowScene:UIWindowScene) {
         guard !isolatedGoalFixture, !isolatedModelReviewCheck else { return }
 #if DEBUG && targetEnvironment(simulator)
-        if ProcessInfo.processInfo.arguments.contains(where: { ["--language-check", "--opening-check", "--voice-atmosphere-check", "--reply-flow-check", "--conversation-presentation-check", "--chat-input-check", "--speech-playback-check", "--greeting-core-check", "--view-presets-check", "--experience-core-check", "--export-core-check", "--export-ui-check", "--social-core-check", "--cache-core-check", "--market-core-check"].contains($0) }) { return }
+        if ProcessInfo.processInfo.arguments.contains(where: { ["--language-check", "--opening-check", "--voice-atmosphere-check", "--reply-flow-check", "--conversation-presentation-check", "--chat-input-check", "--speech-playback-check", "--voice-timeline-review", "--greeting-core-check", "--view-presets-check", "--experience-core-check", "--export-core-check", "--export-ui-check", "--social-core-check", "--cache-core-check", "--market-core-check"].contains($0) }) { return }
 #endif
 #if STARRY_TEST_TOOLS
         if ProcessInfo.processInfo.arguments.contains("--connection-check") {return}
