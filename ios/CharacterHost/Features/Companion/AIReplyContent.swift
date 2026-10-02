@@ -17,7 +17,17 @@ struct AIReplyContent: View {
         let descriptor=base.fontDescriptor.withMatrix(CGAffineTransform(a:1,b:0,c:0.14,d:1,tx:0,ty:0))
         return Font(UIFont(descriptor:descriptor,size:size))
     }
-    private func aside(_ text:String)->String {"（"+text.trimmingCharacters(in:CharacterSet(charactersIn:"（）() \n"))+"）"}
+    private func aside(_ text:String)->String {"（"+ReplyDisplayText.flatten(text)+"）"}
+    private func dialogue(_ text:String)->AttributedString {
+        var output=AttributedString()
+        for piece in ReplyDisplayText.pieces(text) {
+            var run=AttributedString(piece.aside ? aside(piece.text) : piece.text)
+            run.font=piece.aside ? asideFont : .system(size:fontSize)
+            run.foregroundColor=piece.aside ? (AIBeat.visibleThought(piece.text) != nil ? Theme.peach.opacity(0.8) : Theme.secondary.opacity(0.92)) : Theme.ink
+            output.append(run)
+        }
+        return output
+    }
     var body: some View {
         VStack(alignment:.leading,spacing:7) {
             if let script = message.aiScript {
@@ -26,7 +36,7 @@ struct AIReplyContent: View {
                     ForEach(Array(parts.prefix(reveal.count(message.id,beat:beat.beatId) ?? parts.count).enumerated()),id:\.offset) { index,part in
                         if part.isVisible {
                             let text = translated(part.text,beat.beatId + ".part.\(index)")
-                            Text(part.kind == "dialogue" ? text : aside(text))
+                            Text(part.kind == "dialogue" ? dialogue(text) : AttributedString(aside(text)))
                                 .font(part.kind == "dialogue" ? .system(size:fontSize) : asideFont)
                                 .foregroundStyle(part.kind == "dialogue" ? Theme.ink : part.kind == "thought" ? Theme.peach.opacity(0.8) : Theme.secondary.opacity(0.92))
                                 .lineSpacing(part.kind == "dialogue" ? 5 : 3)
@@ -50,7 +60,7 @@ struct AIReplyContent: View {
                             .accessibilityLabel("角色心声："+text).accessibilityIdentifier("aiThought")
                     }
                     if let dialogue = beat.dialogue {
-                        Text(translated(dialogue.text,beat.beatId + ".dialogue")).font(.system(size:fontSize)).lineSpacing(5)
+                        Text(self.dialogue(translated(dialogue.text,beat.beatId + ".dialogue"))).font(.system(size:fontSize)).lineSpacing(5)
                             .fixedSize(horizontal:false,vertical:true)
                             .accessibilityIdentifier("assistantMessage")
                             .accessibilityValue(message.proactiveScene.map { "主动问候："+$0 } ?? "AI 回复")
@@ -58,7 +68,7 @@ struct AIReplyContent: View {
                   }
                 }
             } else {
-                Text(translated(message.text,"text")).font(.system(size:fontSize)).lineSpacing(5).accessibilityIdentifier("assistantMessage")
+                Text(dialogue(translated(message.text,"text"))).font(.system(size:fontSize)).lineSpacing(5).accessibilityIdentifier("assistantMessage")
             }
         }.fixedSize(horizontal:false,vertical:true)
             .animation(.easeInOut(duration:reduceMotion ? 0.01 : 0.22),value:reveal.revision)

@@ -574,6 +574,7 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
     private var chatEditing = false
     private var chatComposerFrame = CGRect.zero
     private lazy var dismissChatKeyboardTap = UITapGestureRecognizer(target:self,action:#selector(dismissChatKeyboardFromBlankTap(_:)))
+    private var outsideTapShouldDismissKeyboard=false
     private var keyboardFrame: CGRect?
     func setCompanionTitle(_ title: String) {
         if chatSession != nil {
@@ -875,6 +876,7 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
     }
     func gestureRecognizer(_ gestureRecognizer:UIGestureRecognizer,shouldReceive touch:UITouch) -> Bool {
         guard gestureRecognizer === dismissChatKeyboardTap else { return true }
+        outsideTapShouldDismissKeyboard=false
         if viewEditor.isOpen {
             guard gestureInputAvailable,presentedViewController==nil else {return false}
             let point=touch.location(in:view)
@@ -888,6 +890,16 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
         let keyboardVisible=chatEditing || keyboardFrame != nil
         guard let session=chatSession,(keyboardVisible || session.quickReplyPanelPresented),
               !viewEditor.isOpen,gestureInputAvailable,presentedViewController == nil else {return false}
+        if session.quickReplyPanelPresented {
+            if let host=chatHost,let panel=(view as? TouchThroughView)?.messageRegions["smartRepliesPanel"],
+               panel.frame.contains(touch.location(in:host.view)) {return false}
+            // Observe every completed outside tap, including bubbles and
+            // toolbar controls. Their own actions still receive the same tap.
+            if keyboardVisible,let host=chatHost {
+                outsideTapShouldDismissKeyboard = !chatComposerFrame.insetBy(dx:-4,dy:-4).contains(touch.location(in:host.view))
+            }
+            return true
+        }
         if !keyboardVisible {
             // Observe blank/model taps without a full-screen overlay that would
             // steal model drags or taps inside the reply suggestions/composer.
@@ -902,6 +914,7 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
             inputView=current.superview
         }
         outsideKeyboardTouches += 1
+        outsideTapShouldDismissKeyboard=true
         if let host = chatHost {
             let point = touch.location(in:host.view)
             // Keep text selection, caret placement, voice and send inside the
@@ -925,7 +938,8 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
         guard recognizer.state == .ended else {return}
         if viewEditor.isOpen {closeViewEditor();return}
         chatSession?.quickReplyPanelPresented=false
-        if chatEditing {chatSession?.dismissKeyboardRequest += 1;view.endEditing(true)}
+        if outsideTapShouldDismissKeyboard && chatEditing {chatSession?.dismissKeyboardRequest += 1;view.endEditing(true)}
+        outsideTapShouldDismissKeyboard=false
     }
     @objc private func keyboardChanged(_ notification: Notification) {
         if notification.name == UIResponder.keyboardDidHideNotification { keyboardFrame = nil }

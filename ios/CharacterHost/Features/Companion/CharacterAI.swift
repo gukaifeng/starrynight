@@ -248,12 +248,14 @@ private final class AINoRedirect: NSObject, URLSessionTaskDelegate, Sendable {
         let decoder=JSONDecoder();decoder.keyDecodingStrategy = .convertFromSnakeCase
         return try decoder.decode(T.self,from:data)
     }
-    func translate(messageID:UUID,segments:[TranslationSegment],to language:AppLanguage) async throws -> TranslationResponse {
+    func translate(messageID:UUID,segments:[TranslationSegment],to language:AppLanguage,sourceKind:String="assistant",optionID:String?=nil) async throws -> TranslationResponse {
         var request=try request("/v1/conversations/"+characterID+"/messages/"+messageID.uuidString+"/translation")
         request.httpMethod="POST";request.timeoutInterval=30
         request.setValue("application/json",forHTTPHeaderField:"Content-Type")
-        request.httpBody=try JSONSerialization.data(withJSONObject:["target_language":language.rawValue,
-            "segments":segments.map {["id":$0.id,"kind":$0.kind,"text":$0.text]}])
+        var body:[String:Any]=["target_language":language.rawValue,"source_kind":sourceKind,
+            "segments":segments.map {["id":$0.id,"kind":$0.kind,"text":$0.text]}]
+        if let optionID {body["option_id"]=optionID}
+        request.httpBody=try JSONSerialization.data(withJSONObject:body)
         let (data,response)=try await session.data(for:request)
         guard (response as? HTTPURLResponse)?.statusCode==200 else {throw AIConnectionError.http((response as? HTTPURLResponse)?.statusCode ?? 0,body:data)}
         let decoder=JSONDecoder();decoder.keyDecodingStrategy = .convertFromSnakeCase

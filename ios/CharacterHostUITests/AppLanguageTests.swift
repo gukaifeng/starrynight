@@ -31,10 +31,25 @@ final class AppLanguageTests: XCTestCase {
         XCTAssertTrue(app.staticTexts["aiThought"].label.contains("安心"))
         XCTAssertTrue(app.staticTexts["aiNarration"].label.contains("挥了挥手"))
         translate.tap();XCTAssertTrue(app.staticTexts["assistantMessage"].label.contains("Good morning"))
+        let userTranslate=app.buttons.matching(NSPredicate(format:"identifier BEGINSWITH 'translateUser-'")).firstMatch
+        XCTAssertTrue(userTranslate.exists);userTranslate.tap()
+        XCTAssertTrue(app.staticTexts["userMessage"].label.contains("我很想听听"));userTranslate.tap()
+        app.buttons["smartReplyButton"].tap()
+        let suggestionTranslate=app.buttons["translateSuggestion-language-0"]
+        XCTAssertTrue(suggestionTranslate.waitForExistence(timeout:3));suggestionTranslate.tap()
+        XCTAssertEqual(app.buttons["smartReplyOption-0"].label,"说说你的花园吧。")
+        suggestionTranslate.tap();XCTAssertEqual(app.buttons["smartReplyOption-0"].label,"Tell me about your garden.")
+        // A bubble/control outside the panel closes it without swallowing that
+        // control's own translation action. This fixture needs no Unity bridge.
+        userTranslate.tap()
+        XCTAssertTrue(app.otherElements["smartRepliesPanel"].waitForNonExistence(timeout:3))
+        XCTAssertTrue(app.staticTexts["userMessage"].label.contains("我很想听听"))
+        app.buttons["smartReplyButton"].tap()
         app.buttons["fixtureLanguageSettings"].tap()
         app.buttons["language-en"].tap()
         XCTAssertTrue(app.navigationBars["Language"].waitForExistence(timeout:3))
         app.navigationBars.buttons.firstMatch.tap()
+        XCTAssertFalse(app.otherElements["smartRepliesPanel"].exists)
         XCTAssertEqual(app.staticTexts["localizedTitle"].label,"Messages")
         XCTAssertFalse(translate.exists)
         app.buttons["fixtureLanguageSettings"].tap();app.buttons["language-zh-Hant"].tap()

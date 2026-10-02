@@ -11,6 +11,7 @@ final class CompanionSession {
     var inspectionActive = false
     var dismissKeyboardRequest = 0
     var quickReplyPanelPresented = false
+    var quickReplyTranslations:[String:String]=[:]
     var atmospherePreviewIntensity:Double?
     var atmosphereIntensity:Double {atmospherePreviewIntensity ?? record.profile.resolvedAtmosphereIntensity}
     func commitAtmosphereIntensity() {
@@ -525,6 +526,15 @@ final class CompanionSession {
     }
     func requestQuickReplies() {
 #if DEBUG && targetEnvironment(simulator)
+        if ProcessInfo.processInfo.arguments.contains("--ui-testing"),ProcessInfo.processInfo.arguments.contains("--language-check") {
+            quickReplies=["Tell me about your garden.","What makes you feel at home?","我想听你说说今天。"].enumerated().map {AIQuickReply(id:"language-\($0.offset)",text:$0.element,likelihood:1-Double($0.offset)*0.2)}
+            quickReplySource=record.messages.last?.aiScript?.messageId.lowercased()
+            for (index,option) in quickReplies.enumerated() {
+                quickReplyTranslations[suggestionTranslationKey(option,to:.simplified)]=["说说你的花园吧。","什么让你感到安心？","我想听你说说今天。"][index]
+                quickReplyTranslations[suggestionTranslationKey(option,to:.traditional)]=["說說你的花園吧。","什麼讓你感到安心？","我想聽你說說今天。"][index]
+            }
+            return
+        }
         // Layout-only fixture. Never available in device builds or live AI tests.
         if ProcessInfo.processInfo.arguments.contains("--ui-testing"),
            ProcessInfo.processInfo.arguments.contains("--smart-reply-layout-fixture"),

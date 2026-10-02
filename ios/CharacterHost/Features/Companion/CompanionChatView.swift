@@ -337,22 +337,15 @@ struct CompanionChatView: View {
                 }.padding(8)
             }
             ForEach(Array(presentedReplies.enumerated()),id:\.element.id) {index,option in
-                Button {
+                SuggestionTranslationRow(session:session,option:option,index:index) {
                     withAnimation(interfaceAnimation) {
                         session.quickReplyPanelPresented=false
                         editing=false;session.clearMessageFocus();scrollState.returnToLatest();session.sendSuggested(option)
                     }
-                } label: {
-                    HStack(spacing:7) {
-                        Text(option.text).font(.system(size:12)).lineLimit(2).multilineTextAlignment(.leading)
-                        Spacer(minLength:4)
-                        Image(systemName:"arrow.up.right").font(.system(size:10,weight:.medium)).foregroundStyle(Theme.secondary.opacity(0.7))
-                    }.padding(.horizontal,9).padding(.vertical,6).frame(maxWidth:.infinity,minHeight:34,alignment:.leading)
-                        .background(Theme.ink.opacity(index==0 ? 0.075 : 0.035),in:RoundedRectangle(cornerRadius:10))
-                }.buttonStyle(ReplySuggestionPressStyle(reduceMotion:reduceMotion))
-                    .accessibilityLabel(option.text).accessibilityIdentifier("smartReplyOption-\(index)")
+                }.background(Theme.ink.opacity(index==0 ? 0.075 : 0.035),in:RoundedRectangle(cornerRadius:10))
             }
         }.padding(6).background(Theme.surface.opacity(reduceTransparency ? 1 : 0.96),in:RoundedRectangle(cornerRadius:15))
+            .background(ReplyPanelOutsideTap {withAnimation(interfaceAnimation){session.quickReplyPanelPresented=false}})
             .overlay(RoundedRectangle(cornerRadius:15).stroke(Theme.gradient.opacity(0.24),lineWidth:0.65))
             .shadow(color:.black.opacity(0.18),radius:16,y:5)
             .conversationHitRegion(.control,id:"smartRepliesPanel")
@@ -407,8 +400,7 @@ struct CompanionChatView: View {
                     .background(Theme.surface.opacity(reduceTransparency ? 1 : 0.64),in:AssistantBubbleShape())
                     .overlay { AssistantBubbleShape().stroke(Theme.gradient.opacity(session.focusedMessageID == message.id ? 0.65 : 0.20),lineWidth:0.6) }
             } else {
-                Text(message.text).font(.system(size:chatFontSize)).lineSpacing(5)
-                    .accessibilityIdentifier("userMessage")
+                TranslatableReplyContent(session:session,message:message,fontSize:chatFontSize)
                     .padding(.horizontal,15).padding(.vertical,11)
                     .background(Theme.jade.opacity(reduceTransparency ? 1 : 0.60),in:RoundedRectangle(cornerRadius:22))
                     .overlay { RoundedRectangle(cornerRadius:22).stroke(Theme.gradient.opacity(session.focusedMessageID == message.id ? 0.65 : 0.08),lineWidth:0.6) }
@@ -419,7 +411,7 @@ struct CompanionChatView: View {
     }
 }
 
-private struct ReplySuggestionPressStyle:ButtonStyle {
+struct ReplySuggestionPressStyle:ButtonStyle {
     let reduceMotion:Bool
     func makeBody(configuration:Configuration)->some View {
         configuration.label.opacity(configuration.isPressed ? 0.72 : 1)

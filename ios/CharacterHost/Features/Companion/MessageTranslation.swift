@@ -52,6 +52,7 @@ struct TranslationResponse: Decodable, Sendable {
     }
     private static func needsTranslation(_ text:String,target:AppLanguage) -> Bool {
         guard text.unicodeScalars.contains(where:CharacterSet.letters.contains) else { return false }
+        if target != .english,hasSubstantialEnglish(text) {return true}
         let recognizer = NLLanguageRecognizer(); recognizer.processString(text)
         guard let language = recognizer.dominantLanguage else { return false }
         if language == .simplifiedChinese || language == .traditionalChinese {
@@ -63,8 +64,14 @@ struct TranslationResponse: Decodable, Sendable {
         }
         return language.rawValue != target.rawValue
     }
+    private static func hasSubstantialEnglish(_ text:String)->Bool {
+        guard let expression=try? NSRegularExpression(pattern:#"\b[A-Za-z][A-Za-z'-]{1,}\b"#) else{return false}
+        let words=expression.matches(in:text,range:NSRange(text.startIndex...,in:text))
+        return words.count>=3 && words.reduce(0,{$0+$1.range.length})>=12
+    }
     static func convertChinese(_ segments:[TranslationSegment],to target:AppLanguage) -> [TranslationSegment]? {
         guard target != .english,segments.allSatisfy({
+            if hasSubstantialEnglish($0.text) {return false}
             let language=NLLanguageRecognizer.dominantLanguage(for:$0.text)
             return language == .simplifiedChinese || language == .traditionalChinese || language == nil
         }) else {return nil}
@@ -88,7 +95,7 @@ extension CompanionSession {
                 // normal preparation task has registered it on the gateway.
                 try await api.registerOpening(script,resetID:record.conversationResetID ?? "")
             }
-            response = try await api.translate(messageID:message.id,segments:segments,to:language)
+            response = try await api.translate(messageID:message.id,segments:segments,to:language,sourceKind:message.role == "user" ? "user" : "assistant")
         }
         guard response.targetLanguage == language.rawValue,
               response.segments.map(\.id) == segments.map(\.id),
@@ -104,6 +111,26 @@ extension CompanionSession {
             record.messages[index].translations?[language.rawValue] = translated
         }
         return translated
+    }
+    func suggestionTranslationKey(_ option:AIQuickReply,to language:AppLanguage)->String {
+        store.accountID+":"+(quickReplySource ?? "")+":"+option.id+":"+language.rawValue+":"+ReplyTranslation.fingerprint([.init(id:"option",kind:"dialogue",text:option.text)])
+    }
+    func translateSuggestion(_ option:AIQuickReply,to language:AppLanguage) async throws -> String {
+        let owner=store.accountID
+        guard let source=quickReplySource,let id=UUID(uuidString:source),quickReplies.contains(where:{$0.id==option.id}) else {throw CancellationError()}
+        let key=suggestionTranslationKey(option,to:language)
+        if let saved=quickReplyTranslations[key] {return saved}
+        let segments=[TranslationSegment(id:"option",kind:"dialogue",text:option.text)]
+        if let converted=ReplyTranslation.convertChinese(segments,to:language) {return converted[0].text}
+        if let script=record.messages.last?.aiScript,script.openingID != nil {
+            try await api.registerOpening(script,resetID:record.conversationResetID ?? "")
+        }
+        let response=try await api.translate(messageID:id,segments:segments,to:language,sourceKind:"suggestion",optionID:option.id)
+        guard store.accountID==owner,quickReplySource==source,quickReplies.contains(where:{$0.id==option.id}) else {throw CancellationError()}
+        guard response.targetLanguage==language.rawValue,response.segments.count==1,response.segments[0].id=="option",response.segments[0].kind=="dialogue",!response.segments[0].text.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty else {throw AIConnectionError.remote("TRANSLATION_SHAPE_INVALID")}
+        if quickReplyTranslations.count>=24 {quickReplyTranslations.removeAll()}
+        quickReplyTranslations[key]=response.segments[0].text
+        return response.segments[0].text
     }
 }
 
@@ -125,8 +152,13 @@ struct TranslatableReplyContent: View {
     }
     var body: some View {
         VStack(alignment:.leading,spacing:3) {
-            AIReplyContent(message:message,fontSize:fontSize,reveal:session.replyReveal,
-                translation:showingTranslation ? saved?.lookup ?? [:] : [:])
+            if message.role == "user" {
+                Text(showingTranslation ? saved?.lookup["text"] ?? message.text : message.text)
+                    .font(.system(size:fontSize)).lineSpacing(5).accessibilityIdentifier("userMessage")
+            } else {
+                AIReplyContent(message:message,fontSize:fontSize,reveal:session.replyReveal,
+                    translation:showingTranslation ? saved?.lookup ?? [:] : [:])
+            }
             if ReplyTranslation.needed(segments,target:language) {
                 HStack(spacing:5) {
                     Spacer(minLength:10)
@@ -139,7 +171,7 @@ struct TranslatableReplyContent: View {
                         }.foregroundStyle(Theme.secondary.opacity(0.85)).padding(.leading,10).frame(minHeight:32)
                             .contentShape(Rectangle())
                     }.buttonStyle(.plain).disabled(pending || (session.generating && session.record.messages.last?.id == message.id))
-                        .accessibilityIdentifier("translate-" + message.id.uuidString)
+                        .accessibilityIdentifier((message.role == "user" ? "translateUser-" : "translate-") + message.id.uuidString)
                         .conversationHitRegion(.control,id:"translate-" + message.id.uuidString)
                 }.padding(.bottom,-6)
                 if failed { Text("翻译暂时不可用，原文已保留。").font(.system(size:10)).foregroundStyle(Theme.secondary).frame(maxWidth:.infinity,alignment:.trailing) }

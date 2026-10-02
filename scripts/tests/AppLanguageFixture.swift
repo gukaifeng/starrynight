@@ -22,7 +22,11 @@ struct AppLanguageFixture: View {
             message.translations?[language.rawValue]=MessageTranslation(sourceFingerprint:fingerprint,targetLanguage:language.rawValue,
                 segments:zip(source,text).map {TranslationSegment(id:$0.id,kind:$0.kind,text:$1)})
         }
-        store.update(model.id) {$0.messages=[message]}
+        var user=CompanionMessage(role:"user",text:"I would love to hear your story.")
+        let userSource=ReplyTranslation.segments(user)
+        user.translations=[AppLanguage.simplified.rawValue:MessageTranslation(sourceFingerprint:ReplyTranslation.fingerprint(userSource),targetLanguage:AppLanguage.simplified.rawValue,
+            segments:[.init(id:"text",kind:"dialogue",text:"我很想听听你的故事。")])]
+        store.update(model.id) {$0.messages=[user,message]}
         _session=State(initialValue:CompanionSession(store:store,model:model,soundscape:CompanionSoundscape()))
     }
     var body: some View {
@@ -35,7 +39,7 @@ struct AppLanguageFixture: View {
                 CompanionChatView(session:session).frame(height:380)
                 Text("原文").accessibilityIdentifier("localizedOriginalLabel")
             }.padding(16).background(Theme.background).foregroundStyle(Theme.ink)
-                .navigationTitle("设置").task {checks=Self.check()}
+                .navigationTitle("设置").task {checks=Self.check();session.requestQuickReplies()}
         }.preferredColorScheme(.dark)
     }
     private static func check() -> String {
@@ -56,10 +60,14 @@ struct AppLanguageFixture: View {
             }
             let english=[TranslationSegment(id:"1",kind:"dialogue",text:"Good morning. How are you feeling today?")]
             try require(ReplyTranslation.needed(english,target:.simplified) && !ReplyTranslation.needed(english,target:.english),"English detection")
+            try require(ReplyTranslation.needed([.init(id:"mixed",kind:"dialogue",text:"我想练习 I would like a quiet evening 这样的表达。")],target:.simplified),"Substantial mixed English needs translation")
             let chinese=[TranslationSegment(id:"1",kind:"dialogue",text:"今天我们一起听音乐，聊聊你的梦想吧。")]
             try require(ReplyTranslation.needed(chinese,target:.traditional) && !ReplyTranslation.needed(chinese,target:.simplified),"Chinese script detection")
             let punctuation=[TranslationSegment(id:"1",kind:"dialogue",text:"…✨")]
             try require(!ReplyTranslation.needed(punctuation,target:.english),"Punctuation isn't a language")
+            let nested=ReplyDisplayText.pieces("不只是花哦。（轻翻着手账本，（眼睛变得亮晶晶）\n唇角噙着温柔笑意）像雨后的痕迹。")
+            try require(nested.count==3 && nested[1].aside && !nested[1].text.contains("（") && nested[1].text.contains("唇角"),"Nested aside must remain one styled region")
+            try require(ReplyDisplayText.pieces("当然可以（我想试试看").last?.aside==true,"Unclosed aside remains styled")
             return "PASS: system fallback, explicit preference, relaunch, 3 catalogs, language detection"
         } catch {return "FAIL: \(error)"}
     }
