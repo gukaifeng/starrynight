@@ -15,6 +15,7 @@ import sys
 import shutil
 from vrchat_portable_convert import write_json
 from vrchat_conversion_signature import signature,require_reusable,inspection_signature
+from vrchat_blink import select_blink_bindings
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'character-sdk/tools'))
@@ -25,18 +26,6 @@ NEUTRAL_HAND_PROXY='14980fc5fe40191418954549174fe63e'
 # already supplied by the explicitly labeled host standing adapter. No movement
 # or emote proxy may be included in this allowlist.
 NEUTRAL_BASELINE_PROXIES={NEUTRAL_HAND_PROXY,'91e5518865a04934b82b8aba11398609','61a99b5de5e4b6d4c8ed51d9dfd9ddc7'}
-
-def blink_binding_name(descriptor,names,controls):
-    eyelids=descriptor.get('customEyeLookSettings',{}).get('eyelidsBlendshapes','')
-    if isinstance(eyelids,str) and re.fullmatch('[0-9a-fA-F]{8,}',eyelids):
-        index=int.from_bytes(bytes.fromhex(eyelids[:8]),'little',signed=True)
-        if 0<=index<len(names):return names[index]
-    # Preserve author-controlled blinking. For avatars with no such layer, use
-    # only an existing canonical VRChat eyelid morph, never a guessed bone pose.
-    if any(re.search(r'blink|まばたき|瞬き',l['name'],re.I) for g in controls['controllers'] for l in g['layers']):return None
-    canonical=[n for n in names if re.fullmatch(r'vrc[._]blink',n,re.I)]
-    return canonical[0] if len(canonical)==1 else None
-
 
 def missing_motion_dependencies(controls,motions):
     ids={m['guid'] for m in motions['motions']};missing=set()
@@ -201,11 +190,11 @@ def prepare_visual_candidate(source,target,stage,role):
         original_motions['baseline']=json.loads((target/'portable-conversion.json').read_text())['baseline']
     write_json(target/'avatar-motions.json',original_motions)
     secondary=json.loads((source/'secondary-motion.json').read_text())
-    secondary['strands']=[];secondary['colliders']=[]
     write_json(target/'secondary-motion.json',secondary)
+    shutil.copy2(source/'physics-source.json',target/'physics-source.json')
 
 
-def assemble(row,folder,stage,order,allow_preview_shading=False,visual_only=False):
+def assemble(row,folder,stage,order,allow_preview_shading=False,visual_only=False,model_only=False):
     geometry=json.loads((stage/'Inspection/Portable'/row['role']/'geometry.json').read_text())
     desc=json.loads((folder/'avatar-descriptor.json').read_text())
     controls=json.loads((folder/'avatar-controls.json').read_text())
@@ -247,8 +236,12 @@ def assemble(row,folder,stage,order,allow_preview_shading=False,visual_only=Fals
     if speech['visemes']:
         speech['mode']='amplitude';speech['amplitude']=speech['visemes'][0]['bindings']
     groups=[];group_ids={};options=[]
-    from vrchat_ai_semantics import hints
-    semantic_hints,semantic_evidence=hints(controls,json.loads((folder/'avatar-motions.json').read_text()))
+    if model_only:
+        speech=dict(mode='none',proceduralHeadMotion=False,amplitude=[],visemes=[])
+        semantic_hints,semantic_evidence={},[]
+    else:
+        from vrchat_ai_semantics import hints
+        semantic_hints,semantic_evidence=hints(controls,json.loads((folder/'avatar-motions.json').read_text()))
     group_labels={'Costume':'原作服装','Kemono':'耳朵与尾巴','Breasts Size':'原作体型','Option':'表情点缀','原作手势':'表情与手势'}
     labels={'Kemono_ear':'兽耳','Kemono_tail':'尾巴','Sailor-Jersey':'水手服外套','Bottoms':'短裤','Legwarmer':'腿套','Socks':'袜子','Sneaker':'鞋子','Breasts Big':'体型增加','Breasts Small':'体型减小','heart':'爱心眼','shiitake':'星星眼','guruguru':'转圈眼','shy':'害羞','hoppe':'腮红','pale_blue':'脸色发白'}
     for c in controls['controls']:
@@ -269,14 +262,15 @@ def assemble(row,folder,stage,order,allow_preview_shading=False,visual_only=Fals
                      6:('surprised','眼睛变成惊讶的圆眼',['surprised'])} if row['role']=='chiffon' else
                     {3:('playful','俏皮地眨起一只眼睛',['playful','happy']),4:('teasing_smile','露出俏皮的笑意',['happy','playful']),
                      6:('sad','露出难过的神情',['sad','worried','serious'])})
-        if row['role'] in ('chiffon','karin') and c['parameter'] in ('GestureLeft','GestureRight') and c['value'] in face:
+        if not model_only and row['role'] in ('chiffon','karin') and c['parameter'] in ('GestureLeft','GestureRight') and c['value'] in face:
             intent,effect,moods=face[c['value']]
             option['ai']=dict(kind='expression',intent=intent,effects=[effect],moods=moods,automatic=True,speechCompatible=True,cooldownSeconds=5,conflicts=[])
         elif c['id'] in semantic_hints:option['ai']=semantic_hints[c['id']]
         options.append(option)
-    write_json(folder/'ai-expression-evidence.json',dict(schemaVersion=1,controls=semantic_evidence))
+    if not model_only:write_json(folder/'ai-expression-evidence.json',dict(schemaVersion=1,controls=semantic_evidence))
+    elif (folder/'ai-expression-evidence.json').exists():(folder/'ai-expression-evidence.json').unlink()
     if len(groups)>32 or len(options)>256:raise ValueError('Menu exceeds current verified UI control budget: '+str((len(groups),len(options))))
-    optional=['core.secondary-motion@2']
+    optional=['core.secondary-motion@3']
     if speech['amplitude']:optional+=['core.speech.amplitude@1','core.speech.viseme@1']
     required=['core.animation@1','core.avatar-controls@1']
     if options:required.append('core.performance@2')
@@ -290,7 +284,7 @@ def assemble(row,folder,stage,order,allow_preview_shading=False,visual_only=Fals
         expressions=[],speech=speech,effects=[],interactions=[],behaviors=[],parameters=[],
         license=dict(name='Original author avatar terms — private local conversion',authors=['こまど / komado（あまとうさぎ）' if row['role'] in ('chiffon','karin') else original.strip()+' 原作者（见来源包条款）'],notice='LICENSE.txt',source=Path(json.loads(Path(row['sourceReport']).read_text())['source']).as_uri()),
         files=[],extensions={'app.starry.avatar-controls':dict(version=1,file='avatar-controls.json'),
-        'app.starry.secondary-motion':dict(version=2,file='secondary-motion.json'),
+        'app.starry.secondary-motion':dict(version=3,file='secondary-motion.json'),
         'app.starry.private-preview':dict(version=1,redistributionAllowed=False,appearanceEditingAllowed=False,metadata='source-meta.json')})
     if options:
         defaults=[]
@@ -303,10 +297,10 @@ def assemble(row,folder,stage,order,allow_preview_shading=False,visual_only=Fals
                 continue
             defaults.append(dict(path=path,visible=s['active'] and s['enabled']))
         m['performance']=dict(schemaVersion=2,groups=groups,options=options,defaults=defaults)
-    blink=blink_binding_name(desc,names,controls)
-    if blink and not (visual_only and any(b['shape']==blink and b['renderer']==renderer for b in speech['amplitude'])):
+    blink_bindings,blink_origin=select_blink_bindings(desc,skin,stage/'Inspection/Portable'/row['role']/'geometry.bin')
+    if blink_bindings:
         optional.append('core.autonomy@1')
-        m['autonomy']=dict(schemaVersion=1,blink=dict(bindings=[binding(blink)],intervals=[3.2,4.7,5.8,3.9,4.4],closeSeconds=.16,closedSeconds=.035,openSeconds=.26,firstDelay=1.8,suppressGroups=[],suppressOptions=[]))
+        m['autonomy']=dict(schemaVersion=1,blink=dict(bindings=blink_bindings,intervals=[3.2,4.7,5.8,3.9,4.4],closeSeconds=.16,closedSeconds=.035,openSeconds=.26,firstDelay=1.8,suppressGroups=[],suppressOptions=[]))
     if 'performance' in m and len(m['performance']['defaults'])>64:raise ValueError('Renderer visibility budget requires review')
     authored=ROOT/'ios/CharacterHost/Resources/CharacterPublicProfiles.json'
     profile=next((entry for entry in json.loads(authored.read_text())['characters'] if entry['id']==row['id']),None) if authored.exists() else None
@@ -323,13 +317,14 @@ def assemble(row,folder,stage,order,allow_preview_shading=False,visual_only=Fals
     write_json(folder/'source-meta.json',dict(schemaVersion=1,sourceVersion=row['version'],sourceSHA256=row['sourceSHA256'],sourceArchive=row['archive'],prefab=row['prefab'],variants=row['variants'],baseline=report['baseline'],localOnly=True,
         previewShadingLimitations=limitations if preview_shading or visual_only else [],
         visualOnly=visual_only,unavailableSourceControls=report.get('controls',0) if visual_only else 0,
-        blinkAdaptation=dict(sourceMorph=blink,timing='host-controlled') if blink else None))
+        modelOnly=model_only,
+        blinkAdaptation=dict(bindings=blink_bindings,selection=blink_origin,timing='host-controlled') if blink_bindings else None))
     (folder/'NOTICE.md').write_text('# Private avatar candidate\n\nOriginal geometry, textures and character controls remain subject to their authors’ terms. '+
         'The host uses the MIT-licensed lilToon renderer. VRChat scripts, SDK binaries, platform animations and arbitrary callbacks are not bundled.\n\n'+
         'See portable-conversion.json and physics-source.json for explicit adaptation limits. This package has not passed device performance testing merely because it is sealed.\n'+
         ('\nLocal preview only: unresolved optional shading textures are listed in source-meta.json. Visual approval is required before activation.\n' if preview_shading else ''))
     if visual_only:
-        m['display']['description']='本地外观预览；原作控制器与未适配动作暂不可用。'
+        m['display']['description']='本地角色预览；保留已适配眨眼和衣发物理，原作控制器与未适配动作暂不可用。'
         m['extensions']['app.starry.private-preview']['visualOnly']=True
         m['extensions']['app.starry.private-preview']['unavailableSourceControls']=report.get('controls',0)
     write_json(folder/'character.json',m);seal(folder);validate(folder)
@@ -337,7 +332,7 @@ def assemble(row,folder,stage,order,allow_preview_shading=False,visual_only=Fals
 
 
 def main():
-    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--only');parser.add_argument('--reuse-conversion',action='store_true');parser.add_argument('--preview-optional-shading',action='store_true');parser.add_argument('--visual-only',action='store_true',help='Explicit local appearance preview with unavailable authored controls');args=parser.parse_args()
+    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--only');parser.add_argument('--reuse-conversion',action='store_true');parser.add_argument('--preview-optional-shading',action='store_true');parser.add_argument('--visual-only',action='store_true',help='Explicit local preview with unavailable authored controls');parser.add_argument('--model-only',action='store_true',help='Exclude speech bindings and automatic AI acting metadata');args=parser.parse_args()
     plan=json.loads((ROOT/'.local/vrchat-batch/plan.json').read_text());results=[]
     status=ROOT/'.local/vrchat-batch/package-status.json'
     previous={r['role']:r for r in json.loads(status.read_text()).get('characters',[])} if status.exists() else {}
@@ -359,7 +354,7 @@ def main():
                     subprocess.run([sys.executable,str(ROOT/'scripts/vrchat_portable_convert.py'),'--stage',str(stage),'--role',row['role'],'--output',str(converted)],check=True,stdout=log,stderr=subprocess.STDOUT)
             if args.visual_only:
                 prepare_visual_candidate(converted,output,stage,row['role'])
-            result=assemble(row,output,stage,order,args.preview_optional_shading,args.visual_only);print('XCP_CANDIDATE',row['role'],result['controls'],result['bytes'],flush=True)
+            result=assemble(row,output,stage,order,args.preview_optional_shading,args.visual_only,args.model_only);print('XCP_CANDIDATE',row['role'],result['controls'],result['bytes'],flush=True)
         except Exception as error:
             result=dict(role=row['role'],status='needs-review',reason=str(error));print('XCP_DEFERRED',row['role'],str(error),flush=True)
         results.append(result);previous[row['role']]=result;write_json(status,dict(schemaVersion=1,characters=list(previous.values())))

@@ -140,7 +140,11 @@ public static class BuildIos
     public static void ExportPreparedDevice() => Export(false,true);
     // Headless exports isolate scene/thumbnail rendering from the subsequent
     // URP build callback initialization. Both phases still validate the scene.
-    public static void PrepareExport() { Setup();Validate();Thumbnail(); }
+    public static void PrepareExport() {
+        Setup();Validate();
+        CharacterModelAutonomyReview.Validate(UnityEngine.Object.FindFirstObjectByType<ViewerController>());
+        Thumbnail();
+    }
 
     [MenuItem("Model Space/Validate viewer")]
     public static void Validate()
@@ -281,18 +285,10 @@ public static class BuildIos
             var studio=viewer.GetComponent<CharacterStudioDriver>();studio.Bind(character);studio.Configure(new StudioSettings());
             RealCharacterReview.Portrait(camera,character);
         }
-        var rt = new RenderTexture(1200,1200,24,RenderTextureFormat.ARGB32);
-        rt.Create(); camera.targetTexture = rt;
-        RenderPipeline.SubmitRenderRequest(camera, new UniversalRenderPipeline.SingleCameraRequest { destination = rt });
-        var previous = RenderTexture.active; RenderTexture.active = rt;
-        var texture = new Texture2D(1200,1200,TextureFormat.RGB24,false);
-        texture.ReadPixels(new Rect(0,0,1200,1200),0,0); texture.Apply();
         string name = character.Manifest.display.thumbnail;
         string directory = Path.Combine(Root,"ios/CharacterHost/Resources/Assets.xcassets/"+name+".imageset"); Directory.CreateDirectory(directory);
-        File.WriteAllBytes(Path.Combine(directory,name+".png"),texture.EncodeToPNG());
+        PortraitRefinementReview.Render(camera,Path.Combine(directory,name+".png"),1200,1200);
         File.WriteAllText(Path.Combine(directory,"Contents.json"),"{\"images\":[{\"filename\":\""+name+".png\",\"idiom\":\"universal\"}],\"info\":{\"author\":\"xcode\",\"version\":1}}");
-        RenderTexture.active = previous; camera.targetTexture = null;
-        UnityEngine.Object.DestroyImmediate(texture); rt.Release(); UnityEngine.Object.DestroyImmediate(rt);
         Debug.Log("MODELSPACE_THUMBNAIL_PASS");
     }
 }

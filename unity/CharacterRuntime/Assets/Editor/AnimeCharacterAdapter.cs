@@ -19,35 +19,9 @@ public static class AnimeCharacterAdapter
     [Serializable] sealed class MaterialsData { public int schemaVersion;public string sourceProfile;public MaterialData[] materials; }
     public static void Prepare(ViewerCharacter character,string folder)
     {
-        if(!character.Manifest.Supports("core.secondary-motion@1") && !character.Manifest.Supports("core.secondary-motion@2"))return;
+        if(!character.Manifest.Supports("core.secondary-motion@1") && !character.Manifest.Supports("core.secondary-motion@2") && !character.Manifest.Supports("core.secondary-motion@3"))return;
         PrepareMaterials(character,folder);
-        var data=JsonUtility.FromJson<SecondaryMotionData>(File.ReadAllText(folder+"/secondary-motion.json"));
-        if((data.schemaVersion!=1 && data.schemaVersion!=2) || data.strands==null || data.strands.Length>(data.schemaVersion==2?512:128) || data.colliders==null || data.colliders.Length>(data.schemaVersion==2?256:64))
-            throw new Exception("SECONDARY_MOTION_SCHEMA_INVALID");
-        Transform Resolve(string path)
-        {
-            var t=CharacterContract.Resolve(character.transform,path);
-            if(!t)throw new Exception("SECONDARY_MOTION_BONE_MISSING: "+path);
-            return t;
-        }
-        var motion=character.gameObject.AddComponent<AvatarSecondaryMotion>();
-        if(!float.IsFinite(data.ambientHairAngle) || data.ambientHairAngle<0 || data.ambientHairAngle>AvatarSecondaryMotion.MaxHairAngle ||
-            !float.IsFinite(data.ambientClothAngle) || data.ambientClothAngle<0 || data.ambientClothAngle>AvatarSecondaryMotion.MaxClothAngle)
-            throw new Exception("SECONDARY_MOTION_AMBIENT_ANGLE_INVALID");
-        motion.ambientHairAngle=data.ambientHairAngle;
-        motion.ambientClothAngle=data.ambientClothAngle;
-        motion.strands=data.strands.Select(s=>{
-            var bone=Resolve(s.bone);var tip=Resolve(s.tip);
-            if(tip.parent!=bone || !float.IsFinite(s.angle) || s.angle<1 || s.angle>20 || !float.IsFinite(s.radius) || s.radius<0 || s.radius>.05f)
-                throw new Exception("SECONDARY_MOTION_STRAND_INVALID");
-            if(!new[]{null,"","none","hair","cloth"}.Contains(s.wind) || !float.IsFinite(s.windResponse) || s.windResponse<0 || s.windResponse>1)
-                throw new Exception("SECONDARY_MOTION_WIND_INVALID");
-            return new AvatarSecondaryMotion.Strand { bone=bone,tip=tip,rest=bone.localRotation,radius=s.radius,angle=s.angle,wind=s.wind,windResponse=s.windResponse };
-        }).ToArray();
-        motion.colliders=data.colliders.Select(s=>{
-            if(!float.IsFinite(s.radius)||s.radius<0||s.radius>.5f || !float.IsFinite(s.offset.sqrMagnitude))throw new Exception("SECONDARY_MOTION_COLLIDER_INVALID");
-            return new AvatarSecondaryMotion.Sphere { bone=Resolve(s.bone),offset=s.offset,radius=s.radius };
-        }).ToArray();
+        PrepareSecondary(character.gameObject,folder);
         // RestBounds otherwise sees the source T-pose, making conversation framing
         // too wide. Measure the actual first Idle frame, the pose shown on entry.
         var mesh=new Mesh();var bounds=new Bounds();bool first=true;
@@ -67,6 +41,40 @@ public static class AnimeCharacterAdapter
         UnityEngine.Object.DestroyImmediate(mesh);
         if(first)throw new Exception("ANIME_SKIN_MISSING");
         character.useAuthoredRestBounds=true;character.authoredRestBounds=bounds;
+    }
+    public static AvatarSecondaryMotion PrepareSecondary(GameObject model,string folder)
+    {
+        var data=JsonUtility.FromJson<SecondaryMotionData>(File.ReadAllText(folder+"/secondary-motion.json"));
+        if((data.schemaVersion<1 || data.schemaVersion>3) || data.strands==null || data.strands.Length>(data.schemaVersion>=2?512:128) || data.colliders==null || data.colliders.Length>(data.schemaVersion>=2?256:64))
+            throw new Exception("SECONDARY_MOTION_SCHEMA_INVALID");
+        Transform Resolve(string path)
+        {
+            var t=CharacterContract.Resolve(model.transform,path);
+            if(!t)throw new Exception("SECONDARY_MOTION_BONE_MISSING: "+path);
+            return t;
+        }
+        var motion=model.GetComponent<AvatarSecondaryMotion>() ?? model.AddComponent<AvatarSecondaryMotion>();
+        if(!float.IsFinite(data.ambientHairAngle) || data.ambientHairAngle<0 || data.ambientHairAngle>AvatarSecondaryMotion.MaxHairAngle ||
+            !float.IsFinite(data.ambientClothAngle) || data.ambientClothAngle<0 || data.ambientClothAngle>AvatarSecondaryMotion.MaxClothAngle)
+            throw new Exception("SECONDARY_MOTION_AMBIENT_ANGLE_INVALID");
+        motion.ambientHairAngle=data.ambientHairAngle;
+        motion.ambientClothAngle=data.ambientClothAngle;
+        motion.strands=data.strands.Select(s=>{
+            var bone=Resolve(s.bone);var tip=Resolve(s.tip);
+            if(tip.parent!=bone || !float.IsFinite(s.angle) || s.angle<1 || s.angle>20 || !float.IsFinite(s.radius) || s.radius<0 || s.radius>.05f)
+                throw new Exception("SECONDARY_MOTION_STRAND_INVALID");
+            if(!new[]{null,"","none","hair","cloth"}.Contains(s.wind) || !float.IsFinite(s.windResponse) || s.windResponse<0 || s.windResponse>1)
+                throw new Exception("SECONDARY_MOTION_WIND_INVALID");
+            return new AvatarSecondaryMotion.Strand { bone=bone,tip=tip,rest=bone.localRotation,radius=s.radius,angle=s.angle,wind=s.wind,windResponse=s.windResponse };
+        }).ToArray();
+        motion.colliders=data.colliders.Select(s=>{
+            if(s.localRadius && data.schemaVersion!=3)throw new Exception("SECONDARY_MOTION_RADIUS_SPACE_VERSION_INVALID");
+            var bone=Resolve(s.bone);var scale=bone.lossyScale;
+            float effectiveRadius=s.localRadius?s.radius*Mathf.Max(Mathf.Abs(scale.x),Mathf.Abs(scale.y),Mathf.Abs(scale.z))/Mathf.Max(Mathf.Abs(model.transform.lossyScale.x),.000001f):s.radius;
+            if(!float.IsFinite(s.radius)||s.radius<0||!float.IsFinite(effectiveRadius)||effectiveRadius>.5f || !float.IsFinite(s.offset.sqrMagnitude))throw new Exception("SECONDARY_MOTION_COLLIDER_INVALID");
+            return new AvatarSecondaryMotion.Sphere { bone=bone,offset=s.offset,radius=s.radius,localRadius=s.localRadius };
+        }).ToArray();
+        return motion;
     }
     public static void PrepareMaterials(ViewerCharacter character,string folder)
     {

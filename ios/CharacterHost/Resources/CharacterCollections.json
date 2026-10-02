@@ -428,7 +428,7 @@
       "version": "1.1.0",
       "modelID": "anime-airi",
       "modelPackageID": "app.starry.characters.anime-airi",
-      "modelPackageVersion": "3.1.0",
+      "modelPackageVersion": "3.2.0",
       "actions": [],
       "environments": [
         "sunroom"
@@ -454,7 +454,7 @@
       "version": "1.1.0",
       "modelID": "anime-marycia",
       "modelPackageID": "app.starry.characters.anime-marycia",
-      "modelPackageVersion": "3.1.0",
+      "modelPackageVersion": "3.2.0",
       "actions": [],
       "environments": [
         "sunroom"
@@ -480,7 +480,7 @@
       "version": "1.1.0",
       "modelID": "anime-meiyun",
       "modelPackageID": "app.starry.characters.anime-meiyun",
-      "modelPackageVersion": "3.1.0",
+      "modelPackageVersion": "3.2.0",
       "actions": [],
       "environments": [
         "sunroom"
@@ -506,7 +506,7 @@
       "version": "1.1.0",
       "modelID": "anime-milltina",
       "modelPackageID": "app.starry.characters.anime-milltina",
-      "modelPackageVersion": "3.1.0",
+      "modelPackageVersion": "3.2.0",
       "actions": [],
       "environments": [
         "sunroom"
@@ -532,7 +532,7 @@
       "version": "1.1.0",
       "modelID": "anime-shinano",
       "modelPackageID": "app.starry.characters.anime-shinano",
-      "modelPackageVersion": "3.1.0",
+      "modelPackageVersion": "3.2.0",
       "actions": [],
       "environments": [
         "sunroom"
@@ -558,7 +558,7 @@
       "version": "1.1.0",
       "modelID": "anime-milfy",
       "modelPackageID": "app.starry.characters.anime-milfy",
-      "modelPackageVersion": "3.1.0",
+      "modelPackageVersion": "3.2.0",
       "actions": [],
       "environments": [
         "sunroom"
@@ -584,7 +584,7 @@
       "version": "1.1.0",
       "modelID": "anime-shizuku",
       "modelPackageID": "app.starry.characters.anime-shizuku",
-      "modelPackageVersion": "3.1.0",
+      "modelPackageVersion": "3.2.0",
       "actions": [],
       "environments": [
         "sunroom"
@@ -610,7 +610,7 @@
       "version": "1.1.0",
       "modelID": "anime-eku",
       "modelPackageID": "app.starry.characters.anime-eku",
-      "modelPackageVersion": "3.1.0",
+      "modelPackageVersion": "3.2.0",
       "actions": [],
       "environments": [
         "sunroom"
@@ -636,7 +636,7 @@
       "version": "1.1.0",
       "modelID": "anime-sio",
       "modelPackageID": "app.starry.characters.anime-sio",
-      "modelPackageVersion": "3.1.0",
+      "modelPackageVersion": "3.2.0",
       "actions": [],
       "environments": [
         "sunroom"
@@ -662,7 +662,7 @@
       "version": "1.1.0",
       "modelID": "anime-kipfel-v111",
       "modelPackageID": "app.starry.characters.anime-kipfel-v111",
-      "modelPackageVersion": "3.1.0",
+      "modelPackageVersion": "3.2.0",
       "actions": [],
       "environments": [
         "sunroom"
@@ -688,7 +688,7 @@
       "version": "1.1.0",
       "modelID": "anime-azuki",
       "modelPackageID": "app.starry.characters.anime-azuki",
-      "modelPackageVersion": "3.1.0",
+      "modelPackageVersion": "3.2.0",
       "actions": [],
       "environments": [
         "sunroom"
@@ -714,7 +714,7 @@
       "version": "1.1.0",
       "modelID": "anime-cornet",
       "modelPackageID": "app.starry.characters.anime-cornet",
-      "modelPackageVersion": "3.1.0",
+      "modelPackageVersion": "3.2.0",
       "actions": [],
       "environments": [
         "sunroom"
@@ -740,7 +740,7 @@
       "version": "1.1.0",
       "modelID": "anime-fiona",
       "modelPackageID": "app.starry.characters.anime-fiona",
-      "modelPackageVersion": "3.1.0",
+      "modelPackageVersion": "3.2.0",
       "actions": [],
       "environments": [
         "sunroom"
@@ -766,7 +766,7 @@
       "version": "1.1.0",
       "modelID": "anime-elusion",
       "modelPackageID": "app.starry.characters.anime-elusion",
-      "modelPackageVersion": "3.1.0",
+      "modelPackageVersion": "3.2.0",
       "actions": [],
       "environments": [
         "sunroom"
@@ -792,7 +792,7 @@
       "version": "1.1.0",
       "modelID": "anime-hikarun",
       "modelPackageID": "app.starry.characters.anime-hikarun",
-      "modelPackageVersion": "3.1.0",
+      "modelPackageVersion": "3.2.0",
       "actions": [],
       "environments": [
         "sunroom"
@@ -818,7 +818,7 @@
       "version": "1.1.0",
       "modelID": "anime-kumaly",
       "modelPackageID": "app.starry.characters.anime-kumaly",
-      "modelPackageVersion": "3.1.0",
+      "modelPackageVersion": "3.2.0",
       "actions": [],
       "environments": [
         "sunroom"
@@ -844,7 +844,7 @@
       "version": "1.1.0",
       "modelID": "anime-kikyo",
       "modelPackageID": "app.starry.characters.anime-kikyo",
-      "modelPackageVersion": "3.1.0",
+      "modelPackageVersion": "3.2.0",
       "actions": [],
       "environments": [
         "sunroom"
@@ -870,7 +870,7 @@
       "version": "1.1.0",
       "modelID": "anime-lasyusha",
       "modelPackageID": "app.starry.characters.anime-lasyusha",
-      "modelPackageVersion": "3.1.0",
+      "modelPackageVersion": "3.2.0",
       "actions": [],
       "environments": [
         "sunroom"
@@ -896,7 +896,7 @@
       "version": "1.1.0",
       "modelID": "anime-maki",
       "modelPackageID": "app.starry.characters.anime-maki",
-      "modelPackageVersion": "3.1.0",
+      "modelPackageVersion": "3.2.0",
       "actions": [],
       "environments": [
         "sunroom"
@@ -922,7 +922,7 @@
       "version": "1.1.0",
       "modelID": "anime-mao",
       "modelPackageID": "app.starry.characters.anime-mao",
-      "modelPackageVersion": "3.1.0",
+      "modelPackageVersion": "3.2.0",
       "actions": [],
       "environments": [
         "sunroom"
@@ -948,7 +948,7 @@
       "version": "1.1.0",
       "modelID": "anime-mashu",
       "modelPackageID": "app.starry.characters.anime-mashu",
-      "modelPackageVersion": "3.1.0",
+      "modelPackageVersion": "3.2.0",
       "actions": [],
       "environments": [
         "sunroom"
@@ -974,7 +974,7 @@
       "version": "1.1.0",
       "modelID": "anime-mizuki",
       "modelPackageID": "app.starry.characters.anime-mizuki",
-      "modelPackageVersion": "3.1.0",
+      "modelPackageVersion": "3.2.0",
       "actions": [],
       "environments": [
         "sunroom"
@@ -1000,7 +1000,7 @@
       "version": "1.1.0",
       "modelID": "anime-nemesis",
       "modelPackageID": "app.starry.characters.anime-nemesis",
-      "modelPackageVersion": "3.1.0",
+      "modelPackageVersion": "3.2.0",
       "actions": [],
       "environments": [
         "sunroom"
@@ -1026,7 +1026,7 @@
       "version": "1.1.0",
       "modelID": "anime-nochica",
       "modelPackageID": "app.starry.characters.anime-nochica",
-      "modelPackageVersion": "3.1.0",
+      "modelPackageVersion": "3.2.0",
       "actions": [],
       "environments": [
         "sunroom"
@@ -1052,7 +1052,7 @@
       "version": "1.1.0",
       "modelID": "anime-perula",
       "modelPackageID": "app.starry.characters.anime-perula",
-      "modelPackageVersion": "3.1.0",
+      "modelPackageVersion": "3.2.0",
       "actions": [],
       "environments": [
         "sunroom"
@@ -1078,7 +1078,7 @@
       "version": "1.1.0",
       "modelID": "anime-ramune",
       "modelPackageID": "app.starry.characters.anime-ramune",
-      "modelPackageVersion": "3.1.0",
+      "modelPackageVersion": "3.2.0",
       "actions": [],
       "environments": [
         "sunroom"
@@ -1104,7 +1104,7 @@
       "version": "1.1.0",
       "modelID": "anime-ririka",
       "modelPackageID": "app.starry.characters.anime-ririka",
-      "modelPackageVersion": "3.1.0",
+      "modelPackageVersion": "3.2.0",
       "actions": [],
       "environments": [
         "sunroom"
@@ -1130,7 +1130,7 @@
       "version": "1.1.0",
       "modelID": "anime-rurune",
       "modelPackageID": "app.starry.characters.anime-rurune",
-      "modelPackageVersion": "3.1.0",
+      "modelPackageVersion": "3.2.0",
       "actions": [],
       "environments": [
         "sunroom"
@@ -1156,7 +1156,7 @@
       "version": "1.1.0",
       "modelID": "anime-shiratsume",
       "modelPackageID": "app.starry.characters.anime-shiratsume",
-      "modelPackageVersion": "3.1.0",
+      "modelPackageVersion": "3.2.0",
       "actions": [],
       "environments": [
         "sunroom"
@@ -1182,7 +1182,7 @@
       "version": "1.1.0",
       "modelID": "anime-koharu",
       "modelPackageID": "app.starry.characters.anime-koharu",
-      "modelPackageVersion": "3.1.0",
+      "modelPackageVersion": "3.2.0",
       "actions": [],
       "environments": [
         "sunroom"

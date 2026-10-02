@@ -42,6 +42,22 @@ if not args.native_ui_fixture:
     unity = json.loads(subprocess.check_output(['plutil','-convert','json','-o','-',str(unity_path/'project.pbxproj')]))
     utarget = next(k for k,v in unity['objects'].items() if v.get('isa') == 'PBXNativeTarget' and v.get('name') == 'UnityFramework')
     uproduct = unity['objects'][utarget]['productReference']
+    # Xcode's ordinary resource copy allocates another complete copy of large
+    # Unity assets before embedding the framework. Clone this generated Data
+    # directory on APFS; the normal framework signing/embedding still follows.
+    unity_objects=unity['objects']
+    for phase_id in unity_objects[utarget]['buildPhases']:
+        phase=unity_objects[phase_id]
+        if phase.get('isa')=='PBXResourcesBuildPhase':
+            phase['files']=[file for file in phase['files'] if unity_objects.get(unity_objects[file].get('fileRef',''),{}).get('path')!='Data']
+    copy_phase=hashlib.sha256(b'starry-unity-data-copy').hexdigest()[:24].upper()
+    unity_objects[copy_phase]=dict(isa='PBXShellScriptBuildPhase',name='Copy Unity Data with APFS clones',
+        buildActionMask='2147483647',files=[],inputPaths=['$(SRCROOT)/Data'],
+        outputPaths=['$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/Data'],
+        runOnlyForDeploymentPostprocessing='0',alwaysOutOfDate='1',shellPath='/bin/sh',
+        shellScript='set -eu\npython3 "$SRCROOT/../../scripts/copy_unity_data.py" "$SRCROOT/Data" "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/Data"\n')
+    if copy_phase not in unity_objects[utarget]['buildPhases']:unity_objects[utarget]['buildPhases'].append(copy_phase)
+    (unity_path/'project.pbxproj').write_bytes(plistlib.dumps(unity,sort_keys=False))
 objects = {}
 
 def uid(name): return hashlib.sha256(name.encode()).hexdigest()[:24].upper()
@@ -91,6 +107,13 @@ if args.platform == 'simulator':
         relative=f'../scripts/tests/{test_name}.swift'
         ref=obj(relative,'PBXFileReference',lastKnownFileType='sourcecode.swift',path=relative,sourceTree='<group>')
         source_refs.append(ref); source_build.append(buildfile(relative,ref))
+
+# Model-only checks also run on the actual phone; this explicit development
+# entry has no Unity dependency and constructs no network requests.
+if test_tools:
+    relative='../scripts/tests/CharacterModelReviewTests.swift'
+    ref=obj(relative,'PBXFileReference',lastKnownFileType='sourcecode.swift',path=relative,sourceTree='<group>')
+    source_refs.append(ref);source_build.append(buildfile(relative,ref))
 
 # Restricted development gateway token only; the paid provider key is server-only.
 if test_tools:
@@ -171,6 +194,12 @@ for path in sorted(p for p in (ios/'CharacterHostUITests').iterdir() if p.suffix
 test_product=obj('test-product','PBXFileReference',explicitFileType='wrapper.cfbundle',path='CharacterHostUITests.xctest',sourceTree='BUILT_PRODUCTS_DIR')
 test_sources=obj('test-sources','PBXSourcesBuildPhase',buildActionMask='2147483647',files=test_build,runOnlyForDeploymentPostprocessing='0')
 test_frameworks=obj('test-frameworks','PBXFrameworksBuildPhase',buildActionMask='2147483647',files=[],runOnlyForDeploymentPostprocessing='0')
+test_resource_build=[]
+if not args.native_ui_fixture:
+    for key,path in [('active-roster','../assets/characters/active-roster.json'),('character-catalog','CharacterHost/Resources/CharacterCatalog.json'),('character-collections','CharacterHost/Resources/CharacterCollections.json')]:
+        ref=obj('test-'+key,'PBXFileReference',lastKnownFileType='text.json',path=path,sourceTree='<group>')
+        test_refs.append(ref);test_resource_build.append(buildfile('test-'+key,ref))
+test_resources=obj('test-resources','PBXResourcesBuildPhase',buildActionMask='2147483647',files=test_resource_build,runOnlyForDeploymentPostprocessing='0')
 host_proxy=obj('host-proxy','PBXContainerItemProxy',containerPortal=uid('project'),proxyType='1',remoteGlobalIDString=target,remoteInfo='CharacterHost')
 host_dependency=obj('host-dependency','PBXTargetDependency',target=target,targetProxy=host_proxy)
 test_settings={'PRODUCT_NAME':'$(TARGET_NAME)','PRODUCT_BUNDLE_IDENTIFIER':'com.modelspace.viewer.uitests','GENERATE_INFOPLIST_FILE':'YES',
@@ -181,7 +210,7 @@ test_settings={'PRODUCT_NAME':'$(TARGET_NAME)','PRODUCT_BUNDLE_IDENTIFIER':'com.
     'TEST_TARGET_NAME':'CharacterHost','CODE_SIGN_STYLE':'Automatic','CLANG_ENABLE_MODULES':'YES','ARCHS':'arm64'}
 if args.native_ui_fixture:test_settings['PRODUCT_BUNDLE_IDENTIFIER']='app.starrynight.native-ui-fixture.uitests'
 test_target=obj('test-target','PBXNativeTarget',name='CharacterHostUITests',productName='CharacterHostUITests',productType='com.apple.product-type.bundle.ui-testing',productReference=test_product,
-    buildConfigurationList=configuration('tests',test_settings),buildPhases=[test_sources,test_frameworks],buildRules=[],dependencies=[host_dependency])
+    buildConfigurationList=configuration('tests',test_settings),buildPhases=[test_sources,test_frameworks,test_resources],buildRules=[],dependencies=[host_dependency])
 objects[products]['children'].append(test_product)
 base_config=obj('base-config','PBXFileReference',lastKnownFileType='text.xcconfig',path='Config/Base.xcconfig',sourceTree='<group>')
 main_group=obj('main-group','PBXGroup',children=source_refs+test_refs+[base_config]+([] if args.native_ui_fixture else [unity_ref])+[products],sourceTree='<group>')

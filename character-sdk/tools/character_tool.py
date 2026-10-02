@@ -11,7 +11,7 @@ import zipfile
 
 CAPABILITIES = {'core.animation@1', 'core.gaze@1', 'core.expression@1', 'core.speech.amplitude@1',
                 'core.speech.viseme@1', 'core.interaction@1', 'core.effects@1', 'core.parameters@1',
-                'core.behavior@1', 'core.posture@1', 'core.secondary-motion@1', 'core.secondary-motion@2', 'core.avatar-controls@1', 'core.performance@1', 'core.performance@2', 'core.autonomy@1', 'legacy.human-studio@1'}
+                'core.behavior@1', 'core.posture@1', 'core.secondary-motion@1', 'core.secondary-motion@2', 'core.secondary-motion@3', 'core.avatar-controls@1', 'core.performance@1', 'core.performance@2', 'core.autonomy@1', 'legacy.human-studio@1'}
 CHANNELS = {'body', 'expression', 'effect', 'gaze', 'posture'}
 MAX_BYTES = 256 * 1024 * 1024
 FORBIDDEN = {'.cs','.dll','.dylib','.so','.exe','.shader','.compute','.sh','.py','.js','.unitypackage'}
@@ -50,6 +50,33 @@ def glb_document(path):
     if unknown: raise ValueError('unsupported required GLB extensions: '+str(sorted(unknown)))
     return doc
 
+def node_scale_factors(doc):
+    """Lengths of the transformed local axes, matching collider radius space."""
+    import math
+    nodes=doc.get('nodes',[]);parents={c:i for i,n in enumerate(nodes) for c in n.get('children',[])}
+    world={};visiting=set()
+    def matrix(i):
+        if i in world:return world[i]
+        if i in visiting:raise ValueError('cyclic GLB scale hierarchy')
+        visiting.add(i);n=nodes[i]
+        if 'matrix' in n:
+            values=n['matrix']
+            if len(values)!=16 or not all(math.isfinite(v) for v in values):raise ValueError('invalid GLB transform matrix')
+            local=[[values[c*4+r] for c in range(3)] for r in range(3)]
+        else:
+            q=n.get('rotation',[0,0,0,1]);scale=n.get('scale',[1,1,1])
+            if len(q)!=4 or len(scale)!=3 or not all(math.isfinite(v) for v in q+scale):raise ValueError('invalid GLB transform scale/rotation')
+            x,y,z,w=q
+            rotation=[[1-2*(y*y+z*z),2*(x*y-z*w),2*(x*z+y*w)],
+                      [2*(x*y+z*w),1-2*(x*x+z*z),2*(y*z-x*w)],
+                      [2*(x*z-y*w),2*(y*z+x*w),1-2*(x*x+y*y)]]
+            local=[[rotation[r][c]*scale[c] for c in range(3)] for r in range(3)]
+        if i in parents:
+            parent=matrix(parents[i]);local=[[sum(parent[r][k]*local[k][c] for k in range(3)) for c in range(3)] for r in range(3)]
+        world[i]=local;visiting.remove(i);return local
+    return {i:[math.sqrt(sum(matrix(i)[r][c]**2 for r in range(3))) for c in range(3)] for i in range(len(nodes))}
+
+
 def inspect_glb(path):
     doc=glb_document(path);nodes=doc.get('nodes',[]);parents={}
     for parent,node in enumerate(nodes):
@@ -62,9 +89,9 @@ def inspect_glb(path):
             if index not in parents: break
             index=parents[index]
         return '/'.join(reversed(names))
-    rows=[]
+    rows=[];scales=node_scale_factors(doc)
     for index,node in enumerate(nodes):
-        row={'path':node_path(index)}
+        row={'path':node_path(index),'scaleFactors':scales[index]}
         if 'mesh' in node:
             mesh=doc['meshes'][node['mesh']]
             row['morphs']=mesh.get('extras',{}).get('targetNames',[])

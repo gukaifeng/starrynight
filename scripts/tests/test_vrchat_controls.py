@@ -10,20 +10,12 @@ import zipfile
 
 sys.path.insert(0,str(pathlib.Path(__file__).resolve().parents[1]))
 from vrchat_controls import documents,prune_graph,BlendReader,prefab_build_requirements,referenced_motion_ids
-from package_vrchat_library import control_dependencies,require_selected_inspection,blink_binding_name,ROOT
+from package_vrchat_library import control_dependencies,require_selected_inspection,ROOT
 from vrchat_conversion_signature import require_reusable,inspection_signature
 from preflight_vrchat_library import official_reference_paths
 
 
 class UnityDataTests(unittest.TestCase):
-    def test_blink_uses_existing_morph_without_duplicating_author_blink(self):
-        controls=dict(controllers=[dict(layers=[dict(name='Face')])])
-        descriptor=dict(customEyeLookSettings=dict(eyelidsBlendshapes='ffffffff0000000000000000'))
-        self.assertEqual(blink_binding_name(descriptor,['vrc.Blink'],controls),'vrc.Blink')
-        self.assertIsNone(blink_binding_name(descriptor,['eye_close'],controls))
-        controls['controllers'][0]['layers'].append(dict(name='Blink'))
-        self.assertIsNone(blink_binding_name(descriptor,['vrc.Blink'],controls))
-
     def test_material_dependencies_follow_reachable_nested_motions_only(self):
         graph=dict(states=[dict(motion='tree'),dict(motion='unknown')],blends=[
             dict(id='tree',children=[dict(motion='child'),dict(motion='a')]),

@@ -8,9 +8,11 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     private var startup:AppStartupController?
     private var bootstrapTask:Task<Void,Never>?
     private var isolatedGoalFixture = false
+    private var isolatedModelReviewCheck = false
 
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
         guard let windowScene = scene as? UIWindowScene else { return }
+        CharacterModelReview.configure()
         LaunchTrace.begin()
         let window = UIWindow(windowScene: windowScene)
         self.window = window
@@ -20,6 +22,23 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         window.overrideUserInterfaceStyle = .dark
         window.makeKeyAndVisible()
 #if STARRY_TEST_TOOLS
+        if ProcessInfo.processInfo.arguments.contains("--model-review-core-check") {
+            isolatedModelReviewCheck = true
+            let label=UILabel();label.numberOfLines=0;label.textColor = .white
+            label.frame=CGRect(x:24,y:100,width:window.bounds.width-48,height:400)
+            label.accessibilityIdentifier="modelReviewCoreResult"
+            do {
+                let result=try CharacterModelReviewTests.run()
+                label.text=result
+                let report:[String:Any] = ["result":result,"previewModels":ModelDescriptor.all.filter(\.isPreviewOnly).map(\.id),
+                    "conversationModels":ModelDescriptor.all.filter {!$0.isPreviewOnly}.map(\.id),
+                    "models":ModelDescriptor.all.map(\.id)]
+                let file=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0]
+                    .appendingPathComponent("model-review-core-check.json")
+                try JSONSerialization.data(withJSONObject:report,options:[.sortedKeys]).write(to:file,options:.atomic)
+            } catch {label.text="FAIL: \(error)"}
+            placeholder.view.addSubview(label);return
+        }
         if ProcessInfo.processInfo.arguments.contains("--connection-check") {
             window.rootViewController=LanguageHostingController(rootView:AIConnectionDiagnostics());return
         }
@@ -157,7 +176,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         bootstrap(in:windowScene)
     }
     private func bootstrap(in windowScene:UIWindowScene) {
-        guard !isolatedGoalFixture else { return }
+        guard !isolatedGoalFixture, !isolatedModelReviewCheck else { return }
 #if DEBUG && targetEnvironment(simulator)
         if ProcessInfo.processInfo.arguments.contains(where: { ["--language-check", "--opening-check", "--voice-atmosphere-check", "--reply-flow-check", "--conversation-presentation-check", "--chat-input-check", "--speech-playback-check", "--greeting-core-check", "--view-presets-check", "--experience-core-check", "--export-core-check", "--export-ui-check", "--social-core-check", "--cache-core-check", "--market-core-check"].contains($0) }) { return }
 #endif

@@ -4,7 +4,7 @@ using UnityEngine;
 namespace ModelSpace
 {
     [Serializable] public sealed class SecondaryStrandData { public string bone,tip,wind; public float radius=.01f,angle=16,windResponse=1; }
-    [Serializable] public sealed class SecondaryColliderData { public string bone; public Vector3 offset; public float radius; }
+    [Serializable] public sealed class SecondaryColliderData { public string bone; public Vector3 offset; public float radius; public bool localRadius; }
     [Serializable] public sealed class SecondaryMotionData
     {
         public int schemaVersion;
@@ -39,6 +39,7 @@ namespace ModelSpace
             public Transform bone;
             public Vector3 offset;
             public float radius;
+            public bool localRadius;
         }
         public Strand[] strands=Array.Empty<Strand>();
         public Sphere[] colliders=Array.Empty<Sphere>();
@@ -122,7 +123,9 @@ namespace ModelSpace
                     {
                         if(!sphere.bone)continue;
                         Vector3 center=sphere.bone.TransformPoint(sphere.offset),delta=strand.point-center;
-                        float radius=(sphere.radius+strand.radius)*Mathf.Abs(transform.lossyScale.x);
+                        var scale=sphere.bone.lossyScale;
+                        float colliderScale=sphere.localRadius?Mathf.Max(Mathf.Abs(scale.x),Mathf.Abs(scale.y),Mathf.Abs(scale.z)):Mathf.Abs(transform.lossyScale.x);
+                        float radius=sphere.radius*colliderScale+strand.radius*Mathf.Abs(transform.lossyScale.x);
                         if(delta.sqrMagnitude<radius*radius)
                             strand.point=center+(delta.sqrMagnitude>.000001f?delta.normalized:(target-center).normalized)*radius;
                     }

@@ -257,12 +257,21 @@ class PhysicsResolver:
 
 
 def build_physics(audit, inspection_root):
+    # A selected variant and its base prefab may live in different unitypackages.
+    # Resolve the complete audited dependency set, retaining exact GUID identity.
+    assets = {}
+    for archive in audit['archives']:
+        for package in archive['unityPackages']:
+            for asset in package['assets']:
+                previous = assets.get(asset['guid'])
+                if previous and (previous['path'], previous.get('sha256')) != (asset['path'], asset.get('sha256')):
+                    raise ValueError('Conflicting source asset GUID: ' + asset['guid'])
+                assets[asset['guid']] = asset
     roles = []
     for path in sorted(inspection_root.glob('*-prefab.json')):
         inspection = json.loads(path.read_text())
-        package = next(p for a in audit['archives'] for p in a['unityPackages'] if any(x['path'] == inspection['prefab'] for x in p['assets']))
         fbx = json.loads(path.with_name(inspection['role'] + '-fbx.json').read_text())
-        resolver = PhysicsResolver(package['assets'], inspection, fbx)
+        resolver = PhysicsResolver(list(assets.values()), inspection, fbx)
         roles.append(dict(role=inspection['role'], inspectionSource=str(path), **resolver.output()))
     return {'schemaVersion': 1, 'auditTool': 'scripts/vrchat_physics.py',
             'scope': 'Source PhysBone values plus resolved prefab paths; no VRChat SDK or runtime solver executed.', 'roles': roles}

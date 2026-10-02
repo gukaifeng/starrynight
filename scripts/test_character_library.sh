@@ -4,9 +4,31 @@ cd "$(dirname "$0")/.."
 mkdir -p .local/checks/starry-core
 cp ios/CharacterHost/Resources/{CharacterCatalog,EnvironmentCatalog,CharacterCollections,CharacterPublicProfiles}.json .local/checks/starry-core/
 cp ios/CharacterHost/Resources/Music_*.caf .local/checks/starry-core/
+# The standalone macOS harness uses the production Codable declarations. Their
+# files also contain UIKit/SwiftUI views, which belong to the iOS build checks.
+python3 - <<'PY'
+from pathlib import Path
+parts = ['import Foundation\n']
+platform = Path('ios/CharacterHost/Features/Account/PlatformAPI.swift').read_text()
+start = platform.index('indirect enum JSONValue:')
+end = platform.index('\nenum PlatformError:', start)
+parts.append(platform[start:end])
+for source, boundary in [
+    ('ios/CharacterHost/App/AppLanguage.swift', '@MainActor @Observable final class AppLanguageSettings'),
+    ('ios/CharacterHost/Features/Companion/ConversationGoals.swift', 'struct ConversationGoalsPanel: View'),
+    ('ios/CharacterHost/Features/Companion/MessageTranslation.swift', '@MainActor enum ReplyTranslation'),
+]:
+    text = Path(source).read_text()
+    assert text.count(boundary) == 1, 'Data declaration boundary changed: ' + source
+    data = text.split(boundary)[0]
+    parts.append('\n'.join(line for line in data.splitlines() if not line.startswith('import ')))
+Path('.local/checks/starry-core/CompanionWireTypes.swift').write_text('\n'.join(parts))
+PY
 SOURCES=(
+ .local/checks/starry-core/CompanionWireTypes.swift
  ios/CharacterHost/Features/Social/CharacterCollection.swift
  ios/CharacterHost/Features/Home/ModelCatalog.swift
+ ios/CharacterHost/Features/Home/CharacterModelReview.swift
  ios/CharacterHost/Features/Account/DemoAccount.swift
  ios/CharacterHost/Features/Account/LoginMethod.swift
  ios/CharacterHost/Features/Companion/CharacterPosture.swift
@@ -31,7 +53,13 @@ TESTS=(CharacterLibraryTests)
 # also exercised by ProactiveGreetingTests through Xcode on the iOS simulator.
 if [ "${1:-}" = '--greetings' ]; then TESTS+=(ConversationGreetingTests); fi
 if [ "${1:-}" = '--experiences' ]; then TESTS+=(CompanionExperienceTests); fi
+LAUNCH_ARGS=()
+if [ "${1:-}" = '--model-review' ]; then
+ TESTS=(CharacterModelReviewTests)
+ LAUNCH_ARGS=(--live-ai --live-reaction-prewarm --live-smart-replies)
+fi
+
 for TEST in "${TESTS[@]}"; do
- swiftc -swift-version 6 -parse-as-library "${SOURCES[@]}" "scripts/tests/$TEST.swift" -o ".local/checks/starry-core/$TEST"
- ".local/checks/starry-core/$TEST"
+ swiftc -swift-version 6 -parse-as-library -module-cache-path .local/checks/starry-core/ModuleCache "${SOURCES[@]}" "scripts/tests/$TEST.swift" -o ".local/checks/starry-core/$TEST"
+ ".local/checks/starry-core/$TEST" ${LAUNCH_ARGS[@]+"${LAUNCH_ARGS[@]}"}
 done

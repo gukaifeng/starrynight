@@ -11,7 +11,10 @@ ROOT=Path(__file__).resolve().parents[1]
 PROJECT=ROOT/'unity/CharacterRuntime'
 parser=argparse.ArgumentParser()
 parser.add_argument('--platform',choices=['simulator','device'],default='simulator')
+parser.add_argument('--prepare-timeout',type=int,default=3600,help='Seconds allowed for scene preparation, including a cold iOS asset import')
 args=parser.parse_args()
+if args.prepare_timeout < 1:
+    parser.error('--prepare-timeout must be positive')
 method='BuildIos.ExportSimulator' if args.platform=='simulator' else 'BuildIos.ExportDevice'
 log=ROOT/'.local/logs'/f'export-{args.platform}.log'
 log.parent.mkdir(parents=True,exist_ok=True)
@@ -107,7 +110,7 @@ else:
     # in the same process. A clean second Editor avoids that native state while
     # preserving all Setup/Validate/thumbnail checks and the saved source scene.
     prepare_log=log.with_name('prepare-'+args.platform+'.log')
-    subprocess.run(['unity','run',str(PROJECT),'--timeout','1200','--','-buildTarget','iOS','-executeMethod','BuildIos.PrepareExport','-logFile',str(prepare_log)],check=True)
+    subprocess.run(['unity','run',str(PROJECT),'--timeout',str(args.prepare_timeout),'--','-buildTarget','iOS','-executeMethod','BuildIos.PrepareExport','-logFile',str(prepare_log)],check=True)
     prepared='BuildIos.ExportPreparedSimulator' if args.platform=='simulator' else 'BuildIos.ExportPreparedDevice'
     subprocess.run(['unity','run',str(PROJECT),'--timeout','1200','--','-buildTarget','iOS','-executeMethod',prepared,'-logFile',str(log)],check=True)
 stamp=ROOT/'build'/f'unity-{args.platform}'/'modelspace-export.json'

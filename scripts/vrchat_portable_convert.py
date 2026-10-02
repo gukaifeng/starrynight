@@ -313,7 +313,26 @@ def portable_secondary(stage,role,b,geometry):
             if not children and chain.get('endpointPositionLocal'):
                 v=chain['endpointPositionLocal'];delta=np.array([v.get(a,0) for a in 'xyz'])*MIRROR_P
                 if np.linalg.norm(delta)>1e-5:
-                    tip=len(nodes);nodes.append(dict(name='XCP_tip_'+str(i),translation=delta.tolist()));nodes[i].setdefault('children',[]).append(tip);children=[tip]
+                    # Rebuilding secondary data on an existing portable model
+                    # must reuse its exact generated endpoint, not duplicate it.
+                    existing=[j for j in nodes[i].get('children',[]) if nodes[j].get('name')=='XCP_tip_'+str(i)]
+                    if len(existing)>1:
+                        # Overlapping authored chains can give one bone two
+                        # distinct endpoint vectors. Older conversions named
+                        # both nodes identically; distinguish generated data
+                        # without renaming any source bone or mesh.
+                        for j in existing:
+                            nodes[j]['name']='XCP_tip_'+str(i)+'_'+str(j)
+                    existing=[j for j in nodes[i].get('children',[]) if
+                              nodes[j].get('name','').startswith('XCP_tip_'+str(i)+'_') or
+                              nodes[j].get('name')=='XCP_tip_'+str(i)]
+                    matches=[j for j in existing if np.allclose(nodes[j].get('translation'),delta,atol=1e-7)]
+                    if matches:
+                        tip=matches[0]
+                    else:
+                        tip=len(nodes);name='XCP_tip_'+str(i)+(('_'+str(tip)) if existing else '')
+                        nodes.append(dict(name=name,translation=delta.tolist()));nodes[i].setdefault('children',[]).append(tip)
+                    children=[tip]
             for tip in children:
                 length=sum(v*v for v in nodes[tip].get('translation',[0,0,0]))
                 if length>1e-8 and (i not in segments or length>segments[i][0]):segments[i]=(length,tip,radius,wind)
@@ -330,8 +349,11 @@ def portable_secondary(stage,role,b,geometry):
         radius=float(shape['radius'] or 0);half=max(0,float(shape['height'] or 0)*.5-radius) if shape['shapeType']==1 else 0
         for offset in ([-half,0,half] if half else [0]):
             delta=np.array([0,offset,0],float);v=center+delta+2*np.cross(q[:3],np.cross(q[:3],delta)+q[3]*delta)
-            colliders.append(dict(bone=p[node],offset=dict(zip('xyz',v)),radius=radius))
-    return dict(schemaVersion=2,ambientHairAngle=6.5,ambientClothAngle=2.6,strands=strands,colliders=colliders),dict(source=full,limitations=notes+[
+            # Center and radius share the collider root's local coordinate
+            # space. Tiny authored collider transforms are common; radius
+            # must follow their scale rather than the overall avatar root.
+            colliders.append(dict(bone=p[node],offset=dict(zip('xyz',v)),radius=radius,localRadius=True))
+    return dict(schemaVersion=3,ambientHairAngle=6.5,ambientClothAngle=2.6,strands=strands,colliders=colliders),dict(source=full,limitations=notes+[
         dict(kind='solver-adaptation',detail='Host damped springs with bounded wind, not numerical VRChat PhysBone equivalence; source coefficients and collider associations are retained in this receipt.')])
 
 

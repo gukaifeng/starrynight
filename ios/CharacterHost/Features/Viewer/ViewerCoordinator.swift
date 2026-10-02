@@ -66,6 +66,7 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
     }
     private func prepareEntry(_ model:ModelDescriptor,trigger:String,delay:Double) {
         cancelEntryPreparation()
+        guard !model.isPreviewOnly else {return}
         // First meetings are already in the app, including voice/performance.
         guard !ConversationGreetingPolicy.shouldIntroduce(companionStore.record(model.id)) else {return}
         guard companionStore.record(model.id).pendingDeletionID==nil else {return}

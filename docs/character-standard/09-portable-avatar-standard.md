@@ -26,7 +26,7 @@ avatar-controls.json       # 参数、菜单控制、原作控制图、mask 与�
 avatar-motions.json        # 原作曲线及 Humanoid 烘焙轨道
 avatar-geometry.json       # Prefab 节点默认激活状态、Renderer 默认开关
 materials.json             # liltoon-properties-v1，schemaVersion 2
-secondary-motion.json      # schemaVersion 2，宿主衣发运动适配数据
+secondary-motion.json      # schemaVersion 2 或 3，宿主衣发运动适配数据
 textures/                  # 按角色封装并参与校验
 LICENSE.txt / NOTICE.md    # 来源许可、署名与适配边界
 source-meta.json            # 原始版本、哈希、主 Prefab 和变体来源
@@ -34,7 +34,9 @@ source-meta.json            # 原始版本、哈希、主 Prefab 和变体来源
 
 五类 sidecar 和所有依赖文件必须进入 `character.json.files` 的 seal。源数据变化后重新转换、校验和画面复核，不能只改目录版本号或 catalog stamp。第一批新角色包为 3.0.0；旧琪宝、豆日向的 2.2.0 包保持可读，不为形式统一而改写其原作曲线。
 
-清单 `compatibility.required` 必须包含 `core.avatar-controls@1`；有菜单时同时声明 `core.performance@2`。衣发适配声明 `core.secondary-motion@2`。原作口型、眨眼依照实际数据分别声明可选 speech/autonomy 能力，不能由“有 Humanoid 骨架”推断已经有这些动作。
+清单 `compatibility.required` 必须包含 `core.avatar-controls@1`；有菜单时同时声明 `core.performance@2`。衣发适配按实际数据声明 `core.secondary-motion@2` 或 `core.secondary-motion@3`。原作口型、眨眼依照实际数据分别声明可选 speech/autonomy 能力，不能由“有 Humanoid 骨架”推断已经有这些动作。
+
+`core.secondary-motion@3` 对应 `secondary-motion.json.schemaVersion:3`，保留 512 段、256 个碰撞球的预算，并增加碰撞球 `localRadius:true`：半径和 `offset` 都处于该 `bone` 的局部坐标。运行时按碰撞骨的世界缩放求有效半径；非均匀缩放按最大轴长度包络，仍属于球形近似。SDK 沿完整 GLB 变换层级计算轴长度，检查有效模型半径不超过 0.5 米，不能把作者的 0.08 倍碰撞骨缩放忽略。未声明 `localRadius` 的旧 1/2 包继续使用模型空间半径；旧宿主可忽略未知 optional @3，但不能将它解释成 @2。本轮已通过 SDK、Unity 240 帧数值检查及非空画面检查；真机逐角色画面和性能另行验收，详见[本轮导入记录](../verification/vrchat-batch-import/2026-10-02-model-only-import-progress.md)。
 
 新宿主同时支持旧、新能力版本；旧包不进入新控制解析器。未知 optional 能力可以忽略，未知 required 能力必须拒绝加载并给出版本要求。未知 JSON 附加字段可以保留，但其执行语义必须有对应能力版本，不得靠未知字段偷偷改变旧版本含义。
 

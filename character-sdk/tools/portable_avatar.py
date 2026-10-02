@@ -58,6 +58,7 @@ def validate(root, manifest, read, path, inspect):
     for o in options:need(o['control']==controls[o['control']['id']],'stale embedded control')
     model=inspect(path(root,manifest['source']['model']))
     nodes={n['path'] for n in model['nodes']}
+    scale_factors={n['path']:n['scaleFactors'] for n in model['nodes']}
     def node(p):return isinstance(p,str) and ('Avatar'+('/'+p if p else '')) in nodes
     geometry=read(path(root,'avatar-geometry.json'))
     need(all(node(n['path']) for n in geometry['nodes']),'geometry node missing from GLB')
@@ -108,9 +109,16 @@ def validate(root, manifest, read, path, inspect):
             need(tex['path'].startswith('textures/') and tex['path'] in files,'unsealed/missing texture')
             path(root,tex['path'])
     secondary=read(path(root,'secondary-motion.json'))
-    need('core.secondary-motion@2' in capabilities and secondary['schemaVersion']==2,'secondary profile/version mismatch')
+    need(('core.secondary-motion@2' in capabilities and secondary['schemaVersion']==2) or
+         ('core.secondary-motion@3' in capabilities and secondary['schemaVersion']==3),'secondary profile/version mismatch')
     for strand in items(secondary['strands'],512,'secondary strands'):
         need(strand['bone'] in nodes and strand['tip'] in nodes and strand['tip'].rsplit('/',1)[0]==strand['bone'],'invalid strand binding')
         need(1<=strand['angle']<=20 and 0<=strand['radius']<=.05,'strand bounds')
     for collider in items(secondary['colliders'],256,'secondary colliders'):
-        need(collider['bone'] in nodes and 0<=collider['radius']<=.5,'collider bounds')
+        need(collider['bone'] in nodes and numeric(collider['radius']) and collider['radius']>=0,'collider binding/radius')
+        local=collider.get('localRadius',False)
+        need(isinstance(local,bool),'collider radius space')
+        need(not local or secondary['schemaVersion']==3,'local collider radius requires secondary-motion@3')
+        effective=collider['radius']*(max(scale_factors[collider['bone']]) if local else 1)
+        need(numeric(effective) and effective<=.5,'collider bounds')
+        need(isinstance(collider.get('offset'),dict) and all(numeric(collider['offset'].get(a)) for a in 'xyz'),'collider offset')

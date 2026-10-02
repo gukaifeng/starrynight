@@ -215,6 +215,7 @@ private final class AINoRedirect: NSObject, URLSessionTaskDelegate, Sendable {
         let _:AIReactionPause? = try? await configuration("/v1/conversations/"+characterID+"/reactions/pause",body:body)
     }
     func request(_ path: String, paid: Bool = true) throws -> URLRequest {
+        guard ModelDescriptor.all.first(where:{$0.id==characterID})?.isPreviewOnly != true else {throw AIConnectionError.testingDisabled}
         if paid && !Self.paidTestsEnabled { throw AIConnectionError.testingDisabled }
         if let request = try Self.authenticatedRequest?(accountID,path) { return request }
         if requiresAuthentication { throw AIConnectionError.authenticationRequired }

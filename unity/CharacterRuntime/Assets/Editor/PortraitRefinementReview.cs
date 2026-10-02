@@ -6,6 +6,8 @@ using ModelSpace;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 
 public static class PortraitRefinementReview
 {
@@ -76,10 +78,25 @@ public static class PortraitRefinementReview
     }
     public static void Render(Camera camera,string path,int width,int height)
     {
+        bool asynchronous=ShaderUtil.allowAsyncCompilation;
+        ShaderUtil.allowAsyncCompilation=false;
         var old=camera.targetTexture;var active=RenderTexture.active;
-        var rt=new RenderTexture(width,height,24,RenderTextureFormat.ARGB32) {antiAliasing=4};
+        var rt=new RenderTexture(width,height,24,RenderTextureFormat.ARGB32);
         var image=new Texture2D(width,height,TextureFormat.RGB24,false);
-        try { camera.targetTexture=rt;camera.Render();RenderTexture.active=rt;image.ReadPixels(new Rect(0,0,width,height),0,0);image.Apply();File.WriteAllBytes(path,image.EncodeToPNG()); }
-        finally { camera.targetTexture=old;RenderTexture.active=active;rt.Release();UnityEngine.Object.DestroyImmediate(rt);UnityEngine.Object.DestroyImmediate(image); }
+        try {
+            rt.Create();
+            camera.targetTexture=rt;
+            var request=new UniversalRenderPipeline.SingleCameraRequest {destination=rt};
+            // Begin the camera's native rendering context before requesting the
+            // readback target in a synchronous Editor batch.
+            camera.Render();
+            if(!RenderPipeline.SupportsRenderRequest(camera,request))throw new Exception("REVIEW_RENDER_PIPELINE_UNSUPPORTED");
+            RenderPipeline.SubmitRenderRequest(camera,request);
+            RenderPipeline.SubmitRenderRequest(camera,request);
+            RenderTexture.active=rt;image.ReadPixels(new Rect(0,0,width,height),0,0);image.Apply();
+            if(!image.GetPixels32().Any(pixel=>pixel.r>8 || pixel.g>8 || pixel.b>8))throw new Exception("REVIEW_RENDER_EMPTY: "+path);
+            File.WriteAllBytes(path,image.EncodeToPNG());
+        }
+        finally { camera.targetTexture=old;RenderTexture.active=active;rt.Release();UnityEngine.Object.DestroyImmediate(rt);UnityEngine.Object.DestroyImmediate(image);ShaderUtil.allowAsyncCompilation=asynchronous; }
     }
 }
