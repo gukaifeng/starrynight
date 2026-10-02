@@ -22,7 +22,7 @@ PREFERRED = {
     'nozomi': 'Assets/Nozomi/Nozomi_1.00.prefab',
     'lasyusha': 'Assets/KeenooSHOP/Lasyusha/Prefabs/Co1/Lasyusha_C1_Ver1.1.prefab',
 }
-NAMES = {'kipfel':'琪宝','airi':'爱莉','chiffon':'戚风','cornet':'可露','eku':'意可蕾','ichigo':'草莓',
+NAMES = {'kipfel':'小猫','airi':'爱莉','chiffon':'戚风','cornet':'可露','eku':'意可蕾','ichigo':'草莓',
          'karin':'卡琳','kikyo':'桔梗','lime':'青柠','mafuyu':'真冬','maki':'真纪','mao':'真央',
          'mashu':'麻薯','meiyun':'美云','milfy':'米露菲','milltina':'米露缇娜','mizuki':'瑞希',
          'rindo':'龙胆','rurune':'露露奈','shinano':'信浓','koharu':'小春'}

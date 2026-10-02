@@ -19,7 +19,7 @@ public static class AnimeCharacterAdapter
     [Serializable] sealed class MaterialsData { public int schemaVersion;public string sourceProfile;public MaterialData[] materials; }
     public static void Prepare(ViewerCharacter character,string folder)
     {
-        if(!character.Manifest.Supports("core.secondary-motion@1") && !character.Manifest.Supports("core.secondary-motion@2") && !character.Manifest.Supports("core.secondary-motion@3"))return;
+        if(!character.Manifest.Supports("core.secondary-motion@1") && !character.Manifest.Supports("core.secondary-motion@2") && !character.Manifest.Supports("core.secondary-motion@3") && !character.Manifest.Supports("core.secondary-motion@4"))return;
         PrepareMaterials(character,folder);
         PrepareSecondary(character.gameObject,folder);
         // RestBounds otherwise sees the source T-pose, making conversation framing
@@ -45,7 +45,7 @@ public static class AnimeCharacterAdapter
     public static AvatarSecondaryMotion PrepareSecondary(GameObject model,string folder)
     {
         var data=JsonUtility.FromJson<SecondaryMotionData>(File.ReadAllText(folder+"/secondary-motion.json"));
-        if((data.schemaVersion<1 || data.schemaVersion>3) || data.strands==null || data.strands.Length>(data.schemaVersion>=2?512:128) || data.colliders==null || data.colliders.Length>(data.schemaVersion>=2?256:64))
+        if((data.schemaVersion<1 || data.schemaVersion>4) || data.strands==null || data.strands.Length>(data.schemaVersion>=2?512:128) || data.colliders==null || data.colliders.Length>(data.schemaVersion>=2?256:64) || data.planes.Length>256 || (data.planes.Length>0 && data.schemaVersion!=4))
             throw new Exception("SECONDARY_MOTION_SCHEMA_INVALID");
         Transform Resolve(string path)
         {
@@ -65,15 +65,31 @@ public static class AnimeCharacterAdapter
                 throw new Exception("SECONDARY_MOTION_STRAND_INVALID");
             if(!new[]{null,"","none","hair","cloth"}.Contains(s.wind) || !float.IsFinite(s.windResponse) || s.windResponse<0 || s.windResponse>1)
                 throw new Exception("SECONDARY_MOTION_WIND_INVALID");
-            return new AvatarSecondaryMotion.Strand { bone=bone,tip=tip,rest=bone.localRotation,radius=s.radius,angle=s.angle,wind=s.wind,windResponse=s.windResponse };
+            return new AvatarSecondaryMotion.Strand { bone=bone,tip=tip,rest=bone.localRotation,radius=s.radius,angle=s.angle,wind=s.wind,windResponse=s.windResponse,colliderIDs=s.colliderIDs,chainIDs=s.chainIDs,initialEnabled=s.initialEnabled,enabled=s.initialEnabled };
         }).ToArray();
         motion.colliders=data.colliders.Select(s=>{
-            if(s.localRadius && data.schemaVersion!=3)throw new Exception("SECONDARY_MOTION_RADIUS_SPACE_VERSION_INVALID");
+            if(s.localRadius && data.schemaVersion<3)throw new Exception("SECONDARY_MOTION_RADIUS_SPACE_VERSION_INVALID");
             var bone=Resolve(s.bone);var scale=bone.lossyScale;
             float effectiveRadius=s.localRadius?s.radius*Mathf.Max(Mathf.Abs(scale.x),Mathf.Abs(scale.y),Mathf.Abs(scale.z))/Mathf.Max(Mathf.Abs(model.transform.lossyScale.x),.000001f):s.radius;
             if(!float.IsFinite(s.radius)||s.radius<0||!float.IsFinite(effectiveRadius)||effectiveRadius>.5f || !float.IsFinite(s.offset.sqrMagnitude))throw new Exception("SECONDARY_MOTION_COLLIDER_INVALID");
-            return new AvatarSecondaryMotion.Sphere { bone=bone,offset=s.offset,radius=s.radius,localRadius=s.localRadius };
+            return new AvatarSecondaryMotion.Sphere { bone=bone,offset=s.offset,radius=s.radius,localRadius=s.localRadius,id=s.id };
         }).ToArray();
+        motion.planes=data.planes.Select(s=>{
+            if(string.IsNullOrEmpty(s.id) || !float.IsFinite(s.offset.sqrMagnitude) || !float.IsFinite(s.normal.sqrMagnitude) || Mathf.Abs(s.normal.magnitude-1)>.001f)
+                throw new Exception("SECONDARY_MOTION_PLANE_INVALID");
+            return new AvatarSecondaryMotion.Plane {bone=Resolve(s.bone),id=s.id,offset=s.offset,normal=s.normal};
+        }).ToArray();
+        motion.controls=data.controls;
+        foreach(var control in motion.controls)
+        {
+            var manifest=model.GetComponent<ViewerCharacter>().Manifest;
+            if(data.schemaVersion!=4 || !manifest.performance.options.Any(o=>o.id==control.option) || control.on==null || control.off==null || !new[]{"preset","motion","toggle"}.Contains(control.kind))
+                throw new Exception("SECONDARY_MOTION_CONTROL_INVALID");
+            foreach(var binding in control.on.Concat(control.off))
+                if(binding.kind=="chain"?!motion.strands.Any(s=>s.chainIDs!=null && s.chainIDs.Contains(binding.id)):
+                    binding.kind!="collider" || !motion.colliders.Any(s=>s.id==binding.id) && !motion.planes.Any(s=>s.id==binding.id))
+                    throw new Exception("SECONDARY_MOTION_CONTROL_BINDING_MISSING: "+binding.id);
+        }
         return motion;
     }
     public static void PrepareMaterials(ViewerCharacter character,string folder)

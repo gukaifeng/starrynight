@@ -57,8 +57,8 @@ def classify(path):
     if any(p.endswith('_'+s+'.anim') for s in ['gun','fist','open','point','peace','rock','thumbs_up','hands_idle']):return 'hands'
     return 'pose'
 
-def inventory(role):
-    audit=json.loads(AUDIT.read_text())
+def inventory(role, audit_path=None):
+    audit=json.loads(Path(audit_path or AUDIT).read_text())
     archive=next(x for x in audit['archives'] if x['slug'].startswith(role))
     assets=[z for p in archive['unityPackages'] if 'quest' not in p['file'].lower() for z in p['assets']]
     result=[]
@@ -80,8 +80,8 @@ def label(clip):
 
 def identifier(name):return re.sub(r'[^a-z0-9]+','-',name.lower()).strip('-')
 
-def build_character(role):
-    clips=inventory(role); by_name={x['name']:x for x in clips}; options=[]; omitted=[]; consumed=set()
+def build_character(role, audit_path=None, include_base_clothing=False):
+    clips=inventory(role,audit_path); by_name={x['name']:x for x in clips}; options=[]; omitted=[]; consumed=set()
     for c in clips:
         if c['path'] in consumed:continue
         group=c['group']
@@ -89,7 +89,7 @@ def build_character(role):
             omitted.append({'sourceClip':c['path'],'reason':'VRChat 内部眨眼/口型/碰撞/自触碰控制或空片段，不是独立可见表演'});continue
         if group=='appearance':
             n=c['name']; prefix='kipfel_outfit_' if role=='kipfel' else 'C_';stem=n[len(prefix):]
-            if stem in ['Shirt_OFF','Shirt_ON','Shorts_OFF','Shorts_ON','Yakke_OFF','Yakke_ON']:
+            if not include_base_clothing and stem in ['Shirt_OFF','Shirt_ON','Shorts_OFF','Shorts_ON','Yakke_OFF','Yakke_ON']:
                 omitted.append({'sourceClip':c['path'],'reason':'保留基础上装与短裤；移除可能露出身体，不开放脱除'});continue
             if stem.startswith('Shirt_sleeve_'):
                 if stem.endswith('_long'):continue
@@ -102,7 +102,7 @@ def build_character(role):
                 if not off:
                     omitted.append({'sourceClip':c['path'],'reason':'来源缺少 OFF 配对'});continue
             consumed.add(off['path'])
-            options.append({'id':'outfit-'+identifier(base),'group':group,'label':LABELS.get(base,base),'kind':'toggle','clip':'','sourceClip':on['path'],'sourceOffClip':off['path'],'description':'原模型穿搭开关；保留基础上装与短裤','duration':on['duration'],'loop':False,'bones':[],'morphs':on['morphs'],'visibility':on['visibility'],'offMorphs':off['morphs'],'offVisibility':off['visibility'],'defaultOn':default})
+            options.append({'id':'outfit-'+identifier(base),'group':group,'label':LABELS.get(base,base),'kind':'toggle','clip':'','sourceClip':on['path'],'sourceOffClip':off['path'],'description':'原模型穿搭开关' if include_base_clothing else '原模型穿搭开关；保留基础上装与短裤','duration':on['duration'],'loop':False,'bones':[],'morphs':on['morphs'],'visibility':on['visibility'],'offMorphs':off['morphs'],'offVisibility':off['visibility'],'defaultOn':default})
             continue
         option={'id':identifier(c['name']),'group':group,'label':label(c),'kind':'motion' if c['duration']>0 else 'preset','clip':'','sourceClip':c['path'],'description':'原作连续表演' if c['duration']>0 else '原作静态姿态或表情，通过平滑过渡呈现','duration':c['duration'],'loop':c['loop'],'bones':[],'morphs':c['morphs'],'visibility':c['visibility'],'offMorphs':[],'offVisibility':[],'defaultOn':False}
         option['sourceMorphCurves']=[{'renderer':f['path'],'shape':f['attribute'][11:],'keys':f['keys']} for f in c['floatCurves'] if f['attribute'].startswith('blendShape.')]

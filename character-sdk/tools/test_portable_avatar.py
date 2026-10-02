@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 import unittest
 
-from portable_avatar import validate
+from portable_avatar import validate,validate_secondary
 from character_tool import node_scale_factors
 
 
@@ -25,7 +25,7 @@ class PortableAvatarContractTests(unittest.TestCase):
             'secondary-motion.json':dict(schemaVersion=2,strands=[],colliders=[])}
         self.manifest=dict(compatibility=dict(required=['core.avatar-controls@1'],optional=['core.secondary-motion@2']),
             files=[dict(path=p) for p in self.documents],source=dict(model='model.glb'),
-            performance=dict(options=[dict(control=copy.deepcopy(control))]))
+            performance=dict(options=[dict(id='smile',control=copy.deepcopy(control))]))
 
     def check(self):
         def read(path):
@@ -87,6 +87,23 @@ class PortableAvatarContractTests(unittest.TestCase):
         self.assertAlmostEqual(scales[1][2],.08)
         with self.assertRaisesRegex(ValueError,'cyclic'):
             node_scale_factors(dict(nodes=[dict(children=[1]),dict(children=[0])]))
+
+    def test_scoped_planes_and_cuff_controls_validate_without_controller_capability(self):
+        model=dict(nodes=[dict(path='Avatar',scaleFactors=[1,1,1]),dict(path='Avatar/Head',scaleFactors=[1,1,1])])
+        secondary=dict(schemaVersion=4,strands=[dict(bone='Avatar',tip='Avatar/Head',angle=8,radius=.01,
+            colliderIDs=['floor'],chainIDs=['cuff'],initialEnabled=False)],colliders=[],
+            planes=[dict(id='floor',bone='Avatar',offset=dict(x=0,y=0,z=0),normal=dict(x=0,y=1,z=0))],
+            controls=[dict(option='sleeve',kind='toggle',on=[dict(id='cuff',kind='chain',enabled=True)],off=[])])
+        def check():validate_secondary(secondary,{'core.secondary-motion@4'},model,[dict(id='sleeve')])
+        check()
+        secondary['strands'][0]['colliderIDs']=['missing']
+        with self.assertRaisesRegex(ValueError,'collider association'):check()
+        secondary['strands'][0]['colliderIDs']=['floor']
+        secondary['planes'][0]['normal']['y']=0
+        with self.assertRaisesRegex(ValueError,'unit length'):check()
+        secondary['planes'][0]['normal']['y']=1
+        secondary['controls'][0]['on'][0]['id']='absent-cuff'
+        with self.assertRaisesRegex(ValueError,'physics control binding'):check()
 
 
 if __name__=='__main__':unittest.main()

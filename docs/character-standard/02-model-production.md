@@ -47,7 +47,7 @@ my-character/
 9. 当前预检允许的必要 glTF 扩展：`KHR_materials_unlit`、`KHR_texture_transform`、`KHR_materials_emissive_strength`。不要声明 Draco/KTX2 等尚未纳入本项目验收的必要解码依赖。
 10. 不依赖自定义 Shader。特殊皮肤、毛发、多层折射等材质需要后续材质能力及适配器；不能通过塞脚本绕过。
 
-**硬性移动源预算**：GLB 总 POSITION accessor 计数不超过 300,000，primitive 不超过 32，单 skin joint 不超过 256。它们是拒收上限，不是推荐达到的目标。推荐精致角色约 50k–120k 可见三角形、尽可能少的材质和透明覆盖，具体以完整场景的 GPU/CPU 实测为准。
+**硬性移动源预算**：GLB 总 POSITION accessor 计数不超过 300,000，普通 profile 的 primitive 不超过 32，单 skin joint 不超过 256。已声明 `core.avatar-controls@1` 或 `core.materials.liltoon@1` 的完整可移植 profile 允许最多 64 个存储 primitive；后者必须提供 schema 2 的 `liltoon-properties-v1` 材质数据，不能只添加能力名放宽预算。存储 primitive 包含作者隐藏配件与叠加材质 pass，不等于默认穿搭的 draw 数。它们是拒收上限，不是推荐达到的目标。推荐精致角色约 50k–120k 可见三角形、尽可能少的材质和透明覆盖，具体以完整场景的 GPU/CPU 实测为准。
 
 ## 4. `character.json` 清单
 

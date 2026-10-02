@@ -7,6 +7,7 @@ need a reviewed config/appearance/rig mapping, not a guessed universal conversio
 """
 from __future__ import annotations
 import argparse, copy, hashlib, json, subprocess
+import time
 from pathlib import Path
 import numpy as np
 import bpy
@@ -131,6 +132,20 @@ def secondary(g,role,folder):
     return report
 
 def package(role,index,geometry_only=False,output_root=None):
+    if role['key']=='kipfel' and not geometry_only:
+        # The original stable companion now owns the 1.1.1 PC appearance.
+        # Never let a routine rebuild silently restore its archived 1.0.3 model.
+        from upgrade_kipfel import prepare, apply
+        candidate=ROOT/'.local/kipfel-upgrade'/('rebuild-'+str(time.time_ns()))
+        prepare(candidate)
+        if output_root is None:
+            apply(candidate)
+        else:
+            destination=output_root/role['id']
+            if destination.exists():raise ValueError('Isolated replay output already exists')
+            import shutil
+            shutil.copytree(candidate,destination)
+        return json.loads((candidate/'conversion-report.json').read_text())
     folder=(output_root or ROOT/'character-packages/imported')/role['id'];folder.mkdir(parents=True,exist_ok=True)
     inspection=json.loads((STAGE/'Inspection'/f"{role['key']}-prefab.json").read_text())
     if not inspection['humanValid']:raise ValueError('Source humanoid invalid')

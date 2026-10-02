@@ -5,8 +5,14 @@
   "redistributionAllowed": false,
   "inputs": [
     {
-      "name": "kipfel-1.0.3",
-      "sha256": "b1b800389aa6b174b1565527a351c7ba41653f4debeb627180c5b34e45aec053"
+      "name": "kipfel-1.1.1",
+      "sha256": "496789394fede7375f669c73b5c5943fb4b8870c6bac0c9d324aecdf113c7c2e",
+      "characterID": "anime-kipfel",
+      "converter": "scripts/upgrade_kipfel.py",
+      "previousSource": {
+        "name": "kipfel-1.0.3",
+        "sha256": "b1b800389aa6b174b1565527a351c7ba41653f4debeb627180c5b34e45aec053"
+      }
     },
     {
       "name": "mamehinata1.53",

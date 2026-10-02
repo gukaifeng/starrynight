@@ -14,10 +14,10 @@ MIRROR_Q=np.array([1.,-1.,-1.,1.])
 MIRROR_P=np.array([-1.,1.,1.])
 INVERSE=np.array([-1.,-1.,-1.,1.])
 
-def source_recipe(role):
-    catalog=json.loads((ROOT/'docs/verification/vrchat-performance/catalog.json').read_text())
+def source_recipe(role, catalog_path=None, samples_path=None):
+    catalog=json.loads(Path(catalog_path or ROOT/'docs/verification/vrchat-performance/catalog.json').read_text())
     recipe=copy.deepcopy(next(c for c in catalog['characters'] if c['role']==role))
-    samples=json.loads((ROOT/'.local/vrchat-stage/Inspection/Performances'/f'{role}.json').read_text())
+    samples=json.loads(Path(samples_path or ROOT/'.local/vrchat-stage/Inspection/Performances'/f'{role}.json').read_text())
     recipe['sampledMorphs']={m['path']:m['tracks'] for m in samples['morphMotions']}
     return recipe
 
@@ -30,7 +30,7 @@ def requested_shapes(recipe):
                     keep.setdefault(track['renderer'].split('/')[-1],set()).add(track['shape'])
     return keep
 
-def convert_profile(b,inspection,recipe,motion_map):
+def convert_profile(b,inspection,recipe,motion_map,morph_scales=None):
     g=b.doc;p=paths(g);by_name={n['name']:i for i,n in enumerate(g['nodes'])};notes=[]
     profile=copy.deepcopy(recipe['performance']);profile['schemaVersion']=1;profile.pop('version',None)
     profile['defaults']=[dict(path=p[by_name[s['name']]],visible=bool(s['active'] and s['enabled'])) for s in inspection['skins']]
@@ -43,7 +43,8 @@ def convert_profile(b,inspection,recipe,motion_map):
             index,node=renderer(value['renderer'])
             if index is None or value['shape'].startswith('vrc.v.'):continue
             available=g['meshes'][node['mesh']].get('extras',{}).get('targetNames',[])
-            if value['shape'] in available:result.append(dict(renderer=p[index],shape=value['shape'],weight=float(np.clip(value['weight']/100,0,1))))
+            gain=(morph_scales or {}).get((value['renderer'].split('/')[-1],value['shape']),1)
+            if value['shape'] in available:result.append(dict(renderer=p[index],shape=value['shape'],weight=float(np.clip(value['weight']/100/gain,0,1))))
         return result
     def visibility(values,option):
         result={}
@@ -64,9 +65,10 @@ def convert_profile(b,inspection,recipe,motion_map):
             if index is None or track['shape'].startswith('vrc.v.'):continue
             available=g['meshes'][node['mesh']].get('extras',{}).get('targetNames',[])
             if track['shape'] not in available or max(track['values'])-min(track['values'])<1e-5:continue
-            if max(track['values'])>1.0001 or min(track['values'])<-.0001:
+            gain=(morph_scales or {}).get((track['renderer'].split('/')[-1],track['shape']),1)
+            if max(track['values'])/gain>1.0001 or min(track['values'])/gain<-.0001:
                 notes.append(dict(option=option['id'],shape=track['shape'],reason='Source morph overdrive limited to normalized 0..1',sourceMin=min(track['values']),sourceMax=max(track['values'])))
-            option['morphTracks'].append(dict(renderer=p[index],shape=track['shape'],keys=[dict(time=float(t),value=float(np.clip(v,0,1))) for t,v in zip(track['times'],track['values'])]))
+            option['morphTracks'].append(dict(renderer=p[index],shape=track['shape'],keys=[dict(time=float(t),value=float(np.clip(v/gain,0,1))) for t,v in zip(track['times'],track['values'])]))
         if source in motion_map:
             motion=motion_map[source];option.update({k:motion[k] for k in ('clip','bones','duration','loop','additive')})
             if motion['sourceDuration']==0:option['loop']=True
@@ -185,8 +187,8 @@ def append_source_idle(b,role,motions,profile):
     animation=dict(name='Idle',samplers=[],channels=[])
     composition=[];duration=breath['duration']
     for node,prop in sorted(affected):
-        if prop not in ('rotation','translation'):raise ValueError('Unexpected original idle channel: '+prop)
-        default=[0,0,0,1.] if prop=='rotation' else [0,0,0.]
+        if prop not in ('rotation','translation','scale'):raise ValueError('Unexpected original idle channel: '+prop)
+        default=[0,0,0,1.] if prop=='rotation' else [1,1,1.] if prop=='scale' else [0,0,0.]
         base=np.asarray(standing[(node,prop)][1][0] if (node,prop) in standing else g['nodes'][node].get(prop,default),dtype=np.float64)
         if (node,prop) in breathing:
             times,source=breathing[(node,prop)]

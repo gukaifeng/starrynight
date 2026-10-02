@@ -19,6 +19,10 @@ struct CharacterModelReviewTests {
         defer {CharacterAI.authenticatedRequest=nil}
         let previews=ModelDescriptor.all.filter(\.isPreviewOnly)
         let full=ModelDescriptor.all.filter {!$0.isPreviewOnly}
+        check(!ModelDescriptor.all.contains {$0.id=="anime-kipfel-v111"},"Duplicate new cat preview is retired")
+        let cat=ModelDescriptor.all.first {$0.id=="anime-kipfel"}
+        check(cat != nil && cat?.isPreviewOnly == false && cat?.packageVersion=="3.3.0","Upgraded cat preserves the full companion identity")
+        check(cat?.performance?.options.count==87,"All upgraded cat performance choices are available")
         check(!previews.isEmpty && !full.isEmpty,"Mixed collection retains complete and preview characters")
         for model in previews {
             let api=CharacterAI(accountID:"review",characterID:model.id)

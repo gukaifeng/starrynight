@@ -19,6 +19,7 @@ namespace ModelSpace
         CharacterAutonomy autonomy;
         AvatarControlDriver avatarControl;
         HostEmotionMotion hostEmotionMotion;
+        CharacterPetFeedback petFeedback;
         public Action OnHostMotionChanged;
         public void SetHostMotionInteraction(bool value) {if(hostEmotionMotion)hostEmotionMotion.SetInteracting(value);}
         CharacterManifest manifest;
@@ -30,7 +31,9 @@ namespace ModelSpace
             state.performanceSelections=performance?performance.Selections:Array.Empty<string>();
             state.avatarControlValues=avatarControl?avatarControl.Values:Array.Empty<CharacterParameterValue>();
             state.performanceTransitioning=performance && performance.Transitioning;state.autonomy=autonomy?autonomy.State:null;
-            state.hostEmotionMotion=hostEmotionMotion?hostEmotionMotion.State:null;return state; } private set { state=value; } }
+            state.hostEmotionMotion=hostEmotionMotion?hostEmotionMotion.State:null;
+            state.petMode=petFeedback?petFeedback.Mode:0;state.petReactions=petFeedback?petFeedback.ReactionCount:0;
+            return state; } private set { state=value; } }
         public void ClearPerformance() { if(hostEmotionMotion)hostEmotionMotion.Clear();if(autonomy)autonomy.Clear();if(performance)performance.Clear(); }
         public void Bind(ViewerCharacter character,CharacterActions actionSource,CompanionAvatarDriver speechSource,CharacterGaze gazeSource)
         {
@@ -38,6 +41,7 @@ namespace ModelSpace
             if(manifest!=null) Cancel();
             manifest=character.Manifest; actions=actionSource; speech=speechSource; gaze=gazeSource;
             avatarControl=character.GetComponent<AvatarControlDriver>();
+            petFeedback=character.GetComponent<CharacterPetFeedback>();
             expressions=GetComponent<CharacterExpressionDriver>() ?? gameObject.AddComponent<CharacterExpressionDriver>();
             effects=GetComponent<CharacterEffectDriver>() ?? gameObject.AddComponent<CharacterEffectDriver>();
             performance=GetComponent<CharacterPerformanceDriver>() ?? gameObject.AddComponent<CharacterPerformanceDriver>();

@@ -270,13 +270,27 @@ public static class BuildIos
         EditorSceneManager.OpenScene(ScenePath);
         Debug.Log("MODELSPACE_THUMBNAILS_PASS");
     }
+    public static void ThumbnailCharacter(string id,string room)
+    {
+        EditorSceneManager.OpenScene(ScenePath);
+        try
+        {
+            var viewer=UnityEngine.Object.FindFirstObjectByType<ViewerController>();
+            var character=viewer.characters.Single(c=>c.modelId==id);
+            foreach(var actor in viewer.characters)actor.gameObject.SetActive(actor==character);
+            var studio=viewer.GetComponent<CharacterStudioDriver>();studio.Bind(character);
+            studio.Configure(new StudioSettings {room=room},true);
+            RenderThumbnail(viewer,character);
+        }
+        finally {EditorSceneManager.OpenScene(ScenePath);}
+    }
     static void RenderThumbnail(ViewerController viewer, ViewerCharacter character)
     {
         var camera = viewer.viewCamera;
         var player = character.GetComponentInChildren<Animation>();
         if (player && player.GetClip("Idle")) player.GetClip("Idle").SampleAnimation(character.gameObject,0);
         var bounds = character.RestBounds();
-        camera.aspect = 1;
+        camera.aspect = 1;camera.rect=new Rect(0,0,1,1);
         float d = OrbitMath.FitDistance(bounds, 1, camera.fieldOfView) * .86f;
         camera.transform.position = bounds.center + Quaternion.Euler(12, OrbitMath.DefaultYaw, 0) * Vector3.back * d;
         camera.transform.LookAt(bounds.center);
@@ -287,7 +301,7 @@ public static class BuildIos
         }
         string name = character.Manifest.display.thumbnail;
         string directory = Path.Combine(Root,"ios/CharacterHost/Resources/Assets.xcassets/"+name+".imageset"); Directory.CreateDirectory(directory);
-        PortraitRefinementReview.Render(camera,Path.Combine(directory,name+".png"),1200,1200);
+        CharacterPerformanceVisualProbe.RenderFrozenPose(character,camera,Path.Combine(directory,name+".png"),1200,1200);
         File.WriteAllText(Path.Combine(directory,"Contents.json"),"{\"images\":[{\"filename\":\""+name+".png\",\"idiom\":\"universal\"}],\"info\":{\"author\":\"xcode\",\"version\":1}}");
         Debug.Log("MODELSPACE_THUMBNAIL_PASS");
     }

@@ -299,17 +299,6 @@
       "sourceSHA256": "0fba9d29864b2faae2aa261cd59acc2deb4546b11d13c59a0da74b5b1f2aaf9f"
     },
     {
-      "runtimeID": "anime-kipfel-v111",
-      "asset": "Cover_anime_kipfel_v111",
-      "environmentID": "sunroom",
-      "focusX": 0.5,
-      "focusY": 0.3,
-      "frameBottom": 0.46,
-      "cameraYaw": 0,
-      "source": "author-supplied",
-      "sourceSHA256": "3ebfbf8a17d57f026f75ca45b809d6d92ff8d6da4adec34904893931cc223190"
-    },
-    {
       "runtimeID": "anime-azuki",
       "asset": "Cover_anime_azuki",
       "environmentID": "sunroom",

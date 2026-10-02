@@ -8,7 +8,7 @@
 
 在 `compatibility.optional` 声明 `core.performance@1`，并提供 `performance.schemaVersion:1`。没有该字段的旧包照常使用原会话行为。新包升级 `packageVersion`，保持既有角色 ID、选项 ID 和安装标识稳定。
 
-v0.57 起，自定义分组使用 `performance.schemaVersion:2`，并在 `compatibility.required` 声明 `core.performance@2`。v2 最多 32 组，ID 匹配 `[a-z][a-z0-9_.-]{0,63}`，例如 `author.wings`。iOS 面板、AI 目录和 Unity 动画层按声明组处理。旧宿主拒绝不支持的 required 能力，不能把 v2 设为 optional 来假装向前兼容。当前两位角色仍保留原 v1 包。
+v0.57 起，自定义分组使用 `performance.schemaVersion:2`，并在 `compatibility.required` 声明 `core.performance@2`。v2 最多 32 组，ID 匹配 `[a-z][a-z0-9_.-]{0,63}`，例如 `author.wings`。iOS 面板、AI 目录和 Unity 动画层按声明组处理。旧宿主拒绝不支持的 required 能力，不能把 v2 设为 optional 来假装向前兼容。Kipfel 1.1.1 升级包使用 v2，新增 `interaction` 摸头反馈分组；豆日向仍使用原 v1 包。
 
 ```json
 {
@@ -82,6 +82,16 @@ v2 分组顺序决定动画层顺序，跨组共享骨骼时必须审查混合�
 成功回 `characterReceipt`，`channel:performance`；错误码有 `PERFORMANCE_UNSUPPORTED`、`PERFORMANCE_OPTION_UNKNOWN`、`PERFORMANCE_GROUP_UNKNOWN`。状态里的 `performanceSelections` 与 `performanceTransitioning` 驱动实际选中态；`performanceConfigured` 提示状态变化，UI 不提前猜测成功。绑定错误与 Schema 错误在导入时拒绝。
 
 角色切换清除旧角色表现，下一角色按自己的默认值进入，不能把某角色的耳尾／服装选择写入另一个角色。当前手动选项是展示会话状态；不把它表述为云端保存的永久形态。
+
+## 新版小猫的宿主适配
+
+`core.materials.liltoon@1` 必需能力使用封存的 `materials.json` v2，保存原材质的类型化属性与贴图绑定；宿主使用项目固定的 lilToon 2.3.4。完整原始穿搭允许最多 64 个存储 primitive，但实际可见 draw 和真机性能单独验收。
+
+`core.secondary-motion@4` 在原 v3 的局部半径球体基础上增加单位法线平面、每条 strand 的 `colliderIDs` 和 `chainIDs`、`initialEnabled`，以及 `controls` 中的选项到物理开关映射。每个 control 指定 `option`、`kind` 和 `on/off` 绑定；绑定以 `kind:chain/collider`、源稳定 `id`、`enabled` 表示。不关闭骨架 GameObject；不把源 SDK 的 helper 当衣物 renderer。小猫的两条可选袖口骨链、卷尾时停用的小腿碰撞体因此可按原表现切换。旧 v1–v3 包继续沿用原行为。
+
+源形变曲线超过 100% 时，可同步放大该形变的顶点／法线差值并按倒数缩放权重，以保持 0–1 协议和实际位移。不得直接截断原曲线。本轮 `eye_down` 使用 1.592 倍差值和倒数权重，其它 455 个形变保持原尺度。
+
+`app.starry.rig-constraints` v1 的 `rig-constraints.json` 是数字、路径、轴向和权重数据，导入器创建 Unity 原生 RotationConstraint；本轮支持五处非冻结、世界空间源旋转约束，其它源类型必须另行审查。`app.starry.pet-feedback` v1 使用 `pet-feedback.json` 与选项 `interactionMode:off/happy/unhappy`，把作者 PetMode 与原开心／不满表情接到本机头部触碰。反应约 1.6 秒后恢复先前表情，用户手动选表情优先。状态中的 `petMode/petReactions` 供真实命中和生命周期检查，不是动捕或 VRChat 联网能力。具体来源、验收和缺失资源见 [Kipfel 升级记录](../kipfel-1.1.1-upgrade-2026-10-02.md)。
 
 0.47起原生面板在每个分类首项提供明确的「默认」入口，发 `performance.reset` 并指定当前分组；「全部默认」才发送空target。默认选中态比较该组当前选择与作者的 `defaultOn` 集合，穿搭配件不能简单地全部关闭。恢复表情保留姿势和其他分类，并在表情渐出后恢复允许的自动眨眼；不改变相机取景或用户位置。
 

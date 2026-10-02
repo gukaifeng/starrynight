@@ -7,7 +7,7 @@
       "version": "1.2.0",
       "modelID": "anime-kipfel",
       "modelPackageID": "app.starry.characters.anime-kipfel",
-      "modelPackageVersion": "2.2.0",
+      "modelPackageVersion": "3.3.0",
       "actions": [],
       "environments": [
         "garden"
@@ -653,32 +653,6 @@
       "music": [],
       "defaultEnvironment": "sunroom",
       "defaultVoice": "anime-sio/preview",
-      "defaultMusic": "",
-      "previewOnly": true
-    },
-    {
-      "schemaVersion": 1,
-      "id": "app.starry.collections.anime-kipfel-v111",
-      "version": "1.1.0",
-      "modelID": "anime-kipfel-v111",
-      "modelPackageID": "app.starry.characters.anime-kipfel-v111",
-      "modelPackageVersion": "3.2.0",
-      "actions": [],
-      "environments": [
-        "sunroom"
-      ],
-      "voices": [
-        {
-          "id": "anime-kipfel-v111/preview",
-          "title": "模型预览",
-          "detail": "尚未接入语音",
-          "engine": "aliyun-character-v1",
-          "speed": 1
-        }
-      ],
-      "music": [],
-      "defaultEnvironment": "sunroom",
-      "defaultVoice": "anime-kipfel-v111/preview",
       "defaultMusic": "",
       "previewOnly": true
     },

@@ -1,7 +1,50 @@
 import XCTest
 
 final class VrchatCharacterTests: XCTestCase {
-    private let characters = [("anime-kipfel", "琪宝"), ("anime-mamehinata", "豆日向")]
+    private let characters = [("anime-kipfel", "小猫"), ("anime-mamehinata", "豆日向")]
+
+    @MainActor func testUpgradedKipfelRetainsConversationAndAuthoredEffects() {
+        let app=launch()
+        openFromDiscovery(app,id:"anime-kipfel",name:"小猫")
+        XCTAssertFalse(app.staticTexts["localModelPreview"].exists)
+        XCTAssertTrue(app.textViews["chatInput"].exists)
+        stopVoiceAndWaitForIdle(app)
+        let state=app.characterRuntime
+        let platform=state["characterPlatform"] as? [String:Any] ?? [:]
+        XCTAssertEqual(platform["packageVersion"] as? String,"3.3.0")
+        XCTAssertEqual(platform["petMode"] as? Int,1)
+        let defaults=selections(app)
+        XCTAssertTrue(defaults.contains("pet-mode-happy"))
+        capture("kipfel-111-default",app)
+        app.openCharacterPerformance()
+        for (group,option) in [("expression","kipfel-facial-catsmile"),("ears","kipfel-catear-up"),("tail","kipfel-cattail-roll"),("pose","kipfel-sit")] {
+            chooseGroup(group,app)
+            let button=app.buttons["performanceOption-"+option]
+            XCTAssertTrue(button.waitForExistence(timeout:6))
+            if !button.isHittable {app.scrollViews["performanceOptions"].swipeUp()}
+            button.tap();app.waitForCharacter {self.selections($0).contains(option)}
+            sameCamera(app,state,includingPresentation:true)
+            capture("kipfel-111-"+group,app)
+        }
+        chooseGroup("interaction",app)
+        XCTAssertTrue(app.buttons["performanceOption-pet-mode-off"].exists)
+        XCTAssertTrue(app.buttons["performanceOption-pet-mode-unhappy"].exists)
+        app.buttons["performanceReset"].tap();app.waitForCharacter {self.selections($0)==defaults}
+        app.closeCharacterPerformance(returnToProfile:true)
+        app.buttons["closeCharacterDetails"].tap()
+        app.waitForCharacter {
+            $0["framingMotionActive"] as? Bool==false &&
+            (($0["characterPlatform"] as? [String:Any])?["performanceTransitioning"] as? Bool)==false
+        }
+        let before=app.characterRuntime
+        let reactions=(before["characterPlatform"] as? [String:Any])?["petReactions"] as? Int ?? 0
+        app.coordinate(withNormalizedOffset:CGVector(dx:number(before,"headX"),dy:number(before,"headY"))).tap()
+        app.waitForCharacter {
+            (($0["characterPlatform"] as? [String:Any])?["petReactions"] as? Int ?? 0)>reactions
+        }
+        sameCamera(app,state,includingPresentation:true)
+        capture("kipfel-111-head-contact",app)
+    }
 
     @MainActor func testSourceOnlyCharactersSpeakWithoutAddedMotionAndKeepCamera() {
         let app = launch()

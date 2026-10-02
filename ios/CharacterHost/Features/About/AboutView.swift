@@ -76,7 +76,7 @@ struct AboutView: View {
                     }
                     VStack(alignment:.leading,spacing:9) {
                         Text("关于星夜").font(.headline)
-                        Text("琪宝与豆日向拥有独立的人设、记忆和原创音色。真实对话由百炼角色模型生成，表情从角色已有资源中选择；台词、心声与旁白分别呈现，只有台词和自然声音事件会被朗读。内容由 AI 生成。")
+                        Text("小猫与豆日向拥有独立的人设、记忆和原创音色。真实对话由百炼角色模型生成，表情从角色已有资源中选择；台词、心声与旁白分别呈现，只有台词和自然声音事件会被朗读。内容由 AI 生成。")
                             .font(.subheadline).foregroundStyle(Theme.secondary)
                     }
                     VStack(alignment:.leading,spacing:8) {

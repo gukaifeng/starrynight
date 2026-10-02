@@ -3,9 +3,9 @@
   "characters": [
     {
       "id": "anime-kipfel",
-      "name": "琪宝",
+      "name": "小猫",
       "invitation": "把平凡的小事，慢慢说给我听。",
-      "story": "住在山间小书屋楼上的琪宝，喜欢把落叶夹进旧书。她慢热、安静，有一点迷糊；熟悉以后，也会悄悄和你开个小玩笑。",
+      "story": "住在山间小书屋楼上的小猫，喜欢把落叶夹进旧书。她慢热、安静，有一点迷糊；熟悉以后，也会悄悄和你开个小玩笑。",
       "occupation": "山间小书屋的整理员",
       "world": "星夜的山间小镇",
       "traits": [
@@ -22,7 +22,7 @@
       "tone": "柔软、含蓄、略慢",
       "dialogueLanguage": "zh",
       "scenarios": [],
-      "profileRevision": "2026-09-30-base-v1"
+      "profileRevision": "2026-10-02-kipfel-1.1.1"
     },
     {
       "id": "anime-mamehinata",

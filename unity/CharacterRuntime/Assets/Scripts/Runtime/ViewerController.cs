@@ -214,6 +214,7 @@ namespace ModelSpace
             actions.OnInteraction=id=> {
                 var region=Array.Find(character.Manifest.interactions,r=>r.id==id);
                 if(region==null)return false;
+                if(id=="head" && character.TryGetComponent<CharacterPetFeedback>(out var pet))return pet.Tap(performance);
                 int before=gaze.State.headReactionCount;
                 var result=director.Local(region.eventName);
                 return id=="head" ? gaze.State.headReactionCount>before : result.executed>0;

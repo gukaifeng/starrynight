@@ -3,8 +3,11 @@ using UnityEngine;
 
 namespace ModelSpace
 {
-    [Serializable] public sealed class SecondaryStrandData { public string bone,tip,wind; public float radius=.01f,angle=16,windResponse=1; }
-    [Serializable] public sealed class SecondaryColliderData { public string bone; public Vector3 offset; public float radius; public bool localRadius; }
+    [Serializable] public sealed class SecondaryStrandData { public string bone,tip,wind; public string[] colliderIDs,chainIDs; public bool initialEnabled=true;public float radius=.01f,angle=16,windResponse=1; }
+    [Serializable] public sealed class SecondaryColliderData { public string bone,id; public Vector3 offset; public float radius; public bool localRadius; }
+    [Serializable] public sealed class SecondaryPlaneData { public string bone,id; public Vector3 offset,normal; }
+    [Serializable] public sealed class SecondaryPhysicsBinding {public string id,kind;public bool enabled;}
+    [Serializable] public sealed class SecondaryPhysicsControl {public string option,kind;public SecondaryPhysicsBinding[] on,off;}
     [Serializable] public sealed class SecondaryMotionData
     {
         public int schemaVersion;
@@ -12,6 +15,8 @@ namespace ModelSpace
         public float ambientClothAngle;
         public SecondaryStrandData[] strands;
         public SecondaryColliderData[] colliders;
+        public SecondaryPlaneData[] planes=Array.Empty<SecondaryPlaneData>();
+        public SecondaryPhysicsControl[] controls=Array.Empty<SecondaryPhysicsControl>();
     }
 
     // Bounded secondary motion, using the source VRM's hair chains and collider
@@ -28,6 +33,10 @@ namespace ModelSpace
             public float radius,angle;
             public string wind;
             public float windResponse=1;
+            public string[] colliderIDs;
+            public string[] chainIDs;
+            public bool initialEnabled=true,enabled=true;
+            [NonSerialized] public bool desiredEnabled;
             public Quaternion rest;
             [NonSerialized] public Vector3 point,velocity;
             [NonSerialized] public Quaternion animatedRotation;
@@ -40,9 +49,43 @@ namespace ModelSpace
             public Vector3 offset;
             public float radius;
             public bool localRadius;
+            public string id;
+            public bool enabled=true;
         }
+        [Serializable] public sealed class Plane {public Transform bone;public string id;public Vector3 offset,normal;public bool enabled=true;}
         public Strand[] strands=Array.Empty<Strand>();
         public Sphere[] colliders=Array.Empty<Sphere>();
+        public Plane[] planes=Array.Empty<Plane>();
+        public SecondaryPhysicsControl[] controls=Array.Empty<SecondaryPhysicsControl>();
+        public void ApplyControls(CharacterPerformanceDriver driver)
+        {
+            if(controls.Length==0)return;
+            foreach(var strand in strands)strand.desiredEnabled=strand.initialEnabled;
+            foreach(var sphere in colliders)sphere.enabled=true;
+            foreach(var plane in planes)plane.enabled=true;
+            foreach(var control in controls)
+            {
+                bool selected=driver && driver.SelectionActive(control.option);
+                var bindings=selected?control.on:control.kind=="toggle"?control.off:Array.Empty<SecondaryPhysicsBinding>();
+                foreach(var binding in bindings)
+                {
+                    if(binding.kind=="chain")foreach(var strand in strands)
+                    {if(strand.chainIDs!=null && Array.IndexOf(strand.chainIDs,binding.id)>=0)strand.desiredEnabled=binding.enabled;}
+                    else
+                    {
+                        foreach(var sphere in colliders)if(sphere.id==binding.id)sphere.enabled=binding.enabled;
+                        foreach(var plane in planes)if(plane.id==binding.id)plane.enabled=binding.enabled;
+                    }
+                }
+            }
+            foreach(var strand in strands)SetEnabled(strand,strand.desiredEnabled);
+        }
+        static void SetEnabled(Strand strand,bool value)
+        {
+            if(strand.enabled!=value && strand.tip){strand.point=strand.tip.position;strand.velocity=Vector3.zero;}
+            strand.enabled=value;
+        }
+        static bool Applies(Strand strand,string id) => strand.colliderIDs==null || Array.IndexOf(strand.colliderIDs,id)>=0;
         // Ambient air is a small spring force, not a transform animation. Its
         // scale follows each segment's length, so short bangs do not flutter as
         // much as long strands. Explicit clothing response has a smaller budget;
@@ -92,7 +135,7 @@ namespace ModelSpace
             // Ordered root-to-tip chains; target includes the parent's solved pose.
             foreach(var strand in strands)
             {
-                if(!strand.bone || !strand.tip)continue;
+                if(!strand.enabled || !strand.bone || !strand.tip)continue;
                 strand.animatedRotation=strand.bone.localRotation;
                 strand.poseCaptured=true;
                 if(!strand.airClassified)ClassifyAirResponse(strand);
@@ -121,13 +164,21 @@ namespace ModelSpace
                     strand.point=origin+LimitDirection(axis,strand.point-origin,length,strand.angle);
                     foreach(var sphere in colliders)
                     {
-                        if(!sphere.bone)continue;
+                        if(!sphere.enabled || !sphere.bone || !Applies(strand,sphere.id))continue;
                         Vector3 center=sphere.bone.TransformPoint(sphere.offset),delta=strand.point-center;
                         var scale=sphere.bone.lossyScale;
                         float colliderScale=sphere.localRadius?Mathf.Max(Mathf.Abs(scale.x),Mathf.Abs(scale.y),Mathf.Abs(scale.z)):Mathf.Abs(transform.lossyScale.x);
                         float radius=sphere.radius*colliderScale+strand.radius*Mathf.Abs(transform.lossyScale.x);
                         if(delta.sqrMagnitude<radius*radius)
                             strand.point=center+(delta.sqrMagnitude>.000001f?delta.normalized:(target-center).normalized)*radius;
+                    }
+                    foreach(var plane in planes)
+                    {
+                        if(!plane.enabled || !plane.bone || !Applies(strand,plane.id))continue;
+                        Vector3 normal=plane.bone.TransformDirection(plane.normal).normalized;
+                        float distance=Vector3.Dot(strand.point-plane.bone.TransformPoint(plane.offset),normal);
+                        float radius=strand.radius*Mathf.Abs(transform.lossyScale.x);
+                        if(distance<radius)strand.point+=normal*(radius-distance);
                     }
                 }
                 // Anatomical silhouette limit wins over an unsatisfiable collider;

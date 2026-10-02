@@ -62,7 +62,7 @@ class PortableGLB(GLB):
         result=len(self.doc['accessors']);self.doc['accessors'].append(accessor);return result
 
 
-def convert_geometry(folder):
+def convert_geometry(folder,morph_scales=None):
     geometry=json.loads((folder/'geometry.json').read_text())
     binary=np.memmap(folder/'geometry.bin',mode='r',dtype=np.uint8)
     b=PortableGLB();g=b.doc;index={n['path']:i for i,n in enumerate(geometry['nodes'])}
@@ -100,9 +100,10 @@ def convert_geometry(folder):
             if len(shape['frames'])!=1 or abs(shape['frames'][0]['weight']-100)>.001:
                 shape_frames.append(dict(renderer=s['path'],shape=shape['name'],frames=[f['weight'] for f in shape['frames']]))
             frame=shape['frames'][-1]
-            factor=100/max(abs(frame['weight']),.0001)
+            gain=(morph_scales or {}).get((s['path'].split('/')[-1],shape['name']),1)
+            factor=100/max(abs(frame['weight']),.0001)*gain
             targets.append(dict(POSITION=b.sparse(array(frame['position'])*MIRROR_P*factor),NORMAL=b.sparse(array(frame['normal'])*MIRROR_P*factor)))
-            names.append(shape['name']);defaults.append(shape['weight']/100)
+            names.append(shape['name']);defaults.append(shape['weight']/100/gain)
         primitives=[]
         for p in s['primitives']:
             guid=p['guid'] or 'missing'
@@ -297,13 +298,13 @@ def export_materials(stage,geometry,output,shader_root,motions=None):
     return notes
 
 
-def portable_secondary(stage,role,b,geometry):
+def portable_secondary(stage,role,b,geometry,include_inactive=False):
     from vrchat_physics import build_physics
     audit=json.loads((stage/'source-audit.json').read_text())
     full=build_physics(audit,stage/'Inspection')['roles'][0]
     index={n['path']:i for i,n in enumerate(geometry['nodes'])};nodes=b.doc['nodes'];segments={};notes=[]
     for chain in full['chains']:
-        if not chain['enabled'] or not chain['activeInHierarchy']:continue
+        if not chain['enabled'] or (not include_inactive and not chain['activeInHierarchy']):continue
         root=chain['rootPath'] or ''
         driven={index[p] for p in chain['transformPaths'] if p in index}
         params=chain['parameters'];radius=min(.04,max(0,float(params.get('radius') or .005)))

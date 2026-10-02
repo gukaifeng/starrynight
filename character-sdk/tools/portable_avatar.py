@@ -8,10 +8,80 @@ import re
 from pathlib import Path
 
 
+def validate_secondary(secondary, capabilities, model, options=()):
+    """Validate scoped collisions even for avatars without controller graphs."""
+    def need(ok, message):
+        if not ok:raise ValueError('secondary-motion: '+message)
+    def numeric(value):return isinstance(value,(int,float)) and not isinstance(value,bool) and math.isfinite(value)
+    def vector(value):return isinstance(value,dict) and all(numeric(value.get(a)) for a in 'xyz')
+    version=secondary.get('schemaVersion')
+    need(version in (2,3,4) and f'core.secondary-motion@{version}' in capabilities,'secondary profile/version mismatch')
+    nodes={n['path']:n for n in model['nodes']}
+    strands=secondary.get('strands');colliders=secondary.get('colliders');planes=secondary.get('planes',[])
+    need(isinstance(strands,list) and len(strands)<=512,'strand count/type')
+    need(isinstance(colliders,list) and len(colliders)<=256,'collider count/type')
+    need(isinstance(planes,list) and len(planes)<=256 and (version==4 or not planes),'plane profile/count')
+    ids=set()
+    for collider in colliders:
+        need(collider['bone'] in nodes and numeric(collider['radius']) and collider['radius']>=0,'collider binding/radius')
+        local=collider.get('localRadius',False)
+        need(isinstance(local,bool),'collider radius space')
+        need(not local or version>=3,'local collider radius requires secondary-motion@3 or newer')
+        effective=collider['radius']*(max(nodes[collider['bone']]['scaleFactors']) if local else 1)
+        need(numeric(effective) and effective<=.5,'collider bounds')
+        need(vector(collider.get('offset')),'collider offset')
+        if version==4:
+            need(isinstance(collider.get('id'),str) and 0<len(collider['id'])<=128,'collider identity')
+            ids.add(collider['id'])
+    for plane in planes:
+        need(plane.get('bone') in nodes and vector(plane.get('offset')) and vector(plane.get('normal')),'plane binding/vector')
+        need(abs(sum(plane['normal'][a]**2 for a in 'xyz')-1)<.001,'plane normal must be unit length')
+        need(isinstance(plane.get('id'),str) and 0<len(plane['id'])<=128 and plane['id'] not in ids,'plane identity')
+        ids.add(plane['id'])
+    chain_ids=set()
+    for strand in strands:
+        need(strand['bone'] in nodes and strand['tip'] in nodes and strand['tip'].rsplit('/',1)[0]==strand['bone'],'invalid strand binding')
+        need(numeric(strand['angle']) and numeric(strand['radius']) and 1<=strand['angle']<=20 and 0<=strand['radius']<=.05,'strand bounds')
+        if version==4:
+            scope=strand.get('colliderIDs')
+            need(isinstance(scope,list) and len(scope)<=256 and all(isinstance(i,str) and i in ids for i in scope),'unresolved collider association')
+            need(len(scope)==len(set(scope)),'duplicate collider association')
+            chains=strand.get('chainIDs',[])
+            need(isinstance(chains,list) and all(isinstance(i,str) and 0<len(i)<=128 for i in chains),'chain identities')
+            chain_ids.update(chains)
+            need(isinstance(strand.get('initialEnabled',True),bool),'initial strand state')
+    controls=secondary.get('controls',[])
+    need(isinstance(controls,list) and len(controls)<=256 and (version==4 or not controls),'physics control profile/count')
+    option_ids={o['id'] for o in options}
+    for control in controls:
+        need(control.get('option') in option_ids and control.get('kind') in ('preset','motion','toggle'),'physics option binding')
+        for side in ('on','off'):
+            bindings=control.get(side)
+            need(isinstance(bindings,list) and len(bindings)<=256,'physics binding count/type')
+            for binding in bindings:
+                need(binding.get('kind') in ('chain','collider') and binding.get('id') in (chain_ids if binding['kind']=='chain' else ids) and isinstance(binding.get('enabled'),bool),'unresolved physics control binding')
+
+
+def validate_materials(root, manifest, read, path):
+    materials=read(path(root,'materials.json'))
+    if materials.get('schemaVersion')!=2 or materials.get('sourceProfile')!='liltoon-properties-v1':
+        raise ValueError('full lilToon capability requires the typed portable material profile')
+    files={f['path'] for f in manifest['files']}
+    for mat in materials['materials']:
+        if not re.fullmatch('mat_[a-f0-9]{32}',mat['name']) or not mat['shader'].startswith(('lilToon','Hidden/lilToon','_lil/')):
+            raise ValueError('unapproved material identity/shader')
+        for tex in mat['textures']:
+            if not tex['path'].startswith('textures/') or tex['path'] not in files:
+                raise ValueError('unsealed/missing material texture')
+            path(root,tex['path'])
+
+
 def validate(root, manifest, read, path, inspect):
     capabilities=set(manifest['compatibility']['required']+manifest['compatibility']['optional'])
     required='core.avatar-controls@1' in manifest['compatibility']['required']
     if not required:
+        if 'core.secondary-motion@4' in capabilities:
+            validate_secondary(read(path(root,'secondary-motion.json')),capabilities,inspect(path(root,manifest['source']['model'])),manifest.get('performance',{}).get('options',[]))
         if any(o.get('control',{}).get('id') for o in manifest.get('performance',{}).get('options',[])):
             raise ValueError('avatar controls require core.avatar-controls@1')
         return
@@ -108,17 +178,4 @@ def validate(root, manifest, read, path, inspect):
         for tex in mat['textures']:
             need(tex['path'].startswith('textures/') and tex['path'] in files,'unsealed/missing texture')
             path(root,tex['path'])
-    secondary=read(path(root,'secondary-motion.json'))
-    need(('core.secondary-motion@2' in capabilities and secondary['schemaVersion']==2) or
-         ('core.secondary-motion@3' in capabilities and secondary['schemaVersion']==3),'secondary profile/version mismatch')
-    for strand in items(secondary['strands'],512,'secondary strands'):
-        need(strand['bone'] in nodes and strand['tip'] in nodes and strand['tip'].rsplit('/',1)[0]==strand['bone'],'invalid strand binding')
-        need(1<=strand['angle']<=20 and 0<=strand['radius']<=.05,'strand bounds')
-    for collider in items(secondary['colliders'],256,'secondary colliders'):
-        need(collider['bone'] in nodes and numeric(collider['radius']) and collider['radius']>=0,'collider binding/radius')
-        local=collider.get('localRadius',False)
-        need(isinstance(local,bool),'collider radius space')
-        need(not local or secondary['schemaVersion']==3,'local collider radius requires secondary-motion@3')
-        effective=collider['radius']*(max(scale_factors[collider['bone']]) if local else 1)
-        need(numeric(effective) and effective<=.5,'collider bounds')
-        need(isinstance(collider.get('offset'),dict) and all(numeric(collider['offset'].get(a)) for a in 'xyz'),'collider offset')
+    validate_secondary(read(path(root,'secondary-motion.json')),capabilities,model,options)

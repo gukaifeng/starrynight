@@ -102,7 +102,7 @@ Original attribution: **CG-CA Uka (c) 2023-2024 by Nagoya Institute of Technolog
 `scripts/generate_asset_credits.py` 从角色包生成离线署名，被原有 `generate_host.py` 复用。`CharacterSourceCredits.json` 供「角色资料 → 模型素材与署名」读取，`CharacterPackageCredits.txt` 供「关于 → 角色与场景许可」读取；两条路径均保留原名、原作者、固定来源、主许可、独立 NOTICE 和本地预览许可元数据。界面中的「星夜」作者身份表示角色设定与整理者，已有说明明确区分素材原作者。
 
 
-## Kipfel 1.0.3 / Mamehinata PC 1.53 — もち山金魚 (MOCHIYAMA)
+## Kipfel 1.1.1 PC（历史 1.0.3） / Mamehinata PC 1.53 — もち山金魚 (MOCHIYAMA)
 
 User-provided archives, locally converted into `anime-kipfel` and `anime-mamehinata`. Original source hashes are in `assets/characters/vrchat-sources.lock.json`; archive/prefab/material/physics audits are in `docs/verification/vrchat-import/`. The original artist retains rights. These are **private local preview assets, not open-source models or publicly redistributable app content**. Current author terms v1.60 (2026-09-07) require contacting the licensor for software/game integration distribution; historical acquisition terms were not retroactively determined. See the primary sources and analysis in `docs/design/2026-09-29-vrchat-feasibility-research.md`.
 

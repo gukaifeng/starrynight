@@ -30,6 +30,7 @@ namespace ModelSpace
         public CharacterVisibility[] visibility=Array.Empty<CharacterVisibility>(),offVisibility=Array.Empty<CharacterVisibility>();
         public CharacterAIPerformanceHint ai;
         public AvatarControl control;
+        public string interactionMode;
     }
     [Serializable] public sealed class CharacterPerformanceProfile
     {
@@ -147,6 +148,8 @@ namespace ModelSpace
         float poseWeight;
         public Action OnChanged;
         public bool Supported => character && CharacterPerformanceContract.IsSupported(character.Manifest.performance);
+        public bool IsBoundTo(ViewerCharacter candidate) => character==candidate;
+        public bool SelectionActive(string id) => entries.Any(e=>e.spec.id==id && e.weight>=.5f);
         bool transitioning;
         public bool Transitioning {
             get => transitioning || (character && character.TryGetComponent<AvatarControlDriver>(out var avatar) && avatar.Transitioning);
@@ -223,12 +226,25 @@ namespace ModelSpace
                 if(entry.animation!=null && option.kind!="toggle") {entry.animation.enabled=entry.selected;entry.animation.weight=entry.weight;}
                 entries.Add(entry);
             }
-            ApplyVisibility();UpdatePoseWeight();
+            ApplyVisibility();
+            // Defaults describe the prefab before outfit options. Restoring the
+            // actor must preserve the effective default outfit (e.g. underwear
+            // hidden by the default shirt), rather than expose every base mesh.
+            foreach(var slot in visibility)slot.initial=slot.value;
+            UpdatePoseWeight();
         }
         public string Select(string id,float intensity)
         {
             if(!Supported)return "PERFORMANCE_UNSUPPORTED";
             var entry=entries.Find(e=>e.spec.id==id);if(entry==null)return "PERFORMANCE_OPTION_UNKNOWN";
+            if(entry.spec.group=="expression" && character.TryGetComponent<CharacterPetFeedback>(out var activePet) && !activePet.ApplyingExpression)
+                activePet.Restore();
+            if(!string.IsNullOrEmpty(entry.spec.interactionMode))
+            {
+                var pet=character.GetComponent<CharacterPetFeedback>();
+                if(!pet)return "PET_FEEDBACK_UNAVAILABLE";
+                pet.Configure(entry.spec.interactionMode);
+            }
             if(!string.IsNullOrEmpty(entry.spec.control?.id)) {
                 var avatar=character.GetComponent<AvatarControlDriver>();
                 if(!avatar)return "AVATAR_CONTROL_UNAVAILABLE";
@@ -255,6 +271,7 @@ namespace ModelSpace
         {
             if(!Supported)return "PERFORMANCE_UNSUPPORTED";
             if(!string.IsNullOrEmpty(group) && !character.Manifest.performance.groups.Any(g=>g.id==group))return "PERFORMANCE_GROUP_UNKNOWN";
+            if(string.IsNullOrEmpty(group) || group=="interaction")character.GetComponent<CharacterPetFeedback>()?.ResetMode();
             var avatar=character.GetComponent<AvatarControlDriver>();
             if(avatar)avatar.Reset(string.IsNullOrEmpty(group)?"":character.Manifest.performance.options.First(o=>o.group==group).control?.group ?? "",false);
             foreach(var entry in entries)
@@ -283,6 +300,7 @@ namespace ModelSpace
         }
         public void Clear()
         {
+            if(character)character.GetComponent<AvatarSecondaryMotion>()?.ApplyControls(null);
             RestoreMorphs();
             foreach(var slot in morphs)if(slot.skin)slot.skin.SetBlendShapeWeight(slot.index,slot.initial);
             foreach(var slot in visibility)if(slot.renderer)slot.renderer.enabled=slot.initial;
@@ -350,6 +368,7 @@ namespace ModelSpace
                 foreach(var binding in values)binding.Key.value=binding.Value;
             }
             foreach(var slot in visibility)if(slot.renderer && slot.renderer.enabled!=slot.value)slot.renderer.enabled=slot.value;
+            if(character)character.GetComponent<AvatarSecondaryMotion>()?.ApplyControls(this);
         }
         void LateUpdate() { ApplyFrame(); }
         public void ApplyFrame()

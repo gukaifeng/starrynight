@@ -40,6 +40,9 @@ def main():
         if cover.get('source')=='author-supplied':
             assert min(width,height)>=256 and max(width,height)<=8192, f'{runtime_id}: source cover dimensions'
             assert hashlib.sha256(data).hexdigest()==cover['sourceSHA256'], f'{runtime_id}: source cover changed'
+        elif cover.get('source')=='bailian-generated':
+            assert (width,height)==(1536,2048), f'{runtime_id}: approved portrait dimensions'
+            assert hashlib.sha256(data).hexdigest()==cover['sourceSHA256'], f'{runtime_id}: approved cover changed'
         else:assert (width,height)==(1024,768), f'{runtime_id}: unexpected render resolution'
         evidence = rendered[runtime_id]
         assert evidence["environmentID"] == cover["environmentID"] and evidence["asset"] == cover["asset"], f"{runtime_id}: stale rendering evidence"

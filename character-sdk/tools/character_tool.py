@@ -11,7 +11,7 @@ import zipfile
 
 CAPABILITIES = {'core.animation@1', 'core.gaze@1', 'core.expression@1', 'core.speech.amplitude@1',
                 'core.speech.viseme@1', 'core.interaction@1', 'core.effects@1', 'core.parameters@1',
-                'core.behavior@1', 'core.posture@1', 'core.secondary-motion@1', 'core.secondary-motion@2', 'core.secondary-motion@3', 'core.avatar-controls@1', 'core.performance@1', 'core.performance@2', 'core.autonomy@1', 'legacy.human-studio@1'}
+                'core.behavior@1', 'core.posture@1', 'core.secondary-motion@1', 'core.secondary-motion@2', 'core.secondary-motion@3', 'core.secondary-motion@4', 'core.avatar-controls@1', 'core.materials.liltoon@1', 'core.performance@1', 'core.performance@2', 'core.autonomy@1', 'legacy.human-studio@1'}
 CHANNELS = {'body', 'expression', 'effect', 'gaze', 'posture'}
 MAX_BYTES = 256 * 1024 * 1024
 FORBIDDEN = {'.cs','.dll','.dylib','.so','.exe','.shader','.compute','.sh','.py','.js','.unitypackage'}
@@ -200,7 +200,11 @@ def validate(folder, builtin=False):
     # Portable author avatars retain alternate clothes/accessories. Count all
     # primitives for the storage ceiling; runtime active draws/FPS are reviewed
     # separately. 33 stored primitives must not reject a 30-draw default outfit.
-    primitive_limit=64 if 'core.avatar-controls@1' in m['compatibility']['required'] else 32
+    full_materials='core.materials.liltoon@1' in required
+    if full_materials:
+        from portable_avatar import validate_materials
+        validate_materials(root,m,read_json,safe_path)
+    primitive_limit=64 if 'core.avatar-controls@1' in required or full_materials else 32
     if vertices>300000 or primitives>primitive_limit: raise ValueError(f'mobile source budget exceeded (300k vertices / {primitive_limit} primitives)')
     if any(len(s.get('joints',[]))>256 for s in doc.get('skins',[])): raise ValueError('skin exceeds 256 joints')
     warnings.append(f'geometry preflight: {vertices} vertices, {primitives} primitives; device FPS still needs measurement')

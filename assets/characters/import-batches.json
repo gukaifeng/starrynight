@@ -288,6 +288,31 @@
       "deviceLaunch": "passed-by-devicectl; visual review pending",
       "deviceFrameRate": "not-measured",
       "deliveredAt": "2026-10-02T08:54:14+08:00"
+    },
+    {
+      "id": "kipfel-20261002-full-upgrade",
+      "status": "delivered-full-adaptation",
+      "characters": [
+        "anime-kipfel"
+      ],
+      "retiredCharacters": [
+        "anime-kipfel-v111"
+      ],
+      "report": "docs/kipfel-1.1.1-upgrade-2026-10-02.md",
+      "scope": "Kipfel 1.1.1 PC via scripts/upgrade_kipfel.py; retain original full companion identity and bindings",
+      "simulatorChecks": [
+        "40-character export and collections passed",
+        "Kipfel conversation and authored effects UI: 1 test, 0 failures, 0 skipped; expression, ears, tail, pose, reset, head contact and fixed camera"
+      ],
+      "appVersion": "0.92.0",
+      "buildNumber": 123,
+      "device": "iPhone 17",
+      "deviceInstall": "passed",
+      "deviceLaunch": "passed-by-devicectl; normal launch without testing flags",
+      "deviceCoreChecks": 283,
+      "deviceUIChecks": "XCTestManager DTX refused before test execution; simulator fallback passed",
+      "deviceFrameRate": "not-measured",
+      "deliveredAt": "2026-10-02T23:10:18+08:00"
     }
   ]
 }

@@ -51,7 +51,7 @@ public static class CharacterPerformanceReview
         var host=new GameObject("PerformanceCaptureDriver");var driver=host.AddComponent<CharacterPerformanceDriver>();
         try
         {
-            foreach(var character in viewer.characters.Where(c=>CharacterPerformanceContract.IsSupported(c.Manifest.performance)))
+            foreach(var character in viewer.characters.Where(c=>CharacterPerformanceContract.IsSupported(c.Manifest.performance) && !c.GetComponent<AvatarControlDriver>()))
             {
                 foreach(var actor in viewer.characters)actor.gameObject.SetActive(actor==character);
                 character.ApplyContract();CharacterPerformanceBuilder.Validate(character);
@@ -186,7 +186,10 @@ public static class CharacterPerformanceReview
         EditorSceneManager.OpenScene("Assets/Scenes/ViewerScene.unity");
         report=new Report();var viewer=UnityEngine.Object.FindFirstObjectByType<ViewerController>();
         Vector3 cameraPosition=viewer.viewCamera.transform.position;Quaternion cameraRotation=viewer.viewCamera.transform.rotation;
-        var roles=viewer.characters.Where(c=>CharacterPerformanceContract.IsSupported(c.Manifest.performance)).ToArray();Check(roles.Length>0,"no performance characters");
+        // This review samples legacy Animation layers and explicit morph/visibility
+        // bindings. Mecanim controls have parameter-based selections (including
+        // valid zero-valued choices), and are reviewed by PortableAvatarReview.
+        var roles=viewer.characters.Where(c=>CharacterPerformanceContract.IsSupported(c.Manifest.performance) && !c.GetComponent<AvatarControlDriver>()).ToArray();Check(roles.Length>0,"no legacy performance characters");
         var host=new GameObject("PerformanceReviewDriver");
         var driver=host.AddComponent<CharacterPerformanceDriver>();
         try

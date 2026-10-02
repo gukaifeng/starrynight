@@ -30,11 +30,11 @@
 
 **公开 Git 仓库不是整台开发机或受限美术资源的完整备份。** 现有验收文档内的截图、录像与原始报告链接，有一部分仅在原开发机有效。克隆后不要把这些链接缺失误判为原验证从未执行，也不能把历史验证当作新机器已经构建成功。
 
-当前琪宝、豆日向的资源声明为 `private-local-preview-only`；完整模型及采样曲线不能通过 Git 或 Git LFS 上传到公开仓库。来源版本和哈希保留在 `assets/characters/vrchat-sources.lock.json`，许可分析见 `THIRD_PARTY_NOTICES.md` 与 VRChat 导入文档。公开源码不授予第三方角色的再分发权。
+当前小猫（原琪宝）、豆日向的资源声明为 `private-local-preview-only`；完整模型及采样曲线不能通过 Git 或 Git LFS 上传到公开仓库。来源版本和哈希保留在 `assets/characters/vrchat-sources.lock.json`，许可分析见 `THIRD_PARTY_NOTICES.md` 与 VRChat 导入文档。公开源码不授予第三方角色的再分发权。
 
 ## 新机器恢复顺序
 
-当前发布名册内的第三方角色需要用户自行提供合法取得的原始资源，因此 **仅克隆仓库不能直接构建出含这些角色的完整 App**。已有开发机资源都保留。新批次来源锁为 `assets/characters/vrchat-library.lock.json`；旧两角色保留原专用转换管线。
+当前发布名册内的第三方角色需要用户自行提供合法取得的原始资源，因此 **仅克隆仓库不能直接构建出含这些角色的完整 App**。已有开发机资源都保留。新批次来源锁为 `assets/characters/vrchat-library.lock.json`；豆日向保留原专用转换管线，小猫使用 [Kipfel 1.1.1 升级路径](kipfel-1.1.1-upgrade-2026-10-02.md)。
 
 1. 安装与项目锁一致的 Unity 6000.3.25f1、iOS Build Support、Unity CLI、Xcode 和 Python 3.11，按个人资格完成 Unity 许可；参照 `docs/environment.md` 与项目 Unity CLI 技能。
 2. `python3 scripts/prepare_packages.py` 恢复固定 UPM 归档。客户端 Python 虚拟环境依赖在 `character-sdk/requirements.txt` 与 `scripts/vrchat/requirements.txt`；服务端依赖与部署另见相邻的 `starrynight-server` 仓库。虚拟环境建在 `.local/`。

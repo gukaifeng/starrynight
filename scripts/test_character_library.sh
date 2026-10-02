@@ -38,6 +38,7 @@ SOURCES=(
  ios/CharacterHost/Features/Companion/EnvironmentCatalog.swift
  ios/CharacterHost/Features/Viewer/CharacterViewPresets.swift
  ios/CharacterHost/Features/Companion/CharacterAI.swift
+ ios/CharacterHost/Features/Companion/VoiceTimeline.swift
  ios/CharacterHost/Features/Companion/CompanionData.swift
  ios/CharacterHost/Features/Companion/CompanionExperiences.swift
  ios/CharacterHost/Features/Companion/CharacterPublicProfile.swift
