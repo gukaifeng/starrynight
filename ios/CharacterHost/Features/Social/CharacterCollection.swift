@@ -10,7 +10,7 @@ struct SoundscapeTrack: Codable, Identifiable, Equatable, Sendable {
     let assetExtension, sourceModelID, sha256: String?
     let duration: Double?
     var resourceExtension: String { assetExtension ?? "wav" }
-    var resourceURL: URL? { Bundle.main.url(forResource:asset,withExtension:resourceExtension) }
+    var resourceURL: URL? { Bundle.main.url(forResource:asset,withExtension:resourceExtension) ?? CharacterInstalledResources.resource(asset,extension:resourceExtension) }
     var durationLabel: String? {
         guard let duration, duration.isFinite, duration > 0 else { return nil }
         return "\(Int(duration.rounded()))″ 循环"
@@ -147,7 +147,9 @@ struct CharacterCollection: Codable, Equatable, Sendable {
         voices.allSatisfy { ["melo-zh-v1", "aliyun-character-v1"].contains($0.engine) && $0.speed.isFinite && (0.7...1.4).contains($0.speed) } &&
         voices.allSatisfy { $0.id.hasPrefix(optionScope+"/") } &&
         music.allSatisfy { track in
-            guard track.id.hasPrefix(optionScope+"/"), track.resourceURL != nil else { return false }
+            // Structural compatibility is independent of installation. The
+            // coordinator gates entry until the complete package is verified.
+            guard track.id.hasPrefix(optionScope+"/"), track.resourceURL != nil || CharacterDeliveryPolicy.isRemote(modelID) else { return false }
             // Read compatibility for old persisted snapshots; scoped(to:) upgrades
             // these assets before playback without replacing other frozen options.
             if track.sourceModelID == nil { return ["IslandAfternoon","MoonlitTide"].contains(track.asset) && track.resourceExtension == "wav" }

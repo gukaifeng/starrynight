@@ -1,4 +1,5 @@
 import Foundation
+import os
 
 struct CharacterAction: Identifiable, Decodable, Sendable {
     let id: String
@@ -92,7 +93,16 @@ struct ModelDescriptor: Identifiable, Decodable, Sendable {
         return value
     }
     private struct Catalog: Decodable { let schemaVersion, apiMajor: Int; let characters: [ModelDescriptor] }
-    static let all: [ModelDescriptor] = {
+    private static let remote=OSAllocatedUnfairLock(initialState:[ModelDescriptor]())
+    static func installStoreModels(_ models:[ModelDescriptor]) {remote.withLock {$0=models}}
+    static var all:[ModelDescriptor] {
+        let local=bundled
+        let published=remote.withLock {$0}
+        let replacements=Dictionary(published.map {($0.id,$0)},uniquingKeysWith:{first,_ in first})
+        return local.map {CharacterDeliveryPolicy.isRemote($0.id) ? replacements[$0.id] ?? $0 : $0} +
+            published.filter {m in !local.contains(where:{$0.id==m.id})}
+    }
+    private static let bundled: [ModelDescriptor] = {
         guard let url = Bundle.main.url(forResource:"CharacterCatalog",withExtension:"json"),
               let data = try? Data(contentsOf:url), let catalog = try? JSONDecoder().decode(Catalog.self,from:data),
               catalog.schemaVersion == 1, catalog.apiMajor == 1, !catalog.characters.isEmpty else {

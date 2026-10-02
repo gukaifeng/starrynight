@@ -1,4 +1,5 @@
 import Foundation
+import os
 
 struct CharacterPublicProfile: Codable, Sendable, Identifiable {
     let id,name,invitation,story,occupation,world,tone:String
@@ -17,7 +18,9 @@ struct CharacterPublicProfile: Codable, Sendable, Identifiable {
               let data=try? Data(contentsOf:url),let value=try? JSONDecoder().decode(Catalog.self,from:data) else{return []}
         return value.characters
     }()
-    static func find(_ id:String)->Self? {catalog.first {$0.id==id}}
+    private static let remote=OSAllocatedUnfairLock(initialState:[Self]())
+    static func installStoreProfiles(_ profiles:[Self]){remote.withLock {$0=profiles}}
+    static func find(_ id:String)->Self? {remote.withLock {$0.first {$0.id==id}} ?? catalog.first {$0.id==id}}
 }
 
 struct AIInspectionReport:Decodable,Sendable {

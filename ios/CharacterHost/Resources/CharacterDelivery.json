@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "runtimeVersion": "starry-runtime/1",
+  "downloadOnly": [
+    "anime-fiona",
+    "anime-mizuki",
+    "anime-ramune"
+  ],
+  "archiveFormat": "starry-character-zip/1"
+}

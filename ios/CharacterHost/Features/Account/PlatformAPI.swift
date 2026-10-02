@@ -109,9 +109,7 @@ private final class PlatformNoRedirect: NSObject, URLSessionTaskDelegate, Sendab
         let decoder = JSONDecoder();decoder.keyDecodingStrategy = .convertFromSnakeCase
         return try decoder.decode(PlatformSession.self,from:JSONEncoder().encode(data))
     }
-    /// Prepares content for a future Unity runtime adapter; never substitutes an
-    /// unverified download for the currently bundled role.
-    func downloadCharacter(_ id:String) async throws -> URL {
+    func downloadCharacter(_ id:String,progress:@escaping @Sendable (Double,String)->Void = {_,_ in}) async throws -> URL {
         guard let current=activeSession,id.range(of:"^[a-zA-Z0-9_-]{1,120}$",options:.regularExpression) != nil else {throw PlatformError.invalidResponse}
 #if targetEnvironment(simulator)
         let platform="ios-simulator"
@@ -123,7 +121,7 @@ private final class PlatformNoRedirect: NSObject, URLSessionTaskDelegate, Sendab
         let decoder=JSONDecoder();decoder.keyDecodingStrategy = .convertFromSnakeCase
         let manifest=try decoder.decode(CharacterDownloadStore.Manifest.self,from:JSONEncoder().encode(raw))
         guard manifest.characterId==id,manifest.platform==platform else {throw PlatformError.invalidResponse}
-        let local=try await CharacterDownloadStore.shared.install(manifest,accountID:current.user.id)
+        let local=try await CharacterDownloadStore.shared.install(manifest,accountID:current.user.id,progress:progress)
         guard activeSession?.user.id==current.user.id else {throw CancellationError()}
         return local
     }

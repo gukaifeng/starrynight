@@ -21,6 +21,8 @@ namespace ModelSpace
         public float topInset, bottomInset;
         public int targetFPS = 120;
         public string action, modelId, accent, ambience, state, framingShot, portraitKey;
+        public string bundlePath;
+        public uint bundleCRC;
         public float framingSize = 1, framingAngle;
         public float mouth, viewportX, viewportY, viewportWidth = 1, viewportHeight = 1;
         public float safeFrameX, safeFrameY, safeFrameWidth, safeFrameHeight;
@@ -116,6 +118,8 @@ namespace ModelSpace
         public string[] resourceCharacterIDs=Array.Empty<string>();
         Coroutine pendingCharacterLoad;
         int characterLoadSequence;
+        readonly System.Collections.Generic.Dictionary<string,BridgePayload> downloads=new System.Collections.Generic.Dictionary<string,BridgePayload>();
+        readonly System.Collections.Generic.Dictionary<string,AssetBundle> loadedBundles=new System.Collections.Generic.Dictionary<string,AssetBundle>();
         public Camera viewCamera;
         string activeModelId = "studio-robot";
         public string ActiveModelId => activeModelId;
@@ -233,7 +237,7 @@ namespace ModelSpace
         {
             var selected = Array.Find(characters ?? Array.Empty<ViewerCharacter>(), c => c && c.modelId == id);
             if (!selected) {
-                if(!Array.Exists(resourceCharacterIDs,c=>c==id))throw new ArgumentException("此构建未包含所选模型，请重新导出 Unity 工程");
+                if(!Array.Exists(resourceCharacterIDs,c=>c==id) && !downloads.ContainsKey(id))throw new ArgumentException("请先下载这个角色");
                 if(pendingCharacterLoad!=null)StopCoroutine(pendingCharacterLoad);
                 pendingCharacterLoad=StartCoroutine(LoadCharacter(id,request,++characterLoadSequence));return;
             }
@@ -257,11 +261,21 @@ namespace ModelSpace
         }
         IEnumerator LoadCharacter(string id,string request,int sequence)
         {
-            var load=Resources.LoadAsync<GameObject>("Characters/"+id);yield return load;
+            GameObject asset=null;
+            if(downloads.TryGetValue(id,out var installed)) {
+                if(!loadedBundles.TryGetValue(id,out var bundle)) {
+                    var read=AssetBundle.LoadFromFileAsync(installed.bundlePath,installed.bundleCRC);yield return read;
+                    bundle=read.assetBundle;
+                    if(!bundle){Emit("error",request,"下载的角色包无法打开，请重新下载");yield break;}
+                    loadedBundles[id]=bundle;
+                    var background=bundle.LoadAssetAsync<Texture2D>("background");yield return background;
+                    CharacterImageBackdrop.Downloaded[id]=background.asset as Texture2D;
+                }
+                var prefab=bundle.LoadAssetAsync<GameObject>("character");yield return prefab;asset=prefab.asset as GameObject;
+            } else {var load=Resources.LoadAsync<GameObject>("Characters/"+id);yield return load;asset=load.asset as GameObject;}
             if(sequence!=characterLoadSequence)yield break;
             pendingCharacterLoad=null;
             if(Array.Exists(characters,c=>c && c.modelId==id)) {SelectModel(id,request);yield break;}
-            var asset=load.asset as GameObject;
             if(!asset) {Emit("error",request,"角色资源未能加载");yield break;}
             var instance=Instantiate(asset);instance.SetActive(false);
             var actor=instance.GetComponent<ViewerCharacter>();
@@ -276,11 +290,21 @@ namespace ModelSpace
             characters=retained?new[]{retained,keep}:new[]{keep};
             StartCoroutine(ReleaseCharacterResources());
         }
-        IEnumerator ReleaseCharacterResources() {yield return null;yield return Resources.UnloadUnusedAssets();}
+        IEnumerator ReleaseCharacterResources() {
+            yield return null;
+            if(pendingCharacterLoad==null)foreach(string id in loadedBundles.Keys.ToArray())
+                if(!characters.Any(c=>c && c.modelId==id)) {
+                    CharacterImageBackdrop.Downloaded.Remove(id);
+                    loadedBundles[id].Unload(true);loadedBundles.Remove(id);
+                }
+            yield return Resources.UnloadUnusedAssets();
+        }
         IEnumerator PrewarmCharacter(BridgeCommand command)
         {
             string id=command.payload?.modelId;
             if(!Array.Exists(resourceCharacterIDs,c=>c==id)) {Emit("modelPrewarmFailed",command.requestId,"MODEL_UNAVAILABLE");yield break;}
+            // Remote actors are loaded only after an explicit verified install.
+            if(downloads.ContainsKey(id)){Emit("modelPrewarmFailed",command.requestId,"DEFER_REMOTE_LOAD");yield break;}
             var load=Resources.LoadAsync<GameObject>("Characters/"+id);yield return load;
             if(command.presentationId!=presentation)yield break;
             var candidate=Array.Find(characters,c=>c && c.modelId==id);
@@ -679,6 +703,18 @@ namespace ModelSpace
                 presentation = command.presentationId;
                 switch (command.name)
                 {
+                    case "installCharacter":
+                        if(command.payload==null || string.IsNullOrEmpty(command.payload.modelId) ||
+                           string.IsNullOrEmpty(command.payload.bundlePath) || !System.IO.File.Exists(command.payload.bundlePath))
+                            throw new ArgumentException("角色资源尚未完成下载");
+                        string installedID=command.payload.modelId;
+                        if(downloads.TryGetValue(installedID,out var previousInstall) && previousInstall.bundlePath!=command.payload.bundlePath) {
+                            foreach(var actor in characters.Where(c=>c && c.modelId==installedID))Destroy(actor.gameObject);
+                            characters=characters.Where(c=>c && c.modelId!=installedID).ToArray();
+                            if(loadedBundles.TryGetValue(installedID,out var previousBundle)){previousBundle.Unload(false);loadedBundles.Remove(installedID);}
+                            CharacterImageBackdrop.Downloaded.Remove(installedID);
+                        }
+                        downloads[installedID]=command.payload;Emit("characterInstalled",command.requestId);break;
                     case "selectModel": SelectModel(command.payload?.modelId, command.requestId); break;
                     case "prepareReveal":
                         if(pendingPresentation!=null) StopCoroutine(pendingPresentation);

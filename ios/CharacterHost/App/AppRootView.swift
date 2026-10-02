@@ -40,6 +40,11 @@ struct AppRootView: View {
                 AppDock(selection:coordinator.visibleShellTab,onSelect:coordinator.navigate)
             }
         }.foregroundStyle(Theme.ink).tint(Theme.accent).preferredColorScheme(.dark)
+            .softSheet(isPresented:Binding(get:{coordinator.downloadPromptID != nil},set:{if !$0{coordinator.downloadPromptID=nil}}),height:510) {
+                if let id=coordinator.downloadPromptID,let model=coordinator.library.model(id) {
+                    CharacterDownloadPanel(coordinator:coordinator,model:model)
+                }
+            }
             .animation(.easeInOut(duration:reduceMotion ? 0.15 : 0.25),value:coordinator.selectedTab)
             .softSheet(isPresented:$coordinator.loginPresented) {
                 NavigationStack {

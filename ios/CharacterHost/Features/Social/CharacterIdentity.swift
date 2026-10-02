@@ -20,10 +20,12 @@ struct CharacterAvatar: View {
                 if let definition=CharacterCoverDefinition.find(model),let head=definition.headBounds,
                    let cover=UIImage(named:definition.asset) {
                     CharacterFocusedArtwork(artwork:cover,head:head,circle:true)
-                } else {
-                    Image(uiImage:portraits.image(model,profile:profile) ?? UIImage(named:model.thumbnail+"Portrait") ?? UIImage(named:model.thumbnail) ?? UIImage())
+                } else if let image=portraits.image(model,profile:profile) ?? UIImage(named:model.thumbnail+"Portrait") ?? UIImage(named:model.thumbnail) ?? CharacterInstalledResources.image("avatar",characterID:model.runtimeID).flatMap({UIImage(contentsOfFile:$0.path)}) {
+                    Image(uiImage:image)
                         .resizable().scaledToFill()
-                }
+                } else if let raw=CharacterAssetLibrary.shared.listing(model.runtimeID)?.media["avatar"]?.url,let url=URL(string:raw) {
+                    AsyncImage(url:url) {image in image.resizable().scaledToFill()} placeholder:{Theme.surface}
+                } else {Theme.surface}
             }.frame(width:size,height:size)
                 .clipShape(Circle()).overlay(Circle().stroke(Theme.accent.opacity(0.24),lineWidth:0.7))
                 .offset(y:floatingEnabled && !reduceMotion && floating ? -1 : 0)
@@ -158,6 +160,7 @@ struct CharacterDetailsPanel: View {
     var onPerformanceVisibility: (Bool) -> Void = { _ in }
     var onOpenCharacter: ((String,Bool) -> Void)? = nil
     var allowsAuthorNavigation = true
+    var marketControls:(()->AnyView)? = nil
     @State private var editing = false
     @State private var together = false
     @State private var imageExport: ConversationExportSnapshot?
@@ -222,6 +225,7 @@ struct CharacterDetailsPanel: View {
                     ProfileIdentityHeader(name:profile.name,subtitle:publicProfile?.occupation ?? profile.personality+" · "+profile.tone,nameID:"profileName") {
                         CharacterAvatar(model:model,profile:profile,portraits:portraits,size:52,floatingEnabled:false)
                     } accessory: { subscriptionButton }
+                    if let marketControls {marketControls()}
                     VStack(alignment:.leading,spacing:10) {
                         Text(publicProfile?.invitation ?? model.display.invitation).font(.system(size:16,weight:.medium,design:.serif)).lineSpacing(4)
                             .foregroundStyle(Theme.ink.opacity(0.92))
@@ -311,7 +315,7 @@ struct CharacterDetailsPanel: View {
             }.scrollIndicators(.hidden)
             // Live profiles dismiss back to their existing conversation. Discovery and
             // author profiles still need an explicit destination for starting a chat.
-            if !showsLiveCharacter {
+            if !showsLiveCharacter && marketControls == nil {
                 Button { if library.select(model.id) { onChat() } } label: {
                     HStack { Text(model.isPreviewOnly ? "查看模型" : (subscribed ? "进入会话" : "订阅并聊天")); Image(systemName:"arrow.up.right").font(.system(size:12)) }
                         .frame(maxWidth:.infinity)

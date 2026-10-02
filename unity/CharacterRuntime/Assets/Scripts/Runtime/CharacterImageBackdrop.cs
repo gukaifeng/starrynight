@@ -11,6 +11,7 @@ namespace ModelSpace
     public sealed class CharacterImageBackdrop:MonoBehaviour
     {
         public const int Revision=1;
+        public static readonly System.Collections.Generic.Dictionary<string,Texture2D> Downloaded=new System.Collections.Generic.Dictionary<string,Texture2D>();
         Camera view;Material material;Mesh mesh;MeshRenderer renderer;
         CharacterAtmosphereCatalog catalog;
         public CharacterAtmosphere Current {get;private set;}
@@ -20,7 +21,7 @@ namespace ModelSpace
             view=camera;
             if(catalog==null) {var data=Resources.Load<TextAsset>("CharacterAtmospheres");if(data) catalog=JsonUtility.FromJson<CharacterAtmosphereCatalog>(data.text);}
             Current=catalog?.schemaVersion==1 ? Array.Find(catalog.characters,c=>c.id==role) : null;
-            var texture=Current==null ? null : Resources.Load<Texture2D>(Current.background);
+            var texture=Downloaded.TryGetValue(role,out var remote)?remote:(Current==null ? null : Resources.Load<Texture2D>(Current.background));
             if(!texture) {if(renderer) renderer.enabled=false;return false;}
             if(!renderer)
             {

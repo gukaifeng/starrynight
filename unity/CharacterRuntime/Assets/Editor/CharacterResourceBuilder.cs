@@ -17,11 +17,19 @@ public sealed class CharacterResourceBuilder : IProcessSceneWithReport
     {
         PrepareAtmospheres();
         const string folder="Assets/Resources/Characters";Directory.CreateDirectory(folder);
+        Directory.CreateDirectory("Assets/DownloadableCharacters");
+        AssetDatabase.Refresh();
         viewer.resourceCharacterIDs=viewer.characters.Select(c=>c.modelId).ToArray();
         foreach(var c in viewer.characters)
         {
             bool active=c.gameObject.activeSelf;c.gameObject.SetActive(false);
-            PrefabUtility.SaveAsPrefabAsset(c.gameObject,folder+"/"+c.modelId+".prefab");
+            string destination=CharacterBundleBuilder.Remote(c.modelId)?CharacterBundleBuilder.Prefab(c.modelId):folder+"/"+c.modelId+".prefab";
+            string old=folder+"/"+c.modelId+".prefab";
+            if(destination!=old && File.Exists(old) && !File.Exists(destination)) {
+                string error=AssetDatabase.MoveAsset(old,destination);if(error!="")throw new Exception(error);
+            }
+            PrefabUtility.SaveAsPrefabAsset(c.gameObject,destination);
+            if(destination!=old && File.Exists(old))AssetDatabase.DeleteAsset(old);
             c.gameObject.SetActive(active);
         }
         // Deactivated roster assets must not stay inside the Resources bundle.
@@ -30,7 +38,7 @@ public sealed class CharacterResourceBuilder : IProcessSceneWithReport
     }
     public static void PrepareAtmospheres()
     {
-        var active=CharacterPackageBuilder.Roster.characters;
+        var active=CharacterPackageBuilder.Roster.characters.Where(id=>!CharacterBundleBuilder.Remote(id)).ToArray();
         const string folder="Assets/Resources/Atmospheres";
         const string archive="Assets/ArchivedAtmospheres";
         Directory.CreateDirectory(archive);
@@ -55,6 +63,14 @@ public sealed class CharacterResourceBuilder : IProcessSceneWithReport
             "Assets/Resources/CharacterAtmospheres.json",true);
         AssetDatabase.ImportAsset("Assets/Resources/CharacterAtmospheres.json",ImportAssetOptions.ForceSynchronousImport);
         AssetDatabase.SaveAssets();
+        Directory.CreateDirectory("Assets/DownloadableAtmospheres");
+        AssetDatabase.Refresh();
+        foreach(string id in CharacterBundleBuilder.Policy.downloadOnly) {
+            string source=archive+"/"+id,destination="Assets/DownloadableAtmospheres/"+id;
+            if(AssetDatabase.IsValidFolder(source) && !AssetDatabase.IsValidFolder(destination)) {
+                string error=AssetDatabase.MoveAsset(source,destination);if(error!="")throw new Exception(error);
+            }
+        }
     }
     public void OnProcessScene(Scene scene,BuildReport report)
     {

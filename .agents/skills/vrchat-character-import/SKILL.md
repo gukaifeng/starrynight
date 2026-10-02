@@ -22,6 +22,8 @@ description: Inspect and convert user-supplied VRChat avatar archives into this 
 
 实际打包与默认角色由 `assets/characters/active-roster.json` 决定；不要在技能中用固定数量代替名册。批次由 `assets/characters/import-batches.json` 记录，用户已要求一批完成即安装一批。其他角色来源、候选和历史资料仍在工作区，不代表已发布。公共运行时、标准、材质或交互升级必须兼容并回归全部已发布角色。不要为通过旧的 Luma/初音测试而重新加入已下架模型。
 
+角色商店与内置方式分开：`assets/characters/delivery-policy.json` 中的 `downloadOnly` 角色保留完整 Editor 审查能力，运行 prefab/背景移到 Resources 之外，不再随 App 打包，媒体也从安装包排除。需要 OSS 交付时先读 [运行包交付标准](../../../docs/character-standard/07-oss-delivery.md)，按相同 Unity 运行时分别构建真机/模拟器自包含 AssetBundle，再生成不可变版本 ZIP，使用独立服务端仓库的官方 SDK 发布工具上传。先验证 OSS 对象和发布清单，再排除 App 副本，保留原始来源；不得公开提交模型、试听 PCM 或发布计划，也不因打包重调图片生成 API。下载的首次问候、氛围和图片从校验后角色包注册，不在客户端另写角色 ID 分支。
+
 原作表现只在角色开发者页提供手动检查入口，正常会话由AI触发；声音与氛围合并进右上角会话选项，定制页不再放音乐。位置按钮操作独立根变换，自动记住该账号/角色的最后状态，移除长按蓄力与方案列表，不构成作者待机／讲话动画，也不改角色源包；参考 [取景编辑及边界](../../../docs/verification/position-controls/README.md)。
 
 ## 当前可直接运行的检查

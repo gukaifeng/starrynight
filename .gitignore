@@ -82,3 +82,8 @@ __pycache__/
 /docs/environment-standard/deliverables/
 # Generated opening voices stay local with the licensed character media.
 ios/CharacterHost/Resources/Opening_*.pcm
+# Private compiled OSS character payloads; never publish licensed model data.
+unity/CharacterRuntime/Assets/DownloadableCharacters/
+unity/CharacterRuntime/Assets/DownloadableCharacters.meta
+unity/CharacterRuntime/Assets/DownloadableAtmospheres/
+unity/CharacterRuntime/Assets/DownloadableAtmospheres.meta

@@ -1,12 +1,24 @@
 import Foundation
 import CryptoKit
+import ZIPFoundation
+import os
 
 private final class CharacterDownloadGuard:NSObject,URLSessionDownloadDelegate,Sendable {
     let expectedSize:Int64
-    init(expectedSize:Int64) {self.expectedSize=expectedSize}
+    let progress:@Sendable (Int64)->Void
+    private let lastUpdate=OSAllocatedUnfairLock(initialState:0.0)
+    init(expectedSize:Int64,progress:@escaping @Sendable (Int64)->Void) {self.expectedSize=expectedSize;self.progress=progress}
     func urlSession(_ session:URLSession,task:URLSessionTask,willPerformHTTPRedirection response:HTTPURLResponse,newRequest request:URLRequest,completionHandler:@escaping @Sendable (URLRequest?)->Void) {completionHandler(nil)}
     func urlSession(_ session:URLSession,downloadTask:URLSessionDownloadTask,didWriteData bytesWritten:Int64,totalBytesWritten:Int64,totalBytesExpectedToWrite:Int64) {
         if totalBytesWritten>expectedSize || totalBytesExpectedToWrite>expectedSize {downloadTask.cancel()}
+        else {
+            let now=ProcessInfo.processInfo.systemUptime
+            let report=lastUpdate.withLock {last in
+                if now-last<0.10 && totalBytesWritten<expectedSize{return false}
+                last=now;return true
+            }
+            if report{progress(totalBytesWritten)}
+        }
     }
     func urlSession(_ session:URLSession,downloadTask:URLSessionDownloadTask,didFinishDownloadingTo location:URL) {}
 }
@@ -30,6 +42,14 @@ actor CharacterDownloadStore {
         var url:String?
         var headers:[String:String]?
     }
+    struct Package:Codable,Sendable {
+        let schemaVersion:Int
+        let characterID,platform,runtimeVersion,bundle:String
+        let version:Int64
+        let bundleCRC:UInt32
+        let files:[Member]
+    }
+    struct Member:Codable,Sendable {let path,sha256:String;let size:Int64}
     enum Failure:LocalizedError {
         case invalidManifest,invalidResponse,integrity,insufficientSpace,insecureURL
         var errorDescription:String? {
@@ -55,8 +75,8 @@ actor CharacterDownloadStore {
         !value.isEmpty && value.count<=240 && value.unicodeScalars.allSatisfy({CharacterSet(charactersIn:"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_./-").contains($0)}) && !value.hasPrefix("/") && !value.contains("\\") &&
         value.split(separator:"/",omittingEmptySubsequences:false).allSatisfy { !$0.isEmpty && $0 != "." && $0 != ".." }
     }
-    func install(_ manifest:Manifest,accountID:String) async throws -> URL {
-        guard manifest.schemaVersion==1,manifest.version>0,!manifest.characterId.isEmpty,!manifest.releaseId.isEmpty,manifest.runtimeVersion=="xcp/1",
+    func install(_ manifest:Manifest,accountID:String,progress:@escaping @Sendable (Double,String)->Void = {_,_ in}) async throws -> URL {
+        guard manifest.schemaVersion==1,manifest.version>0,!manifest.characterId.isEmpty,!manifest.releaseId.isEmpty,["xcp/1","starry-runtime/1"].contains(manifest.runtimeVersion),
               ["ios","ios-simulator"].contains(manifest.platform),manifest.files.count>0,manifest.files.count<=64,
               Set(manifest.files.map(\.path)).count==manifest.files.count,
               manifest.files.allSatisfy({Self.safeRelativePath($0.path) && $0.path != "manifest.json" && $0.size>0 && $0.size<=8*1024*1024*1024 && $0.sha256.range(of:"^[a-f0-9]{64}$",options:.regularExpression) != nil}) else {throw Failure.invalidManifest}
@@ -78,12 +98,14 @@ actor CharacterDownloadStore {
         let staging=base.appendingPathComponent("partial-"+UUID().uuidString,isDirectory:true)
         try FileManager.default.createDirectory(at:staging,withIntermediateDirectories:true)
         defer {try? FileManager.default.removeItem(at:staging)}
+        var completed:Int64=0
         for file in manifest.files {
             try Task.checkCancellation()
             guard let raw=file.url,let url=URL(string:raw),url.scheme=="https",url.user==nil,url.password==nil,url.host != nil else {throw Failure.insecureURL}
             var request=URLRequest(url:url)
             for (name,value) in file.headers ?? [:] {guard !["authorization","cookie","host"].contains(name.lowercased()),!value.contains("\r"),!value.contains("\n") else {throw Failure.invalidManifest};request.setValue(value,forHTTPHeaderField:name)}
-            let (temp,response)=try await transport.download(for:request,delegate:CharacterDownloadGuard(expectedSize:file.size))
+            let baseline=completed
+            let (temp,response)=try await transport.download(for:request,delegate:CharacterDownloadGuard(expectedSize:file.size,progress:{ bytes in progress(Double(baseline+bytes)/Double(total),"正在下载") }))
             defer {try? FileManager.default.removeItem(at:temp)}
             guard let http=response as? HTTPURLResponse,http.statusCode==200 else {throw Failure.invalidResponse}
             guard (try temp.resourceValues(forKeys:[.fileSizeKey]).fileSize).map(Int64.init)==file.size else {throw Failure.integrity}
@@ -95,8 +117,16 @@ actor CharacterDownloadStore {
             let destination=staging.appendingPathComponent(file.path)
             try FileManager.default.createDirectory(at:destination.deletingLastPathComponent(),withIntermediateDirectories:true)
             try FileManager.default.moveItem(at:temp,to:destination)
+            completed+=file.size
+        }
+        if manifest.runtimeVersion=="starry-runtime/1" {
+            guard manifest.files.count==1,manifest.files[0].path=="character.zip" else {throw Failure.invalidManifest}
+            progress(1,"正在校验与展开")
+            try Self.expand(staging.appendingPathComponent("character.zip"),to:staging.appendingPathComponent("content"),manifest:manifest)
+            try FileManager.default.removeItem(at:staging.appendingPathComponent("character.zip"))
         }
         var durable=manifest;durable.files=manifest.files.map {var f=$0;f.url=nil;f.headers=nil;return f}
+        try Task.checkCancellation()
         let encoder=JSONEncoder();encoder.outputFormatting = .sortedKeys
         try encoder.encode(durable).write(to:staging.appendingPathComponent("manifest.json"),options:.atomic)
         if FileManager.default.fileExists(atPath:release.path) {
@@ -104,6 +134,51 @@ actor CharacterDownloadStore {
             guard try JSONDecoder().decode(Manifest.self,from:old) == durable else {throw Failure.integrity}
         } else {try FileManager.default.moveItem(at:staging,to:release)}
         try Data(String(manifest.version).utf8).write(to:base.appendingPathComponent("current"),options:.atomic)
+        return release
+    }
+    private static func digest(_ url:URL)throws->String {
+        let file=try FileHandle(forReadingFrom:url);defer {try? file.close()};var hash=SHA256()
+        while let bytes=try file.read(upToCount:1024*1024),!bytes.isEmpty {try Task.checkCancellation();hash.update(data:bytes)}
+        return hash.finalize().map{String(format:"%02x",$0)}.joined()
+    }
+    static func expand(_ source:URL,to destination:URL,manifest:Manifest)throws {
+        let archive=try Archive(url:source,accessMode:.read)
+        let entries=Array(archive)
+        guard entries.count<=128,Set(entries.map(\.path)).count==entries.count,
+              entries.allSatisfy({$0.type == .file && safeRelativePath($0.path) && $0.uncompressedSize<=2*1024*1024*1024}),
+              let header=archive["package.json"],header.uncompressedSize<128*1024 else {throw Failure.invalidManifest}
+        var data=Data();_ = try archive.extract(header){data.append($0)}
+        let package=try JSONDecoder().decode(Package.self,from:data)
+        guard package.schemaVersion==1,package.characterID==manifest.characterId,package.version==manifest.version,
+              package.platform==manifest.platform,package.runtimeVersion==manifest.runtimeVersion,
+              package.bundle=="runtime/character.bundle",package.files.count>0,
+              Set(package.files.map(\.path)).count==package.files.count,
+              Set(entries.map(\.path))==Set(package.files.map(\.path)).union(["package.json"]),
+              package.files.allSatisfy({safeRelativePath($0.path) && $0.path != "package.json" && $0.size>0 && $0.size<=2*1024*1024*1024 && $0.sha256.range(of:"^[a-f0-9]{64}$",options:.regularExpression) != nil}),
+              package.files.contains(where:{$0.path==package.bundle}) else {throw Failure.invalidManifest}
+        let total=package.files.reduce(Int64(0)){$0+$1.size}
+        let free=(try? source.resourceValues(forKeys:[.volumeAvailableCapacityForImportantUsageKey]).volumeAvailableCapacityForImportantUsage) ?? 0
+        guard total<=4*1024*1024*1024,free>total+64*1024*1024 else {throw Failure.insufficientSpace}
+        try FileManager.default.createDirectory(at:destination,withIntermediateDirectories:true)
+        for member in package.files {
+            try Task.checkCancellation()
+            guard let entry=archive[member.path],Int64(entry.uncompressedSize)==member.size else {throw Failure.integrity}
+            let output=destination.appendingPathComponent(member.path)
+            try FileManager.default.createDirectory(at:output.deletingLastPathComponent(),withIntermediateDirectories:true)
+            _ = try archive.extract(entry,to:output)
+            guard try digest(output)==member.sha256 else {throw Failure.integrity}
+        }
+        try data.write(to:destination.appendingPathComponent("package.json"),options:.atomic)
+    }
+    func installed(characterID:String,accountID:String,platform:String)throws->URL? {
+        let key=SHA256.hash(data:Data((accountID+"|"+characterID+"|"+platform).utf8)).map{String(format:"%02x",$0)}.joined()
+        let base=root.appendingPathComponent(key)
+        guard let version=try? String(contentsOf:base.appendingPathComponent("current"),encoding:.utf8),Int64(version) != nil else {return nil}
+        let release=base.appendingPathComponent(version)
+        guard let data=try? Data(contentsOf:release.appendingPathComponent("content/package.json")),
+              let package=try? JSONDecoder().decode(Package.self,from:data),package.characterID==characterID,
+              package.runtimeVersion=="starry-runtime/1",package.platform==platform,
+              FileManager.default.fileExists(atPath:release.appendingPathComponent("content/"+package.bundle).path) else {return nil}
         return release
     }
 }

@@ -17,6 +17,8 @@ except (OSError, ValueError):
     content = {}
 catalog_path=ROOT/'ios/CharacterHost/Resources/CharacterCatalog.json'
 catalog=json.loads(catalog_path.read_text())
+if content.get('characterDeliveryRevision',0)<1:
+    raise SystemExit('Unity export lacks verified downloaded-character loading; re-export this platform.')
 required={c['id'] for c in catalog['characters']}
 if content.get('characterApi')!=1 or content.get('catalogSha256')!=hashlib.sha256(catalog_path.read_bytes()).hexdigest() or required!=set(content.get('models',[])):
     raise SystemExit('Character catalog differs from Unity export. Export the selected platform again before building.')

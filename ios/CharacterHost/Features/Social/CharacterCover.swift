@@ -25,7 +25,8 @@ struct CharacterCover: View {
     /// Short profile banners keep the face at the authored focal point; discovery shows the full cover.
     var focalCrop = false
     private var definition: CharacterCoverDefinition? { CharacterCoverDefinition.find(model) }
-    private var artwork: UIImage? { definition.flatMap { UIImage(named:$0.asset) } ?? UIImage(named:model.thumbnail) }
+    private var artwork: UIImage? { definition.flatMap { UIImage(named:$0.asset) } ?? UIImage(named:model.thumbnail) ?? CharacterInstalledResources.image("cover",characterID:model.runtimeID).flatMap {UIImage(contentsOfFile:$0.path)} }
+    private var remoteURL:URL? {CharacterAssetLibrary.shared.listing(model.runtimeID)?.media["cover"]?.url.flatMap(URL.init(string:))}
 
     var body: some View {
         GeometryReader { geometry in
@@ -42,6 +43,8 @@ struct CharacterCover: View {
                 Image(uiImage:artwork).resizable().frame(width:width,height:height)
                     .offset(x:x,y:y)
                 }
+            } else if let remoteURL {
+                AsyncImage(url:remoteURL) {image in image.resizable().scaledToFill().frame(width:geometry.size.width,height:geometry.size.height).clipped()} placeholder:{Theme.surface}
             } else { Theme.surface }
         }.clipped().accessibilityHidden(true)
     }

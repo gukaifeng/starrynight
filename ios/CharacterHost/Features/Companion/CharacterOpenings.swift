@@ -1,4 +1,5 @@
 import Foundation
+import os
 
 /// Authored, versioned first meetings. No provider call or audio-cache dependency.
 /// A copied/user-created role inherits the opening of its runtime model.
@@ -20,7 +21,7 @@ struct CharacterOpening: Decodable, Sendable {
                  openingID:id)
     }
     func pcm(bundle:Bundle = .main) async throws -> Data {
-        guard audioReady,let url=bundle.url(forResource:audio,withExtension:"pcm") else {
+        guard audioReady,let url=bundle.url(forResource:audio,withExtension:"pcm") ?? CharacterInstalledResources.resource(audio,extension:"pcm") else {
             throw AIConnectionError.remote("BUNDLED_OPENING_AUDIO_MISSING")
         }
         return try await Task.detached(priority:.userInitiated) {
@@ -35,8 +36,15 @@ struct CharacterOpening: Decodable, Sendable {
 
 enum CharacterOpenings {
     struct Catalog:Decodable {let schemaVersion:Int;let characters:[Package]}
-    struct Package:Decodable {let characterID:String;let variants:[CharacterOpening];let legacyVariants:[CharacterOpening]?;let initialReplies:[String]?}
-    private static let packages:[Package] = {
+    struct Package:Decodable,Sendable {let characterID:String;let variants:[CharacterOpening];let legacyVariants:[CharacterOpening]?;let initialReplies:[String]?}
+    private static let installed=OSAllocatedUnfairLock(initialState:[String:Package]())
+    static func register(_ package:Package) {installed.withLock {$0[package.characterID]=package}}
+    static func clearInstalled() {installed.withLock {$0.removeAll()}}
+    private static var packages:[Package] {
+        let downloaded=installed.withLock {Array($0.values)}
+        return bundled.filter {p in !downloaded.contains(where:{$0.characterID==p.characterID})} + downloaded
+    }
+    private static let bundled:[Package] = {
         guard let url=Bundle.main.url(forResource:"CharacterOpenings",withExtension:"json"),
               let data=try? Data(contentsOf:url),let catalog=try? JSONDecoder().decode(Catalog.self,from:data),
               catalog.schemaVersion==1 else {return []}

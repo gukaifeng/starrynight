@@ -1,14 +1,22 @@
 import SwiftUI
 import Observation
+import os
 
-struct CharacterAtmosphere:Decodable {
+struct CharacterAtmosphere:Decodable,Sendable {
     let id:String
     let title:String
     let effect:String
     let palette:[String]
     let density:Double
     private struct Catalog:Decodable {let schemaVersion:Int;let characters:[CharacterAtmosphere]}
-    static let all:[CharacterAtmosphere] = {
+    private static let installed=OSAllocatedUnfairLock(initialState:[String:Self]())
+    static func register(_ recipe:Self) {installed.withLock {$0[recipe.id]=recipe}}
+    static func clearInstalled() {installed.withLock {$0.removeAll()}}
+    static var all:[Self] {
+        let downloaded=installed.withLock {Array($0.values)}
+        return bundled.filter {r in !downloaded.contains(where:{$0.id==r.id})} + downloaded
+    }
+    private static let bundled:[CharacterAtmosphere] = {
         guard let url=Bundle.main.url(forResource:"CharacterAtmospheres",withExtension:"json"),
               let data=try? Data(contentsOf:url),let catalog=try? JSONDecoder().decode(Catalog.self,from:data),catalog.schemaVersion==1 else {return []}
         return catalog.characters

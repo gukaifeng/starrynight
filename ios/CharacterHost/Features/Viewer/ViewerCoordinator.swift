@@ -7,6 +7,9 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
     enum Page { case home, loading, viewer, closing, error }
     let account = AccountStore()
     let library = CharacterLibrary()
+    let assets = CharacterAssetLibrary.shared
+    var downloadPromptID:String?
+    var downloadError:String?
     @ObservationIgnored private var platformSync:AccountSync?
     var selectedTab: AppTab = .home
     var loginPresented = false
@@ -152,6 +155,7 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
     }
     private func activateLibrary() {
         let id = account.session?.accountID ?? "guest"
+        assets.activate(id)
         let isNew = !library.hasAccount(id)
         let oldGuest = companionStore.accountID == "guest"
         let canAdoptGuest = account.cloudSession == nil || account.cloudShouldImportLocal
@@ -209,6 +213,16 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
         else { schedulePrewarm() }
     }
     func openCharacter(_ id:String, messageID:UUID? = nil, customize:Bool = false, greetingReason:ConversationEntryReason? = nil, showInMessages:Bool = true) {
+        if let model=library.model(id),assets.needsInstallation(model.runtimeID) {
+            let owner=library.accountID
+            Task { @MainActor [weak self] in
+                guard let self,self.library.accountID==owner else{return}
+                if (try? await self.assets.restore(model.runtimeID,accountID:owner)) != nil,!self.assets.needsInstallation(model.runtimeID) {
+                    self.openCharacter(id,messageID:messageID,customize:customize,greetingReason:greetingReason,showInMessages:showInMessages)
+                }else {self.downloadPromptID=model.runtimeID}
+            }
+            return
+        }
         guard let model = library.model(id), library.select(id,showInMessages:showInMessages) else { return }
         // A message-list selection is a switch too. Merely returning to the
         // retained role is not, regardless of the tab used to get there.
@@ -813,6 +827,11 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
               pendingReset.isEmpty, pendingReveal.isEmpty, !frameReady else { return }
         bridge.setPaused(false)
         pendingReset = nextRequest()
+        if let release=assets.localRelease(selectedModel.runtimeID),
+           let data=try? Data(contentsOf:release.appendingPathComponent("content/package.json")),
+           let package=try? JSONDecoder().decode(CharacterDownloadStore.Package.self,from:data) {
+            send("installCharacter",payload:["modelId":selectedModel.runtimeID,"bundlePath":release.appendingPathComponent("content/"+package.bundle).path,"bundleCRC":package.bundleCRC])
+        }
         send("selectModel", payload:["modelId":selectedModel.runtimeID], request:pendingReset)
     }
     private func prepareSceneForReveal() {

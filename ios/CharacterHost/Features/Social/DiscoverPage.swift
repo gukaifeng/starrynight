@@ -6,14 +6,21 @@ struct DiscoverPage: View {
     @State private var details:ModelDescriptor?
     @State private var showingDetails = false
     @State private var pendingEntry:(String,Bool)?
+    @State private var pendingMarketplaceLogin=false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    private var catalog:[CharacterMarketItem] { CharacterMarketplace.localCatalog(coordinator.library) }
+    private var catalog:[CharacterMarketItem] {
+        let all=CharacterMarketplace.localCatalog(coordinator.library)
+        guard !coordinator.assets.listings.isEmpty else {return all}
+        let ids=Set(coordinator.assets.listings.map(\.id))
+        return all.filter {ids.contains($0.id) || $0.isCreatorWork}
+    }
     private var items:[CharacterMarketItem] {
         CharacterMarketplace.results(catalog,query:query,subscriptions:Set(coordinator.library.subscriptions),
                                      followedAuthors:Set(coordinator.library.followedAuthors))
     }
     private func openPending() {
+        if pendingMarketplaceLogin{pendingMarketplaceLogin=false;coordinator.requestLogin();return}
         guard let entry = pendingEntry else { return }; pendingEntry = nil
         coordinator.openCharacter(entry.0,customize:entry.1)
     }
@@ -54,11 +61,16 @@ struct DiscoverPage: View {
                         }.buttonStyle(.plain).accessibilityIdentifier("marketCreateCharacter")
                             .padding(.top,4).padding(.bottom,20)
                         if let error = coordinator.library.error { Text(LocalizedStringKey(error)).font(.caption).foregroundStyle(Theme.peach) }
+                        if let error=coordinator.assets.error {
+                            HStack {Text(LocalizedStringKey(error));Spacer();Button("刷新"){Task{await coordinator.assets.refresh()}}}
+                                .font(.system(size:11)).foregroundStyle(Theme.secondary).padding(.bottom,12)
+                        }
                     }.padding(.horizontal,18)
                 }.scrollIndicators(.hidden).scrollDismissesKeyboard(.interactively)
                     .onChange(of:query) { _,_ in proxy.scrollTo("marketTop",anchor:.top) }
             }
         }.foregroundStyle(Theme.ink)
+            .task {await coordinator.assets.refresh()}
             .accessibilityElement(children:.contain).accessibilityIdentifier("discoverPage")
             .accessibilityHidden(showingDetails)
             .onChange(of:coordinator.library.accountID) { _,_ in
@@ -68,7 +80,8 @@ struct DiscoverPage: View {
                 if let model = details {
                     CharacterDetailsPanel(model:model,store:coordinator.companionStore,library:coordinator.library,
                         portraits:coordinator.portraits,onChat:{ openCharacter(model.id,false) },
-                        onCustomize:{ openCharacter(model.id,true) },onOpenCharacter:openCharacter)
+                        onCustomize:{ openCharacter(model.id,true) },onOpenCharacter:openCharacter,
+                        marketControls:{AnyView(CharacterMarketControls(model:model,assets:coordinator.assets,accountID:coordinator.library.accountID,onLogin:{pendingMarketplaceLogin=true;showingDetails=false}) {openCharacter(model.id,false)})})
                 }
             }
     }
@@ -160,6 +173,12 @@ struct DiscoverPage: View {
                 VStack(alignment:.leading,spacing:5) {
                     Text(item.profile.name).font(.system(size:13,weight:.semibold,design:.rounded)).lineLimit(1)
                     Text(CharacterPublicProfile.find(item.model.runtimeID)?.invitation ?? item.model.display.invitation).font(.system(size:10)).foregroundStyle(Theme.secondary).lineLimit(1)
+                    if coordinator.assets.requiresDownload(item.model.runtimeID) {
+                        HStack(spacing:4) {
+                            Image(systemName:coordinator.assets.phase(item.model.runtimeID) == .ready ? "checkmark.circle" : "arrow.down.circle")
+                            Text(coordinator.assets.phase(item.model.runtimeID) == .ready ? "已下载" : "下载后相处")
+                        }.font(.system(size:9)).foregroundStyle(Theme.accent.opacity(0.8))
+                    }
                 }.padding(8).frame(maxWidth:.infinity,alignment:.leading)
             }.background(Theme.surface.opacity(Theme.panelOpacity))
                 .clipShape(RoundedRectangle(cornerRadius:13,style:.continuous))

@@ -78,6 +78,11 @@ def configuration(key, settings):
 if not args.native_ui_fixture:generate_asset_credits(ROOT)
 source_refs=[]; source_build=[]; resource_build=[]
 active_music = {t['asset'] for c in json.loads((ios/'CharacterHost/Resources/CharacterCollections.json').read_text())['collections'] for t in c['music']}
+delivery=json.loads((ROOT/'assets/characters/delivery-policy.json').read_text())
+(ios/'CharacterHost/Resources/CharacterDelivery.json').write_text(json.dumps(delivery,indent=2)+'\n')
+remote_roles=set(delivery['downloadOnly'])
+remote_music={t['asset'] for c in json.loads((ios/'CharacterHost/Resources/CharacterCollections.json').read_text())['collections'] if c['modelID'] in remote_roles for t in c['music']}
+remote_openings={v['audio'] for c in json.loads((ios/'CharacterHost/Resources/CharacterOpenings.json').read_text())['characters'] if c['characterID'] in remote_roles for v in c['variants']+c.get('legacyVariants',[])}
 active_artwork, active_openings = active_resources(ROOT)
 active_character_ids = {c['id'] for c in json.loads((ios/'CharacterHost/Resources/CharacterCatalog.json').read_text())['characters']}
 for path in sorted((ios/'CharacterHost').rglob('*')):
@@ -93,6 +98,7 @@ for path in sorted((ios/'CharacterHost').rglob('*')):
     if not test_tools and ('Developer' in path.parts or path.name == 'AIInspectionPanel.swift'): continue
     if path.name.startswith('Music_') and path.stem not in active_music: continue
     if path.name.startswith('Opening_') and path.stem not in active_openings: continue
+    if path.stem in remote_music or path.stem in remote_openings:continue
     legacy_notice_roles = {'MikuCredits.txt':'hatsune-miku', 'RealCharacterCredits.txt':'real-woman'}
     if path.name in legacy_notice_roles and legacy_notice_roles[path.name] not in active_character_ids: continue
     types={'.swift':'sourcecode.swift','.mm':'sourcecode.cpp.objcpp','.h':'sourcecode.c.h','.png':'image.png','.txt':'text','.json':'text.json','.wav':'audio.wav','.pcm':'file','.caf':'audio.caf','.storyboard':'file.storyboard','.xcstrings':'text.json.xcstrings'}
@@ -164,7 +170,10 @@ if not args.native_ui_fixture:
 products=obj('products','PBXGroup',name='Products',children=[app],sourceTree='<group>')
 sources=obj('sources','PBXSourcesBuildPhase',buildActionMask='2147483647',files=source_build,runOnlyForDeploymentPostprocessing='0')
 resources=obj('resources','PBXResourcesBuildPhase',buildActionMask='2147483647',files=resource_build,runOnlyForDeploymentPostprocessing='0')
-frameworks=obj('frameworks','PBXFrameworksBuildPhase',buildActionMask='2147483647',files=[] if args.native_ui_fixture else [buildfile('link-unity',framework)],runOnlyForDeploymentPostprocessing='0')
+zip_package=obj('zip-package','XCRemoteSwiftPackageReference',repositoryURL='https://github.com/weichsel/ZIPFoundation.git',requirement={'kind':'exactVersion','version':'0.9.20'})
+zip_product=obj('zip-product','XCSwiftPackageProductDependency',package=zip_package,productName='ZIPFoundation')
+zip_link=obj('zip-link','PBXBuildFile',productRef=zip_product)
+frameworks=obj('frameworks','PBXFrameworksBuildPhase',buildActionMask='2147483647',files=([zip_link] if args.native_ui_fixture else [buildfile('link-unity',framework),zip_link]),runOnlyForDeploymentPostprocessing='0')
 embed=obj('embed','PBXCopyFilesBuildPhase',buildActionMask='2147483647',dstPath='',dstSubfolderSpec='10',name='Embed Frameworks',files=[] if args.native_ui_fixture else [buildfile('embed-unity',framework,settings={'ATTRIBUTES':['CodeSignOnCopy','RemoveHeadersOnCopy']})],runOnlyForDeploymentPostprocessing='0')
 content_check=obj('check-content','PBXShellScriptBuildPhase',buildActionMask='2147483647',files=[],inputPaths=[],outputPaths=[],
     name='Check character content',runOnlyForDeploymentPostprocessing='0',shellPath='/bin/sh',alwaysOutOfDate='1',
@@ -190,7 +199,7 @@ if args.native_ui_fixture:
     settings['PRODUCT_BUNDLE_IDENTIFIER']='app.starrynight.native-ui-fixture'
     objects[content_check]['shellScript']='set -e\nif [ "${CONFIGURATION}" != Debug ] || [ "${ACTION:-}" = install ]; then echo "error: Native UI fixture is simulator-test-only"; exit 1; fi\n'
 target=obj('host-target','PBXNativeTarget',name='CharacterHost',productName='CharacterHost',productType='com.apple.product-type.application',productReference=app,
-    buildConfigurationList=configuration('host',settings),buildPhases=[content_check,sources,frameworks,resources,embed],buildRules=[],dependencies=[] if args.native_ui_fixture else [dependency])
+    buildConfigurationList=configuration('host',settings),buildPhases=[content_check,sources,frameworks,resources,embed],buildRules=[],packageProductDependencies=[zip_product],dependencies=[] if args.native_ui_fixture else [dependency])
 
 # Native UI tests exercise the real installed app, including Unity's touch surface.
 test_refs=[]; test_build=[]
@@ -202,6 +211,11 @@ test_product=obj('test-product','PBXFileReference',explicitFileType='wrapper.cfb
 test_sources=obj('test-sources','PBXSourcesBuildPhase',buildActionMask='2147483647',files=test_build,runOnlyForDeploymentPostprocessing='0')
 test_frameworks=obj('test-frameworks','PBXFrameworksBuildPhase',buildActionMask='2147483647',files=[],runOnlyForDeploymentPostprocessing='0')
 test_resource_build=[]
+if args.platform=='simulator' and os.environ.get('STARRY_OSS_UI_TESTS')=='1':
+    account_fixture=ROOT/'.local/character-delivery/DownloadTestAccount.json'
+    if not account_fixture.is_file():raise SystemExit('Private download-test account fixture missing')
+    ref=obj('download-test-account','PBXFileReference',lastKnownFileType='text.json',path='../.local/character-delivery/DownloadTestAccount.json',sourceTree='<group>')
+    test_refs.append(ref);test_resource_build.append(buildfile('download-test-account',ref))
 if not args.native_ui_fixture:
     for key,path in [('active-roster','../assets/characters/active-roster.json'),('character-catalog','CharacterHost/Resources/CharacterCatalog.json'),('character-collections','CharacterHost/Resources/CharacterCollections.json')]:
         ref=obj('test-'+key,'PBXFileReference',lastKnownFileType='text.json',path=path,sourceTree='<group>')
@@ -222,6 +236,7 @@ objects[products]['children'].append(test_product)
 base_config=obj('base-config','PBXFileReference',lastKnownFileType='text.xcconfig',path='Config/Base.xcconfig',sourceTree='<group>')
 main_group=obj('main-group','PBXGroup',children=source_refs+test_refs+[base_config]+([] if args.native_ui_fixture else [unity_ref])+[products],sourceTree='<group>')
 project=obj('project','PBXProject',attributes={'BuildIndependentTargetsInParallel':'YES','LastUpgradeCheck':'2640','TargetAttributes':{target:{'CreatedOnToolsVersion':'26.4'},test_target:{'CreatedOnToolsVersion':'26.4','TestTargetID':target}}},
+    packageReferences=[zip_package],
     buildConfigurationList=configuration('project',{'CLANG_ENABLE_MODULES':'YES','CLANG_ENABLE_OBJC_ARC':'YES'}),compatibilityVersion='Xcode 14.0',developmentRegion='zh-Hans',hasScannedForEncodings='0',knownRegions=['zh-Hans','zh-Hant','en','Base'],mainGroup=main_group,productRefGroup=products,projectDirPath='',projectRoot='',targets=[target,test_target],projectReferences=[] if args.native_ui_fixture else [{'ProductGroup':unity_products,'ProjectRef':unity_ref}])
 
 def pbx(value):
