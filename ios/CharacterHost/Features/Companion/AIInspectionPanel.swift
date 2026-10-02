@@ -15,6 +15,7 @@ struct AIInspectionPanel:View {
     @State private var trigger="user_message"
     @State private var revision=0
     @State private var copied=false
+    @State private var reading=false
     @FocusState private var searchFocused:Bool
     private var sections:[AIInspectionReport.Section] {
         (report?.sections ?? []).filter {query.isEmpty || ($0.title+" "+$0.content).localizedCaseInsensitiveContains(query)}
@@ -57,7 +58,9 @@ struct AIInspectionPanel:View {
                 LazyVStack(alignment:.leading,spacing:10) {
                     if let failure {
                         Text(LocalizedStringKey(failure)).font(.subheadline).foregroundStyle(Theme.secondary).accessibilityIdentifier("aiInspectorError")
-                    } else if let report {
+                    }
+                    if reading {ProgressView("正在读取服务端设定").font(.system(size:11))}
+                    if let report {
                         Text("\(report.sections.count) 个完整分区 · \(report.capturedAt)").font(.system(size:10)).foregroundStyle(Theme.secondary)
                         ForEach(sections) {section in
                             DeveloperEntry(title:section.title,detail:section.isEmpty ? "尚无此分区的运行记录" : "\(section.content.count) 字符 · 查看完整原文",symbol:section.isEmpty ? "tray" : "doc.text",id:"aiInspectionSection-"+section.id) {
@@ -68,14 +71,15 @@ struct AIInspectionPanel:View {
                             }
 
                         }
-                    } else {ProgressView().frame(maxWidth:.infinity).padding(30)}
+                    }
                 }.padding(.horizontal,22).padding(.bottom,24)
             }.scrollIndicators(.hidden).scrollDismissesKeyboard(.interactively)
         }.foregroundStyle(Theme.ink).tint(Theme.accent).softPanelPageSurface()
 
     }
     private func refresh() async {
-        report=nil;failure=nil;copied=false;selectedID=nil
+        report=nil;failure=nil;copied=false;selectedID=nil;reading=true
+        defer {reading=false}
 #if DEBUG && targetEnvironment(simulator)
         if ProcessInfo.processInfo.arguments.contains("--ui-testing"),ProcessInfo.processInfo.arguments.contains("--inspector-layout-fixture") {
             report=AIInspectionReport(version:1,characterId:model.id,capturedAt:"布局验证",sections:[
@@ -86,26 +90,39 @@ struct AIInspectionPanel:View {
             return
         }
 #endif
+        let local=localSections()
+        report=AIInspectionReport(version:1,characterId:model.id,capturedAt:"本机资料",sections:local)
         do {
             let api=CharacterAI(accountID:store.accountID,characterID:model.id)
             var value:AIInspectionReport=try await api.configuration("/v1/testing/characters/"+model.id+"/inspector",body:CompanionSession.requestBody(store:store,model:model,text:draft,trigger:trigger))
             try Task.checkCancellation()
             guard store.accountID==api.accountID else {return}
-            let encoder=JSONEncoder();encoder.outputFormatting=[.prettyPrinted,.sortedKeys,.withoutEscapingSlashes]
-            let record=store.record(model.id)
-            func json<T:Encodable>(_ value:T)->String {(try? String(decoding:encoder.encode(value),as:UTF8.self)) ?? "无法编码"}
-            value.sections.append(.init(id:"local",title:"本机全部相处资料",detail:"完整偏好、全部本机记忆、用户侧展示设定与问候记录；真正送入本轮的部分见请求预览。",content:
-                "称呼解析\n"+json(["全局默认":store.defaultNickname,"角色专属":record.together.preferences.nickname,"实际称呼":store.effectiveNickname(for:model.id),"来源":store.nicknameSource(for:model.id)])+"\n相处偏好\n"+json(record.together.preferences)+"\n全部记忆\n"+json(record.memories)+"\n本机展示与声音设置\n"+json(record.profile)+"\n问候记录\n"+json(record.greeting)))
-            if let url=Bundle.main.url(forResource:"ClientAIRules",withExtension:"txt"),let text=try? String(contentsOf:url,encoding:.utf8) {
-                value.sections.append(.init(id:"native-rules",title:"App 端执行规则",detail:"此测试安装包的会话、问候、语音和缓存完整源码。",content:text))
-            }
+            value.sections.append(contentsOf:local)
             guard value.characterId == model.id, Set(value.sections.map(\.id)).count == value.sections.count else {
                 failure="报告的角色或分区标识不匹配，请刷新后重试。";return
             }
             report=value
         } catch is CancellationError {} catch {
-            failure="暂时无法读取完整设定。请确认测试 AI 服务已连接并已开启设定检查；普通部署不会开放这个入口。"
+            switch error {
+            case AIConnectionError.authenticationRequired,AIConnectionError.server(401):
+                failure="请登录已授权的开发账号后刷新。当前仅显示本机资料，服务端完整设定尚未读取。"
+            case AIConnectionError.server(403),AIConnectionError.server(404):
+                failure="当前账号未开通服务端设定检查。当前仅显示本机资料；该权限由服务器管理员配置。"
+            default:
+                failure="暂时无法读取服务端完整设定，请检查网络后刷新。当前仅显示本机资料。"
+            }
         }
+    }
+    private func localSections()->[AIInspectionReport.Section] {
+        let encoder=JSONEncoder();encoder.outputFormatting=[.prettyPrinted,.sortedKeys,.withoutEscapingSlashes]
+        let record=store.record(model.id)
+        func json<T:Encodable>(_ value:T)->String {(try? String(decoding:encoder.encode(value),as:UTF8.self)) ?? "无法编码"}
+        var result:[AIInspectionReport.Section]=[.init(id:"local",title:"本机全部相处资料",detail:"完整偏好、全部本机记忆、用户侧展示设定与问候记录；服务端本轮使用的部分见请求预览。",content:
+            "称呼解析\n"+json(["全局默认":store.defaultNickname,"角色专属":record.together.preferences.nickname,"实际称呼":store.effectiveNickname(for:model.id),"来源":store.nicknameSource(for:model.id)])+"\n相处偏好\n"+json(record.together.preferences)+"\n全部记忆\n"+json(record.memories)+"\n本机展示与声音设置\n"+json(record.profile)+"\n问候记录\n"+json(record.greeting))]
+        if let url=Bundle.main.url(forResource:"ClientAIRules",withExtension:"txt"),let text=try? String(contentsOf:url,encoding:.utf8) {
+            result.append(.init(id:"native-rules",title:"App 端执行规则",detail:"此测试安装包的会话、问候、语音和缓存完整源码。",content:text))
+        }
+        return result
     }
 }
 

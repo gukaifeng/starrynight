@@ -787,6 +787,7 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
         dismissChatKeyboardTap.delaysTouchesBegan = false
         dismissChatKeyboardTap.delaysTouchesEnded = false
         dismissChatKeyboardTap.delegate = self
+        touchSurface.coordinateDismissTap(dismissChatKeyboardTap)
         view.addGestureRecognizer(dismissChatKeyboardTap)
         overrideUserInterfaceStyle = .dark
         let dock = LanguageHostingController(rootView:AppDock(selection:.home) { [weak self] tab in
@@ -977,7 +978,9 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
         return true
     }
     func gestureRecognizer(_ gestureRecognizer:UIGestureRecognizer,shouldRecognizeSimultaneouslyWith other:UIGestureRecognizer) -> Bool {
-        gestureRecognizer === dismissChatKeyboardTap || other === dismissChatKeyboardTap
+        if gestureRecognizer === dismissChatKeyboardTap && touchSurface.isEditingGesture(other)
+            || other === dismissChatKeyboardTap && touchSurface.isEditingGesture(gestureRecognizer) {return false}
+        return gestureRecognizer === dismissChatKeyboardTap || other === dismissChatKeyboardTap
     }
     @objc private func dismissChatKeyboardFromBlankTap(_ recognizer:UITapGestureRecognizer) {
         guard recognizer.state == .ended else {return}

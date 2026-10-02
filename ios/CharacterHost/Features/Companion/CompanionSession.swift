@@ -23,6 +23,15 @@ final class CompanionSession {
         guard record.profile.atmosphereIntensity != clean else {return}
         store.update(model.id) {$0.profile.atmosphereIntensity=clean;$0.profile.atmosphereEnabled=clean>0}
     }
+    func resetAtmosphereIntensity() {
+        atmospherePreviewIntensity=model.collection.initialProfile().resolvedAtmosphereIntensity
+        commitAtmosphereIntensity()
+    }
+    func resetSoundVolumes() {
+        guard let defaults=model.collection.initialProfile().audio else {return}
+        setSpeechVolume(defaults.speechVolume ?? 1)
+        soundscape.setVolume(defaults.volume)
+    }
     var characterEditorPresented = false { didSet { if !characterEditorPresented { refreshAddressPreferences(); deliverPendingGreeting() } } }
     var input = ""
     let voiceInput=VoiceInputDraft()

@@ -15,7 +15,7 @@ extension XCUIApplication {
 final class ConversationSettingsTests:XCTestCase {
     @MainActor func testOutsideTapClosesEverySectionWithoutStealingAdjustment() {
         continueAfterFailure=false;XCUIDevice.shared.orientation = .portrait
-        let app=XCUIApplication();app.launchArguments=["--ui-testing","--companion-testing","--auth-testing"]
+        let app=XCUIApplication();app.launchArguments=["--ui-testing","--companion-testing","--auth-testing","-starry.app.language.v1","zh-Hans"]
         app.launch();defer {app.terminate()}
         XCTAssertTrue(app.buttons["customizationButton"].waitForExistence(timeout:60))
         app.waitForCharacter {$0["nativeHoldAvailable"] as? Bool == true}
@@ -25,6 +25,12 @@ final class ConversationSettingsTests:XCTestCase {
             XCTAssertTrue(panel.waitForExistence(timeout:5))
             if section == "position" {
                 let start=app.coordinate(withNormalizedOffset:CGVector(dx:0.25,dy:0.29))
+                // These short drags overlap UIKit's tap movement tolerance.
+                // Once our editor recognizes movement, release must not close.
+                for delta in [CGVector(dx:8,dy:0),CGVector(dx:0,dy:9),CGVector(dx:11,dy:7),CGVector(dx:-8,dy:0)] {
+                    start.press(forDuration:0.05,thenDragTo:start.withOffset(delta),withVelocity:.slow,thenHoldForDuration:0.05)
+                    XCTAssertTrue(app.buttons["closeCharacterViewEditor"].exists,"A short recognized adjustment must never become an outside tap")
+                }
                 start.press(forDuration:0.1,thenDragTo:start.withOffset(CGVector(dx:70,dy:5)),withVelocity:.slow,thenHoldForDuration:0.1)
                 XCTAssertTrue(app.buttons["closeCharacterViewEditor"].exists,"Dragging must keep the settings open")
                 app.buttons["resetCharacterView"].tap()
@@ -39,7 +45,7 @@ final class ConversationSettingsTests:XCTestCase {
     }
     @MainActor func testSlidersNeverTransformCharacterAndSettingsFitRotations() {
         continueAfterFailure=false;XCUIDevice.shared.orientation = .portrait
-        let app=XCUIApplication();app.launchArguments=["--ui-testing","--companion-testing","--auth-testing"]
+        let app=XCUIApplication();app.launchArguments=["--ui-testing","--companion-testing","--auth-testing","-starry.app.language.v1","zh-Hans"]
         app.launch();defer {XCUIDevice.shared.orientation = .portrait;app.terminate()}
         XCTAssertTrue(app.buttons["customizationButton"].waitForExistence(timeout:60))
         app.waitForCharacter {$0["nativeHoldAvailable"] as? Bool == true}
@@ -60,12 +66,16 @@ final class ConversationSettingsTests:XCTestCase {
                     XCTAssertTrue(slider.isHittable);slider.adjust(toNormalizedSliderPosition:0.48)
                     app.sliders["speechSoundVolume"].adjust(toNormalizedSliderPosition:0.30)
                     XCTAssertGreaterThan(app.characterAudio["volume"] as? Double ?? 0,0.1)
+                    app.buttons["resetConversationSound"].tap()
+                    app.waitForCharacter {abs((($0["sound"] as? [String:Any])?["volume"] as? Double ?? -1)-0.28)<0.01 && (($0["sound"] as? [String:Any])?["speechVolume"] as? Double)==1}
                 } else if section == "atmosphere" {
                     let slider=app.sliders["atmosphereLevelSlider"]
                     XCTAssertTrue(slider.isHittable);slider.adjust(toNormalizedSliderPosition:0)
                     XCTAssertEqual(slider.value as? String,"关闭")
                     slider.adjust(toNormalizedSliderPosition:1)
                     XCTAssertEqual(slider.value as? String,"100%")
+                    app.buttons["resetConversationAtmosphere"].tap()
+                    XCTAssertEqual(slider.value as? String,"50%")
                 } else {XCTAssertTrue(app.buttons["resetCharacterView"].isHittable)}
                 let saved=app.characterRuntime["viewPoseSaved"] as? [String:Double] ?? [:]
                 XCTAssertEqual(initial,saved,"Changing tabs and sliders must never rotate, scale or move the character")

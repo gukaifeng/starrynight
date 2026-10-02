@@ -39,14 +39,14 @@ struct CharacterViewEditorPanel: View {
                             .font(.system(size:10)).foregroundStyle(Theme.ink.opacity(0.44)).lineLimit(1)
                     }.frame(maxWidth:.infinity,alignment:.leading).padding(.top,13)
                         .overlay(alignment:.topTrailing) {
-                            Button(action:onReset) {
-                                Label("恢复默认",systemImage:"arrow.counterclockwise")
-                                    .font(.system(size:11,weight:.medium)).foregroundStyle(Theme.ink.opacity(0.82))
-                                    .frame(width:98,height:44).contentShape(Rectangle())
-                            }.buttonStyle(.plain).accessibilityIdentifier("resetCharacterView")
+                            reset("resetCharacterView",action:onReset)
                                 .offset(x:7)
                         }
-                case .sound: ConversationSoundControls(session:session).padding(.top,5)
+                case .sound:
+                    VStack(spacing:0) {
+                        HStack {Spacer();reset("resetConversationSound",action:session.resetSoundVolumes)}
+                        ConversationSoundControls(session:session)
+                    }.padding(.top,1)
                 case .atmosphere: atmosphere.padding(.top,10)
                 }
             }.padding(.horizontal,15).frame(maxWidth:.infinity,alignment:.topLeading)
@@ -64,12 +64,20 @@ struct CharacterViewEditorPanel: View {
                 Spacer()
                 Text(session.atmosphereIntensity<=0 ? "关闭" : "\(Int((session.atmosphereIntensity*100).rounded()))%")
                     .font(.system(size:11)).foregroundStyle(Theme.accent)
+                reset("resetConversationAtmosphere",action:session.resetAtmosphereIntensity)
             }
             AtmosphereLevelSlider(intensity:Binding(get:{session.atmosphereIntensity},set:{session.atmospherePreviewIntensity=$0}),
                 onCommit:session.commitAtmosphereIntensity).frame(height:32)
             HStack {Text("关闭");Spacer();Text("绚烂")}.font(.system(size:10)).foregroundStyle(Theme.secondary)
         }.tint(Theme.accent).onDisappear {session.commitAtmosphereIntensity()}
             .onChange(of:scenePhase) {if scenePhase != .active {session.commitAtmosphereIntensity()}}
+    }
+    private func reset(_ id:String,action:@escaping()->Void)->some View {
+        Button(action:action) {
+            Label("恢复默认",systemImage:"arrow.counterclockwise")
+                .font(.system(size:11,weight:.medium)).foregroundStyle(Theme.ink.opacity(0.82))
+                .frame(width:98,height:44).contentShape(Rectangle())
+        }.buttonStyle(.plain).accessibilityIdentifier(id)
     }
 }
 private struct CharacterViewGlass:ViewModifier {

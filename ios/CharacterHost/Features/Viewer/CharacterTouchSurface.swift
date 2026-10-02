@@ -98,13 +98,19 @@ private final class CharacterEditGesture: UIGestureRecognizer {
         rotation = .zero;translation = .zero;zoom=1;rebased=true
     }
     override func touchesBegan(_ touches:Set<UITouch>,with event:UIEvent) {
+        guard state == .possible || state == .began || state == .changed else {return}
         guard fingers.count+touches.count<=2 else {state = .cancelled;return}
-        let first=fingers.isEmpty
-        fingers.append(contentsOf:touches);rebase();state=first ? .began : .changed
+        fingers.append(contentsOf:touches);rebase()
+        // A single resting finger is still a tap. Recognize a drag only after
+        // movement, or a transform as soon as the second finger arrives.
+        if fingers.count==2 {state = state == .possible ? .began : .changed}
+        else if state != .possible {state = .changed}
     }
     override func touchesMoved(_ touches:Set<UITouch>,with event:UIEvent) {
+        guard state == .possible || state == .began || state == .changed else {return}
         let p=fingers.map{$0.location(in:view)}
         guard let first=p.first,let view else {return}
+        if state == .possible,p.count==1,hypot(first.x-anchor.x,first.y-anchor.y)<6 {return}
         rebased=false
         let width=max(1,view.bounds.width),height=max(1,view.bounds.height)
         if p.count==1 {
@@ -114,13 +120,15 @@ private final class CharacterEditGesture: UIGestureRecognizer {
             translation=CGPoint(x:min(1,max(-1,(center.x-anchor.x)/width)),y:min(1,max(-1,(center.y-anchor.y)/height)))
             zoom=min(2,max(0.5,hypot(first.x-p[1].x,first.y-p[1].y)/distance))
         }
-        state = .changed
+        state = state == .possible ? .began : .changed
     }
     override func touchesEnded(_ touches:Set<UITouch>,with event:UIEvent) {
+        guard state == .possible || state == .began || state == .changed else {return}
         fingers.removeAll{touches.contains($0)}
-        if fingers.isEmpty {state = .ended} else {rebase();state = .changed}
+        if state == .possible {state = .failed}
+        else if fingers.isEmpty {state = .ended} else {rebase();state = .changed}
     }
-    override func touchesCancelled(_ touches:Set<UITouch>,with event:UIEvent) {state = .cancelled}
+    override func touchesCancelled(_ touches:Set<UITouch>,with event:UIEvent) {state = state == .possible ? .failed : .cancelled}
     override func reset() {fingers.removeAll();rotation = .zero;translation = .zero;zoom=1;rebased=false;super.reset()}
 }
 
@@ -152,6 +160,8 @@ final class CharacterTouchSurface:UIView,UIGestureRecognizerDelegate {
     func observeEditing(in overlay:UIView,accepts:@escaping(CGPoint,UIView?)->Bool) {
         inspect.view?.removeGestureRecognizer(inspect);acceptsEdit=accepts;inspect.delegate=self;overlay.addGestureRecognizer(inspect)
     }
+    func coordinateDismissTap(_ recognizer:UIGestureRecognizer) {recognizer.require(toFail:inspect)}
+    func isEditingGesture(_ recognizer:UIGestureRecognizer)->Bool {recognizer === inspect}
     func observePreview(in overlay:UIView,origin:@escaping(CGPoint,UIView?)->CharacterPreviewOrigin?,
                         conversationScroll:@escaping(UIView)->Bool) {
         preview.view?.removeGestureRecognizer(preview)
