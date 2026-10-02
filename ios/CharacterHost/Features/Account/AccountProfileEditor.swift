@@ -41,10 +41,18 @@ struct AccountProfileEditor:View {
                         .accessibilityLabel("从相册选择头像").accessibilityIdentifier("chooseAccountPhoto")
                 }
                 if processing {ProgressView("正在准备头像…")}
-                TextField("昵称",text:$name).accessibilityIdentifier("profileNameInput")
+                LabeledContent("昵称") {
+                    TextField("设置昵称",text:$name).multilineTextAlignment(.trailing)
+                        .textInputAutocapitalization(.never).accessibilityIdentifier("profileNameInput")
+                }
                 TextField("个人简介",text:$bio,axis:.vertical).lineLimit(3...5).accessibilityIdentifier("profileBioInput")
                 Picker("性别",selection:$gender) {Text("不透露").tag("unspecified");Text("女").tag("female");Text("男").tag("male");Text("其他").tag("other")}
-            } footer:{Text("星夜号自动生成且不可修改。昵称、头像和简介可随时调整。")}
+            } footer:{
+                VStack(alignment:.leading,spacing:6) {
+                    Text("昵称显示在个人资料中，与 AI 对你的称呼独立。")
+                    Text("星夜号自动生成且不可修改。昵称、头像和简介可随时调整。")
+                }
+            }
                 .listRowBackground(Theme.surface)
             if let error {Section {Text(error).foregroundStyle(Theme.peach)}.listRowBackground(Theme.surface)}
             if saving {Section {ProgressView()}.listRowBackground(Theme.surface)}

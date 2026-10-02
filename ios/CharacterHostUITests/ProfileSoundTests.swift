@@ -4,7 +4,7 @@ final class ProfileSoundTests:XCTestCase {
     @MainActor func testCompactProfileKeepsAccountAndCreatorNavigation() {
         continueAfterFailure = false
         let app = XCUIApplication()
-        app.launchArguments = ["--ui-testing","--companion-testing","--shell-discover"]
+        app.launchArguments = ["--ui-testing","--companion-testing","--shell-discover","-starry.app.language.v1","zh-Hans"]
         app.launch()
         XCTAssertTrue(app.buttons["tab-mine"].waitForExistence(timeout:15)); app.buttons["tab-mine"].tap()
         let identity = app.buttons["accountCenterButton"], settings = app.buttons["profileSettingsButton"]
@@ -38,7 +38,8 @@ final class ProfileSoundTests:XCTestCase {
         app.buttons["closeAuthorProfile"].tap()
         XCTAssertTrue(app.buttons["closeCreationsButton"].waitForExistence(timeout:5))
         app.buttons["closeCreationsButton"].tap()
-        XCTAssertTrue(app.staticTexts["晚风"].waitForExistence(timeout:5))
+        XCTAssertTrue(app.staticTexts["profileNickname"].waitForExistence(timeout:5))
+        XCTAssertEqual(app.staticTexts["profileNickname"].label,"星夜体验者","Editing the public author profile does not rename the account")
         settings.tap()
         XCTAssertTrue(app.buttons["aboutStarryButton"].waitForExistence(timeout:5))
         app.buttons["closeSettingsButton"].tap()

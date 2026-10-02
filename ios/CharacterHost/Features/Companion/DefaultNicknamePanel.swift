@@ -24,12 +24,8 @@ struct DefaultNicknamePanel: View {
             PanelPageHeader("AI 对我的称呼",backID:"closeDefaultNicknameButton")
             ScrollView {
                 VStack(alignment:.leading,spacing:22) {
-                    VStack(alignment:.leading,spacing:8) {
-                        Text("一个熟悉的称呼，让相处更亲近。")
-                            .font(.system(size:21,weight:.medium,design:.rounded))
-                        Text("为当前账号设置默认称呼。没有专属称呼的角色，都会使用它。")
-                            .font(.system(size:13)).lineSpacing(4).foregroundStyle(Theme.secondary)
-                    }
+                    Text("这里决定角色在聊天中怎样叫你，不会更改你的昵称。没有专属称呼的角色，会使用默认称呼。")
+                        .font(.system(size:13)).lineSpacing(5).foregroundStyle(Theme.secondary)
                     VStack(alignment:.leading,spacing:12) {
                         HStack {
                             Text("全局默认称呼").font(.system(size:14,weight:.medium))

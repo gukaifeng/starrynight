@@ -22374,6 +22374,98 @@
           }
         }
       }
+    },
+    "仅用于聊天，与昵称独立": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仅用于聊天，与昵称独立"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "僅用於聊天，與暱稱獨立"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "For conversations, separate from your name"
+          }
+        }
+      }
+    },
+    "设置昵称": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "设置昵称"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "設定暱稱"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Set display name"
+          }
+        }
+      }
+    },
+    "昵称显示在个人资料中，与 AI 对你的称呼独立。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "昵称显示在个人资料中，与 AI 对你的称呼独立。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暱稱顯示在個人資料中，與 AI 對你的稱呼獨立。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your display name appears on your profile. What AI calls you is a separate setting."
+          }
+        }
+      }
+    },
+    "这里决定角色在聊天中怎样叫你，不会更改你的昵称。没有专属称呼的角色，会使用默认称呼。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这里决定角色在聊天中怎样叫你，不会更改你的昵称。没有专属称呼的角色，会使用默认称呼。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "這裡決定角色在聊天中怎樣叫你，不會更改你的暱稱。沒有專屬稱呼的角色，會使用預設稱呼。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose how characters address you in conversation. This does not change your display name. A character uses the default unless you set a name for that character."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

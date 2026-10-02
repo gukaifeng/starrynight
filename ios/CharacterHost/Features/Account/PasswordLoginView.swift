@@ -5,7 +5,7 @@ struct LoginView: View {
     @State private var registering = false
     @State private var username = ""
     @State private var password = ""
-    @State private var nickname = ""
+    @State private var profileName = ""
     @State private var allowsGuest = false
     @FocusState private var focused:Bool
     @Environment(\.softPanelDismiss) private var close
@@ -30,7 +30,7 @@ struct LoginView: View {
                 Picker("账户",selection:$registering) { Text("登录").tag(false);Text("注册").tag(true) }
                     .pickerStyle(.segmented).accessibilityIdentifier("passwordAuthMode")
                 VStack(spacing:14) {
-                    if registering { field("怎么称呼你",text:$nickname,id:"registerNickname",type:.nickname) }
+                    if registering { field("昵称",text:$profileName,id:"registerNickname",type:.nickname) }
                     field("账号 · 字母、数字或下划线",text:$username,id:"passwordUsername",type:.username)
                     SecureField("密码 · 至少 12 位",text:$password)
                         .textContentType(registering ? .newPassword : .password).focused($focused)
@@ -40,7 +40,7 @@ struct LoginView: View {
                 if let error = account.error { Text(LocalizedStringKey(error)).font(.system(size:12)).foregroundStyle(Theme.peach).accessibilityIdentifier("loginError") }
                 Button {
                     focused = false
-                    Task { await account.authenticate(action:registering ? "register" : "login",username:username,password:password,name:nickname) }
+                    Task { await account.authenticate(action:registering ? "register" : "login",username:username,password:password,name:profileName) }
                 } label: {
                     HStack { Text(registering ? "创建账户" : "登录星夜");Spacer();if account.isBusy { ProgressView().tint(Theme.background) } else { Image(systemName:"arrow.right") } }
                         .font(.system(size:15,weight:.semibold)).padding(.horizontal,20).frame(height:50)

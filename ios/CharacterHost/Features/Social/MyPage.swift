@@ -4,6 +4,7 @@ struct MyPage: View {
     @Bindable var coordinator:ViewerCoordinator
     @State private var showingSettings = false
     @State private var showingAccount = false
+    @State private var showingNickname = false
     @State private var showingFollows = false
     @State private var showingSubscriptions = false
     @State private var pendingEntry: (String,Bool)?
@@ -32,38 +33,51 @@ struct MyPage: View {
         coordinator.openCharacter(entry.0,customize:entry.1)
     }
     private var signed:Bool { coordinator.account.isSignedIn }
+    /// A public profile name is never derived from a conversation address.
+    private var nickname:String {
+        signed ? coordinator.account.cloudSession?.user.displayName ?? L10n.text(DemoAccount.name) : L10n.text("初来星夜")
+    }
     var body:some View {
         ScrollView {
-            VStack(alignment:.leading,spacing:16) {
-                HStack(alignment:.center,spacing:12) {
-                    identity
-                    Button { showingSettings = true } label: {
-                        Image(systemName:"gearshape").font(.system(size:17,weight:.regular))
-                            .foregroundStyle(Theme.secondary)
-                            .frame(width:32,height:32).background(Theme.surface.opacity(Theme.controlOpacity),in:Circle())
-                            .frame(width:44,height:44).contentShape(Rectangle())
-                    }.buttonStyle(.plain).accessibilityLabel("设置").accessibilityIdentifier("profileSettingsButton")
+            VStack(alignment:.leading,spacing:0) {
+                VStack(alignment:.leading,spacing:16) {
+                    HStack(alignment:.center,spacing:8) {
+                        identity
+                        Button { showingSettings = true } label: {
+                            Image(systemName:"gearshape").font(.system(size:17,weight:.light))
+                                .foregroundStyle(Theme.secondary.opacity(0.8))
+                                .frame(width:44,height:44).contentShape(Rectangle())
+                        }.buttonStyle(.plain).accessibilityLabel("设置").accessibilityIdentifier("profileSettingsButton")
+                    }
+                    Text(signed ? (coordinator.account.cloudSession?.user.profile["bio"]?.string ?? "在星夜，遇见温柔。") : "先聊一会儿，喜欢的话就留下来。")
+                        .font(.system(size:13)).foregroundStyle(Theme.secondary).lineSpacing(4).lineLimit(3)
+                        .frame(maxWidth:.infinity,alignment:.leading).accessibilityIdentifier("profileBio")
                 }
-                Text(signed ? (coordinator.account.cloudSession?.user.profile["bio"]?.string ?? "在星夜，遇见温柔。") : "先聊一会儿，喜欢的话就留下来。")
-                    .font(.system(size:15)).foregroundStyle(Theme.secondary).lineSpacing(3).lineLimit(2)
-                    .frame(maxWidth:.infinity,alignment:.leading).accessibilityIdentifier("profileBio")
                 HStack(spacing:0) {
                     statistic(coordinator.library.subscriptions.count,title:"订阅",identifier:"mySubscriptionsButton") { showingSubscriptions = true }
                     statistic(coordinator.library.followedAuthors.count,title:"关注",identifier:"myFollowsButton") { showingFollows = true }
                     statistic(coordinator.library.creations.count,title:"角色",identifier:"myCreationsButton") { showingCreations = true }
                     statistic(chattedModels.count,title:"聊过",identifier:"myConversationsButton") { showingConversations = true }
-                }.padding(.vertical,4)
-                    .background(Theme.surface.opacity(0.35),in:RoundedRectangle(cornerRadius:16))
-                if let error = coordinator.library.error { Text(LocalizedStringKey(error)).font(.system(size:15)).foregroundStyle(Theme.peach) }
+                }.padding(.top,24).padding(.bottom,24)
+                profileRule
+                addressRow.padding(.vertical,8)
+                profileRule
                 VStack(spacing:0) {
                     toolRow("存储与缓存",symbol:"internaldrive",page:"storage")
                     toolRow("隐私与数据",symbol:"hand.raised",page:"privacy")
                     toolRow("帮助与反馈",symbol:"questionmark.circle",page:"help")
-                }.background(Theme.surface.opacity(0.55),in:RoundedRectangle(cornerRadius:18))
+                }.padding(.top,10)
+                if let error = coordinator.library.error {
+                    Text(LocalizedStringKey(error)).font(.system(size:12)).foregroundStyle(Theme.peach).padding(.top,12)
+                }
                 Text("星夜 · "+(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""))
-                    .font(.system(size:15)).foregroundStyle(Theme.secondary.opacity(0.6)).frame(maxWidth:.infinity).padding(.top,4)
-            }.padding(.horizontal,24).padding(.top,20).padding(.bottom,20)
-        }.scrollIndicators(.hidden)
+                    .font(.system(size:10)).tracking(0.5).foregroundStyle(Theme.secondary.opacity(0.5))
+                    .frame(maxWidth:.infinity).padding(.top,26)
+            }.padding(.horizontal,24).padding(.top,28).padding(.bottom,24)
+        }.scrollIndicators(.hidden).background(Theme.background)
+            .softSheet(isPresented:$showingNickname,height:860) {
+                DefaultNicknamePanel(store:coordinator.companionStore,models:coordinator.library.discover)
+            }
             .softSheet(isPresented:$showingTools,height:860) {
                 NavigationStack {
                     Group {
@@ -107,40 +121,51 @@ struct MyPage: View {
     }
     private var identity:some View {
         Button { if signed { showingAccount = true } else { coordinator.requestLogin() } } label: {
-        HStack(spacing:12) {
-            if let remote=coordinator.account.cloudSession {UserAccountAvatar(size:56,symbol:remote.user.profile["avatar"]?.string)}
-            else if let author = coordinator.library.currentAuthor, signed { AuthorAvatar(author:author,size:56) }
-            else { UserAccountAvatar(size:56,signed:signed) }
-            VStack(alignment:.leading,spacing:6) {
-                HStack(spacing:7) {
-                    Text(signed ? coordinator.account.cloudSession?.user.displayName ?? coordinator.library.currentAuthor?.name ?? L10n.text("星夜体验者") : L10n.text("初来星夜"))
-                        .font(.system(size:15,weight:.semibold)).lineLimit(1)
-                    Image(systemName:"chevron.right").font(.system(size:9,weight:.medium)).foregroundStyle(Theme.secondary.opacity(0.7))
-                }
+        HStack(spacing:16) {
+            UserAccountAvatar(size:64,signed:signed,symbol:coordinator.account.cloudSession?.user.profile["avatar"]?.string)
+            VStack(alignment:.leading,spacing:8) {
+                Text(nickname).font(.system(size:22,weight:.semibold)).lineLimit(1).minimumScaleFactor(0.85)
+                    .accessibilityIdentifier("profileNickname")
                 Text(signed ? L10n.text("星夜号：") + (coordinator.account.cloudSession.map { $0.user.publicNumber } ?? L10n.text("登录后分配")) : L10n.text("游客 · 正在开始的故事"))
-                    .font(.system(size:15)).foregroundStyle(Theme.secondary).lineLimit(1).accessibilityIdentifier("profileAccountID")
+                    .font(.system(size:10.5,weight:.regular)).monospacedDigit()
+                    .foregroundStyle(Theme.secondary.opacity(0.72)).lineLimit(1).accessibilityIdentifier("profileAccountID")
             }.frame(maxWidth:.infinity,alignment:.leading)
-        }.padding(.vertical,4).contentShape(Rectangle())
+        }.frame(minHeight:64).contentShape(Rectangle())
         }.buttonStyle(.plain).accessibilityIdentifier("accountCenterButton")
             .accessibilityHint(signed ? "打开账户" : "登录星夜")
+    }
+    private var profileRule:some View {Rectangle().fill(Theme.line.opacity(0.45)).frame(height:0.5).accessibilityHidden(true)}
+    private var addressRow:some View {
+        Button {showingNickname=true} label: {
+            HStack(spacing:12) {
+                Image(systemName:"text.bubble").font(.system(size:17,weight:.light))
+                    .foregroundStyle(Theme.accent.opacity(0.78)).frame(width:22)
+                VStack(alignment:.leading,spacing:5) {
+                    Text("AI 对我的称呼").font(.system(size:14,weight:.medium))
+                    Text("仅用于聊天，与昵称独立").font(.system(size:11)).foregroundStyle(Theme.secondary.opacity(0.8))
+                }
+                Spacer(minLength:8)
+                Text(coordinator.companionStore.defaultNickname.isEmpty ? L10n.text("未设置") : coordinator.companionStore.defaultNickname)
+                    .font(.system(size:12)).foregroundStyle(Theme.secondary).lineLimit(1)
+                    .frame(maxWidth:105,alignment:.trailing).accessibilityIdentifier("profileDefaultAddress")
+                Image(systemName:"chevron.right").font(.system(size:9,weight:.regular)).foregroundStyle(Theme.secondary.opacity(0.55))
+            }.frame(minHeight:64).contentShape(Rectangle())
+        }.buttonStyle(.plain).accessibilityIdentifier("profileAddressButton")
     }
     private func toolRow(_ title:String,symbol:String,page:String) -> some View {
         Button {toolsPage=page;showingTools=true} label: {
             HStack(spacing:12) {
-                Image(systemName:symbol).font(.system(size:16,weight:.regular)).foregroundStyle(Theme.accent).frame(width:22)
-                Text(LocalizedStringKey(title)).font(.system(size:15))
-                Spacer();Image(systemName:"chevron.right").font(.system(size:9)).foregroundStyle(Theme.secondary)
-            }.padding(.horizontal,16).frame(minHeight:50).contentShape(Rectangle())
+                Image(systemName:symbol).font(.system(size:17,weight:.light)).foregroundStyle(Theme.secondary.opacity(0.82)).frame(width:22)
+                Text(LocalizedStringKey(title)).font(.system(size:14))
+                Spacer();Image(systemName:"chevron.right").font(.system(size:9)).foregroundStyle(Theme.secondary.opacity(0.55))
+            }.frame(minHeight:52).contentShape(Rectangle())
         }.buttonStyle(.plain).accessibilityIdentifier("profileTool-"+page)
     }
     private func statistic(_ value:Int,title:String,identifier:String,action:@escaping ()->Void) -> some View {
         Button(action:action) {
-            let layout:AnyLayout = AppLanguageSettings.shared.resolved == .english
-                ? AnyLayout(VStackLayout(alignment:.center,spacing:3))
-                : AnyLayout(HStackLayout(alignment:.firstTextBaseline,spacing:5))
-            layout {
-                Text("\(value)").font(.system(size:15,weight:.semibold)).monospacedDigit()
-                Text(LocalizedStringKey(title)).font(.system(size:15)).foregroundStyle(Theme.secondary)
+            VStack(spacing:6) {
+                Text("\(value)").font(.system(size:19,weight:.medium)).monospacedDigit()
+                Text(LocalizedStringKey(title)).font(.system(size:11)).foregroundStyle(Theme.secondary)
                     .lineLimit(1).minimumScaleFactor(0.85)
             }.frame(maxWidth:.infinity,minHeight:44).contentShape(Rectangle())
         }.buttonStyle(.plain).accessibilityIdentifier(identifier).accessibilityLabel("\(value) \(title)")

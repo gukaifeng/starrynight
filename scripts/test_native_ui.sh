@@ -13,6 +13,14 @@ print(next(d['udid'] for group in data['devices'].values() for d in group if d['
 PY
 )"
 STARRY_LIVE_AI_TESTS=0 python3 scripts/generate_host.py --platform simulator --native-ui-fixture
+# Reuse the reviewed exact-version package checkout when it is already present.
+# Resolving an unchanged dependency must not depend on a fresh GitHub fetch.
+PACKAGE_ARGS=()
+if [ -d .local/build/DerivedData/SourcePackages/checkouts/ZIPFoundation ] && [ -f ios/StarryNight-Simulator.xcworkspace/xcshareddata/swiftpm/Package.resolved ]; then
+  mkdir -p ios/StarryNight-NativeUI.xcworkspace/xcshareddata/swiftpm
+  cp ios/StarryNight-Simulator.xcworkspace/xcshareddata/swiftpm/Package.resolved ios/StarryNight-NativeUI.xcworkspace/xcshareddata/swiftpm/Package.resolved
+  PACKAGE_ARGS=(-clonedSourcePackagesDirPath .local/build/DerivedData/SourcePackages -disableAutomaticPackageResolution -skipPackageUpdates)
+fi
 xcrun simctl boot "$SIMULATOR_ID" 2>/dev/null || true
 python3 scripts/wait_for_simulator.py "$SIMULATOR_ID"
 mkdir -p .local/logs .local/checks
@@ -24,7 +32,7 @@ RESULT_PATH=".local/checks/$RUN_NAME.xcresult"
 if ! xcodebuild -workspace ios/StarryNight-NativeUI.xcworkspace -scheme CharacterHost \
   -configuration Debug -destination "platform=iOS Simulator,id=$SIMULATOR_ID" \
   -derivedDataPath .local/build/NativeUIDerivedData -resultBundlePath "$RESULT_PATH" \
-  -parallel-testing-enabled NO "${TEST_FILTERS[@]}" CODE_SIGNING_ALLOWED=NO test > "$LOG_PATH" 2>&1; then
+  -parallel-testing-enabled NO "${PACKAGE_ARGS[@]}" "${TEST_FILTERS[@]}" CODE_SIGNING_ALLOWED=NO test > "$LOG_PATH" 2>&1; then
   tail -60 "$LOG_PATH" >&2;exit 1
 fi
 if ! rg -q '^Test Case .+ passed' "$LOG_PATH"; then echo 'No selected XCTest completed' >&2;exit 1;fi
