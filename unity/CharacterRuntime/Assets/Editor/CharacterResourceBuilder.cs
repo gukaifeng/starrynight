@@ -15,6 +15,7 @@ public sealed class CharacterResourceBuilder : IProcessSceneWithReport
     public int callbackOrder=>100;
     public static void Prepare(ViewerController viewer)
     {
+        PrepareAtmospheres();
         const string folder="Assets/Resources/Characters";Directory.CreateDirectory(folder);
         viewer.resourceCharacterIDs=viewer.characters.Select(c=>c.modelId).ToArray();
         foreach(var c in viewer.characters)
@@ -26,6 +27,34 @@ public sealed class CharacterResourceBuilder : IProcessSceneWithReport
         // Deactivated roster assets must not stay inside the Resources bundle.
         foreach(string file in Directory.GetFiles(folder,"*.prefab"))
             if(!viewer.resourceCharacterIDs.Contains(Path.GetFileNameWithoutExtension(file)))AssetDatabase.DeleteAsset(file);
+    }
+    public static void PrepareAtmospheres()
+    {
+        var active=CharacterPackageBuilder.Roster.characters;
+        const string folder="Assets/Resources/Atmospheres";
+        const string archive="Assets/ArchivedAtmospheres";
+        Directory.CreateDirectory(archive);
+        AssetDatabase.Refresh();
+        foreach(var path in AssetDatabase.GetSubFolders(folder))
+        {
+            string id=Path.GetFileName(path);
+            if(active.Contains(id))continue;
+            string destination=archive+"/"+id;
+            if(AssetDatabase.IsValidFolder(destination))throw new Exception("Atmosphere archive collision: "+id);
+            string error=AssetDatabase.MoveAsset(path,destination);
+            if(!string.IsNullOrEmpty(error))throw new Exception(error);
+        }
+        // A restored roster can reuse the same archived, authored background.
+        foreach(var id in active)
+            if(AssetDatabase.IsValidFolder(archive+"/"+id) && !AssetDatabase.IsValidFolder(folder+"/"+id))
+            {
+                string error=AssetDatabase.MoveAsset(archive+"/"+id,folder+"/"+id);
+                if(!string.IsNullOrEmpty(error))throw new Exception(error);
+            }
+        File.Copy(Path.Combine(CharacterPackageBuilder.Root,"ios/CharacterHost/Resources/CharacterAtmospheres.json"),
+            "Assets/Resources/CharacterAtmospheres.json",true);
+        AssetDatabase.ImportAsset("Assets/Resources/CharacterAtmospheres.json",ImportAssetOptions.ForceSynchronousImport);
+        AssetDatabase.SaveAssets();
     }
     public void OnProcessScene(Scene scene,BuildReport report)
     {

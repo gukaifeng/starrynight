@@ -20,9 +20,11 @@ struct CharacterModelReviewTests {
         let previews=ModelDescriptor.all.filter(\.isPreviewOnly)
         let full=ModelDescriptor.all.filter {!$0.isPreviewOnly}
         check(!ModelDescriptor.all.contains {$0.id=="anime-kipfel-v111"},"Duplicate new cat preview is retired")
-        let cat=ModelDescriptor.all.first {$0.id=="anime-kipfel"}
-        check(cat != nil && cat?.isPreviewOnly == false && cat?.packageVersion=="3.3.0","Upgraded cat preserves the full companion identity")
-        check(cat?.performance?.options.count==87,"All upgraded cat performance choices are available")
+        let expected=["chiffon":"Chiffon","fiona":"Fiona","hikarun":"Hikarun","ichigo":"Ichigo","koharu":"Koharu","lime":"Lime","mafuyu":"Mafuyu","meiyun":"Meiyun","milfy":"Milfy","mao":"Mao","mizuki":"Mizuki","perula":"Perula","plum":"Plum","ramune":"Ramune","shinano":"Shinano","sio":"Sio"]
+        check(Set(ModelDescriptor.all.map(\.id))==Set(expected.keys.map {"anime-"+$0}),"Exactly the selected sixteen roles are bundled")
+        check(full.count==5 && previews.count==11,"Existing five full companions and eleven previews are retained")
+        check(ModelDescriptor.defaultCharacter.id=="anime-chiffon","Default character is in the selected roster")
+        for model in ModelDescriptor.all {check(model.display.name==expected[String(model.id.dropFirst(6))],"Original character name is used")}
         check(!previews.isEmpty && !full.isEmpty,"Mixed collection retains complete and preview characters")
         for model in previews {
             let api=CharacterAI(accountID:"review",characterID:model.id)
@@ -41,9 +43,11 @@ struct CharacterModelReviewTests {
             let hasSpeech=model.supports("core.speech.amplitude@1") || model.supports("core.speech.viseme@1")
             check(model.isPreviewOnly ? !hasSpeech : hasSpeech,"Complete speech capabilities are retained")
             var personal=CharacterProfile.initial(model.id)
+            personal.name="旧名字"
             personal.autoSpeak=true;personal.audio=CharacterAudioPreferences(trackID:model.collection.defaultMusic)
             personal.audio?.volume=0.7;personal.audio?.speechVolume=0.8
             let profile=model.conversationProfile(preserving:personal)
+            check(profile.name==expected[String(model.id.dropFirst(6))],"Stored old names do not replace the current source identity")
             if model.isPreviewOnly {
                 check(!profile.autoSpeak && profile.audio?.volume==0 && profile.audio?.speechVolume==0,"Preview silences music and speech")
             } else {

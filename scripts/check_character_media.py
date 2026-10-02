@@ -29,7 +29,11 @@ def validate(root=ROOT):
     assert catalog == read(unity / 'CharacterAtmospheres.json'), 'Native/Unity atmosphere catalogs differ'
     assert catalog['schemaVersion'] == 1
     roles = {entry['id']: entry for entry in catalog['characters']}
-    assert set(roles) == roster and len(roles) == len(catalog['characters']), 'Atmosphere roster differs'
+    # Preview-only roles retain author-supplied covers and the existing 3D room;
+    # they must not acquire generated media merely to pass a release check.
+    recipes=read(root / 'assets/characters/media-recipes.json')['characters']
+    authored={r['id'] for r in recipes} & roster
+    assert set(roles) == authored and len(roles) == len(catalog['characters']), 'Authored atmosphere roster differs'
     covers = {entry['runtimeID']: entry for entry in read(native / 'CharacterCoverCatalog.json')['covers']}
     assert set(covers) == roster, 'Cover roster differs'
     hashes = set()
@@ -58,7 +62,7 @@ def validate(root=ROOT):
                 if kind == 'cover':
                     assert covers[role]['source'] == 'bailian-generated'
                     assert covers[role]['sourceSHA256'] == receipt['sha256']
-    print(f'Character media PASS: {len(roster)} roles, {len(hashes)} distinct generated images; ownership, dimensions, hashes and bindings.')
+    print(f'Character media PASS: {len(roles)} authored media sets, {len(roster)-len(roles)} roles retain source previews, {len(hashes)} verified generated images.')
 
 
 if __name__ == '__main__':

@@ -28,6 +28,12 @@ NAMES = {'kipfel':'小猫','airi':'爱莉','chiffon':'戚风','cornet':'可露',
          'rindo':'龙胆','rurune':'露露奈','shinano':'信浓','koharu':'小春'}
 
 
+NAMES.update(dict(
+    chiffon='Chiffon', fiona='Fiona', hikarun='Hikarun', ichigo='Ichigo',
+    koharu='Koharu', lime='Lime', mafuyu='Mafuyu', meiyun='Meiyun', milfy='Milfy',
+    mao='Mao', mizuki='Mizuki', perula='Perula', plum='Plum', ramune='Ramune',
+    shinano='Shinano', sio='Sio'))
+
 def role_key(folder):
     if folder.startswith('小春'):
         return 'koharu'

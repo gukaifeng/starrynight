@@ -208,7 +208,13 @@ public static class BuildIos
         }
         var renderers = viewers[0].model.GetComponentsInChildren<Renderer>();
         if (renderers.Length == 0 || renderers.Any(r=>r.sharedMaterials.Any(m=>!m || !m.shader))) throw new Exception("Model/material invalid");
-        if (viewers[0].model.GetComponentsInChildren<Animator>().Any(a=>a.enabled) || viewers[0].model.GetComponentsInChildren<Animation>().Any(a=>a.enabled)) throw new Exception("Automatic animation enabled");
+        // Full portable companions own a reviewed Animator through this driver.
+        // It is enabled intentionally; source Animators and legacy autoplay are
+        // still forbidden. The old default cat did not exercise this branch.
+        var control=viewers[0].model.GetComponent<AvatarControlDriver>();
+        if (viewers[0].model.GetComponentsInChildren<Animator>().Any(a=>a.enabled && (!control || a!=control.animator)) ||
+            viewers[0].model.GetComponentsInChildren<Animation>().Any(a=>a.enabled || a.playAutomatically))
+            throw new Exception("Unowned automatic animation enabled");
         if (!viewers[0].GetComponent<CharacterActions>()) throw new Exception("Action controller missing");
         var appleSettings = new SerializedObject(AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/ProjectSettings.asset")[0]);
         if (!appleSettings.FindProperty("appleEnableProMotion").boolValue) throw new Exception("ProMotion must be enabled");

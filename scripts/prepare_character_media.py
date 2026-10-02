@@ -34,10 +34,12 @@ def install():
         unity=ROOT/'unity/CharacterRuntime/Assets/Resources/Atmospheres'/role
         unity.mkdir(parents=True,exist_ok=True);shutil.copyfile(folder/'background.png',unity/'background.png')
         media.append(dict(id=role,title=recipe['title'],background='Atmospheres/'+role+'/background',effect=recipe['effect'],palette=recipe['palette'],density=recipe['density'],backgroundSHA256=receipts['background']['sha256'],imageModel=receipts['background']['model']))
-    assert {r['id'] for r in media}==set(roster),'Incomplete active artwork set'
+    expected={r['id'] for r in recipes['characters']} & set(roster)
+    assert {r['id'] for r in media}==expected,'Incomplete existing authored artwork set'
     text=json.dumps({'schemaVersion':1,'characters':media},ensure_ascii=False,indent=2)+'\n'
     (native/'CharacterAtmospheres.json').write_text(text)
     (ROOT/'unity/CharacterRuntime/Assets/Resources/CharacterAtmospheres.json').write_text(text)
+    covers['covers']=[c for c in covers['covers'] if c['runtimeID'] in roster]
     cover_path.write_text(json.dumps(covers,ensure_ascii=False,indent=2)+'\n')
     print('Prepared AI covers, avatars and 2048px scene masters for',len(media),'characters')
 if __name__=='__main__':install()

@@ -14,6 +14,7 @@ import subprocess
 from urllib.parse import urlsplit
 import xml.sax.saxutils as xml
 from generate_asset_credits import generate_asset_credits
+from filter_character_resources import active_resources, stage_catalog
 
 ROOT = Path(__file__).resolve().parents[1]
 test_tool_config=ROOT/'.local/character-ai-client/TestTools.json'
@@ -77,10 +78,13 @@ def configuration(key, settings):
 if not args.native_ui_fixture:generate_asset_credits(ROOT)
 source_refs=[]; source_build=[]; resource_build=[]
 active_music = {t['asset'] for c in json.loads((ios/'CharacterHost/Resources/CharacterCollections.json').read_text())['collections'] for t in c['music']}
+active_artwork, active_openings = active_resources(ROOT)
+active_character_ids = {c['id'] for c in json.loads((ios/'CharacterHost/Resources/CharacterCatalog.json').read_text())['characters']}
 for path in sorted((ios/'CharacterHost').rglob('*')):
     if any(p.suffix == '.xcassets' for p in path.parents): continue
     if path.suffix == '.xcassets':
-        relative=str(path.relative_to(ios))
+        staged,_ = stage_catalog(ROOT,path,active_artwork)
+        relative='../'+str(staged.relative_to(ROOT))
         ref=obj(relative,'PBXFileReference',lastKnownFileType='folder.assetcatalog',path=relative,sourceTree='<group>')
         source_refs.append(ref); resource_build.append(buildfile(relative,ref))
         continue
@@ -88,6 +92,9 @@ for path in sorted((ios/'CharacterHost').rglob('*')):
     if args.native_ui_fixture and path.name == 'UnityRuntimeBridge.mm':continue
     if not test_tools and ('Developer' in path.parts or path.name == 'AIInspectionPanel.swift'): continue
     if path.name.startswith('Music_') and path.stem not in active_music: continue
+    if path.name.startswith('Opening_') and path.stem not in active_openings: continue
+    legacy_notice_roles = {'MikuCredits.txt':'hatsune-miku', 'RealCharacterCredits.txt':'real-woman'}
+    if path.name in legacy_notice_roles and legacy_notice_roles[path.name] not in active_character_ids: continue
     types={'.swift':'sourcecode.swift','.mm':'sourcecode.cpp.objcpp','.h':'sourcecode.c.h','.png':'image.png','.txt':'text','.json':'text.json','.wav':'audio.wav','.pcm':'file','.caf':'audio.caf','.storyboard':'file.storyboard','.xcstrings':'text.json.xcstrings'}
     if path.suffix not in types: continue
     relative=str(path.relative_to(ios))
@@ -176,7 +183,7 @@ settings={'PRODUCT_NAME':'$(TARGET_NAME)','PRODUCT_BUNDLE_IDENTIFIER':'com.model
     'FRAMEWORK_SEARCH_PATHS':['$(inherited)','$(BUILT_PRODUCTS_DIR)'],
     'OTHER_LDFLAGS':['$(inherited)','-lc++','-framework','CoreML','-framework','Accelerate'],
     'GCC_ENABLE_CPP_EXCEPTIONS':'YES',
-    'CODE_SIGN_STYLE':'Automatic','CURRENT_PROJECT_VERSION':'123','MARKETING_VERSION':'0.92.0',
+    'CODE_SIGN_STYLE':'Automatic','CURRENT_PROJECT_VERSION':'124','MARKETING_VERSION':'0.93.0',
     'ENABLE_USER_SCRIPT_SANDBOXING':'NO','SUPPORTS_MACCATALYST':'NO','SWIFT_EMIT_LOC_STRINGS':'YES',
     'ARCHS':'arm64','ENABLE_DEBUG_DYLIB':'NO','ASSETCATALOG_COMPILER_APPICON_NAME':'AppIcon'}
 if args.native_ui_fixture:

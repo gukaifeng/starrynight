@@ -3,94 +3,6 @@
   "collections": [
     {
       "schemaVersion": 1,
-      "id": "app.starry.collections.anime-kipfel",
-      "version": "1.2.0",
-      "modelID": "anime-kipfel",
-      "modelPackageID": "app.starry.characters.anime-kipfel",
-      "modelPackageVersion": "3.3.0",
-      "actions": [],
-      "environments": [
-        "garden"
-      ],
-      "voices": [
-        {
-          "id": "anime-kipfel/natural",
-          "title": "自然聊",
-          "detail": "轻柔日常",
-          "engine": "melo-zh-v1",
-          "speed": 0.96
-        },
-        {
-          "id": "anime-kipfel/soft",
-          "title": "慢慢说",
-          "detail": "放缓一点",
-          "engine": "melo-zh-v1",
-          "speed": 0.9
-        }
-      ],
-      "music": [
-        {
-          "id": "anime-kipfel/theme",
-          "asset": "Music_anime_kipfel_theme",
-          "assetExtension": "caf",
-          "sourceModelID": "anime-kipfel",
-          "sha256": "508ddc7b882a58da63888a09891350ccb9f14acf20d7924c13ea3100991d6dc3",
-          "duration": 118.0,
-          "title": "雨声与书页",
-          "detail": "温柔钢琴 · 书屋夜色",
-          "symbol": "music.note"
-        }
-      ],
-      "defaultEnvironment": "garden",
-      "defaultVoice": "anime-kipfel/natural",
-      "defaultMusic": "anime-kipfel/theme"
-    },
-    {
-      "schemaVersion": 1,
-      "id": "app.starry.collections.anime-mamehinata",
-      "version": "1.2.0",
-      "modelID": "anime-mamehinata",
-      "modelPackageID": "app.starry.characters.anime-mamehinata",
-      "modelPackageVersion": "2.2.0",
-      "actions": [],
-      "environments": [
-        "sunroom"
-      ],
-      "voices": [
-        {
-          "id": "anime-mamehinata/natural",
-          "title": "自然聊",
-          "detail": "轻柔日常",
-          "engine": "melo-zh-v1",
-          "speed": 0.96
-        },
-        {
-          "id": "anime-mamehinata/soft",
-          "title": "慢慢说",
-          "detail": "放缓一点",
-          "engine": "melo-zh-v1",
-          "speed": 0.9
-        }
-      ],
-      "music": [
-        {
-          "id": "anime-mamehinata/theme",
-          "asset": "Music_anime_mamehinata_theme",
-          "assetExtension": "caf",
-          "sourceModelID": "anime-mamehinata",
-          "sha256": "dd16ea15176be59d7a454680c3c018c35da9e389b4c9e23d956945455f528777",
-          "duration": 118.0,
-          "title": "窗边的晴天",
-          "detail": "暖色吉他 · 山间微风",
-          "symbol": "music.note"
-        }
-      ],
-      "defaultEnvironment": "sunroom",
-      "defaultVoice": "anime-mamehinata/natural",
-      "defaultMusic": "anime-mamehinata/theme"
-    },
-    {
-      "schemaVersion": 1,
       "id": "app.starry.collections.anime-chiffon",
       "version": "1.2.0",
       "modelID": "anime-chiffon",
@@ -128,77 +40,55 @@
     },
     {
       "schemaVersion": 1,
-      "id": "app.starry.collections.anime-karin",
-      "version": "1.2.0",
-      "modelID": "anime-karin",
-      "modelPackageID": "app.starry.characters.anime-karin",
-      "modelPackageVersion": "3.0.1",
+      "id": "app.starry.collections.anime-fiona",
+      "version": "1.1.0",
+      "modelID": "anime-fiona",
+      "modelPackageID": "app.starry.characters.anime-fiona",
+      "modelPackageVersion": "3.2.0",
       "actions": [],
       "environments": [
         "sunroom"
       ],
       "voices": [
         {
-          "id": "anime-karin/natural",
-          "title": "自然聊",
-          "detail": "角色专属音色",
+          "id": "anime-fiona/preview",
+          "title": "模型预览",
+          "detail": "尚未接入语音",
           "engine": "aliyun-character-v1",
           "speed": 1
         }
       ],
-      "music": [
-        {
-          "id": "anime-karin/theme",
-          "asset": "Music_anime_karin_theme",
-          "assetExtension": "caf",
-          "sourceModelID": "anime-karin",
-          "sha256": "ea61472c5925e575c2b509dfbbe39041efeebea192b9379da284917181a333ef",
-          "duration": 32.905375,
-          "title": "窗边的小发现",
-          "detail": "轻巧节奏 · 插画时光",
-          "symbol": "music.note"
-        }
-      ],
+      "music": [],
       "defaultEnvironment": "sunroom",
-      "defaultVoice": "anime-karin/natural",
-      "defaultMusic": "anime-karin/theme"
+      "defaultVoice": "anime-fiona/preview",
+      "defaultMusic": "",
+      "previewOnly": true
     },
     {
       "schemaVersion": 1,
-      "id": "app.starry.collections.anime-torao",
-      "version": "1.2.0",
-      "modelID": "anime-torao",
-      "modelPackageID": "app.starry.characters.anime-torao",
-      "modelPackageVersion": "3.0.1",
+      "id": "app.starry.collections.anime-hikarun",
+      "version": "1.1.0",
+      "modelID": "anime-hikarun",
+      "modelPackageID": "app.starry.characters.anime-hikarun",
+      "modelPackageVersion": "3.2.0",
       "actions": [],
       "environments": [
         "sunroom"
       ],
       "voices": [
         {
-          "id": "anime-torao/natural",
-          "title": "自然聊",
-          "detail": "角色专属音色",
+          "id": "anime-hikarun/preview",
+          "title": "模型预览",
+          "detail": "尚未接入语音",
           "engine": "aliyun-character-v1",
           "speed": 1
         }
       ],
-      "music": [
-        {
-          "id": "anime-torao/theme",
-          "asset": "Music_anime_torao_theme",
-          "assetExtension": "caf",
-          "sourceModelID": "anime-torao",
-          "sha256": "efd07f8091669428cde156fec9cf92123c7d3663d3dad85c6afc311c89c271b9",
-          "duration": 118.0,
-          "title": "街角修理铺",
-          "detail": "夜色合成器 · 修理铺暖光",
-          "symbol": "music.note"
-        }
-      ],
+      "music": [],
       "defaultEnvironment": "sunroom",
-      "defaultVoice": "anime-torao/natural",
-      "defaultMusic": "anime-torao/theme"
+      "defaultVoice": "anime-hikarun/preview",
+      "defaultMusic": "",
+      "previewOnly": true
     },
     {
       "schemaVersion": 1,
@@ -236,6 +126,32 @@
       "defaultEnvironment": "sunroom",
       "defaultVoice": "anime-ichigo/natural",
       "defaultMusic": "anime-ichigo/theme"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "app.starry.collections.anime-koharu",
+      "version": "1.1.0",
+      "modelID": "anime-koharu",
+      "modelPackageID": "app.starry.characters.anime-koharu",
+      "modelPackageVersion": "3.2.0",
+      "actions": [],
+      "environments": [
+        "sunroom"
+      ],
+      "voices": [
+        {
+          "id": "anime-koharu/preview",
+          "title": "模型预览",
+          "detail": "尚未接入语音",
+          "engine": "aliyun-character-v1",
+          "speed": 1
+        }
+      ],
+      "music": [],
+      "defaultEnvironment": "sunroom",
+      "defaultVoice": "anime-koharu/preview",
+      "defaultMusic": "",
+      "previewOnly": true
     },
     {
       "schemaVersion": 1,
@@ -313,169 +229,6 @@
     },
     {
       "schemaVersion": 1,
-      "id": "app.starry.collections.anime-nozomi",
-      "version": "1.2.0",
-      "modelID": "anime-nozomi",
-      "modelPackageID": "app.starry.characters.anime-nozomi",
-      "modelPackageVersion": "3.0.1",
-      "actions": [],
-      "environments": [
-        "sunroom"
-      ],
-      "voices": [
-        {
-          "id": "anime-nozomi/natural",
-          "title": "自然聊",
-          "detail": "角色专属音色",
-          "engine": "aliyun-character-v1",
-          "speed": 1
-        }
-      ],
-      "music": [
-        {
-          "id": "anime-nozomi/theme",
-          "asset": "Music_anime_nozomi_theme",
-          "assetExtension": "caf",
-          "sourceModelID": "anime-nozomi",
-          "sha256": "757876e6f819597275eb0951933bb10e86216960589167f2b648cdc5785f2fba",
-          "duration": 118.0,
-          "title": "望见星光",
-          "detail": "空灵钢琴 · 观星之夜",
-          "symbol": "music.note"
-        }
-      ],
-      "defaultEnvironment": "sunroom",
-      "defaultVoice": "anime-nozomi/natural",
-      "defaultMusic": "anime-nozomi/theme"
-    },
-    {
-      "schemaVersion": 1,
-      "id": "app.starry.collections.anime-siska",
-      "version": "1.2.0",
-      "modelID": "anime-siska",
-      "modelPackageID": "app.starry.characters.anime-siska",
-      "modelPackageVersion": "3.0.1",
-      "actions": [],
-      "environments": [
-        "sunroom"
-      ],
-      "voices": [
-        {
-          "id": "anime-siska/natural",
-          "title": "自然聊",
-          "detail": "角色专属音色",
-          "engine": "aliyun-character-v1",
-          "speed": 1
-        }
-      ],
-      "music": [
-        {
-          "id": "anime-siska/theme",
-          "asset": "Music_anime_siska_theme",
-          "assetExtension": "caf",
-          "sourceModelID": "anime-siska",
-          "sha256": "6e28df5a1dc2327aa3e8da44f84088fffbec059ea8a614501aa75bd8edd9c00f",
-          "duration": 62.0,
-          "title": "旧物与晚霞",
-          "detail": "安静旋律 · 旧物档案室",
-          "symbol": "music.note"
-        }
-      ],
-      "defaultEnvironment": "sunroom",
-      "defaultVoice": "anime-siska/natural",
-      "defaultMusic": "anime-siska/theme"
-    },
-    {
-      "schemaVersion": 1,
-      "id": "app.starry.collections.anime-plum",
-      "version": "1.2.0",
-      "modelID": "anime-plum",
-      "modelPackageID": "app.starry.characters.anime-plum",
-      "modelPackageVersion": "3.1.0",
-      "actions": [],
-      "environments": [
-        "sunroom"
-      ],
-      "voices": [
-        {
-          "id": "anime-plum/natural",
-          "title": "自然聊",
-          "detail": "角色专属音色",
-          "engine": "aliyun-character-v1",
-          "speed": 1
-        }
-      ],
-      "music": [
-        {
-          "id": "anime-plum/theme",
-          "asset": "Music_anime_plum_theme",
-          "assetExtension": "caf",
-          "sourceModelID": "anime-plum",
-          "sha256": "a13ff69a7dfd02687a35991e12692d5913c98f0af4c0d59d8e18bc8883318fd6",
-          "duration": 63.4545625,
-          "title": "梅巷的晚茶",
-          "detail": "轻柔钢琴与温暖的弦乐，陪小梅在茶屋聊一会儿",
-          "symbol": "music.note"
-        }
-      ],
-      "defaultEnvironment": "sunroom",
-      "defaultVoice": "anime-plum/natural",
-      "defaultMusic": "anime-plum/theme"
-    },
-    {
-      "schemaVersion": 1,
-      "id": "app.starry.collections.anime-airi",
-      "version": "1.1.0",
-      "modelID": "anime-airi",
-      "modelPackageID": "app.starry.characters.anime-airi",
-      "modelPackageVersion": "3.2.0",
-      "actions": [],
-      "environments": [
-        "sunroom"
-      ],
-      "voices": [
-        {
-          "id": "anime-airi/preview",
-          "title": "模型预览",
-          "detail": "尚未接入语音",
-          "engine": "aliyun-character-v1",
-          "speed": 1
-        }
-      ],
-      "music": [],
-      "defaultEnvironment": "sunroom",
-      "defaultVoice": "anime-airi/preview",
-      "defaultMusic": "",
-      "previewOnly": true
-    },
-    {
-      "schemaVersion": 1,
-      "id": "app.starry.collections.anime-marycia",
-      "version": "1.1.0",
-      "modelID": "anime-marycia",
-      "modelPackageID": "app.starry.characters.anime-marycia",
-      "modelPackageVersion": "3.2.0",
-      "actions": [],
-      "environments": [
-        "sunroom"
-      ],
-      "voices": [
-        {
-          "id": "anime-marycia/preview",
-          "title": "模型预览",
-          "detail": "尚未接入语音",
-          "engine": "aliyun-character-v1",
-          "speed": 1
-        }
-      ],
-      "music": [],
-      "defaultEnvironment": "sunroom",
-      "defaultVoice": "anime-marycia/preview",
-      "defaultMusic": "",
-      "previewOnly": true
-    },
-    {
-      "schemaVersion": 1,
       "id": "app.starry.collections.anime-meiyun",
       "version": "1.1.0",
       "modelID": "anime-meiyun",
@@ -497,58 +250,6 @@
       "music": [],
       "defaultEnvironment": "sunroom",
       "defaultVoice": "anime-meiyun/preview",
-      "defaultMusic": "",
-      "previewOnly": true
-    },
-    {
-      "schemaVersion": 1,
-      "id": "app.starry.collections.anime-milltina",
-      "version": "1.1.0",
-      "modelID": "anime-milltina",
-      "modelPackageID": "app.starry.characters.anime-milltina",
-      "modelPackageVersion": "3.2.0",
-      "actions": [],
-      "environments": [
-        "sunroom"
-      ],
-      "voices": [
-        {
-          "id": "anime-milltina/preview",
-          "title": "模型预览",
-          "detail": "尚未接入语音",
-          "engine": "aliyun-character-v1",
-          "speed": 1
-        }
-      ],
-      "music": [],
-      "defaultEnvironment": "sunroom",
-      "defaultVoice": "anime-milltina/preview",
-      "defaultMusic": "",
-      "previewOnly": true
-    },
-    {
-      "schemaVersion": 1,
-      "id": "app.starry.collections.anime-shinano",
-      "version": "1.1.0",
-      "modelID": "anime-shinano",
-      "modelPackageID": "app.starry.characters.anime-shinano",
-      "modelPackageVersion": "3.2.0",
-      "actions": [],
-      "environments": [
-        "sunroom"
-      ],
-      "voices": [
-        {
-          "id": "anime-shinano/preview",
-          "title": "模型预览",
-          "detail": "尚未接入语音",
-          "engine": "aliyun-character-v1",
-          "speed": 1
-        }
-      ],
-      "music": [],
-      "defaultEnvironment": "sunroom",
-      "defaultVoice": "anime-shinano/preview",
       "defaultMusic": "",
       "previewOnly": true
     },
@@ -580,323 +281,11 @@
     },
     {
       "schemaVersion": 1,
-      "id": "app.starry.collections.anime-shizuku",
-      "version": "1.1.0",
-      "modelID": "anime-shizuku",
-      "modelPackageID": "app.starry.characters.anime-shizuku",
-      "modelPackageVersion": "3.2.0",
-      "actions": [],
-      "environments": [
-        "sunroom"
-      ],
-      "voices": [
-        {
-          "id": "anime-shizuku/preview",
-          "title": "模型预览",
-          "detail": "尚未接入语音",
-          "engine": "aliyun-character-v1",
-          "speed": 1
-        }
-      ],
-      "music": [],
-      "defaultEnvironment": "sunroom",
-      "defaultVoice": "anime-shizuku/preview",
-      "defaultMusic": "",
-      "previewOnly": true
-    },
-    {
-      "schemaVersion": 1,
-      "id": "app.starry.collections.anime-eku",
-      "version": "1.1.0",
-      "modelID": "anime-eku",
-      "modelPackageID": "app.starry.characters.anime-eku",
-      "modelPackageVersion": "3.2.0",
-      "actions": [],
-      "environments": [
-        "sunroom"
-      ],
-      "voices": [
-        {
-          "id": "anime-eku/preview",
-          "title": "模型预览",
-          "detail": "尚未接入语音",
-          "engine": "aliyun-character-v1",
-          "speed": 1
-        }
-      ],
-      "music": [],
-      "defaultEnvironment": "sunroom",
-      "defaultVoice": "anime-eku/preview",
-      "defaultMusic": "",
-      "previewOnly": true
-    },
-    {
-      "schemaVersion": 1,
-      "id": "app.starry.collections.anime-sio",
-      "version": "1.1.0",
-      "modelID": "anime-sio",
-      "modelPackageID": "app.starry.characters.anime-sio",
-      "modelPackageVersion": "3.2.0",
-      "actions": [],
-      "environments": [
-        "sunroom"
-      ],
-      "voices": [
-        {
-          "id": "anime-sio/preview",
-          "title": "模型预览",
-          "detail": "尚未接入语音",
-          "engine": "aliyun-character-v1",
-          "speed": 1
-        }
-      ],
-      "music": [],
-      "defaultEnvironment": "sunroom",
-      "defaultVoice": "anime-sio/preview",
-      "defaultMusic": "",
-      "previewOnly": true
-    },
-    {
-      "schemaVersion": 1,
-      "id": "app.starry.collections.anime-azuki",
-      "version": "1.1.0",
-      "modelID": "anime-azuki",
-      "modelPackageID": "app.starry.characters.anime-azuki",
-      "modelPackageVersion": "3.2.0",
-      "actions": [],
-      "environments": [
-        "sunroom"
-      ],
-      "voices": [
-        {
-          "id": "anime-azuki/preview",
-          "title": "模型预览",
-          "detail": "尚未接入语音",
-          "engine": "aliyun-character-v1",
-          "speed": 1
-        }
-      ],
-      "music": [],
-      "defaultEnvironment": "sunroom",
-      "defaultVoice": "anime-azuki/preview",
-      "defaultMusic": "",
-      "previewOnly": true
-    },
-    {
-      "schemaVersion": 1,
-      "id": "app.starry.collections.anime-cornet",
-      "version": "1.1.0",
-      "modelID": "anime-cornet",
-      "modelPackageID": "app.starry.characters.anime-cornet",
-      "modelPackageVersion": "3.2.0",
-      "actions": [],
-      "environments": [
-        "sunroom"
-      ],
-      "voices": [
-        {
-          "id": "anime-cornet/preview",
-          "title": "模型预览",
-          "detail": "尚未接入语音",
-          "engine": "aliyun-character-v1",
-          "speed": 1
-        }
-      ],
-      "music": [],
-      "defaultEnvironment": "sunroom",
-      "defaultVoice": "anime-cornet/preview",
-      "defaultMusic": "",
-      "previewOnly": true
-    },
-    {
-      "schemaVersion": 1,
-      "id": "app.starry.collections.anime-fiona",
-      "version": "1.1.0",
-      "modelID": "anime-fiona",
-      "modelPackageID": "app.starry.characters.anime-fiona",
-      "modelPackageVersion": "3.2.0",
-      "actions": [],
-      "environments": [
-        "sunroom"
-      ],
-      "voices": [
-        {
-          "id": "anime-fiona/preview",
-          "title": "模型预览",
-          "detail": "尚未接入语音",
-          "engine": "aliyun-character-v1",
-          "speed": 1
-        }
-      ],
-      "music": [],
-      "defaultEnvironment": "sunroom",
-      "defaultVoice": "anime-fiona/preview",
-      "defaultMusic": "",
-      "previewOnly": true
-    },
-    {
-      "schemaVersion": 1,
-      "id": "app.starry.collections.anime-elusion",
-      "version": "1.1.0",
-      "modelID": "anime-elusion",
-      "modelPackageID": "app.starry.characters.anime-elusion",
-      "modelPackageVersion": "3.2.0",
-      "actions": [],
-      "environments": [
-        "sunroom"
-      ],
-      "voices": [
-        {
-          "id": "anime-elusion/preview",
-          "title": "模型预览",
-          "detail": "尚未接入语音",
-          "engine": "aliyun-character-v1",
-          "speed": 1
-        }
-      ],
-      "music": [],
-      "defaultEnvironment": "sunroom",
-      "defaultVoice": "anime-elusion/preview",
-      "defaultMusic": "",
-      "previewOnly": true
-    },
-    {
-      "schemaVersion": 1,
-      "id": "app.starry.collections.anime-hikarun",
-      "version": "1.1.0",
-      "modelID": "anime-hikarun",
-      "modelPackageID": "app.starry.characters.anime-hikarun",
-      "modelPackageVersion": "3.2.0",
-      "actions": [],
-      "environments": [
-        "sunroom"
-      ],
-      "voices": [
-        {
-          "id": "anime-hikarun/preview",
-          "title": "模型预览",
-          "detail": "尚未接入语音",
-          "engine": "aliyun-character-v1",
-          "speed": 1
-        }
-      ],
-      "music": [],
-      "defaultEnvironment": "sunroom",
-      "defaultVoice": "anime-hikarun/preview",
-      "defaultMusic": "",
-      "previewOnly": true
-    },
-    {
-      "schemaVersion": 1,
-      "id": "app.starry.collections.anime-kumaly",
-      "version": "1.1.0",
-      "modelID": "anime-kumaly",
-      "modelPackageID": "app.starry.characters.anime-kumaly",
-      "modelPackageVersion": "3.2.0",
-      "actions": [],
-      "environments": [
-        "sunroom"
-      ],
-      "voices": [
-        {
-          "id": "anime-kumaly/preview",
-          "title": "模型预览",
-          "detail": "尚未接入语音",
-          "engine": "aliyun-character-v1",
-          "speed": 1
-        }
-      ],
-      "music": [],
-      "defaultEnvironment": "sunroom",
-      "defaultVoice": "anime-kumaly/preview",
-      "defaultMusic": "",
-      "previewOnly": true
-    },
-    {
-      "schemaVersion": 1,
-      "id": "app.starry.collections.anime-kikyo",
-      "version": "1.1.0",
-      "modelID": "anime-kikyo",
-      "modelPackageID": "app.starry.characters.anime-kikyo",
-      "modelPackageVersion": "3.2.0",
-      "actions": [],
-      "environments": [
-        "sunroom"
-      ],
-      "voices": [
-        {
-          "id": "anime-kikyo/preview",
-          "title": "模型预览",
-          "detail": "尚未接入语音",
-          "engine": "aliyun-character-v1",
-          "speed": 1
-        }
-      ],
-      "music": [],
-      "defaultEnvironment": "sunroom",
-      "defaultVoice": "anime-kikyo/preview",
-      "defaultMusic": "",
-      "previewOnly": true
-    },
-    {
-      "schemaVersion": 1,
-      "id": "app.starry.collections.anime-lasyusha",
-      "version": "1.1.0",
-      "modelID": "anime-lasyusha",
-      "modelPackageID": "app.starry.characters.anime-lasyusha",
-      "modelPackageVersion": "3.2.0",
-      "actions": [],
-      "environments": [
-        "sunroom"
-      ],
-      "voices": [
-        {
-          "id": "anime-lasyusha/preview",
-          "title": "模型预览",
-          "detail": "尚未接入语音",
-          "engine": "aliyun-character-v1",
-          "speed": 1
-        }
-      ],
-      "music": [],
-      "defaultEnvironment": "sunroom",
-      "defaultVoice": "anime-lasyusha/preview",
-      "defaultMusic": "",
-      "previewOnly": true
-    },
-    {
-      "schemaVersion": 1,
-      "id": "app.starry.collections.anime-maki",
-      "version": "1.1.0",
-      "modelID": "anime-maki",
-      "modelPackageID": "app.starry.characters.anime-maki",
-      "modelPackageVersion": "3.2.0",
-      "actions": [],
-      "environments": [
-        "sunroom"
-      ],
-      "voices": [
-        {
-          "id": "anime-maki/preview",
-          "title": "模型预览",
-          "detail": "尚未接入语音",
-          "engine": "aliyun-character-v1",
-          "speed": 1
-        }
-      ],
-      "music": [],
-      "defaultEnvironment": "sunroom",
-      "defaultVoice": "anime-maki/preview",
-      "defaultMusic": "",
-      "previewOnly": true
-    },
-    {
-      "schemaVersion": 1,
       "id": "app.starry.collections.anime-mao",
       "version": "1.1.0",
       "modelID": "anime-mao",
       "modelPackageID": "app.starry.characters.anime-mao",
-      "modelPackageVersion": "3.2.0",
+      "modelPackageVersion": "3.2.1",
       "actions": [],
       "environments": [
         "sunroom"
@@ -918,37 +307,11 @@
     },
     {
       "schemaVersion": 1,
-      "id": "app.starry.collections.anime-mashu",
-      "version": "1.1.0",
-      "modelID": "anime-mashu",
-      "modelPackageID": "app.starry.characters.anime-mashu",
-      "modelPackageVersion": "3.2.0",
-      "actions": [],
-      "environments": [
-        "sunroom"
-      ],
-      "voices": [
-        {
-          "id": "anime-mashu/preview",
-          "title": "模型预览",
-          "detail": "尚未接入语音",
-          "engine": "aliyun-character-v1",
-          "speed": 1
-        }
-      ],
-      "music": [],
-      "defaultEnvironment": "sunroom",
-      "defaultVoice": "anime-mashu/preview",
-      "defaultMusic": "",
-      "previewOnly": true
-    },
-    {
-      "schemaVersion": 1,
       "id": "app.starry.collections.anime-mizuki",
       "version": "1.1.0",
       "modelID": "anime-mizuki",
       "modelPackageID": "app.starry.characters.anime-mizuki",
-      "modelPackageVersion": "3.2.0",
+      "modelPackageVersion": "3.2.1",
       "actions": [],
       "environments": [
         "sunroom"
@@ -965,58 +328,6 @@
       "music": [],
       "defaultEnvironment": "sunroom",
       "defaultVoice": "anime-mizuki/preview",
-      "defaultMusic": "",
-      "previewOnly": true
-    },
-    {
-      "schemaVersion": 1,
-      "id": "app.starry.collections.anime-nemesis",
-      "version": "1.1.0",
-      "modelID": "anime-nemesis",
-      "modelPackageID": "app.starry.characters.anime-nemesis",
-      "modelPackageVersion": "3.2.0",
-      "actions": [],
-      "environments": [
-        "sunroom"
-      ],
-      "voices": [
-        {
-          "id": "anime-nemesis/preview",
-          "title": "模型预览",
-          "detail": "尚未接入语音",
-          "engine": "aliyun-character-v1",
-          "speed": 1
-        }
-      ],
-      "music": [],
-      "defaultEnvironment": "sunroom",
-      "defaultVoice": "anime-nemesis/preview",
-      "defaultMusic": "",
-      "previewOnly": true
-    },
-    {
-      "schemaVersion": 1,
-      "id": "app.starry.collections.anime-nochica",
-      "version": "1.1.0",
-      "modelID": "anime-nochica",
-      "modelPackageID": "app.starry.characters.anime-nochica",
-      "modelPackageVersion": "3.2.0",
-      "actions": [],
-      "environments": [
-        "sunroom"
-      ],
-      "voices": [
-        {
-          "id": "anime-nochica/preview",
-          "title": "模型预览",
-          "detail": "尚未接入语音",
-          "engine": "aliyun-character-v1",
-          "speed": 1
-        }
-      ],
-      "music": [],
-      "defaultEnvironment": "sunroom",
-      "defaultVoice": "anime-nochica/preview",
       "defaultMusic": "",
       "previewOnly": true
     },
@@ -1048,6 +359,43 @@
     },
     {
       "schemaVersion": 1,
+      "id": "app.starry.collections.anime-plum",
+      "version": "1.2.0",
+      "modelID": "anime-plum",
+      "modelPackageID": "app.starry.characters.anime-plum",
+      "modelPackageVersion": "3.1.0",
+      "actions": [],
+      "environments": [
+        "sunroom"
+      ],
+      "voices": [
+        {
+          "id": "anime-plum/natural",
+          "title": "自然聊",
+          "detail": "角色专属音色",
+          "engine": "aliyun-character-v1",
+          "speed": 1
+        }
+      ],
+      "music": [
+        {
+          "id": "anime-plum/theme",
+          "asset": "Music_anime_plum_theme",
+          "assetExtension": "caf",
+          "sourceModelID": "anime-plum",
+          "sha256": "a13ff69a7dfd02687a35991e12692d5913c98f0af4c0d59d8e18bc8883318fd6",
+          "duration": 63.4545625,
+          "title": "梅巷的晚茶",
+          "detail": "轻柔钢琴与温暖的弦乐，陪Plum在茶屋聊一会儿",
+          "symbol": "music.note"
+        }
+      ],
+      "defaultEnvironment": "sunroom",
+      "defaultVoice": "anime-plum/natural",
+      "defaultMusic": "anime-plum/theme"
+    },
+    {
+      "schemaVersion": 1,
       "id": "app.starry.collections.anime-ramune",
       "version": "1.1.0",
       "modelID": "anime-ramune",
@@ -1074,10 +422,10 @@
     },
     {
       "schemaVersion": 1,
-      "id": "app.starry.collections.anime-ririka",
+      "id": "app.starry.collections.anime-shinano",
       "version": "1.1.0",
-      "modelID": "anime-ririka",
-      "modelPackageID": "app.starry.characters.anime-ririka",
+      "modelID": "anime-shinano",
+      "modelPackageID": "app.starry.characters.anime-shinano",
       "modelPackageVersion": "3.2.0",
       "actions": [],
       "environments": [
@@ -1085,7 +433,7 @@
       ],
       "voices": [
         {
-          "id": "anime-ririka/preview",
+          "id": "anime-shinano/preview",
           "title": "模型预览",
           "detail": "尚未接入语音",
           "engine": "aliyun-character-v1",
@@ -1094,16 +442,16 @@
       ],
       "music": [],
       "defaultEnvironment": "sunroom",
-      "defaultVoice": "anime-ririka/preview",
+      "defaultVoice": "anime-shinano/preview",
       "defaultMusic": "",
       "previewOnly": true
     },
     {
       "schemaVersion": 1,
-      "id": "app.starry.collections.anime-rurune",
+      "id": "app.starry.collections.anime-sio",
       "version": "1.1.0",
-      "modelID": "anime-rurune",
-      "modelPackageID": "app.starry.characters.anime-rurune",
+      "modelID": "anime-sio",
+      "modelPackageID": "app.starry.characters.anime-sio",
       "modelPackageVersion": "3.2.0",
       "actions": [],
       "environments": [
@@ -1111,7 +459,7 @@
       ],
       "voices": [
         {
-          "id": "anime-rurune/preview",
+          "id": "anime-sio/preview",
           "title": "模型预览",
           "detail": "尚未接入语音",
           "engine": "aliyun-character-v1",
@@ -1120,59 +468,7 @@
       ],
       "music": [],
       "defaultEnvironment": "sunroom",
-      "defaultVoice": "anime-rurune/preview",
-      "defaultMusic": "",
-      "previewOnly": true
-    },
-    {
-      "schemaVersion": 1,
-      "id": "app.starry.collections.anime-shiratsume",
-      "version": "1.1.0",
-      "modelID": "anime-shiratsume",
-      "modelPackageID": "app.starry.characters.anime-shiratsume",
-      "modelPackageVersion": "3.2.0",
-      "actions": [],
-      "environments": [
-        "sunroom"
-      ],
-      "voices": [
-        {
-          "id": "anime-shiratsume/preview",
-          "title": "模型预览",
-          "detail": "尚未接入语音",
-          "engine": "aliyun-character-v1",
-          "speed": 1
-        }
-      ],
-      "music": [],
-      "defaultEnvironment": "sunroom",
-      "defaultVoice": "anime-shiratsume/preview",
-      "defaultMusic": "",
-      "previewOnly": true
-    },
-    {
-      "schemaVersion": 1,
-      "id": "app.starry.collections.anime-koharu",
-      "version": "1.1.0",
-      "modelID": "anime-koharu",
-      "modelPackageID": "app.starry.characters.anime-koharu",
-      "modelPackageVersion": "3.2.0",
-      "actions": [],
-      "environments": [
-        "sunroom"
-      ],
-      "voices": [
-        {
-          "id": "anime-koharu/preview",
-          "title": "模型预览",
-          "detail": "尚未接入语音",
-          "engine": "aliyun-character-v1",
-          "speed": 1
-        }
-      ],
-      "music": [],
-      "defaultEnvironment": "sunroom",
-      "defaultVoice": "anime-koharu/preview",
+      "defaultVoice": "anime-sio/preview",
       "defaultMusic": "",
       "previewOnly": true
     }

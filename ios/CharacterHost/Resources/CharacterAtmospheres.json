@@ -2,34 +2,6 @@
   "schemaVersion": 1,
   "characters": [
     {
-      "id": "anime-kipfel",
-      "title": "雨声书页",
-      "background": "Atmospheres/anime-kipfel/background",
-      "effect": "firefly",
-      "palette": [
-        "#B7C796",
-        "#FFE2AA",
-        "#446879"
-      ],
-      "density": 0.7,
-      "backgroundSHA256": "8abeed9a11564780659bc7a509b9b7e2716a2df26d1c8e8bb0f2673dc49e1164",
-      "imageModel": "qwen-image-3.0-pro"
-    },
-    {
-      "id": "anime-mamehinata",
-      "title": "面包房的晴天",
-      "background": "Atmospheres/anime-mamehinata/background",
-      "effect": "sunbeam",
-      "palette": [
-        "#FFDC98",
-        "#81C4B8",
-        "#D6B58E"
-      ],
-      "density": 0.8,
-      "backgroundSHA256": "50fe871fe11efa895c008f21bb23bb00963eb161c8192f0db45d905e58c0e145",
-      "imageModel": "qwen-image-3.0-pro"
-    },
-    {
       "id": "anime-chiffon",
       "title": "雨后花信",
       "background": "Atmospheres/anime-chiffon/background",
@@ -41,34 +13,6 @@
       ],
       "density": 0.75,
       "backgroundSHA256": "d6c3d19f4f52c9e80a2fae36e7e73fb3ab85cc25f89541bc766f64a11cdc556c",
-      "imageModel": "qwen-image-3.0-pro"
-    },
-    {
-      "id": "anime-karin",
-      "title": "窗边的明信片",
-      "background": "Atmospheres/anime-karin/background",
-      "effect": "stardust",
-      "palette": [
-        "#BFC4F5",
-        "#F2B9CD",
-        "#FFE1BC"
-      ],
-      "density": 0.7,
-      "backgroundSHA256": "8ca71d3cd58203d1a1cf500ba51158166b8a520511280581b25012600ea0dc4e",
-      "imageModel": "qwen-image-3.0-pro"
-    },
-    {
-      "id": "anime-torao",
-      "title": "灯下的齿轮",
-      "background": "Atmospheres/anime-torao/background",
-      "effect": "stardust",
-      "palette": [
-        "#7DABBA",
-        "#F6CB91",
-        "#55647F"
-      ],
-      "density": 0.62,
-      "backgroundSHA256": "a4a56c35edbf83d23d666378921ac841f76f5f4f65700b0616c5a9869ebc09cb",
       "imageModel": "qwen-image-3.0-pro"
     },
     {
@@ -111,34 +55,6 @@
       ],
       "density": 0.7,
       "backgroundSHA256": "1c853da8433e9bae9887b80983756fab38df17fa7b788c892467e6fb9c80d88a",
-      "imageModel": "qwen-image-3.0-pro"
-    },
-    {
-      "id": "anime-nozomi",
-      "title": "星图里的晚风",
-      "background": "Atmospheres/anime-nozomi/background",
-      "effect": "stardust",
-      "palette": [
-        "#AAC9EA",
-        "#D9D0F2",
-        "#FFE8BC"
-      ],
-      "density": 0.65,
-      "backgroundSHA256": "44b46f37dc7a2a6f0b17beb572805e99f578ce467eafb5dbd7e3cb778e312c67",
-      "imageModel": "qwen-image-3.0-pro"
-    },
-    {
-      "id": "anime-siska",
-      "title": "纸页收藏室",
-      "background": "Atmospheres/anime-siska/background",
-      "effect": "firefly",
-      "palette": [
-        "#B8AFCB",
-        "#A7C0C9",
-        "#F2D7AF"
-      ],
-      "density": 0.5,
-      "backgroundSHA256": "2ade2d7b199a700a4c816320aecb416ee0dfc27602a0a47f8e5e8f521ee293d3",
       "imageModel": "qwen-image-3.0-pro"
     },
     {

@@ -61,6 +61,8 @@ __pycache__/
 /ios/CharacterHost/Assets.xcassets/Avatar_*.imageset/
 /unity/CharacterRuntime/Assets/Resources/Atmospheres/
 /unity/CharacterRuntime/Assets/Resources/Atmospheres.meta
+/unity/CharacterRuntime/Assets/ArchivedAtmospheres/
+/unity/CharacterRuntime/Assets/ArchivedAtmospheres.meta
 /ios/CharacterHost/Resources/Music_*_theme.caf
 /ios/CharacterHost/Resources/Assets.xcassets/Anime_*.imageset/
 /ios/CharacterHost/Resources/Assets.xcassets/MikuThumbnail*.imageset/

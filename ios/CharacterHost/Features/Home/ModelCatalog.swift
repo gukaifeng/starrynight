@@ -101,7 +101,7 @@ struct ModelDescriptor: Identifiable, Decodable, Sendable {
         return catalog.characters.sorted { $0.display.order < $1.display.order }
     }()
     // Existing navigation/test entry points. Production catalog and controls are fully data driven.
-    static var defaultCharacter: Self { all.first { $0.id == "anime-kipfel" } ?? all[0] }
+    static var defaultCharacter: Self { all[0] }
     static var robot: Self { all.first { $0.id == "studio-robot" }! }
     static var miku: Self { all.first { $0.id == "hatsune-miku" }! }
     static var human: Self { all.first { $0.id == "real-woman" }! }

@@ -83,33 +83,12 @@ def prepare_visual_candidate(source,target,stage,role):
     import struct
     model=target/'model.glb';raw=model.read_bytes();json_size=struct.unpack_from('<I',raw,12)[0]
     document=json.loads(raw[20:20+json_size]);changed=False
-    if role=='rurune':
-        # The authored Idle clip translates the pelvis behind/below the floor
-        # in this portable coordinate frame. Use the already inspected host
-        # standing node pose for the preview Idle, without touching source IR.
-        nodes=json.loads((stage/'Inspection/Portable'/role/'host-standing.json').read_text())['nodes']
-        if len(nodes)>len(document['nodes']):raise ValueError('Standing snapshot node count changed')
-        mutable=bytearray(raw)
-        idle=next(a for a in document['animations'] if a['name']=='Idle')
-        for channel in idle['channels']:
-            prop=channel['target']['path'];index=channel['target']['node']
-            node=nodes[index] if index<len(nodes) else None
-            key={'translation':'position','rotation':'rotation','scale':'scale'}[prop]
-            axes='xyzw' if prop=='rotation' else 'xyz'
-            values=([float(node[key][axis]) for axis in axes] if node is not None
-                    else list(document['nodes'][index][prop]))
-            if node is not None and prop=='translation':values[0]*=-1
-            if node is not None and prop=='rotation':values[1]*=-1;values[2]*=-1
-            accessor=document['accessors'][idle['samplers'][channel['sampler']]['output']]
-            if accessor['componentType']!=5126 or accessor['type']!=('VEC4' if prop=='rotation' else 'VEC3'):
-                raise ValueError('Unsupported preview baseline sample format')
-            view=document['bufferViews'][accessor['bufferView']]
-            offset=20+json_size+8+view.get('byteOffset',0)+accessor.get('byteOffset',0)
-            fmt='<'+str(len(values))+'f';stride=4*len(values)
-            for frame in range(accessor['count']):struct.pack_into(fmt,mutable,offset+frame*stride,*values)
-        raw=bytes(mutable)
+    from vrchat_standing_baseline import adapt_standing, REVIEWED_STANDING
+    if role in REVIEWED_STANDING:
+        baseline=adapt_standing(model,stage/'Inspection/Portable'/role/'host-standing.json')
+        raw=model.read_bytes()
         receipt=json.loads((target/'portable-conversion.json').read_text())
-        receipt['baseline']=dict(kind='host-standing-adaptation',reason='Authored Idle displaces the preview below the floor')
+        receipt['baseline']=baseline
         write_json(target/'portable-conversion.json',receipt)
         changed=True
     synthetic='mat_'+hashlib.sha256(b'starrynight-preview-missing-material').hexdigest()[:32]
@@ -186,7 +165,7 @@ def prepare_visual_candidate(source,target,stage,role):
     write_json(target/'avatar-controls.json',controls)
     original_motions=json.loads((source/'avatar-motions.json').read_text())
     original_motions['motions']=[]
-    if role=='rurune':
+    if role in REVIEWED_STANDING:
         original_motions['baseline']=json.loads((target/'portable-conversion.json').read_text())['baseline']
     write_json(target/'avatar-motions.json',original_motions)
     secondary=json.loads((source/'secondary-motion.json').read_text())
