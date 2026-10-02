@@ -121,7 +121,7 @@ struct VoiceRecord: Codable, Identifiable, Sendable {
         if let message=event.script?.messageId ?? event.messageId {change(id) {$0.message=message}}
         if event.type=="reply.narration.ready" {
             mark(id,"text_received")
-            flag(id,"prepared",event.prepared==true ? "命中" : "未命中")
+            flag(id,"prepared",event.prepared==true ? (event.preparationInflight==true ? "接管未完成的预生成" : "已就绪缓存") : "未命中")
             flag(id,"preparation_inflight",event.preparationInflight==true ? "仍在生成" : "否")
         }
         if event.type=="segment.audio.chunk" {mark(id,"first_audio_received");mark(id,"last_audio_received",once:false)}
@@ -151,7 +151,7 @@ struct VoiceRecord: Codable, Identifiable, Sendable {
 
 enum VoiceStage {
     static func title(_ key:String)->String {
-        let names=["request.encode":"请求编码","http.headers_wait":"等待响应头","network.stream":"网络流接收",
+        let names=["request.encode":"请求编码","http.headers_wait":"等待响应流可读取（含首事件生成）","network.stream":"响应流持续时间（含生成等待）",
             "sse.decode":"SSE 解码","sse.consume":"事件分发","audio.queue_wait":"客户端分段排队",
             "audio.previous_drain":"等待上一段播放结束","audio.session":"激活音频会话","audio.engine":"创建并启动音频引擎",
             "audio.base64":"音频 Base64 解码","audio.pcm_convert":"PCM 格式转换","audio.schedule":"提交播放缓冲",
@@ -163,7 +163,7 @@ enum VoiceStage {
             "tts.generate":"语音模型生成","audio.cache_lookup":"服务端缓存检查","audio.ordered_queue_wait":"服务端分段顺序排队",
             "audio.base64_encode":"服务端音频编码","audio.cache_write_and_trim":"服务端缓存写入与整理"]
         if let title=names[key] {return title}
-        let network=["network.dns":"DNS 解析","network.tcp":"TCP 连接（含 TLS 时可能重叠）","network.tls":"TLS 握手","network.upload":"上传请求","network.response_wait":"等待服务器首个响应","network.download":"接收响应流","conversation.prepare_request":"整理对话与请求","conversation.register_opening":"注册内置首句上下文"]
+        let network=["network.dns":"DNS 解析","network.tcp":"TCP 连接（含 TLS 时可能重叠）","network.tls":"TLS 握手","network.upload":"上传请求","network.response_wait":"等待服务器首个响应","network.download":"响应流持续时间（含生成等待）","conversation.prepare_request":"整理对话与请求","conversation.register_opening":"注册内置首句上下文"]
         if let title=network[key] {return title}
         let purpose=key.contains(".suggestions") ? "接话预测" : key.contains(".performance") ? "表演规划" : key.contains(".tts") ? "语音模型" : "对话模型"
         if key.hasPrefix("model.") {
