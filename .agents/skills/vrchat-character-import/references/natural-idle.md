@@ -1,5 +1,21 @@
 # 自然待机与环境风（0.47）
 
+## FX 肌肉投影、配饰遮罩与会话连续性（0.97）
+
+先比较导入 Idle 与实际 Animator 站姿，不能把固定张开的手臂归因于模型坏了。`AvatarIdleArmReview` 按当前名册记录肩到手的朝下方向、局部偏转及覆盖层；同时确认映射的 UpperArm/LowerArm/Hand 是否真的在原 PhysBone 链中。头发有物理不代表手臂也配置了物理。
+
+- VRChat 第一 FX 层无自定义遮罩时，默认禁止 Humanoid muscles。Humanoid 采样成 Generic 后应投影掉这些人形骨骼通道，保留原非人形 Transform、形变和对象曲线。若第一 FX 层显式提供自定义遮罩，按实际允许的人形骨路径保留，不能一概禁止；不要改动原作绝对片段库。当前 Lime 有仅手指的人形遮罩，但没有 Humanoid FX 源片段；其余 15 个角色使用默认 FX 遮罩。
+- Humanoid body mask 作用于真实映射的人形骨本身，不应套到所有后代。耳朵、尾巴、袖子等有自己的 Transform mask；作者显式 Transform 遮罩仍按路径继承。过度屏蔽后代会使配饰动画丢失。
+- 会话参数驱动的选择、替换、恢复，用 `AvatarPoseContinuity` 在 Animator 之上、嘴型/眨眼/注视/物理之下进行 0.32 秒五次平滑。检测原生状态行为直接改参数，以及 write-default 通道在退出尾帧才突变的情况。目标被打断时限制每骨 360 度/秒与每形变 6 个标准单位/秒，继续收敛，不能在时间结束时硬贴终态。原作手动片段预览有独立通路，不抹掉它的节奏。
+- 上帧宿主叠加必须在下帧 Animator 求值前正确恢复。手臂惯性恢复顺序 15、已有表现恢复 20/25/30/35、连续性恢复 40；不要把上帧惯性当成下一帧动画基线。无过渡时只采样基线，不反复重写所有 Transform/形变。
+- `AvatarArmFollow` 是明确的 App 适配，不是原作 PhysBone：保留原手臂姿态，只在整体转动时加入有限旋转惯性，上臂/前臂/手腕上限 3/4/1.8 度，无平移、无累积。需要撤销这一适配时仅禁用该组件；遮罩与连续性修复应独立保留。不要声称整套身体物理或 VRChat IK 已等价实现。
+
+重建控制器必须保存所有 Package/Resources/Downloadable 引用。运行 `AvatarConversationPoseReview` 与 `AvatarContinuityReview.Run`，对全部自动原生控件选择和恢复进行 60/120 Hz 数值检查，并检查惯性消退、无关节平移和恢复原始局部姿态。源片段内部带多关键帧的闪烁/漫画特效单独统计，不把它误当静态表情切换失败而删掉；切换首帧仍检查全部形变。之后验证实际 Unity 模拟器，两平台 Bundle 发布新不可变版本。仅检查 Editor 或只改 App 都不算完成下载角色更新。
+
+发布下载角色后，检查实际安装的 `content/package.json` 的角色、平台及 release 版本。商店目录更新和模型能出现，不足以证明新 Bundle 已加载；缓存目录可能先允许旧包打开。隔离账户的资源测试可通过 App 删除旧包后重新下载，再核对版本；不要删除原始角色文件或用户聊天和记忆。
+
+参见 [VRChat Playable Layers](https://creators.vrchat.com/avatars/playable-layers/) 与 [0.97 验收](../../../../docs/verification/continuity-timing-v097/README.md)。
+
 ## 原作加法层转换与空状态（0.96）
 
 如果 Humanoid 片段先采样为绝对 Generic Transform 曲线，再放进 Animator 的 Additive 层，不能假定 Unity 会自动扣除原骨架参考姿态。Hikarun 原 Breathing 层在呼吸与空状态间反复切换时，旧转换会重复叠加 bind rotation，使髋部转约 88 度、躯干折叠。修复位于 `PortableAvatarControllerBuilder`，适用于所有角色的原作加法图；Override 图与原作手动片段不变。

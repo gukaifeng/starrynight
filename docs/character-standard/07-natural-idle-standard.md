@@ -61,3 +61,15 @@ unity run unity/CharacterRuntime --timeout 900 -- \
 60/120 Hz逐帧步进是数值与行为检查，不是设备60/120 FPS实测。完整导出后仍需iPhone模拟器实际运行；性能结论应由真机持续帧耗时支持。
 
 来源参考：[VRChat状态行为与参数驱动](https://creators.vrchat.com/avatars/state-behaviors/)、[Unity执行顺序](https://docs.unity3d.com/6000.3/Documentation/Manual/execution-order.html)。还原时须检查实际绑定FX，而不能由Avatar Descriptor的 `enableEyeLook` 单独判断是否存在自动眨眼。
+
+## 0.97 宿主站姿与连续性边界
+
+当前 16 角色的原人形骨骼映射与物理链已逐个检查：绑定完整骨骼不等于上臂、前臂、手腕配置了 PhysBone。头发、衣物和非人形配饰保持原逐链适配，手臂不使用全身 ragdoll。
+
+Humanoid 源动作采样成 Generic 后，必须继续遵循第一 FX 层的原遮罩语义：默认屏蔽人形肌肉，自定义遮罩只保留显式允许的通道。body mask 只对应实际人形骨路径，不能自动把非人形后代全部屏蔽。否则 FX 原站姿、手势或衣物控制可能覆盖 Base 站姿，或者使耳尾/袖子运动丢失。原片段库保留原样；投影仅用于相应 Animator 图。
+
+宿主 `AvatarPoseContinuity` 负责会话控件选择、替换与恢复的连续性：0.32 秒五次过渡，捕捉原状态行为直接改参数、退出后 write-default 通道突变；目标被打断时限制角速度并延长收敛。它位于基础 Animator 之后、嘴型/眨眼/注视/次级物理之前，避免叠加层被反复烘入基线。原手动片段预览有独立通路。
+
+宿主 `AvatarArmFollow` 明确属于 App 适配，不计入原作表现目录，也不是作者交付的 PhysBone 能力。整体转动时在原姿态之上增加小幅阻尼惯性，上臂、前臂、手腕最多 3、4、1.8 度，不平移关节，静止后回到动画本身的姿态。可独立禁用此组件，不需撤销 FX 遮罩和过渡修复。
+
+验证与回滚边界见 [0.97 验收记录](../verification/continuity-timing-v097/README.md)。

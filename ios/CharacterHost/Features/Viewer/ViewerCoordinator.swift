@@ -465,7 +465,21 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
     private func configureHostEmotionMotion() {
         signal(CharacterIntent(eventName:"host.motion.configure",intensity:HostEmotionMotionPreference.enabled ? 1 : 0))
     }
-    private func signal(_ intent: CharacterIntent) { send("character.signal",payload:["signal":characterPort.payload(intent,actorId:selectedModel.runtimeID)]) }
+    @ObservationIgnored private var visualReceipts:[String:(trace:String,start:Double)]=[:]
+    private func signal(_ intent: CharacterIntent,traceID:String?=nil) {
+        let eventID=UUID().uuidString
+        if let traceID,bridge.started {
+            if visualReceipts.count>=128 {visualReceipts.removeAll()}
+            visualReceipts[eventID]=(traceID,VoiceTimeline.shared.now(traceID))
+            Task { @MainActor [weak self] in
+                try? await Task.sleep(for:.seconds(5))
+                if let pending=self?.visualReceipts.removeValue(forKey:eventID) {
+                    VoiceTimeline.shared.flag(pending.trace,"unity_receipt_missing",intent.eventName)
+                }
+            }
+        }
+        send("character.signal",payload:["signal":characterPort.payload(intent,actorId:selectedModel.runtimeID,eventId:eventID)])
+    }
     private func selectPerformance(_ option: String, enabled: Bool) {
         endAIVisuals()
         guard selectedModel.performance?.options.contains(where:{ $0.id == option }) == true else { return }
@@ -479,11 +493,13 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
     private var aiVisualBaseline: [String:Set<String>] = [:]
     private var aiVisualTasks: [String:Task<Void,Never>] = [:]
     private var aiVisualSequences:[String:Task<Void,Never>]=[:]
+    private var aiVisualTraces:[String:String]=[:]
     private func applyAIVisuals(_ visuals: [AIVisual],replacingAll:Bool = true) {
         if replacingAll {
             aiVisualSequences.values.forEach { $0.cancel() };aiVisualSequences.removeAll()
         }
         let actor=selectedModel.id
+        let traceID=companion?.activeVoiceTrace
         // A late ear/hand update must not cancel the other groups' next phase.
         let groups=Dictionary(grouping:visuals.prefix(24),by: { $0.group })
         for (group,cues) in groups {
@@ -494,23 +510,24 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
                     let offset=min(12000,max(0,visual.offsetMs ?? 0))
                     if offset>previous {try? await Task.sleep(for:.milliseconds(offset-previous))}
                     guard !Task.isCancelled,let self,self.selectedModel.id==actor else {return}
-                    previous=offset;self.applyAIVisual(visual)
+                    previous=offset;self.applyAIVisual(visual,traceID:traceID)
                 }
             }
         }
     }
-    private func applyAIVisual(_ visual:AIVisual) {
+    private func applyAIVisual(_ visual:AIVisual,traceID:String?=nil) {
         guard page == .viewer, desiredVisible, characterPerformance.ready,
               let profile = selectedModel.performance else { return }
             guard let option = profile.options.first(where:{ $0.id == visual.assetId && $0.group == visual.group }),
                   profile.groups.contains(where:{$0.id==option.group}) else {return}
             let group = option.group
+            if let traceID {aiVisualTraces[group]=traceID}
             if aiVisualBaseline[group] == nil {
                 aiVisualBaseline[group] = characterPerformance.selections.intersection(Set(profile.options.filter { $0.group == group }.map(\.id)))
             }
             aiVisualTasks[group]?.cancel()
             signal(CharacterIntent(eventName:"performance.replace",target:group,
-                selections:visual.active == false ? (aiVisualBaseline[group] ?? []).sorted() : [option.id]))
+                selections:visual.active == false ? (aiVisualBaseline[group] ?? []).sorted() : [option.id]),traceID:traceID)
             // Additional v2 choreography is developer preview only until the
             // user's visual approval. Authored AI expressions remain unchanged.
             let actor = selectedModel.id
@@ -523,7 +540,8 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
     private func restoreAIGroup(_ group: String) {
         guard let original = aiVisualBaseline.removeValue(forKey:group) else { return }
         aiVisualTasks.removeValue(forKey:group)
-        signal(CharacterIntent(eventName:"performance.replace",target:group,selections:original.sorted()))
+        let traceID=aiVisualTraces.removeValue(forKey:group)
+        signal(CharacterIntent(eventName:"performance.replace",target:group,selections:original.sorted()),traceID:traceID)
     }
     private func endAIVisuals() {
         aiVisualSequences.values.forEach { $0.cancel() };aiVisualSequences.removeAll()
@@ -1052,6 +1070,15 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
         logger.info("unity_event \(json, privacy:.public)")
         recordTestEvent(json)
         characterPerformance.receive(event)
+        if let receipt=event["receipt"] as? [String:Any],let id=receipt["eventId"] as? String,
+           let pending=visualReceipts.removeValue(forKey:id) {
+            VoiceTimeline.shared.span(pending.trace,"unity.performance_ack",start:pending.start)
+            if receipt["status"] as? String=="accepted",(receipt["executed"] as? Int ?? 0)>0 {VoiceTimeline.shared.mark(pending.trace,"unity_performance_applied")}
+            if let ms=receipt["processingMs"] as? Double,ms.isFinite,ms>=0,ms<5000 {
+                VoiceTimeline.shared.add(pending.trace,VoiceSpan(name:"unity.performance_control",startMs:max(0,VoiceTimeline.shared.now(pending.trace)-ms),durationMs:ms,status:receipt["status"] as? String))
+            }
+            VoiceTimeline.shared.flag(pending.trace,"unity_performance_status",receipt["status"] as? String ?? "未知")
+        }
         if name == "characterReceipt", let receipt = event["receipt"] as? [String:Any],
            receipt["eventName"] as? String == "action.request",
            receipt["code"] as? String == "POSTURE_ACTION_UNAVAILABLE_OR_TRANSITIONING" {

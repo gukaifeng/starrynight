@@ -64,7 +64,7 @@ namespace ModelSpace
             actorId=manifest.id,eventId="local-"+(++localSequence),eventName=eventName,target=target,turnId=turn },Time.unscaledTime,true);
         public CharacterReceipt Dispatch(CharacterSignal s,float now,bool local=false)
         {
-            var receipt=new CharacterReceipt { eventId=s?.eventId ?? "",eventName=s?.eventName ?? "",status="accepted",code="OK" };
+            var receipt=new CharacterReceipt { eventId=s?.eventId ?? "",eventName=s?.eventName ?? "",status="accepted",code="OK",processingStarted=System.Diagnostics.Stopwatch.GetTimestamp() };
             string invalid=s==null ? "SIGNAL_MISSING" : s.apiMajor!=1 ? "API_MAJOR_UNSUPPORTED" : s.actorId!=manifest.id ? "ACTOR_MISMATCH" :
                 string.IsNullOrEmpty(s.eventId) || s.eventId.Length>128 || string.IsNullOrEmpty(s.eventName) || s.eventName.Length>96 ? "SIGNAL_INVALID" :
                 !Finite(s.intensity) || !Finite(s.level) || !Finite(s.audioTime) || s.intensity<0 || s.intensity>1 || s.level<0 || s.level>1 || s.audioTime<0 ? "SIGNAL_RANGE" :
@@ -206,6 +206,7 @@ namespace ModelSpace
         }
         CharacterReceipt Finish(CharacterReceipt receipt)
         {
+            receipt.processingMs=(System.Diagnostics.Stopwatch.GetTimestamp()-receipt.processingStarted)*1000.0/System.Diagnostics.Stopwatch.Frequency;
             State.lastEvent=receipt.eventName; State.lastStatus=receipt.status; State.lastCode=receipt.code;
             OnReceipt?.Invoke(receipt); return receipt;
         }

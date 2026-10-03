@@ -333,6 +333,8 @@ private final class MicrophonePCM: @unchecked Sendable {
             prepare(messageID,script:script,traceID:id)
             timeline.span(voiceTrace,"audio.cache_read",start:reading,bytes:pcm.count)
             timeline.flag(voiceTrace,"audio_source","内置首句")
+            timeline.mark(id,"audio_ready")
+            timeline.mark(id,"processing_complete")
             let duration=Double(pcm.count)/48000
             durations[messageID]=duration;durationSpeeds[messageID]=1;onDuration?(messageID,1,duration)
             try await accept(AIEvent(type:"segment.audio.started",beatId:"opening"))
@@ -349,6 +351,8 @@ private final class MicrophonePCM: @unchecked Sendable {
         guard !keys.isEmpty, cached.allSatisfy({ $0 != nil }) else {timeline.flag(id,"audio_source","本地缓存缺失");if traceID==nil {timeline.finish(id,status:"cache_miss")};return false }
         prepare(messageID,script:script,traceID:id)
         timeline.flag(id,"audio_source","持久语音缓存")
+        timeline.mark(id,"audio_ready")
+        timeline.mark(id,"processing_complete")
         for (id,wave) in zip(keys,cached) {
             try await accept(AIEvent(type:"segment.audio.started",beatId:id))
             let pcm = wave!.dropFirst(44)

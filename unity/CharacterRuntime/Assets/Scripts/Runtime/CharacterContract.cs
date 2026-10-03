@@ -129,6 +129,10 @@ namespace ModelSpace
     {
         public string eventId, eventName, status, code, channel, target;
         public int executed, skipped;
+        // Optional, local monotonic CPU time for validation/control dispatch.
+        // Animator evaluation and GPU rendering happen later in the frame.
+        public double processingMs;
+        [NonSerialized] public long processingStarted;
     }
     [Serializable] public sealed class CharacterPlatformState
     {

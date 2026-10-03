@@ -18,6 +18,9 @@ final class ConversationPoseSafetyTests:XCTestCase {
             XCTAssertTrue(app.buttons["discover-open-"+id].waitForExistence(timeout:10));app.buttons["discover-open-"+id].tap()
             XCTAssertTrue(app.buttons["profileChatButton"].waitForExistence(timeout:10));app.buttons["profileChatButton"].tap()
             app.waitForCharacter({$0["modelId"] as? String==id && $0["idlePlaying"] as? Bool==true},timeout:75)
+            app.waitForCharacter {state in
+                state["voiceProcessingMs"] as? Double != nil && (state["voiceUnityAckCount"] as? Int ?? 0)>0 && (state["voiceUnityControlMs"] as? Double ?? -1)>=0
+            }
             if name=="hikarun" {
                 for index in 0..<4 {
                     Thread.sleep(forTimeInterval:2)

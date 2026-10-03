@@ -140,6 +140,14 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             }
             return
         }
+        if ProcessInfo.processInfo.arguments.contains("--voice-timing-check") {
+            let label=UILabel();label.numberOfLines=0;label.textColor = .white
+            label.frame=CGRect(x:24,y:100,width:window.bounds.width-48,height:450)
+            label.accessibilityIdentifier="voiceTimingCheckResult";label.text="正在检查静音耗时…"
+            placeholder.view.addSubview(label)
+            Task {do {label.text=try await VoiceTimingChecks.run()}catch {label.text="FAIL: \(error)"}}
+            return
+        }
         if ProcessInfo.processInfo.arguments.contains("--character-resource-check") {
             let label=UILabel();label.numberOfLines=0;label.textColor = .white
             label.frame=CGRect(x:24,y:100,width:window.bounds.width-48,height:450)
@@ -213,7 +221,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     private func bootstrap(in windowScene:UIWindowScene) {
         guard !isolatedGoalFixture, !isolatedModelReviewCheck else { return }
 #if DEBUG && targetEnvironment(simulator)
-        if ProcessInfo.processInfo.arguments.contains(where: { ["--character-resource-check", "--language-check", "--opening-check", "--voice-atmosphere-check", "--reply-flow-check", "--conversation-presentation-check", "--chat-input-check", "--speech-playback-check", "--voice-timeline-review", "--greeting-core-check", "--view-presets-check", "--experience-core-check", "--export-core-check", "--export-ui-check", "--social-core-check", "--cache-core-check", "--market-core-check"].contains($0) }) { return }
+        if ProcessInfo.processInfo.arguments.contains(where: { ["--voice-timing-check", "--character-resource-check", "--language-check", "--opening-check", "--voice-atmosphere-check", "--reply-flow-check", "--conversation-presentation-check", "--chat-input-check", "--speech-playback-check", "--voice-timeline-review", "--greeting-core-check", "--view-presets-check", "--experience-core-check", "--export-core-check", "--export-ui-check", "--social-core-check", "--cache-core-check", "--market-core-check"].contains($0) }) { return }
 #endif
 #if STARRY_TEST_TOOLS
         if ProcessInfo.processInfo.arguments.contains("--connection-check") {return}

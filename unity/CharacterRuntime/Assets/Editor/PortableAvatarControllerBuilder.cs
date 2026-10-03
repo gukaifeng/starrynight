@@ -28,7 +28,7 @@ public static class PortableAvatarControllerBuilder
     [Serializable] class Node {public string path;public bool active;}
     [Serializable] class Skin {public string path;public bool enabled;}
     [Serializable] class MotionList {public MotionSpec[] motions;}
-    [Serializable] class MotionSpec {public string guid,name;public bool loop;public float duration;public float[] times;public Track[] tracks;public Curve[] curves;public ObjectCurve[] objects;}
+    [Serializable] class MotionSpec {public string guid,name;public bool loop,humanoid;public float duration;public float[] times;public Track[] tracks;public Curve[] curves;public ObjectCurve[] objects;}
     [Serializable] class Track {public string path;public float[] times;public Vector3[] positions,scales;public Quaternion[] rotations;}
     [Serializable] class Key {public float time,value,inTangent,outTangent,inWeight,outWeight;public int weightedMode;public bool steppedIn,steppedOut;}
     [Serializable] class Curve {public string path,component,property;public Key[] keys;}
@@ -49,6 +49,7 @@ public static class PortableAvatarControllerBuilder
             .Where(o=>o.ai?.automatic==true && !string.IsNullOrEmpty(o.control?.id)).Select(o=>o.control.id));
         var conversationalParameters=new HashSet<string>(data.controls.Where(c=>automaticControls.Contains(c.id)).Select(c=>c.parameter));
         var geometry=JsonUtility.FromJson<Geometry>(File.ReadAllText(folder+"/avatar-geometry.json"));
+        var humanPaths=new HashSet<string>(geometry.human.Select(h=>h.path));
         foreach(var n in geometry.nodes) {var t=string.IsNullOrEmpty(n.path)?root:root.Find(n.path);if(t)t.gameObject.SetActive(n.active);}
         foreach(var s in geometry.skins) {var t=root.Find(s.path);if(t && t.TryGetComponent<Renderer>(out var renderer))renderer.enabled=s.enabled;}
         string output=folder+"/BakedControllers";Directory.CreateDirectory(output);
@@ -177,7 +178,9 @@ public static class PortableAvatarControllerBuilder
                 string node=geometry.nodes[i].path;bool active=true;
                 var authored=source.transforms.Where(t=>node==t.path || node.StartsWith(t.path+"/",StringComparison.Ordinal)).OrderByDescending(t=>t.path.Length).FirstOrDefault();
                 if(authored!=null)active=authored.active;
-                var human=geometry.human.Where(h=>node==h.path || node.StartsWith(h.path+"/",StringComparison.Ordinal)).OrderByDescending(h=>h.path.Length).FirstOrDefault();
+                // Humanoid muscle masks apply to mapped human bones. Accessory
+                // children (ears, tail, sleeves) have their own Transform masks.
+                var human=geometry.human.FirstOrDefault(h=>node==h.path);
                 if(human!=null && source.body?.Length>=13*8)
                 {
                     string n=human.human;int part=n.Contains("Finger") || n.Contains("Thumb") || n.Contains("Index") || n.Contains("Middle") || n.Contains("Ring") || n.Contains("Little")?(n.StartsWith("Left")?7:8):n.Contains("Arm") || n.Contains("Shoulder") || n.Contains("Hand")?(n.StartsWith("Left")?5:6):n.Contains("Leg") || n.Contains("Foot") || n.Contains("Toes")?(n.StartsWith("Left")?3:4):n.Contains("Head") || n.Contains("Neck") || n.Contains("Eye") || n.Contains("Jaw")?2:1;
@@ -190,6 +193,24 @@ public static class PortableAvatarControllerBuilder
         var groups=new List<AvatarLayerGroup>();
         foreach(var graph in data.controllers)
         {
+            var graphClips=new Dictionary<string,AnimationClip>();
+            masks.TryGetValue(graph.layers.FirstOrDefault()?.mask??"",out var firstFXMask);
+            AnimationClip GraphClip(string id) {
+                if(graph.playable!=5)return clips[id];
+                if(graphClips.TryGetValue(id,out var cached))return cached;
+                var source=motions.motions.First(m=>m.guid==id);
+                if(!source.humanoid)return clips[id];
+                // The default FX mask excludes muscles; a custom first-layer
+                // mask may explicitly allow some. Preserve that distinction
+                // after muscle samples become ordinary Generic transforms.
+                var projected=Own(UnityEngine.Object.Instantiate(clips[id]));projected.name=source.name+" / FX projection";
+                foreach(var binding in AnimationUtility.GetCurveBindings(projected)) {
+                    int node=Array.FindIndex(geometry.nodes,n=>n.path==binding.path);
+                    bool humanAllowed=firstFXMask && node>=0 && firstFXMask.GetTransformActive(node);
+                    if(binding.type==typeof(Transform) && (binding.path=="" || (humanPaths.Contains(binding.path) && !humanAllowed)))AnimationUtility.SetEditorCurve(projected,binding,null);
+                }
+                graphClips[id]=projected;return projected;
+            }
             var graphMachines=graph.machines.ToDictionary(m=>m.id);
             IEnumerable<string> DescendantStates(string id) => graphMachines[id].states.Concat(graphMachines[id].children.SelectMany(DescendantStates));
             var additiveStates=new HashSet<string>(graph.layers.Where(l=>l.additive).SelectMany(l=>DescendantStates(l.root)));
@@ -206,7 +227,7 @@ public static class PortableAvatarControllerBuilder
             Motion Resolve(string id,bool additive=false)
             {
                 if(string.IsNullOrEmpty(id) || id=="0")return null;
-                if(clips.TryGetValue(id,out var clip))return additive?AdditiveClip(id,graph.id,additivePaths):clip;
+                if(clips.ContainsKey(id))return additive?AdditiveClip(id,graph.id,additivePaths):GraphClip(id);
                 if(blends.TryGetValue(id,out var blend))return additive?additiveBlends[id]:blend;
                 // VRChat's FX playable excludes humanoid motion. A missing SDK
                 // neutral-hand proxy here must not inject a full-body pose above
@@ -261,10 +282,10 @@ public static class PortableAvatarControllerBuilder
                     // Close-up conversation needs a perceptible blend for the
                     // approved AI expression/gesture controls. Preserve timed
                     // choreography, longer author transitions, and outfit logic.
-                    if((graph.playable==3 || graph.playable==5) && !source.hasExitTime &&
-                        (source.fixedDuration || source.duration==0) && source.duration<AvatarControlDriver.ConversationBlendSeconds &&
-                        source.conditions.Any(c=>conversationalParameters.Contains(c.parameter)))
-                    {t.hasFixedDuration=true;t.duration=AvatarControlDriver.ConversationBlendSeconds;}
+                    if((graph.playable==3 || graph.playable==5) && source.conditions.Any(c=>conversationalParameters.Contains(c.parameter))) {
+                        float originSeconds=source.fixedDuration?source.duration:source.duration*(clips.TryGetValue(graph.states.FirstOrDefault(s=>s.transitions.Contains(source.id))?.motion??"",out var origin)?origin.length:1);
+                        if(originSeconds<AvatarControlDriver.ConversationBlendSeconds){t.hasFixedDuration=true;t.duration=AvatarControlDriver.ConversationBlendSeconds;}
+                    }
                 }
             }
             foreach(var s in graph.states)foreach(string id in s.transitions)
@@ -298,6 +319,15 @@ public static class PortableAvatarControllerBuilder
         }
         var animator=root.gameObject.AddComponent<Animator>();animator.runtimeAnimatorController=controller;animator.cullingMode=AnimatorCullingMode.AlwaysAnimate;animator.applyRootMotion=false;
         var driver=character.AddComponent<AvatarControlDriver>();driver.animator=animator;driver.profile=new AvatarControlProfile {parameters=data.parameters,controls=data.controls};driver.layerGroups=groups.ToArray();
+        var continuity=character.GetComponent<AvatarPoseContinuity>()??character.AddComponent<AvatarPoseContinuity>();
+        continuity.bones=motions.motions.SelectMany(m=>m.tracks).Select(t=>t.path).Distinct().Select(p=>string.IsNullOrEmpty(p)?root:root.Find(p)).Where(t=>t).Select(t=>new AvatarPoseContinuity.Bone {target=t}).ToArray();
+        continuity.morphs=root.GetComponentsInChildren<SkinnedMeshRenderer>(true).Where(s=>s.sharedMesh).SelectMany(s=>Enumerable.Range(0,s.sharedMesh.blendShapeCount).Select(i=>new AvatarPoseContinuity.Morph {skin=s,index=i})).ToArray();
+        driver.conversationalParameters=conversationalParameters.ToArray();driver.continuity=continuity;
+        var armFollow=character.GetComponent<AvatarArmFollow>()??character.AddComponent<AvatarArmFollow>();
+        armFollow.joints=new[]{"LeftUpperArm","LeftLowerArm","LeftHand","RightUpperArm","RightLowerArm","RightHand"}.Select(name=>{
+            var human=geometry.human.FirstOrDefault(h=>h.human==name);
+            return new AvatarArmFollow.Joint {bone=human==null?null:root.Find(human.path),limit=name.EndsWith("UpperArm")?3:name.EndsWith("LowerArm")?4:1.8f};
+        }).Where(j=>j.bone).ToArray();
         driver.Reset();EditorUtility.SetDirty(controller);
     }
     static AnimationCurve Linear(float[] times,float[] values) {

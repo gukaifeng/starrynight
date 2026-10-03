@@ -20,13 +20,28 @@ final class CharacterResourceDownloadUITests:XCTestCase {
         // A restored last role may show an upgrade prompt instead of opening a
         // chat. Authentication success is independent of that download choice.
         if app.buttons["closeCharacterDownload"].waitForExistence(timeout:3) {app.buttons["closeCharacterDownload"].tap()}
+        // A cached catalog can initially permit an older installed release.
+        // This test must load the actual newly published Bundle, rather than
+        // merely prove that some historical version still opens correctly.
+        app.buttons["tab-mine"].tap();app.buttons["profileSettingsButton"].tap();app.buttons["cacheSettingsButton"].tap()
+        app.buttons["characterResourceSettingsButton"].tap()
+        XCTAssertTrue(app.staticTexts["characterResourceTotal"].waitForExistence(timeout:15))
+        for name in ["fiona","mizuki","ramune"] {
+            let remove=app.buttons["removeCharacterResource-anime-"+name]
+            if remove.exists {
+                remove.tap();XCTAssertTrue(app.alerts.firstMatch.waitForExistence(timeout:5));app.alerts.buttons["删除资源"].tap()
+                let removed=NSPredicate {_,_ in MainActor.assumeIsolated {!remove.exists}}
+                XCTAssertEqual(XCTWaiter.wait(for:[XCTNSPredicateExpectation(predicate:removed,object:nil)],timeout:30),.completed)
+            }
+        }
+        app.navigationBars["角色资源"].buttons.firstMatch.tap();app.navigationBars["存储与缓存"].buttons.firstMatch.tap();app.buttons["closeSettingsButton"].tap()
         for name in ["fiona","mizuki","ramune"] {
             openRole(name,app)
             app.openCharacterDeveloper();app.buttons["profilePerformanceButton"].tap()
             XCTAssertTrue(app.buttons["closeCharacterPerformance"].waitForExistence(timeout:8),name)
             XCTAssertTrue(app.buttons["performanceReset"].isEnabled,name)
             app.buttons["performanceReset"].tap();app.closeCharacterPerformance()
-            let shot=XCTAttachment(screenshot:app.screenshot());shot.name="v096-downloaded-"+name;shot.lifetime = .keepAlways;add(shot)
+            let shot=XCTAttachment(screenshot:app.screenshot());shot.name="downloaded-current-"+name;shot.lifetime = .keepAlways;add(shot)
         }
         app.buttons["tab-mine"].tap();app.buttons["profileSettingsButton"].tap();app.buttons["cacheSettingsButton"].tap()
         app.buttons["characterResourceSettingsButton"].tap()
@@ -61,15 +76,12 @@ final class CharacterResourceDownloadUITests:XCTestCase {
         }
         XCTAssertTrue(card.isHittable,name);card.tap()
         let download=app.buttons["downloadCharacter-"+id]
-        if download.exists {download.tap()}
-        else {
-            app.buttons["profileChatButton"].tap()
-            if download.waitForExistence(timeout:5) {download.tap()}
-        }
-        // Already installed roles can require a newer immutable release. The
-        // profile opens the same confirmation after checking the live catalog.
+        // Every caller has removed this role's cached resources. Wait for the
+        // profile's animated presentation before choosing its download action;
+        // an immediate exists check can mistake an unmounted page for ready.
+        XCTAssertTrue(download.waitForExistence(timeout:15),name);download.tap()
         let confirm=app.buttons["confirmCharacterDownload"]
-        if confirm.waitForExistence(timeout:8) {confirm.tap()}
+        XCTAssertTrue(confirm.waitForExistence(timeout:8),name);confirm.tap()
         app.waitForCharacter({$0["modelId"] as? String==id && ($0["stableRenderedFrames"] as? Int ?? 0)>=3},timeout:240)
     }
 }

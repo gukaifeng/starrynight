@@ -545,6 +545,11 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
         values["confirmedPerformanceCounts"] = characterPerformance?.confirmedCounts ?? [:]
         values["lateVisualUpdates"] = chatSession?.lateVisualUpdates ?? 0
         values["lateVisualsDuringSpeech"] = chatSession?.lateVisualsDuringSpeech ?? 0
+        if let traceID=chatSession?.activeVoiceTrace,let trace=VoiceTimeline.shared.records.last(where:{$0.id==traceID}) {
+            values["voiceProcessingMs"]=trace.processingMs
+            values["voiceUnityAckCount"]=trace.spans.filter {$0.name=="unity.performance_ack"}.count
+            values["voiceUnityControlMs"]=trace.spans.last(where:{$0.name=="unity.performance_control"})?.durationMs
+        }
         values["preparedReactionHits"] = chatSession?.preparedReactionHits ?? 0
         values["preparedInflightHits"] = chatSession?.preparedInflightHits ?? 0
         values["quickReplyCount"] = chatSession?.quickReplies.count ?? 0

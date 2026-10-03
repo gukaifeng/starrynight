@@ -41,6 +41,7 @@ final class CompanionSession {
     func setPresentationActive(_ active:Bool) {
         guard presentationActive != active else {return}
         presentationActive=active
+        VoiceTimeline.shared.flag(activeVoiceTrace,"playback",muted ? "静音" : active ? "启用" : "页面不可见")
         if !active {
             idleTask?.cancel();idleTask=nil
             silentVisualTask?.cancel();silentVisualTask=nil
@@ -114,6 +115,13 @@ final class CompanionSession {
     @ObservationIgnored private let ownerID: String
     @ObservationIgnored private var preparedNickname:String
     @ObservationIgnored private var activeScript: AIScript?
+    @ObservationIgnored private(set) var activeVoiceTrace:String?
+    private func dispatchVisuals(_ visuals:[AIVisual],additional:Bool=false) {
+        let start=activeVoiceTrace.map {VoiceTimeline.shared.now($0)} ?? 0
+        if additional {onAdditionalAIVisual?(visuals)}else {onAIVisual?(visuals)}
+        if !visuals.isEmpty {VoiceTimeline.shared.mark(activeVoiceTrace,"visuals_dispatched")}
+        VoiceTimeline.shared.span(activeVoiceTrace,"conversation.visual_dispatch",start:start)
+    }
     @ObservationIgnored private var performedBeats = Set<String>()
     @ObservationIgnored private var registeredOpening:String?
     @ObservationIgnored private var openingRegistrationTask:Task<Void,Error>?
@@ -150,6 +158,7 @@ final class CompanionSession {
     func setSpeechVolume(_ value: Double) {
         soundscape.setSpeechVolume(value)
         if muted {
+            VoiceTimeline.shared.flag(activeVoiceTrace,"playback","静音")
             speech.stop()
             if let activeScript { playSilentVisuals(activeScript);revealSilently(activeScript) }
         } else { speech.refreshVolume() }
@@ -205,7 +214,7 @@ final class CompanionSession {
         speech.onBeat = { [weak self] id in
             guard let self,self.presentationActive,let beat = self.activeScript?.beats.first(where:{ $0.beatId == id }) else { return }
             self.performedBeats.insert(id)
-            self.onAIVisual?(beat.visuals)
+            self.dispatchVisuals(beat.visuals)
             self.replyReveal.advance(id,fraction:0)
         }
         speech.onBeatProgress = { [weak self] id,fraction in self?.replyReveal.advance(id,fraction:fraction) }
@@ -250,6 +259,11 @@ final class CompanionSession {
     private func playOpening(_ opening:CharacterOpening,entry:ConversationEntry) {
         stop();notice=nil
         let current=token,script=opening.script(characterID:model.id)
+        let trace=VoiceTimeline.shared.begin(account:ownerID,character:model.id,kind:"bundled_opening",message:script.messageId)
+        activeVoiceTrace=trace
+        VoiceTimeline.shared.flag(trace,"playback",muted ? "静音" : presentationActive ? "启用" : "页面不可见")
+        VoiceTimeline.shared.flag(trace,"audio_source","内置首句；无服务端生成")
+        let preparing=VoiceTimeline.shared.now(trace)
         let id=UUID(uuidString:script.messageId)!
         activeScript=script;beginTurn()
         let message=CompanionMessage(id:id,role:"assistant",text:script.text,
@@ -263,18 +277,22 @@ final class CompanionSession {
         quickReplySource=script.messageId.lowercased()
         quickReplies=CharacterOpenings.initialReplies(for:model.runtimeID,messageID:script.messageId)
         scheduleQuickReplies(script)
+        VoiceTimeline.shared.mark(trace,"text_received")
+        VoiceTimeline.shared.span(trace,"conversation.opening_prepare",start:preparing)
+        if muted {VoiceTimeline.shared.mark(trace,"processing_complete")}
         // Record once before playback, so rapid remounts and interruption never
         // draw another first-meeting variant. Later greetings remain contextual AI.
         task=Task { @MainActor [weak self] in
             guard let self else {return}
             do {
-                if muted {playSilentVisuals(script);revealSilently(script)}
-                else {_ = try await speech.cachedReplay(script,messageID:id);replyReveal.finish()}
+                if muted {playSilentVisuals(script);revealSilently(script);VoiceTimeline.shared.finish(trace)}
+                else {_ = try await speech.cachedReplay(script,messageID:id,traceID:trace);replyReveal.finish()}
                 guard token==current,store.accountID==ownerID else {return}
                 emit("state.idle");scheduleIdle()
                 // Preparation is for future interactions, never for this opening.
                 scheduleReactionPreparation(delay:1)
             } catch {
+                VoiceTimeline.shared.finish(trace,status:Task.isCancelled ? "cancelled" : "failed")
                 guard token==current,!Task.isCancelled else {return}
                 speech.stop();playSilentVisuals(script);replyReveal.finish();emit("state.idle")
                 // Missing package media is a build error. Never silently replace
@@ -403,9 +421,12 @@ final class CompanionSession {
         guard !model.isPreviewOnly else { return }
         guard !api.requiresAuthentication else {return}
         guard record.pendingDeletionID==nil else {return}
-        let voiceTrace=VoiceTimeline.shared.begin(account:ownerID,character:model.id,kind:trigger)
-        let preparing=VoiceTimeline.shared.now(voiceTrace)
         stop(preservePreparation:true);quickReplies=[];quickReplySource=nil
+        let voiceTrace=VoiceTimeline.shared.begin(account:ownerID,character:model.id,kind:trigger)
+        activeVoiceTrace=voiceTrace
+        VoiceTimeline.shared.flag(voiceTrace,"playback",muted ? "静音" : presentationActive ? "启用" : "页面不可见")
+        VoiceTimeline.shared.flag(voiceTrace,"audio_requested",muted ? "否；服务端跳过语音生成" : "是")
+        let preparing=VoiceTimeline.shared.now(voiceTrace)
         let current = token; generating = true; beginTurn(); emit("state.thinking")
         var body=requestBody(text,trigger:trigger)
         if let entry { body["entry_id"] = entry.id.uuidString }
@@ -474,7 +495,7 @@ final class CompanionSession {
                             // connecting. Audio onset then aligns/renews the beat.
                             if self.presentationActive,let first=script.beats.first {
                                 self.performedBeats.insert(first.beatId)
-                                self.onAIVisual?(first.visuals)
+                                self.dispatchVisuals(first.visuals)
                             }
                         }
                         else { self.playSilentVisuals(script);self.revealSilently(script) }
@@ -511,7 +532,7 @@ final class CompanionSession {
                         if self.presentationActive,!self.inspectionActive,!self.characterEditorPresented,let visuals=event.visuals,!visuals.isEmpty {
                             self.lateVisualUpdates+=1
                             if self.speech.isSpeaking {self.lateVisualsDuringSpeech+=1}
-                            self.onAdditionalAIVisual?(visuals)
+                            self.dispatchVisuals(visuals,additional:true)
                         }
                     case "reply.warning": self.notice = event.message
                     case "segment.audio.started", "segment.audio.chunk", "segment.audio.ready", "audio.error", "audio.completed":
@@ -519,6 +540,7 @@ final class CompanionSession {
                     default: break
                     }
                 }
+                VoiceTimeline.shared.mark(voiceTrace,"processing_complete")
                 try await audio.finish()
                 guard current == token else { return }
                 generating = false; speech.finish()
@@ -679,7 +701,7 @@ final class CompanionSession {
                 // A voice beat may have arrived since this fallback was queued.
                 guard !performedBeats.contains(beat.beatId) else { continue }
                 performedBeats.insert(beat.beatId)
-                onAIVisual?(beat.visuals)
+                dispatchVisuals(beat.visuals)
                 try? await Task.sleep(for:.milliseconds(beat.visuals.map{($0.offsetMs ?? 0)+$0.durationMs}.max() ?? 2500))
             }
         }
@@ -690,6 +712,7 @@ final class CompanionSession {
         guard let script = message.aiScript else { return }
         stop(); let current = token; activeScript = script; beginTurn()
         let voiceTrace=VoiceTimeline.shared.begin(account:ownerID,character:model.id,kind:"replay",message:script.messageId)
+        activeVoiceTrace=voiceTrace
         task = Task { @MainActor [weak self] in
             guard let self else { return }
             do {
@@ -707,6 +730,7 @@ final class CompanionSession {
         }
     }
     func stop(preservePreparation:Bool = false) {
+        VoiceTimeline.shared.finish(activeVoiceTrace,status:"cancelled");activeVoiceTrace=nil
         preparedReactionReady=[:]
         quickReplyTask?.cancel();quickReplyTask=nil;quickRepliesLoading=false
         reactionPreparationTask?.cancel();reactionPreparationTask=nil

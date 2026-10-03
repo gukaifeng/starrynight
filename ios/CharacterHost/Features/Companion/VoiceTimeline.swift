@@ -57,6 +57,8 @@ struct VoiceRecord: Codable, Identifiable, Sendable {
     var spans:[VoiceSpan] = []
     var server:VoiceServerTrace? = nil
     var droppedSpans:Int = 0
+    var processingMs:Double? {marks["processing_complete"] ?? marks["network_complete"] ?? marks["reply_complete"]}
+    var outputSuppressed:Bool {flags["playback"]=="静音" || flags["playback"]=="页面不可见"}
 }
 
 /// Content-free diagnostics; audio/headers/dialogue are never written here.
@@ -126,6 +128,8 @@ struct VoiceRecord: Codable, Identifiable, Sendable {
         }
         if event.type=="segment.audio.chunk" {mark(id,"first_audio_received");mark(id,"last_audio_received",once:false)}
         if event.type=="reply.completed" {mark(id,"reply_complete")}
+        if event.type=="reply.visuals.updated" {mark(id,"visuals_received",once:false)}
+        if event.type=="segment.audio.ready" {mark(id,"audio_ready",once:false)}
         if event.type=="audio.error" || event.type=="reply.error" {flag(id,"error_event",event.type)}
     }
     func finish(_ id:String?,status:String="completed") {
@@ -160,6 +164,9 @@ enum VoiceStage {
             "first_output":"首次检测到音频输出","first_audio_received":"首个音频到达","text_received":"回复文字到达",
             "model_first_token":"模型首 token","first_sentence_validated":"首句校验就绪","core_generation_completed":"核心生成完成",
             "context.load":"加载上下文","preparation.claim":"检查预缓存","preparation.yield_to_foreground":"等待后台任务让出资源",
+            "conversation.visual_dispatch":"客户端表情与动作分派","visuals_received":"表演计划到达","visuals_dispatched":"首组表情与动作分派",
+            "conversation.opening_prepare":"准备内置开场","processing_complete":"请求处理完成（不含播放）","audio_ready":"完整语音段就绪",
+            "unity.performance_ack":"Unity 表现指令确认（含跨桥排队）","unity.performance_control":"Unity 控制校验与表现选择计算","unity_performance_applied":"Unity 首次接受表现",
             "preparation.priority_queue":"预生成优先级排队","plan.quality_review":"语言与去重检查","reply.commit":"保存对话与关系",
             "tts.generate":"语音模型生成","audio.cache_lookup":"服务端缓存检查","audio.ordered_queue_wait":"服务端分段顺序排队",
             "audio.base64_encode":"服务端音频编码","audio.cache_write_and_trim":"服务端缓存写入与整理"]

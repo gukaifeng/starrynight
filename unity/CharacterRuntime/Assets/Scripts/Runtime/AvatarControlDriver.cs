@@ -28,6 +28,8 @@ namespace ModelSpace
         public Animator animator;
         public AvatarControlProfile profile;
         public AvatarLayerGroup[] layerGroups;
+        public string[] conversationalParameters=Array.Empty<string>();
+        public AvatarPoseContinuity continuity;
         bool initialized;
         public bool AllowBlink {get;private set;}=true;
         public bool AllowSpeech {get;private set;}=true;
@@ -36,7 +38,7 @@ namespace ModelSpace
         public const float ConversationBlendSeconds=.32f;
         sealed class Fade {public float start,target,duration,elapsed;public bool eased;}
         public bool Available => animator && profile!=null;
-        public bool Transitioning => fades.Count>0 || (Available && Enumerable.Range(0,animator.layerCount).Any(animator.IsInTransition));
+        public bool Transitioning => fades.Count>0 || (continuity && continuity.Transitioning) || (Available && Enumerable.Range(0,animator.layerCount).Any(animator.IsInTransition));
         public CharacterParameterValue[] Values => profile.controls.Select(c=>new CharacterParameterValue {id=c.id,value=c.kind=="slider"?Mathf.InverseLerp(c.minimum,c.maximum,Get(c.parameter)):Get(c.parameter)}).ToArray();
         void OnEnable() { if(!initialized && Available) {Reset();initialized=true;} }
         public float Get(string parameter)
@@ -48,6 +50,7 @@ namespace ModelSpace
         {
             var p=profile.parameters.FirstOrDefault(v=>v.name==parameter);
             if(p==null || !float.IsFinite(value))return;
+            if(continuity && Array.IndexOf(conversationalParameters,parameter)>=0 && Mathf.Abs(Get(parameter)-value)>.00001f)continuity.Begin();
             if(parameter==SourceMotionPreview.Parameter && value==0)GetComponent<SourceMotionPreview>()?.Cancel();
             if(p.kind=="bool")animator.SetBool(parameter,value>.5f);
             else if(p.kind=="trigger") {if(value>.5f)animator.SetTrigger(parameter);else animator.ResetTrigger(parameter);}
@@ -76,7 +79,7 @@ namespace ModelSpace
             {
                 StopAllCoroutines();
                 // Rebind is initialization, not a visible expression transition.
-                if(immediate)animator.Rebind();
+                if(immediate){if(continuity)continuity.Reset();animator.Rebind();}
                 AllowBlink=AllowSpeech=true;
                 if(immediate){fades.Clear();weights.Clear();}
                 void RestoreWeight(string key,float target) {
