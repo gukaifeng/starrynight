@@ -105,7 +105,8 @@ def validate(root, manifest, read, path, inspect):
             visiting.remove(identity);done.add(identity)
         for identity in values:visit(identity)
     files={f['path'] for f in manifest['files']}
-    needed={'avatar-controls.json','avatar-motions.json','avatar-geometry.json','materials.json','secondary-motion.json'}
+    motion_file='avatar-motions.json.gz' if 'core.source-motions@1' in capabilities else 'avatar-motions.json'
+    needed={'avatar-controls.json',motion_file,'avatar-geometry.json','materials.json','secondary-motion.json'}
     need(needed<=files,'required sidecars are absent from the sealed file list')
     data=read(path(root,'avatar-controls.json'))
     from jsonschema import Draft202012Validator
@@ -134,9 +135,48 @@ def validate(root, manifest, read, path, inspect):
     def node(p):return isinstance(p,str) and ('Avatar'+('/'+p if p else '')) in nodes
     geometry=read(path(root,'avatar-geometry.json'))
     need(all(node(n['path']) for n in geometry['nodes']),'geometry node missing from GLB')
-    motions=read(path(root,'avatar-motions.json'))
-    clips=index(motions['motions'],'guid',4096,'motions')
-    for clip in clips.values():
+    def motion_json(filename):
+        if not filename.endswith('.gz'):return read(path(root,filename))
+        import gzip,json
+        with gzip.open(path(root,filename),'rb') as stream:
+            raw=stream.read(128*1024*1024+1)
+        need(len(raw)<=128*1024*1024,'expanded motion data budget exceeded')
+        return json.loads(raw)
+    motions=motion_json(motion_file)
+    if 'core.source-motions@1' in capabilities:
+        need('source-motions.json.gz' in files,'source motion library missing from sealed files')
+        library=motion_json('source-motions.json.gz')
+        library_schema=read(Path(__file__).resolve().parents[1]/'schemas/source-motions.schema.json')
+        errors=list(Draft202012Validator(library_schema).iter_errors(library))
+        need(not errors,'source schema validation: '+('; '.join(e.message for e in errors[:3])))
+        need(library.get('schemaVersion')==1 and library.get('parameter')=='Starry_SourceMotion','source motion profile')
+        reserved=params.get(library['parameter'],{})
+        need(reserved.get('kind')=='int' and reserved.get('initial')==0 and not reserved.get('saved',False),'source preview parameter must be transient integer')
+        entries=index(library.get('motions'), 'guid',2048,'source motion library')
+        previews=[c for c in controls.values() if c['parameter']==library['parameter']]
+        need(len(previews)==len(entries),'source library/control count')
+        for i,m in enumerate(library['motions'],1):
+            need(name(m['name']) and numeric(m['duration']) and 0<=m['duration']<=120,'source motion duration/name')
+            c=controls.get('source-motion-'+m['guid'])
+            need(c is not None and c['value']==i and c['initial']==0 and c['kind']=='button','source motion control mapping')
+            need(m['tracks'] or m['curves'],'empty source motion')
+            need(all(node(t['path']) and t['path'] for t in m['tracks']),'source motion targets')
+            need(all(node(c['path']) and c['path'] and (
+                c['component']=='UnityEngine.GameObject' and c['property']=='m_IsActive' or
+                c['component'] in ('UnityEngine.MeshRenderer','UnityEngine.SkinnedMeshRenderer') and c['property']=='m_Enabled' or
+                c['component']=='UnityEngine.SkinnedMeshRenderer' and c['property'].startswith('blendShape.')
+                and c['property'][11:] in next(n.get('morphs',[]) for n in model['nodes'] if n['path']=='Avatar/'+c['path']))
+                     for c in m['curves']),'source curve allowlist')
+            for curve in m['curves']:
+                keys=curve['keys']
+                need(all(numeric(k[n]) for k in keys for n in ('time','value','inTangent','outTangent','inWeight','outWeight')),'source key must be finite')
+                need(all(0<=k['time']<=m['duration']+.0001 for k in keys) and all(a['time']<b['time'] for a,b in zip(keys,keys[1:])),'source key time sequence')
+        # Validate source transform samples using the same bounded track profile.
+        motions=dict(motions,motions=motions['motions']+library['motions'])
+    # Original-library GUIDs may also be referenced by the original controller.
+    # They remain distinct compiled clips; validate both data versions.
+    clips=index(motion_json(motion_file)['motions'],'guid',4096,'motions')
+    for clip in motions['motions']:
         need(numeric(clip['duration']) and 0<=clip['duration']<=600,'clip duration outside profile')
         times=items(clip['times'],36001,'sample times')
         need(times and all(numeric(t) and t>=0 for t in times) and all(a<b for a,b in zip(times,times[1:])),'invalid time sequence')

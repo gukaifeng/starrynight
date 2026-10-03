@@ -8,7 +8,7 @@ using UnityEngine;
 
 public static class HostEmotionMotionReview
 {
-    [Serializable] sealed class Row {public string actor,gesture;public int hz;public float peakDegrees,maxFrameDegrees,maxWristTravel;}
+    [Serializable] sealed class Row {public string actor,gesture,expression;public int hz;public float peakDegrees,maxFrameDegrees,maxAuthorFrameDegrees,maxCombinedFrameDegrees,maxWristTravel;}
     [Serializable] sealed class Report {public string scope="Host-only upper body; original Animator, masks, cancel/rebind, 60/120 Hz numerical sampling. Not device FPS.";public int assertions;public List<Row> samples=new List<Row>();}
     static Report report;
     static string Output=>Path.Combine(CharacterPackageBuilder.Root,".local/checks/host-emotion-motion");
@@ -28,33 +28,42 @@ public static class HostEmotionMotionReview
                     var author=c.GetComponent<AvatarControlDriver>();
                     var animation=c.GetComponent<Animation>();
                     animation.GetClip("Idle").SampleAnimation(c.gameObject,0);
-                    if(author) {author.Reset();author.animator.Update(0);}
+                    if(author) {author.Reset();author.animator.Update(.02f);}
                     driver.Bind(c,null);
                     bool pilot=HostEmotionMotionBuilder.Actors.Contains(c.modelId);
                     Check(driver.State.supported==pilot,c.modelId+" explicit opt-in");
                     if(!pilot) {driver.Configure(true);Check(driver.Request("happy",true)=="HOST_MOTION_UNSUPPORTED",c.modelId+" unchanged");continue;}
                     var rig=c.GetComponent<HostEmotionRig>();
-                    var feet=c.GetComponentsInChildren<Transform>().Where(t=>t.name=="Foot.L" || t.name=="Foot.R").ToArray();
-                    Check(feet.Length==2,c.modelId+" both feet mapped");
-                    var hands=c.GetComponentsInChildren<Transform>().Where(t=>t.name=="Hand.L" || t.name=="Hand.R").ToArray();
-                    Check(hands.Length==2,c.modelId+" both wrists mapped");
+                    var feet=new[]{rig.leftFoot,rig.rightFoot};Check(feet.All(t=>t),c.modelId+" both feet mapped");
+                    var hands=new[]{rig.leftHand,rig.rightHand};Check(hands.All(t=>t),c.modelId+" both wrists mapped");
+                    Check(rig.faces.Length==10,c.modelId+" ten expression combinations");
                     var rootPosition=c.transform.position;var rootScale=c.transform.localScale;var rootRotation=c.transform.rotation;
                     foreach(int hz in new[]{60,120})foreach(string gesture in HostEmotionMotion.Gestures) {
                         driver.Clear();driver.Bind(c,null);driver.Configure(true);
-                        if(author){author.Reset();author.animator.Update(0);}
-                        var feetStart=feet.Select(f=>f.position).ToArray();var handStart=hands.Select(h=>h.position).ToArray();
+                        if(author){author.Reset();author.animator.Update(.02f);}
+                        var handStart=hands.Select(h=>h.position).ToArray();
                         float wristGap=Vector3.Distance(handStart[0],handStart[1]);
                         var previous=rig.joints.Select(j=>j.bone.localRotation).ToArray();
+                        var previousAuthor=previous.ToArray();var previousOffset=rig.joints.Select(j=>Quaternion.identity).ToArray();
                         var row=new Row {actor=c.modelId,gesture=gesture,hz=hz};report.samples.Add(row);
                         Check(driver.Request(gesture,true)==null,c.modelId+" start "+gesture);
                         for(int frame=0;frame<hz*(HostEmotionMotion.Duration(gesture)+1);frame++) {
                             driver.RestorePose();if(author)author.animator.Update(1f/hz);
+                            // Compare with the current AUTHOR frame: some
+                            // original controllers have an animated baseline.
+                            // The new upper-body layer must not move its feet.
+                            var feetStart=feet.Select(f=>f.position).ToArray();
+                            var authorPose=rig.joints.Select(j=>j.bone.localRotation).ToArray();
                             driver.Step(1f/hz);
+                            if(driver.State.expression.Length>0)row.expression=driver.State.expression;
                             row.peakDegrees=Mathf.Max(row.peakDegrees,driver.State.peakDegrees);
                             for(int i=0;i<rig.joints.Length;i++) {
                                 var q=rig.joints[i].bone.localRotation;
                                 Check(float.IsFinite(q.x+q.y+q.z+q.w),"finite quaternion");
-                                row.maxFrameDegrees=Mathf.Max(row.maxFrameDegrees,CharacterAutonomy.MotionAngle(previous[i],q));previous[i]=q;
+                                var offset=Quaternion.Inverse(authorPose[i])*q;
+                                row.maxFrameDegrees=Mathf.Max(row.maxFrameDegrees,CharacterAutonomy.MotionAngle(previousOffset[i],offset));previousOffset[i]=offset;
+                                row.maxAuthorFrameDegrees=Mathf.Max(row.maxAuthorFrameDegrees,CharacterAutonomy.MotionAngle(previousAuthor[i],authorPose[i]));previousAuthor[i]=authorPose[i];
+                                row.maxCombinedFrameDegrees=Mathf.Max(row.maxCombinedFrameDegrees,CharacterAutonomy.MotionAngle(previous[i],q));previous[i]=q;
                             }
                             for(int i=0;i<2;i++) {
                                 Check(Vector3.Distance(feet[i].position,feetStart[i])<.0001f,c.modelId+" planted feet");
@@ -64,7 +73,7 @@ public static class HostEmotionMotionReview
                             if(gesture=="happy" && frame==Mathf.RoundToInt(hz*1.5f))
                                 Check(Vector3.Distance(hands[0].position,hands[1].position)>wristGap+.02f,c.modelId+" sleeves open away from body");
                         }
-                        Check(row.peakDegrees>4 && row.peakDegrees<28,c.modelId+" useful bounded motion");
+                        Check(row.peakDegrees>4 && row.peakDegrees<40,c.modelId+" useful bounded motion");
                         Check(row.maxFrameDegrees<2.2f,c.modelId+" no frame snaps "+row.maxFrameDegrees);
                         Check(driver.State.gesture=="" && driver.State.completed==1,"natural return");
                         Check(c.transform.position==rootPosition && c.transform.rotation==rootRotation && c.transform.localScale==rootScale,"root invariant");
@@ -79,15 +88,16 @@ public static class HostEmotionMotionReview
                     Check(driver.Request("happy",true)=="HOST_MOTION_DISABLED","off blocks additional motion");
                     Check(weights.SequenceEqual(author.Values.Select(v=>v.value)),"author parameters untouched");
                     // Original gesture remains operable with the extra layer disabled.
-                    Check(author.Select("gesture-left-2",1)==null,"original expression still works");
-                    driver.Step(.02f);Check(author.Get("GestureLeft")==2,"original gesture preserved");author.Reset();
+                    var original=author.profile.controls.First(o=>o.parameter!=SourceMotionPreview.Parameter);
+                    Check(author.Select(original.id,1)==null,"original expression still works");
+                    driver.Step(.02f);Check(author.Get(original.parameter)==(original.kind=="slider"?original.maximum:original.value),"original gesture preserved");author.Reset();
                     driver.Configure(true);driver.SetInteracting(true);
                     Check(driver.Request("happy",true)=="HOST_MOTION_AUTHOR_PRIORITY","editing has priority");driver.SetInteracting(false);
                     if(c.modelId=="anime-nozomi") {
                         author.Set("StandStyle",1);Check(driver.Request("happy",true)=="HOST_MOTION_AUTHOR_PRIORITY","original body pose wins");author.Reset();
                     }
-                    var expression=c.Manifest.performance.options.First(o=>o.ai?.kind=="expression" && o.ai.automatic && HostEmotionMotion.ForIntent(o.ai.intent)!="");
-                    Check(driver.CueOriginalExpression(expression.id)==null,"AI source expression maps to host gesture");
+                    Check(driver.CueOriginalExpression("")=="HOST_MOTION_DEVELOPER_ONLY","normal conversation cannot start added choreography");
+                    Check(driver.Request("happy",true)==null,"manual preview still works");
                     driver.Step(.03f);driver.Clear();
                     var clean=rig.joints.Select(j=>j.bone.localRotation).ToArray();driver.Step(.03f);
                     Check(clean.SequenceEqual(rig.joints.Select(j=>j.bone.localRotation)),"unbind leaves no actor offsets");

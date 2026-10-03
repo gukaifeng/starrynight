@@ -17,6 +17,8 @@ import Observation
     private(set) var hostMotionEnabled=false
     private(set) var hostMotionSuppressed=false
     private(set) var hostMotionGesture=""
+    private(set) var hostMotionExpression=""
+    private(set) var hostMotionExpressions:[String]=[]
 #if DEBUG
     private(set) var confirmedCounts: [String:Int] = [:]
 #endif
@@ -26,6 +28,7 @@ import Observation
         selections.removeAll(); controlValues.removeAll(); ready = false; transitioning = false
         pendingID = nil; pendingOption = nil; error = nil
         hostMotionSupported=false;hostMotionEnabled=false;hostMotionSuppressed=false;hostMotionGesture=""
+        hostMotionExpression="";hostMotionExpressions=[]
 #if DEBUG
         confirmedCounts.removeAll()
 #endif
@@ -48,6 +51,8 @@ import Observation
                 hostMotionEnabled=motion["enabled"] as? Bool ?? false
                 hostMotionSuppressed=motion["suppressed"] as? Bool ?? false
                 hostMotionGesture=motion["gesture"] as? String ?? ""
+                hostMotionExpression=motion["expression"] as? String ?? ""
+                hostMotionExpressions=motion["expressions"] as? [String] ?? []
             }
             selections = Set(selected); ready = true
             transitioning = platform["performanceTransitioning"] as? Bool ?? false
@@ -80,43 +85,32 @@ struct CharacterPerformancePanel: View {
     var onReset: (String) -> Void
     var onAdjust: (String, Double) -> Void = { _,_ in }
     var onVisibilityChanged: (Bool) -> Void = { _ in }
+    var sourceLibrary=false
     @State private var selectedGroup = ""
+    @State private var search=""
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var groups: [CharacterPerformanceProfile.Group] {
         profile.groups.filter { group in profile.options.contains { $0.group == group.id } }
     }
-    private var currentGroup: String { selectedGroup == "host-emotion" && state.hostMotionSupported ? selectedGroup : groups.contains { $0.id == selectedGroup } ? selectedGroup : groups.first?.id ?? "" }
-    private var options: [CharacterPerformanceProfile.Option] { profile.options.filter { $0.group == currentGroup } }
+    private var currentGroup: String { groups.contains { $0.id == selectedGroup } ? selectedGroup : groups.first?.id ?? "" }
+    private var options: [CharacterPerformanceProfile.Option] {
+        profile.options.filter {$0.group == currentGroup && (search.isEmpty || $0.label.localizedCaseInsensitiveContains(search))}
+    }
     private var canSelect: Bool { state.ready && state.pendingID == nil && state.modelID == model.runtimeID }
 
     var body: some View {
         VStack(spacing:0) {
-            PanelPageHeader(L10n.text("角色表现 · ") + model.name,backID:"closeCharacterPerformance") {
-                if currentGroup == "host-emotion" {
-                    Button { HostEmotionMotionPreference.request("stop",actor:model.runtimeID) } label: {
-                        Text("结束预览").font(.system(size:11,weight:.medium))
-                            .foregroundStyle(Theme.secondary).frame(minHeight:44)
-                    }.buttonStyle(.plain).accessibilityIdentifier("hostEmotionStop")
-                } else {
+            PanelPageHeader(L10n.text(sourceLibrary ? "原作片段库 · " : "角色表现 · ") + model.name,backID:"closeCharacterPerformance") {
                 Button { onReset("") } label: {
                     Label("全部默认",systemImage:"arrow.counterclockwise")
                         .font(.system(size:11,weight:.medium))
                         .foregroundStyle(Theme.secondary).frame(minHeight:44).contentShape(Rectangle())
                 }.buttonStyle(.plain).disabled(!canSelect)
                     .accessibilityLabel("全部恢复默认").accessibilityIdentifier("performanceReset")
-                }
             }
             ScrollView(.horizontal) {
                 HStack(spacing:6) {
-                    if state.hostMotionSupported {
-                        Button { selectedGroup="host-emotion" } label: {
-                            Label("情绪动作 · 试用",systemImage:"sparkles")
-                                .font(.system(size:12,weight:.medium)).padding(.horizontal,11).frame(height:28)
-                                .background(selectedGroup == "host-emotion" ? Theme.accent.opacity(0.16) : Theme.surface.opacity(0.38),in:Capsule())
-                                .frame(minHeight:44)
-                        }.buttonStyle(.plain).accessibilityIdentifier("hostEmotionMotionTab")
-                    }
                     ForEach(groups) { group in
                         Button {
                             withAnimation(.easeInOut(duration:reduceMotion ? 0.1 : 0.22)) { selectedGroup = group.id }
@@ -133,9 +127,16 @@ struct CharacterPerformancePanel: View {
                     }
                 }.padding(.horizontal,18)
             }.scrollIndicators(.hidden).padding(.bottom,4).accessibilityIdentifier("performanceGroups")
-            if selectedGroup == "host-emotion",state.hostMotionSupported {
-                HostEmotionMotionPanel(model:model,state:state)
-            } else { ScrollView {
+            if sourceLibrary {
+                HStack(spacing:8) {
+                    Image(systemName:"magnifyingglass").font(.system(size:11)).foregroundStyle(Theme.secondary)
+                    TextField("搜索原作片段",text:$search).font(.system(size:12)).autocorrectionDisabled()
+                        .accessibilityIdentifier("sourceMotionSearch")
+                    Text("\(options.count)").font(.system(size:10,design:.monospaced)).foregroundStyle(Theme.secondary)
+                }.padding(.horizontal,12).frame(height:32)
+                    .background(Theme.surface.opacity(0.45),in:Capsule()).padding(.horizontal,18).padding(.bottom,8)
+            }
+            ScrollView {
                 LazyVGrid(columns:[GridItem(.adaptive(minimum:138),spacing:7)],spacing:7) {
                     defaultButton
                     ForEach(options) { option in
@@ -145,7 +146,6 @@ struct CharacterPerformancePanel: View {
                     }
                 }.padding(.horizontal,18).padding(.bottom,12)
             }.id(currentGroup).scrollIndicators(.hidden).accessibilityIdentifier("performanceOptions")
-            }
             if let error = state.error {
                 Text(LocalizedStringKey(error)).font(.system(size:11)).foregroundStyle(Theme.peach)
                     .padding(.horizontal,18).padding(.bottom,12).accessibilityIdentifier("performanceError")
@@ -191,7 +191,13 @@ struct CharacterPerformancePanel: View {
                 VStack(alignment:.leading,spacing:2) {
                     Text(option.label).font(.system(size:12,weight:.medium)).lineLimit(2)
                         .frame(maxWidth:.infinity,alignment:.leading)
-                    if option.kind == "motion" {
+                    if option.id.hasPrefix("source-motion-") {
+                        Text((option.duration ?? 0)<=0.05 ? "原作姿态 · 可恢复" : option.loop == true ? "原作循环 · 可恢复" : "原作片段 · 播放后恢复")
+                            .font(.system(size:9)).foregroundStyle(Theme.secondary)
+                        if option.description?.contains("部分通道") == true {
+                            Text("部分通道适配").font(.system(size:9)).foregroundStyle(Theme.peach.opacity(0.8))
+                        }
+                    } else if option.kind == "motion" {
                         Text(option.loop == true ? "循环 · 可恢复" : "播放后恢复")
                             .font(.system(size:10)).foregroundStyle(Theme.secondary)
                     }

@@ -155,7 +155,7 @@ namespace ModelSpace
             get => transitioning || (character && character.TryGetComponent<AvatarControlDriver>(out var avatar) && avatar.Transitioning);
             private set => transitioning=value;
         }
-        public float GazeWeight => 1-poseWeight;
+        public float GazeWeight => (1-poseWeight)*(1-(character?character.GetComponent<SourceMotionPreview>()?.State.weight ?? 0:0));
         public string[] Selections => entries.Where(e=>{
             if(!string.IsNullOrEmpty(e.spec.control?.id)) {
                 var avatar=character?character.GetComponent<AvatarControlDriver>():null;

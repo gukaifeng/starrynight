@@ -46,6 +46,21 @@ final class CharacterDownloadUITests:XCTestCase {
             app.coordinate(withNormalizedOffset:CGVector(dx:0.45,dy:0.35)).press(forDuration:0.05,
                 thenDragTo:app.coordinate(withNormalizedOffset:CGVector(dx:0.65,dy:0.38)))
             app.waitForCharacter({($0["previewRotationCount"] as? Int ?? 0)>before},timeout:15)
+            let platform=app.characterRuntime["characterPlatform"] as? [String:Any] ?? [:]
+            let library=platform["sourceMotionPreview"] as? [String:Any] ?? [:]
+            let motion=platform["hostEmotionMotion"] as? [String:Any] ?? [:]
+            XCTAssertGreaterThan(library["count"] as? Int ?? 0,0)
+            XCTAssertEqual(motion["gestureCount"] as? Int,10)
+            XCTAssertEqual(motion["supported"] as? Bool,true)
+            app.openCharacterDeveloper();app.buttons["openHostEmotionMotion"].tap()
+            let toggle=app.switches["hostEmotionMotionToggle"]
+            XCTAssertTrue(toggle.waitForExistence(timeout:8));if toggle.value as? String != "1" {toggle.tap()}
+            app.waitForCharacter { (($0["characterPlatform"] as? [String:Any])?["hostEmotionMotion"] as? [String:Any])?["enabled"] as? Bool == true }
+            app.buttons["hostEmotionPreview-happy"].tap()
+            app.waitForCharacter { (($0["characterPlatform"] as? [String:Any])?["hostEmotionMotion"] as? [String:Any])?["gesture"] as? String == "happy" }
+            app.buttons["hostEmotionStop"].tap()
+            app.waitForCharacter { (($0["characterPlatform"] as? [String:Any])?["hostEmotionMotion"] as? [String:Any])?["gesture"] as? String == "" }
+            app.buttons["closeHostEmotionMotion"].tap();app.buttons["closeCharacterDeveloper"].tap()
             let screenshot=XCTAttachment(screenshot:XCUIScreen.main.screenshot());screenshot.name="downloaded-"+id;screenshot.lifetime = .keepAlways;add(screenshot)
         }
         // UI automation deliberately keeps credentials out of the app Keychain;

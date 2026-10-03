@@ -1,0 +1,52 @@
+{
+  "sourceLibrary": {
+    "actors": 16,
+    "motions": 1965,
+    "assertions": 6277477,
+    "restored": 1965
+  },
+  "hostCombos": {
+    "actors": 16,
+    "gestures": 10,
+    "samplingHz": [
+      60,
+      120
+    ],
+    "samples": 320,
+    "assertions": 1962304,
+    "maxAddedFrameDegrees": 1.0338969230651855,
+    "maxAuthorFrameDegrees": 4.5155510902404785,
+    "maxCombinedFrameDegrees": 4.639736652374268,
+    "peakAddedJointDegrees": 38.000003814697266,
+    "neutralFaces": 0
+  },
+  "deviceFPSMeasured": false,
+  "imageGenerationCalls": 0,
+  "paidDialogueCalls": 0,
+  "app": {
+    "version": "0.94.0",
+    "build": 125,
+    "phoneInstalled": true,
+    "phoneLaunched": true,
+    "signedReleaseBuild": true
+  },
+  "simulatorTests": {
+    "hostEmotionMotion": true,
+    "aiInspectorTests": 2,
+    "conversationSettingsTests": 2,
+    "ossDownloadAndRelaunch": true,
+    "orientationRetryRequiredSimulatorReboot": true,
+    "orientationRootCauseConfirmed": false
+  },
+  "delivery": {
+    "catalogCharacters": 16,
+    "packageVersion": "3.4.0",
+    "remoteCharacters": 3,
+    "platformReleases": 6,
+    "releaseVersion": 2,
+    "objectsVerified": 54,
+    "unauthenticatedStatus": 401,
+    "signedRangeStatus": 206,
+    "tlsVerified": true
+  }
+}

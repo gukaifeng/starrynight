@@ -29,9 +29,12 @@ struct CharacterDeveloperPanel:View {
                 AIInspectionPanel(model:model,store:store,draft:session?.input ?? "")
                     .environment(\.softPanelCloseRequest,childClose).environment(\.softPanelDismiss,{childClose.request()})
                     .transition(.opacity)
-            } else if destination == "performance",let profile=model.performance,let state=performanceState {
-                CharacterPerformancePanel(model:model,profile:profile,state:state,onSelect:onSelect,onReset:onReset,
-                    onAdjust:onAdjust)
+            } else if destination == "motion",let state=performanceState {
+                HostEmotionMotionPanel(model:model,state:state)
+                    .environment(\.softPanelCloseRequest,childClose).environment(\.softPanelDismiss,{childClose.request()}).transition(.opacity)
+            } else if (destination == "performance" || destination == "source"),let profile=model.performance,let state=performanceState {
+                CharacterPerformancePanel(model:model,profile:profile.scopedToSourceLibrary(destination == "source"),state:state,onSelect:onSelect,onReset:onReset,
+                    onAdjust:onAdjust,sourceLibrary:destination == "source")
                     .environment(\.softPanelCloseRequest,childClose).environment(\.softPanelDismiss,{childClose.request()})
                     .transition(.opacity)
             } else {
@@ -42,8 +45,14 @@ struct CharacterDeveloperPanel:View {
                             Text("开发构建专用").font(.system(size:11,weight:.medium)).foregroundStyle(Theme.accent)
                             DeveloperEntry(title:"AI 设定检查",detail:"完整设定、提示词、上下文与实际请求",symbol:"curlybraces",id:"openAIInspector") {open("ai")}
                             DeveloperEntry(title:"语音耗时",detail:"生成、网络、缓存、排队与播放的逐次拆解",symbol:"waveform.path",id:"openCharacterVoiceTimings") {open("voice")}
+                            if let state=performanceState,state.hostMotionSupported {
+                                DeveloperEntry(title:"动作实验",detail:"10 个通用身体与表情组合 · 仅手动预览",symbol:"figure.wave",id:"openHostEmotionMotion") {open("motion")}
+                            }
                             if performanceState != nil,model.performance != nil {
                                 DeveloperEntry(title:"角色表现",detail:"手动检查原生表情、动作和物理能力",symbol:"theatermasks",id:"profilePerformanceButton") {open("performance")}
+                                if let library=model.performance?.scopedToSourceLibrary(true),!library.options.isEmpty {
+                                    DeveloperEntry(title:"原作片段库",detail:"\(library.options.count) 个可绑定片段 · 肢体、表情与部件",symbol:"film.stack",id:"openSourceMotionLibrary") {open("source")}
+                                }
                             } else {
                                 DeveloperEntry(title:"角色表现",detail:"进入会话后，在开发者页面预览动作",symbol:"theatermasks",id:"developerOpenConversation",action:onOpenConversation)
                             }

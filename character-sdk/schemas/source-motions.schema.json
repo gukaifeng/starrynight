@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://starrynight.local/schemas/source-motions/1",
+  "title": "XCP core.source-motions@1 — data-only source clip projection",
+  "type": "object",
+  "required": ["schemaVersion", "parameter", "motions"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "parameter": {"const": "Starry_SourceMotion"},
+    "motions": {
+      "type": "array", "minItems": 1, "maxItems": 2048,
+      "items": {
+        "type": "object",
+        "required": ["guid", "name", "duration", "loop", "times", "tracks", "curves", "category", "intent", "projectionComplete"],
+        "properties": {
+          "guid": {"type": "string", "pattern": "^[a-fA-F0-9]{32}(:-?[0-9]{1,20})?$"},
+          "name": {"type": "string", "minLength": 1, "maxLength": 256},
+          "duration": {"type": "number", "minimum": 0, "maximum": 120},
+          "loop": {"type": "boolean"},
+          "times": {"type": "array", "minItems": 1, "maxItems": 7201, "items": {"type": "number", "minimum": 0, "maximum": 120.0001}},
+          "tracks": {"type": "array", "maxItems": 1024, "items": {"$ref": "#/$defs/track"}},
+          "curves": {"type": "array", "maxItems": 4096, "items": {"$ref": "#/$defs/curve"}},
+          "category": {"enum": ["source-body", "source-face-motion", "source-parts"]},
+          "intent": {"type": "string", "maxLength": 128},
+          "sourcePath": {"type": "string", "maxLength": 2048},
+          "projectionComplete": {"type": "boolean"}
+        }
+      }
+    }
+  },
+  "$defs": {
+    "path": {"type": "string", "minLength": 1, "maxLength": 2048},
+    "track": {
+      "type": "object", "required": ["path", "positions", "rotations", "scales"],
+      "properties": {
+        "path": {"$ref": "#/$defs/path"},
+        "times": {"type": "array", "minItems": 1, "maxItems": 7201, "items": {"type": "number", "minimum": 0}},
+        "positions": {"type": "array", "minItems": 1, "maxItems": 7201},
+        "rotations": {"type": "array", "minItems": 1, "maxItems": 7201},
+        "scales": {"type": "array", "minItems": 1, "maxItems": 7201}
+      }
+    },
+    "curve": {
+      "type": "object", "required": ["path", "component", "property", "keys"],
+      "properties": {
+        "path": {"$ref": "#/$defs/path"},
+        "component": {"enum": ["UnityEngine.GameObject", "UnityEngine.MeshRenderer", "UnityEngine.SkinnedMeshRenderer"]},
+        "property": {"type": "string", "pattern": "^(m_IsActive|m_Enabled|blendShape\\..+)$", "maxLength": 256},
+        "keys": {"type": "array", "minItems": 1, "maxItems": 7201, "items": {"$ref": "#/$defs/key"}}
+      }
+    },
+    "key": {
+      "type": "object",
+      "required": ["time", "value", "inTangent", "outTangent", "inWeight", "outWeight", "weightedMode", "steppedIn", "steppedOut"],
+      "properties": {
+        "time": {"type": "number", "minimum": 0}, "value": {"type": "number"},
+        "inTangent": {"type": "number"}, "outTangent": {"type": "number"},
+        "inWeight": {"type": "number", "minimum": 0, "maximum": 1}, "outWeight": {"type": "number", "minimum": 0, "maximum": 1},
+        "weightedMode": {"type": "integer", "minimum": 0, "maximum": 3},
+        "steppedIn": {"type": "boolean"}, "steppedOut": {"type": "boolean"}
+      }
+    }
+  }
+}

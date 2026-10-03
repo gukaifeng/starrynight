@@ -82,7 +82,7 @@ public static class PortableAvatarControllerBuilder
         var neutralFX=Own(new AnimationClip {name="Host neutral FX passthrough",legacy=false});
         var baseMachine=Own(new AnimatorStateMachine {name="Host baseline"});var baseState=baseMachine.AddState("Idle");baseState.motion=baseline;baseMachine.defaultState=baseState;
         controller.AddLayer(new AnimatorControllerLayer {name="Host baseline",defaultWeight=1,stateMachine=baseMachine});
-        var motions=JsonUtility.FromJson<MotionList>(File.ReadAllText(folder+"/avatar-motions.json"));
+        var motions=JsonUtility.FromJson<MotionList>(CharacterMotionData.Read(folder+"/avatar-motions.json"));
         var clips=new Dictionary<string,AnimationClip>();
         foreach(var source in motions.motions)
         {

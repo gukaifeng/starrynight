@@ -1,0 +1,278 @@
+{
+  "schemaVersion": 1,
+  "packageVersion": "3.4.0",
+  "source": "Source packages and Unity-evaluated independent previews; no licensed curves included.",
+  "characters": [
+    {
+      "id": "anime-chiffon",
+      "sourceMotions": 57,
+      "playable": 57,
+      "complete": 57,
+      "unavailable": 0,
+      "name": "Chiffon",
+      "partial": 0,
+      "categories": {
+        "source-face-motion": 43,
+        "source-parts": 14
+      },
+      "changedDuringFirst50Frames": 47,
+      "changingSamples": 2,
+      "identicalSamples": 55
+    },
+    {
+      "id": "anime-fiona",
+      "sourceMotions": 88,
+      "playable": 87,
+      "complete": 73,
+      "unavailable": 1,
+      "name": "Fiona",
+      "partial": 14,
+      "categories": {
+        "source-face-motion": 66,
+        "source-parts": 20,
+        "source-body": 1
+      },
+      "changedDuringFirst50Frames": 71,
+      "changingSamples": 33,
+      "identicalSamples": 54
+    },
+    {
+      "id": "anime-hikarun",
+      "sourceMotions": 52,
+      "playable": 50,
+      "complete": 34,
+      "unavailable": 2,
+      "name": "Hikarun",
+      "partial": 16,
+      "categories": {
+        "source-parts": 27,
+        "source-face-motion": 21,
+        "source-body": 2
+      },
+      "changedDuringFirst50Frames": 41,
+      "changingSamples": 29,
+      "identicalSamples": 21
+    },
+    {
+      "id": "anime-ichigo",
+      "sourceMotions": 96,
+      "playable": 94,
+      "complete": 92,
+      "unavailable": 2,
+      "name": "Ichigo",
+      "partial": 2,
+      "categories": {
+        "source-face-motion": 62,
+        "source-parts": 27,
+        "source-body": 5
+      },
+      "changedDuringFirst50Frames": 91,
+      "changingSamples": 6,
+      "identicalSamples": 88
+    },
+    {
+      "id": "anime-koharu",
+      "sourceMotions": 175,
+      "playable": 130,
+      "complete": 109,
+      "unavailable": 45,
+      "name": "Koharu",
+      "partial": 21,
+      "categories": {
+        "source-body": 10,
+        "source-face-motion": 43,
+        "source-parts": 77
+      },
+      "changedDuringFirst50Frames": 118,
+      "changingSamples": 27,
+      "identicalSamples": 103
+    },
+    {
+      "id": "anime-lime",
+      "sourceMotions": 40,
+      "playable": 40,
+      "complete": 23,
+      "unavailable": 0,
+      "name": "Lime",
+      "partial": 17,
+      "categories": {
+        "source-face-motion": 27,
+        "source-parts": 13
+      },
+      "changedDuringFirst50Frames": 32,
+      "changingSamples": 2,
+      "identicalSamples": 38
+    },
+    {
+      "id": "anime-mafuyu",
+      "sourceMotions": 52,
+      "playable": 51,
+      "complete": 51,
+      "unavailable": 1,
+      "name": "Mafuyu",
+      "partial": 0,
+      "categories": {
+        "source-parts": 18,
+        "source-face-motion": 32,
+        "source-body": 1
+      },
+      "changedDuringFirst50Frames": 37,
+      "changingSamples": 11,
+      "identicalSamples": 40
+    },
+    {
+      "id": "anime-meiyun",
+      "sourceMotions": 62,
+      "playable": 61,
+      "complete": 61,
+      "unavailable": 1,
+      "name": "Meiyun",
+      "partial": 0,
+      "categories": {
+        "source-body": 1,
+        "source-face-motion": 50,
+        "source-parts": 10
+      },
+      "changedDuringFirst50Frames": 50,
+      "changingSamples": 6,
+      "identicalSamples": 55
+    },
+    {
+      "id": "anime-milfy",
+      "sourceMotions": 55,
+      "playable": 52,
+      "complete": 48,
+      "unavailable": 3,
+      "name": "Milfy",
+      "partial": 4,
+      "categories": {
+        "source-parts": 20,
+        "source-face-motion": 30,
+        "source-body": 2
+      },
+      "changedDuringFirst50Frames": 46,
+      "changingSamples": 12,
+      "identicalSamples": 40
+    },
+    {
+      "id": "anime-mao",
+      "sourceMotions": 504,
+      "playable": 471,
+      "complete": 333,
+      "unavailable": 33,
+      "name": "Mao",
+      "partial": 138,
+      "categories": {
+        "source-parts": 97,
+        "source-body": 316,
+        "source-face-motion": 58
+      },
+      "changedDuringFirst50Frames": 423,
+      "changingSamples": 129,
+      "identicalSamples": 342
+    },
+    {
+      "id": "anime-mizuki",
+      "sourceMotions": 526,
+      "playable": 459,
+      "complete": 132,
+      "unavailable": 67,
+      "name": "Mizuki",
+      "partial": 327,
+      "categories": {
+        "source-parts": 221,
+        "source-face-motion": 56,
+        "source-body": 182
+      },
+      "changedDuringFirst50Frames": 387,
+      "changingSamples": 121,
+      "identicalSamples": 338
+    },
+    {
+      "id": "anime-perula",
+      "sourceMotions": 109,
+      "playable": 104,
+      "complete": 52,
+      "unavailable": 5,
+      "name": "Perula",
+      "partial": 52,
+      "categories": {
+        "source-face-motion": 63,
+        "source-parts": 39,
+        "source-body": 2
+      },
+      "changedDuringFirst50Frames": 82,
+      "changingSamples": 6,
+      "identicalSamples": 98
+    },
+    {
+      "id": "anime-plum",
+      "sourceMotions": 47,
+      "playable": 46,
+      "complete": 45,
+      "unavailable": 1,
+      "name": "Plum",
+      "partial": 1,
+      "categories": {
+        "source-face-motion": 32,
+        "source-parts": 13,
+        "source-body": 1
+      },
+      "changedDuringFirst50Frames": 45,
+      "changingSamples": 2,
+      "identicalSamples": 44
+    },
+    {
+      "id": "anime-ramune",
+      "sourceMotions": 210,
+      "playable": 170,
+      "complete": 114,
+      "unavailable": 40,
+      "name": "Ramune",
+      "partial": 56,
+      "categories": {
+        "source-body": 20,
+        "source-parts": 87,
+        "source-face-motion": 63
+      },
+      "changedDuringFirst50Frames": 121,
+      "changingSamples": 13,
+      "identicalSamples": 157
+    },
+    {
+      "id": "anime-shinano",
+      "sourceMotions": 57,
+      "playable": 54,
+      "complete": 48,
+      "unavailable": 3,
+      "name": "Shinano",
+      "partial": 6,
+      "categories": {
+        "source-face-motion": 42,
+        "source-parts": 11,
+        "source-body": 1
+      },
+      "changedDuringFirst50Frames": 52,
+      "changingSamples": 5,
+      "identicalSamples": 49
+    },
+    {
+      "id": "anime-sio",
+      "sourceMotions": 40,
+      "playable": 39,
+      "complete": 17,
+      "unavailable": 1,
+      "name": "Sio",
+      "partial": 22,
+      "categories": {
+        "source-parts": 16,
+        "source-face-motion": 21,
+        "source-body": 2
+      },
+      "changedDuringFirst50Frames": 34,
+      "changingSamples": 18,
+      "identicalSamples": 21
+    }
+  ],
+  "countingNote": "Changing samples include brief author sliders, toggles and numerical differences. Neither all clips nor all changing samples are continuous body animations."
+}

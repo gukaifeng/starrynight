@@ -6,20 +6,22 @@ namespace ModelSpace
 {
     [Serializable] public sealed class HostEmotionMotionState
     {
-        public int revision=1,started,completed;
+        public int revision=2,started,completed,gestureCount=10;
         public bool supported,enabled,suppressed;
-        public string gesture="",origin="starrynight.host-emotion.v1";
+        public string gesture="",expression="",origin="starrynight.host-emotion.v2.developer-preview";
+        public string[] expressions=Array.Empty<string>();
         public float weight,progress,peakDegrees;
     }
 
     // Optional, masked additive upper-body animation AFTER author animation and
-    // gaze, BEFORE cloth/hair. No root, legs, fingers, face, scale or camera writes.
+    // gaze, BEFORE cloth/hair. Calibrated facial morphs are also overlaid, but
+    // never speech visemes. No root, legs, fingers, scale or camera writes.
     // All offsets unwind before the next animation sample; cancellation also has
     // an explicit C2 release, so turning the experiment off never pops the pose.
     [DefaultExecutionOrder(90)]
     public sealed class HostEmotionMotion : MonoBehaviour
     {
-        public static readonly string[] Gestures={"agree","happy","curious","shy","pout","sad","surprised"};
+        public static readonly string[] Gestures={"agree","happy","curious","shy","pout","sad","surprised","welcome","encourage","disagree"};
         public HostEmotionMotionState State {get;private set;}=new HostEmotionMotionState();
         public Action OnChanged;
         HostEmotionRig rig;
@@ -27,6 +29,8 @@ namespace ModelSpace
         CharacterActions actions;
         AvatarControlDriver author;
         Quaternion[] before=Array.Empty<Quaternion>();
+        HostEmotionRig.Face face;
+        float[] faceBefore=Array.Empty<float>();
         struct Guard {public int hash;public string kind;public float initial;}
         Guard[] guards=Array.Empty<Guard>();
         bool applied,interacting,reportedPose;
@@ -36,7 +40,8 @@ namespace ModelSpace
         {
             Clear();character=actor;actions=source;rig=actor.GetComponent<HostEmotionRig>();
             author=actor.GetComponent<AvatarControlDriver>();
-            State=new HostEmotionMotionState {supported=rig && rig.joints.Length==10};
+            State=new HostEmotionMotionState {supported=rig && rig.joints.Length>=10,
+                expressions=rig?Array.ConvertAll(rig.faces,f=>f.gesture+" · "+f.label):Array.Empty<string>()};
             before=new Quaternion[rig?rig.joints.Length:0];
             var list=new List<Guard>();
             if(rig && author)foreach(string name in rig.blockingParameters) {
@@ -51,6 +56,7 @@ namespace ModelSpace
         {
             RestorePose();rig=null;character=null;author=null;queued="";
             elapsed=gap=0;release=-1;interacting=false;State=new HostEmotionMotionState();
+            face=null;faceBefore=Array.Empty<float>();
         }
         public void Configure(bool value)
         {
@@ -77,16 +83,15 @@ namespace ModelSpace
         }
         public string CueOriginalExpression(string option)
         {
-            if(!State.supported)return "HOST_MOTION_UNSUPPORTED";
-            var source=Array.Find(character.Manifest.performance.options,o=>o.id==option);
-            if(source?.ai==null || source.ai.kind!="expression" || !source.ai.automatic)return "HOST_MOTION_NO_MAPPING";
-            string gesture=ForIntent(source.ai.intent);
-            return string.IsNullOrEmpty(gesture)?"HOST_MOTION_NO_MAPPING":Request(gesture,false);
+            // This revision is an inspection experiment. Promotion to automatic
+            // conversation requires the user's visual approval in a later change.
+            return "HOST_MOTION_DEVELOPER_ONLY";
         }
         public string Request(string gesture,bool preview)
         {
             if(!State.supported)return "HOST_MOTION_UNSUPPORTED";
             if(!State.enabled)return "HOST_MOTION_DISABLED";
+            if(!preview)return "HOST_MOTION_DEVELOPER_ONLY";
             if(Array.IndexOf(Gestures,gesture)<0)return "HOST_MOTION_UNKNOWN";
             if(Blocked())return "HOST_MOTION_AUTHOR_PRIORITY";
             if(State.gesture.Length>0 || gap>0) {
@@ -101,11 +106,14 @@ namespace ModelSpace
         {
             State.gesture=gesture;elapsed=0;release=-1;State.weight=1;
             State.progress=State.peakDegrees=0;State.started++;reportedPose=false;
+            face=Array.Find(rig.faces,f=>f.gesture==gesture);faceBefore=new float[face?.indices.Length ?? 0];
+            State.expression=face?.label ?? "中性表情";
             // Stable alternation keeps a replay auditable, without frame-dependent noise.
             intensity=(State.started%2==0?.94f:1)*rig.amplitude;
         }
         bool Blocked()
         {
+            if(character && character.GetComponent<SourceMotionPreview>()?.Active==true)return true;
             if(interacting || (actions && (!string.IsNullOrEmpty(actions.CurrentAction) ||
                (actions.Posture && (actions.Posture.State.id!="stand" || actions.Posture.State.transitioning)))))return true;
             if(author)foreach(var guard in guards) {
@@ -135,7 +143,11 @@ namespace ModelSpace
             float duration=Duration(State.gesture);State.progress=Mathf.Clamp01(elapsed/duration);
             if(release>=0) {release+=dt;State.weight=releaseStart*(1-Smooth(release/.48f));}
             if(elapsed>=duration || (release>=.48f)) {
-                State.completed++;State.gesture="";State.weight=0;State.progress=1;gap=.65f;release=-1;OnChanged?.Invoke();return;
+                State.completed++;State.gesture=State.expression="";State.weight=0;State.progress=1;gap=.18f;release=-1;OnChanged?.Invoke();return;
+            }
+            if(face!=null){
+                float faceWeight=Pulse(elapsed/duration,.04f,.3f,.62f,1)*State.weight;
+                for(int i=0;i<face.indices.Length;i++){var skin=face.skins[i];faceBefore[i]=skin.GetBlendShapeWeight(face.indices[i]);skin.SetBlendShapeWeight(face.indices[i],Mathf.Lerp(faceBefore[i],face.values[i],faceWeight));}
             }
             for(int i=0;i<rig.joints.Length;i++) {
                 var j=rig.joints[i];before[i]=j.bone.localRotation;
@@ -155,9 +167,10 @@ namespace ModelSpace
         {
             if(!applied || !rig)return;
             for(int i=0;i<rig.joints.Length;i++)if(rig.joints[i].bone)rig.joints[i].bone.localRotation=before[i];
+            if(face!=null)for(int i=0;i<face.indices.Length;i++)if(face.skins[i])face.skins[i].SetBlendShapeWeight(face.indices[i],faceBefore[i]);
             applied=false;
         }
-        public static float Duration(string gesture)=>gesture=="shy" || gesture=="sad"?4.4f:gesture=="curious"?4.1f:3.6f;
+        public static float Duration(string gesture)=>gesture=="shy" || gesture=="sad"?4.4f:gesture=="curious" || gesture=="welcome"?4.1f:3.6f;
         public static float Smooth(float t) {t=Mathf.Clamp01(t);return t*t*t*(t*(t*6-15)+10);}
         static float Pulse(float t,float begin,float apex,float hold,float end)
             => t<begin || t>=end?0:t<apex?Smooth((t-begin)/(apex-begin)):t<hold?1:1-Smooth((t-hold)/(end-hold));
@@ -183,6 +196,9 @@ namespace ModelSpace
                 case "pout":pitch=-3*head;yaw=12*sway;roll=3*head;chest=-2*body;lean=-1.8f*sway;open=5*arm;elbow=18*arm;break;
                 case "sad":pitch=12*head;roll=5*head;chest=4.5f*body;lean=1.2f*body;elbow=5*arm;break;
                 case "surprised":pitch=-9*head-1*anticipation;chest=-3.2f*body;open=9*arm;elbow=26*arm;break;
+                case "welcome":pitch=6*nod;roll=3*sway;chest=-1.5f*body;open=14*arm;elbow=38*arm;break;
+                case "encourage":pitch=9*nod;roll=-3*head;chest=-2*body;open=8*arm;elbow=31*arm;break;
+                case "disagree":pitch=2*head;yaw=17*sway;chest=2*body;open=4*arm;elbow=12*arm;break;
             }
             bool left=human.StartsWith("Left",StringComparison.Ordinal);float side=left?1:-1;
             switch(human) {
@@ -191,8 +207,9 @@ namespace ModelSpace
                 case "Neck":return new Vector3(pitch*.3f,yaw*.3f,roll*.3f);
                 case "Head":return new Vector3(pitch*.7f,yaw*.7f,roll*.7f);
                 case "LeftShoulder":case "RightShoulder":return new Vector3(0,0,side*open*.2f);
-                case "LeftUpperArm":case "RightUpperArm":return new Vector3(-elbow*.14f,0,side*open);
-                case "LeftLowerArm":case "RightLowerArm":return new Vector3(-elbow*(left?1:.82f),0,0);
+                case "LeftUpperArm":case "RightUpperArm":return new Vector3(-elbow*.14f,0,side*open*(gesture=="welcome" || gesture=="encourage"?(left?.32f:1):1));
+                case "LeftLowerArm":case "RightLowerArm":return new Vector3(-elbow*(gesture=="welcome" || gesture=="encourage"?(left?.25f:1):(left?1:.82f)),0,0);
+                case "LeftHand":case "RightHand":return new Vector3(0,gesture=="welcome" && !left?7*sway:0,gesture=="welcome" && !left?6*sway:0);
                 default:return Vector3.zero;
             }
         }

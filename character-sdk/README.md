@@ -1,5 +1,7 @@
 # 星夜角色制作 SDK · XCP 1.1
 
+0.94 新增 [core.source-motions@1 原作片段库](../docs/character-standard/10-source-motion-library.md) 和 [机器 Schema](schemas/source-motions.schema.json)：独立来源片段、有界 gzip JSON、实际节点/形变绑定和可逆预览。原作菜单不被替换；宿主的 10 个附加组合仅在开发者页面预览，不写成作者原装动画。运行时下载使用 [OSS 平台资源包](../docs/character-standard/07-oss-delivery.md)，与制作方源 XCP 交付分开。
+
 0.46 新增可选 [core.autonomy@1 自然待机](../docs/character-standard/07-natural-idle-standard.md)：眨眼调度、原作静态姿势呼吸与衣发环境风。源曲线和App适配须分别说明；不声明该能力的旧包维持原行为。
 
 > 近伴 0.19 新增角色集合：请一起交付 `collection.json`，遵循 [XCC 1.0](../docs/character-standard/character-collections.md) 和 [集合 Schema](schemas/collection.schema.json)。集合文件作为模型包的配套声明，由应用团队合入 `CharacterCollections.json`；当前构建时装入 App。旧 XCP 模型包本身的封装不变，不把用户私聊装入公开集合。
@@ -58,6 +60,6 @@ bash scripts/run_simulator.sh
 
 已有同 ID 包默认禁止覆盖。兼容升级显式使用 `--replace`；静态审查发现破坏性变更时会拒绝，需要先编写迁移或分配新角色 ID。`--source-only` 只注册通过预检的源文件，随后正常导出仍会执行引擎验证。
 
-当前为**构建时导入**：把新角色编进 App 后安装新版本。当前 App 没有面向终端用户的“手机里选择 ZIP 即时加载”功能。源包协议与未来下载分发无关，运行时下载、签名目录、缓存和增量更新是架构预留的独立模块。
+制作方源 XCP 仍为**构建时导入**；运行包可内置或由私有 OSS 下载，当前三角色已采用远程分发。App 不向终端用户提供“选择任意 VRChat ZIP 即时加载”。源包、受支持能力和经过验证的平台 Bundle 是三个不同边界。
 
 1.1 新增 [持续姿势标准](../docs/character-standard/05-posture-standard.md)。完整示例现有站/坐姿势、前倾参数、姿势专用动作，真实资源都在 GLB 内。运行全部 SDK 回归使用 `python -m unittest discover -s character-sdk/tools -p 'test_*.py' -v`。

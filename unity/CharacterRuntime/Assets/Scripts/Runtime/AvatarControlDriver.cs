@@ -48,6 +48,7 @@ namespace ModelSpace
         {
             var p=profile.parameters.FirstOrDefault(v=>v.name==parameter);
             if(p==null || !float.IsFinite(value))return;
+            if(parameter==SourceMotionPreview.Parameter && value==0)GetComponent<SourceMotionPreview>()?.Cancel();
             if(p.kind=="bool")animator.SetBool(parameter,value>.5f);
             else if(p.kind=="trigger") {if(value>.5f)animator.SetTrigger(parameter);else animator.ResetTrigger(parameter);}
             else if(p.kind=="int")animator.SetInteger(parameter,Mathf.RoundToInt(value));
@@ -57,6 +58,9 @@ namespace ModelSpace
         {
             var c=profile.controls.FirstOrDefault(v=>v.id==id);
             if(c==null)return "AVATAR_CONTROL_UNKNOWN";
+            var original=GetComponent<SourceMotionPreview>();
+            if(c.parameter==SourceMotionPreview.Parameter)return original?original.Select(c.id):"SOURCE_MOTION_UNAVAILABLE";
+            if(original)original.Cancel();
             foreach(var gate in c.gates??Array.Empty<AvatarGate>())Set(gate.parameter,gate.value);
             if(c.kind=="slider")Set(c.parameter,Mathf.Lerp(c.minimum,c.maximum,Mathf.Clamp01(normalized)));
             else Set(c.parameter,normalized>.001f?c.value:0);

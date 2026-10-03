@@ -22,11 +22,17 @@ struct CharacterPerformanceProfile: Decodable, Sendable {
         let loop: Bool?
         let defaultOn: Bool?
         let control: Control?
-        var isToggle: Bool { kind == "toggle" }
+        var isToggle: Bool { kind == "toggle" && control?.kind != "button" }
     }
     let schemaVersion: Int
     let groups: [Group]
     let options: [Option]
+
+    func scopedToSourceLibrary(_ source:Bool)->Self {
+        let selected=groups.filter {$0.id.hasPrefix("source-library-")==source}
+        let ids=Set(selected.map(\.id))
+        return Self(schemaVersion:schemaVersion,groups:selected,options:options.filter {ids.contains($0.group)})
+    }
 
     func isDefault(group: String, selections: Set<String>) -> Bool {
         let choices = options.filter { $0.group == group }

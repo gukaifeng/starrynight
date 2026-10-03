@@ -11,7 +11,7 @@ import zipfile
 
 CAPABILITIES = {'core.animation@1', 'core.gaze@1', 'core.expression@1', 'core.speech.amplitude@1',
                 'core.speech.viseme@1', 'core.interaction@1', 'core.effects@1', 'core.parameters@1',
-                'core.behavior@1', 'core.posture@1', 'core.secondary-motion@1', 'core.secondary-motion@2', 'core.secondary-motion@3', 'core.secondary-motion@4', 'core.avatar-controls@1', 'core.avatar-controls@2', 'core.materials.liltoon@1', 'core.performance@1', 'core.performance@2', 'core.performance@3', 'core.autonomy@1', 'legacy.human-studio@1'}
+                'core.behavior@1', 'core.posture@1', 'core.secondary-motion@1', 'core.secondary-motion@2', 'core.secondary-motion@3', 'core.secondary-motion@4', 'core.avatar-controls@1', 'core.avatar-controls@2', 'core.source-motions@1', 'core.materials.liltoon@1', 'core.performance@1', 'core.performance@2', 'core.performance@3', 'core.autonomy@1', 'legacy.human-studio@1'}
 CHANNELS = {'body', 'expression', 'effect', 'gaze', 'posture'}
 MAX_BYTES = 256 * 1024 * 1024
 FORBIDDEN = {'.cs','.dll','.dylib','.so','.exe','.shader','.compute','.sh','.py','.js','.unitypackage'}

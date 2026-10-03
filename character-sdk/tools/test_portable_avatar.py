@@ -1,5 +1,7 @@
 import copy
 import json
+import gzip
+import tempfile
 from pathlib import Path
 import unittest
 
@@ -26,12 +28,56 @@ class PortableAvatarContractTests(unittest.TestCase):
         self.manifest=dict(compatibility=dict(required=['core.avatar-controls@1'],optional=['core.secondary-motion@2']),
             files=[dict(path=p) for p in self.documents],source=dict(model='model.glb'),
             performance=dict(options=[dict(id='smile',control=copy.deepcopy(control))]))
+        self.motion_folder=None
 
     def check(self):
         def read(path):
             return self.documents[path.name] if path.name in self.documents else json.loads(path.read_text())
-        validate(Path('.'),self.manifest,read,lambda root,p:root/p,
-                 lambda _:dict(nodes=[dict(path='Avatar',scaleFactors=[1,1,1]),dict(path='Avatar/Head',scaleFactors=self.scale)]))
+        validate(Path('.'),self.manifest,read,lambda root,p:(self.motion_folder if self.motion_folder and p.endswith('.gz') else root)/p,
+                 lambda _:dict(nodes=[dict(path='Avatar',scaleFactors=[1,1,1]),dict(path='Avatar/Head',scaleFactors=self.scale,morphs=['Smile'])]))
+
+    def source_fixture(self):
+        temporary=tempfile.TemporaryDirectory();self.addCleanup(temporary.cleanup);self.motion_folder=Path(temporary.name)
+        self.controls.update(schemaVersion=2,profile='mecanim-portable-v2')
+        self.manifest['compatibility']['required']=['core.avatar-controls@2','core.source-motions@1']
+        self.controls['parameters'].append(dict(name='Starry_SourceMotion',kind='int',initial=0,saved=False))
+        control=dict(id='source-motion-'+'a'*32,label='Authored smile',group='Source',parameter='Starry_SourceMotion',kind='button',initial=0,value=1,minimum=0,maximum=1)
+        self.controls['controls'].append(control);self.manifest['performance']['options'].append(dict(id=control['id'],control=copy.deepcopy(control)))
+        self.manifest['files']=[dict(path='avatar-motions.json.gz' if f['path']=='avatar-motions.json' else f['path']) for f in self.manifest['files']]+[dict(path='source-motions.json.gz')]
+        (self.motion_folder/'avatar-motions.json.gz').write_bytes(gzip.compress(json.dumps(dict(motions=[])).encode()))
+        curve=dict(path='Head',component='UnityEngine.SkinnedMeshRenderer',property='blendShape.Smile',keys=[dict(time=0,value=30,inTangent=0,outTangent=0,inWeight=0,outWeight=0,weightedMode=0,steppedIn=False,steppedOut=False)])
+        return dict(schemaVersion=1,parameter='Starry_SourceMotion',motions=[dict(guid='a'*32,name='Authored smile',duration=1,loop=False,times=[0,1],tracks=[],curves=[curve],category='source-face-motion',intent='soft_smile',projectionComplete=True)])
+
+    def source_check(self,library):
+        (self.motion_folder/'source-motions.json.gz').write_bytes(gzip.compress(json.dumps(library).encode()));self.check()
+
+    def test_source_library_compressed_curves_and_ordinal_mapping(self):
+        library=self.source_fixture();self.source_check(library)
+        self.controls['controls'][-1]['value']=2
+        self.manifest['performance']['options'][-1]['control']['value']=2
+        with self.assertRaisesRegex(ValueError,'source motion control mapping'):self.source_check(library)
+
+    def test_source_clip_events_or_arbitrary_components_are_not_executable(self):
+        library=self.source_fixture();library['motions'][0]['curves'][0]['component']='UnityEngine.AudioSource'
+        with self.assertRaisesRegex(ValueError,'source schema'):self.source_check(library)
+
+    def test_source_property_requires_actual_matching_component_and_morph(self):
+        library=self.source_fixture();curve=library['motions'][0]['curves'][0]
+        curve['component']='UnityEngine.GameObject'
+        with self.assertRaisesRegex(ValueError,'source curve allowlist'):self.source_check(library)
+        curve['component']='UnityEngine.SkinnedMeshRenderer';curve['property']='blendShape.Unknown'
+        with self.assertRaisesRegex(ValueError,'source curve allowlist'):self.source_check(library)
+
+    def test_source_nonfinite_or_out_of_bounds_keyframes_are_rejected(self):
+        library=self.source_fixture();key=library['motions'][0]['curves'][0]['keys'][0]
+        key['value']=float('nan')
+        with self.assertRaisesRegex(ValueError,'source key must be finite'):self.source_check(library)
+        key['value']=30;key['time']=2
+        with self.assertRaisesRegex(ValueError,'source key time sequence'):self.source_check(library)
+
+    def test_source_library_cannot_persist_an_animation_selection(self):
+        library=self.source_fixture();self.controls['parameters'][-1]['saved']=True
+        with self.assertRaisesRegex(ValueError,'transient integer'):self.source_check(library)
 
     def test_known_profile_accepts_optional_future_metadata(self):
         self.controls['futureMetadata']=dict(reviewedBy='fixture');self.check()

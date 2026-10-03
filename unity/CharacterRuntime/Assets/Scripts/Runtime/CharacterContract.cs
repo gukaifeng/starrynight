@@ -141,6 +141,7 @@ namespace ModelSpace
         public CharacterParameterValue[] avatarControlValues=Array.Empty<CharacterParameterValue>();
         public CharacterAutonomyState autonomy;
         public HostEmotionMotionState hostEmotionMotion; // Optional host experiment, not an authored capability.
+        public SourceMotionPreviewState sourceMotionPreview;
     }
     // Runtime-owned capability vocabulary. Unknown required capabilities refuse activation;
     // unknown optional capabilities degrade without breaking a character's base experience.
@@ -148,7 +149,7 @@ namespace ModelSpace
     {
         public static readonly string[] Capabilities={"core.animation@1","core.gaze@1","core.expression@1",
             "core.speech.amplitude@1","core.speech.viseme@1","core.interaction@1","core.effects@1","core.parameters@1",
-            "core.behavior@1","core.posture@1","core.secondary-motion@1","core.secondary-motion@2","core.secondary-motion@3","core.secondary-motion@4","core.avatar-controls@1","core.avatar-controls@2","core.materials.liltoon@1","core.performance@1","core.performance@2","core.performance@3","core.autonomy@1","legacy.human-studio@1"};
+            "core.behavior@1","core.posture@1","core.secondary-motion@1","core.secondary-motion@2","core.secondary-motion@3","core.secondary-motion@4","core.avatar-controls@1","core.avatar-controls@2","core.source-motions@1","core.materials.liltoon@1","core.performance@1","core.performance@2","core.performance@3","core.autonomy@1","legacy.human-studio@1"};
         public static void Validate(CharacterManifest m)
         {
             if(m==null || m.schemaVersion!=1 || string.IsNullOrWhiteSpace(m.id)) throw new ArgumentException("CHARACTER_SCHEMA_UNSUPPORTED");

@@ -12,6 +12,7 @@ for prefix in ['character-sdk','docs/character-standard']:
   files.append(file)
 files += [ROOT/'scripts/import_character.py',ROOT/'scripts/validate_characters.py',ROOT/'docs/verification/character-platform/README.md',ROOT/'docs/verification/character-platform/sdk-tests.txt']
 files += [ROOT/'docs/verification/posture/README.md',ROOT/'docs/verification/posture/sdk-tests.txt',ROOT/'docs/verification/posture/engine-review.json',ROOT/'docs/verification/posture/transition-contact-audit.json']
+files += [ROOT/'docs/verification/source-motion-library'/name for name in ['README.md','inventory-summary.json','numeric-summary.json']]
 path=out/'StarryNight-Character-SDK-1.1.zip'
 with zipfile.ZipFile(path,'w',zipfile.ZIP_DEFLATED) as archive:
  for file in sorted(files):archive.write(file,str(file.relative_to(ROOT)))

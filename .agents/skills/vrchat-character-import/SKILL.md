@@ -13,6 +13,8 @@ description: Inspect and convert user-supplied VRChat avatar archives into this 
 
 ## 先确定输入和实际完成度
 
+补齐当前名册的全部来源片段，或预览用户明确授权的通用身体/表情组合时，读 [表现迁移参考的当前增量](references/performances.md)。它说明 `core.source-motions@1`、短片段末帧、恢复时序、开发者实验隔离及 OSS 升级；不能只以菜单数量代替完整源动画审计。
+
 - 记录 ZIP 路径、版本、SHA-256、选用的主 Prefab、PC / Mobile 变体，以及本次目标是个人本地试样还是对外分发。沿用用户已经给出的用途，不重复索要购买证明。
 - 核对原作者模型许可、第三方动作/贴图署名及 SDK 依赖许可。区分个人转换、自用安装与公开分发；不要因分发尚需许可而把已授权的本地检查和转换也全部停掉。也不要把“没有写 AI”当作无限 AI 使用授权。
 - 默认外观以作者主 Prefab 为准，包括嵌套覆盖、激活状态、Renderer 开关、材质槽和默认 morph。裸 FBX 全部显示通常不是作者的角色成品。

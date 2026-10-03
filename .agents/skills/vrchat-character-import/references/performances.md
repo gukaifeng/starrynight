@@ -1,5 +1,17 @@
 # 原作动作、表情和形态迁移
 
+## 当前增量：0.94 完整原作片段库与开发者动作实验
+
+见 [新标准](../../../../docs/character-standard/10-source-motion-library.md)。不再只检查作者菜单：隔离 stage 的完整 `avatar-motions.json` 包含 `.anim` 与 FBX/.asset/.controller 子资产，身份是 GUID 或 GUID:fileID。`scripts/prepare_source_motion_library.py` 把可绑定曲线投影为 `source-motions.json.gz`，逐通道记录不支持原因，加入原作肢体/表情/部件分组。复用原采样，不重新下载，不调 AI，不改用户源档案。先准备候选并预检，再 `--apply` 激活，激活副本保存在 `.local/vrchat-batch/source-motion-library/activation/`。
+
+新包为 3.4.0，required 包含 `core.source-motions@1`、`core.avatar-controls@2`、`core.performance@3`。`avatar-motions.json` 也采用无损 `.gz`，必须使用 SDK 的 bounded reader 或 Editor `CharacterMotionData.Read`，不能继续直接 File.ReadAllText。128 MiB 解压预算、旧 256 MiB 包预算仍生效，不能为了数量绕过预算。SDK validate 与 `check_character_collections.py` 核对全部当前角色。
+
+`SourceMotionLibraryReview.BuildAndReview` 执行 Setup/Validate、全库求值恢复和 16×10×60/120 Hz 宿主组合审查。报告和 CPU 蒙皮图留 `.local/checks/source-motion-library` / `host-emotion-motion`，不提交受限曲线、材质、图像。恢复 Update 组件必须有独立 `.cs/.meta`，与 LateUpdate 预览组件分开，以便 Unity 正确序列化 Prefab；恢复序号为 Host20→Source25→Autonomy30→Performance35，避免叠加基线污染。
+
+新增 10 组合只在浮动开发者按钮→动作实验，自动 AI 入口拒绝 `preview:false`；脸部使用该角色可靠原作形变，口型排除。没有完整 human 映射时不猜骨名。它不是原作动画，关闭开关不影响原作能力。检验脚部时对照同一帧作者 Animator 基线，不把作者的待机位移归责于新增层。
+
+更新下载角色时必须分别编译两平台 `CharacterBundleBuilder.BuildDevice/BuildSimulator`，运行 `package_character_delivery.py --version N` 并发布新不可变 OSS 版本，不能只更新本机资源或原生 catalog。源库数包含静态姿势与显隐片段，不能宣传成等量连续身体动画；部分投影与完全不可用必须列清。
+
 当用户希望展示 VRChat 原包的更多动作／形态时阅读本文件。基础审计与默认外观仍按 `SKILL.md`；当前发布接口见 [core.performance@1](../../../../docs/character-standard/06-performance-standard.md)。原作菜单、静态姿态、连续动画、平台功能分别处理，不能把 `.anim` 数当完整身体动画数。
 
 ## 历史：两角色的原作恢复规则（0.39.1）

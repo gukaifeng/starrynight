@@ -477,9 +477,8 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
             aiVisualTasks[group]?.cancel()
             signal(CharacterIntent(eventName:"performance.replace",target:group,
                 selections:visual.active == false ? (aiVisualBaseline[group] ?? []).sorted() : [option.id]))
-            if visual.active != false, characterPerformance.hostMotionSupported, HostEmotionMotionPreference.enabled {
-                signal(CharacterIntent(eventName:"host.motion.cue",target:option.id))
-            }
+            // Additional v2 choreography is developer preview only until the
+            // user's visual approval. Authored AI expressions remain unchanged.
             let actor = selectedModel.id
             aiVisualTasks[group] = Task { @MainActor [weak self] in
                 try? await Task.sleep(for:.milliseconds(min(20000,max(1200,visual.durationMs))))

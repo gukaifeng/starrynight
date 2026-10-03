@@ -19,6 +19,7 @@ namespace ModelSpace
         CharacterAutonomy autonomy;
         AvatarControlDriver avatarControl;
         HostEmotionMotion hostEmotionMotion;
+        SourceMotionPreview sourceMotionPreview;
         CharacterPetFeedback petFeedback;
         public Action OnHostMotionChanged;
         public void SetHostMotionInteraction(bool value) {if(hostEmotionMotion)hostEmotionMotion.SetInteracting(value);}
@@ -32,15 +33,18 @@ namespace ModelSpace
             state.avatarControlValues=avatarControl?avatarControl.Values:Array.Empty<CharacterParameterValue>();
             state.performanceTransitioning=performance && performance.Transitioning;state.autonomy=autonomy?autonomy.State:null;
             state.hostEmotionMotion=hostEmotionMotion?hostEmotionMotion.State:null;
+            state.sourceMotionPreview=sourceMotionPreview?sourceMotionPreview.State:null;
             state.petMode=petFeedback?petFeedback.Mode:0;state.petReactions=petFeedback?petFeedback.ReactionCount:0;
             return state; } private set { state=value; } }
-        public void ClearPerformance() { if(hostEmotionMotion)hostEmotionMotion.Clear();if(autonomy)autonomy.Clear();if(performance)performance.Clear(); }
+        public void ClearPerformance() { if(hostEmotionMotion)hostEmotionMotion.Clear();if(sourceMotionPreview)sourceMotionPreview.Clear();if(autonomy)autonomy.Clear();if(performance)performance.Clear(); }
         public void Bind(ViewerCharacter character,CharacterActions actionSource,CompanionAvatarDriver speechSource,CharacterGaze gazeSource)
         {
             if(autonomy)autonomy.Clear();
             if(manifest!=null) Cancel();
             manifest=character.Manifest; actions=actionSource; speech=speechSource; gaze=gazeSource;
             avatarControl=character.GetComponent<AvatarControlDriver>();
+            sourceMotionPreview=character.GetComponent<SourceMotionPreview>();
+            if(sourceMotionPreview)sourceMotionPreview.OnChanged=()=>OnHostMotionChanged?.Invoke();
             petFeedback=character.GetComponent<CharacterPetFeedback>();
             expressions=GetComponent<CharacterExpressionDriver>() ?? gameObject.AddComponent<CharacterExpressionDriver>();
             effects=GetComponent<CharacterEffectDriver>() ?? gameObject.AddComponent<CharacterEffectDriver>();

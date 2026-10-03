@@ -1,4 +1,4 @@
-Chiffon · 3.3.0
+Chiffon · 3.4.0
 Chiffon / Chiffon 1.00
 素材原作者：こまど / komado（あまとうさぎ）
 许可：Original author avatar terms — private local conversion
@@ -39,7 +39,7 @@ See portable-conversion.json and physics-source.json for explicit adaptation lim
 }
 
 
-Fiona · 3.3.0
+Fiona · 3.4.0
 Fiona / Fiona 2.02
 素材原作者：Fiona 2.02 原作者（见来源包条款）
 许可：Original author avatar terms — private local conversion
@@ -300,7 +300,7 @@ See portable-conversion.json and physics-source.json for explicit adaptation lim
 }
 
 
-Hikarun · 3.3.0
+Hikarun · 3.4.0
 Hikarun / Hikarun 1.0
 素材原作者：Hikarun 1.0 原作者（见来源包条款）
 许可：Original author avatar terms — private local conversion
@@ -361,7 +361,7 @@ See portable-conversion.json and physics-source.json for explicit adaptation lim
 }
 
 
-Ichigo · 3.3.0
+Ichigo · 3.4.0
 Ichigo / Ichigo 1.03
 素材原作者：Ichigo 1.03 原作者（见来源包条款）
 许可：Original author avatar terms — private local conversion
@@ -406,7 +406,7 @@ See portable-conversion.json and physics-source.json for explicit adaptation lim
 }
 
 
-Koharu · 3.3.0
+Koharu · 3.4.0
 Koharu / Koharu 1.0.0
 素材原作者：Koharu 1.0.0 原作者（见来源包条款）
 许可：Original author avatar terms — private local conversion
@@ -451,7 +451,7 @@ See portable-conversion.json and physics-source.json for explicit adaptation lim
 }
 
 
-Lime · 3.3.0
+Lime · 3.4.0
 Lime / Lime 1.00
 素材原作者：Lime 1.00 原作者（见来源包条款）
 许可：Original author avatar terms — private local conversion
@@ -496,7 +496,7 @@ See portable-conversion.json and physics-source.json for explicit adaptation lim
 }
 
 
-Mafuyu · 3.3.0
+Mafuyu · 3.4.0
 Mafuyu / Mafuyu 1.0.6
 素材原作者：Mafuyu 1.0.6 原作者（见来源包条款）
 许可：Original author avatar terms — private local conversion
@@ -670,7 +670,7 @@ See portable-conversion.json and physics-source.json for explicit adaptation lim
 }
 
 
-Mao · 3.3.0
+Mao · 3.4.0
 Mao / Mao 1.0.7
 素材原作者：Mao 1.0.7 原作者（见来源包条款）
 许可：Original author avatar terms — private local conversion
@@ -750,7 +750,7 @@ See portable-conversion.json and physics-source.json for explicit adaptation lim
 }
 
 
-Meiyun · 3.3.0
+Meiyun · 3.4.0
 Meiyun / Meiyun 2.0.1
 素材原作者：Meiyun 2.0.1 原作者（见来源包条款）
 许可：Original author avatar terms — private local conversion
@@ -831,7 +831,7 @@ Local preview only: unresolved optional shading textures are listed in source-me
 }
 
 
-Milfy · 3.3.0
+Milfy · 3.4.0
 Milfy / Milfy 1.5.0
 素材原作者：Milfy 1.5.0 原作者（见来源包条款）
 许可：Original author avatar terms — private local conversion
@@ -926,7 +926,7 @@ Local preview only: unresolved optional shading textures are listed in source-me
 }
 
 
-Mizuki · 3.3.0
+Mizuki · 3.4.0
 Mizuki / Mizuki 2.06
 素材原作者：Mizuki 2.06 原作者（见来源包条款）
 许可：Original author avatar terms — private local conversion
@@ -2200,7 +2200,7 @@ See portable-conversion.json and physics-source.json for explicit adaptation lim
 }
 
 
-Perula · 3.3.0
+Perula · 3.4.0
 Perula / Perula 1.0.3
 素材原作者：Perula 1.0.3 原作者（见来源包条款）
 许可：Original author avatar terms — private local conversion
@@ -2368,7 +2368,7 @@ See portable-conversion.json and physics-source.json for explicit adaptation lim
 }
 
 
-Plum · 3.3.0
+Plum · 3.4.0
 Plum / Plum 1.0.1
 素材原作者：Plum 1.0.1 原作者（见来源包条款）
 许可：Original author avatar terms — private local conversion
@@ -2425,7 +2425,7 @@ See portable-conversion.json and physics-source.json for explicit adaptation lim
 }
 
 
-Ramune · 3.3.0
+Ramune · 3.4.0
 Ramune / Ramune 1.1.0
 素材原作者：Ramune 1.1.0 原作者（见来源包条款）
 许可：Original author avatar terms — private local conversion
@@ -2493,7 +2493,7 @@ See portable-conversion.json and physics-source.json for explicit adaptation lim
 }
 
 
-Shinano · 3.3.0
+Shinano · 3.4.0
 Shinano / Shinano 1.01.2
 素材原作者：Shinano 1.01.2 原作者（见来源包条款）
 许可：Original author avatar terms — private local conversion
@@ -2567,7 +2567,7 @@ Local preview only: unresolved optional shading textures are listed in source-me
 }
 
 
-Sio · 3.3.0
+Sio · 3.4.0
 Sio / Sio
 素材原作者：Sio 原作者（见来源包条款）
 许可：Original author avatar terms — private local conversion

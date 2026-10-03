@@ -1,6 +1,6 @@
 import SwiftUI
 
-// HOST-EMOTION-EXPERIMENT v1. Local app preference, deliberately independent of
+// HOST-EMOTION-EXPERIMENT v2. Developer preview, deliberately independent of
 // XCP author selections and account/character customization records.
 enum HostEmotionMotionPreference {
     static let key = "hostEmotionMotionEnabled.v1"
@@ -11,19 +11,27 @@ enum HostEmotionMotionPreference {
     }
 }
 
+#if STARRY_TEST_TOOLS
 struct HostEmotionMotionPanel: View {
     let model:ModelDescriptor
     let state:CharacterPerformanceState
     @AppStorage(HostEmotionMotionPreference.key) private var enabled=true
     private let gestures=[("agree","轻轻点头"),("happy","开心回应"),("curious","侧头思考"),
-                          ("shy","害羞低头"),("pout","小小不满"),("sad","低落倾听"),("surprised","惊讶回应")]
+                          ("shy","害羞低头"),("pout","小小不满"),("sad","低落倾听"),("surprised","惊讶回应"),
+                          ("welcome","挥手问好"),("encourage","温柔鼓励"),("disagree","轻轻摇头")]
     var body:some View {
+        VStack(spacing:0) {
+        PanelPageHeader("动作实验 · "+model.name,backID:"closeHostEmotionMotion") {
+            Button {HostEmotionMotionPreference.request("stop",actor:model.runtimeID)} label:{
+                Text("结束预览").font(.system(size:11,weight:.medium)).foregroundStyle(Theme.secondary).frame(minHeight:44)
+            }.buttonStyle(.plain).accessibilityIdentifier("hostEmotionStop")
+        }
         ScrollView {
             VStack(alignment:.leading,spacing:10) {
                 Toggle(isOn:$enabled) {
                     VStack(alignment:.leading,spacing:3) {
-                        Text("附加情绪动作").font(.system(size:13,weight:.medium))
-                        Text("星夜试验 · 关闭后仍保留角色原作表现")
+                        Text("身体与表情组合").font(.system(size:13,weight:.medium))
+                        Text("仅开发者手动预览 · 不接入正式对话")
                             .font(.system(size:10)).foregroundStyle(Theme.secondary)
                     }
                 }.toggleStyle(.switch).tint(Theme.accent)
@@ -42,13 +50,19 @@ struct HostEmotionMotionPanel: View {
                             .accessibilityIdentifier("hostEmotionPreview-"+id)
                     }
                 }
-                Text("点按预览身体动作。对话时随原作表情自动搭配；原作姿势和位置操作优先。")
+                Text("10 个通用组合 · 点按后自然回到原姿态。角色原作表现和位置操作优先，关闭此实验保留原作能力。")
                     .font(.system(size:10)).foregroundStyle(Theme.secondary).fixedSize(horizontal:false,vertical:true)
                 if state.hostMotionSuppressed {
                     Text("正在保留原作姿势，恢复默认姿势后可预览。")
                         .font(.system(size:10)).foregroundStyle(Theme.peach)
                 }
+                if !state.hostMotionExpression.isEmpty {
+                    Text("配套表情 · "+state.hostMotionExpression).font(.system(size:10)).foregroundStyle(Theme.secondary)
+                        .accessibilityIdentifier("hostEmotionExpression")
+                }
             }.padding(.horizontal,18).padding(.bottom,16)
         }.scrollIndicators(.hidden).accessibilityIdentifier("hostEmotionMotionPanel")
+        }.softPanelPageSurface().onDisappear {HostEmotionMotionPreference.request("stop",actor:model.runtimeID)}
     }
 }
+#endif

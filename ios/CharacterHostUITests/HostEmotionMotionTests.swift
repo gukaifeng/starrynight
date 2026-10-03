@@ -6,20 +6,20 @@ final class HostEmotionMotionTests:XCTestCase {
     }
     @MainActor func testPilotPreviewsSwitchAndOriginalControls() {
         continueAfterFailure=false
-        let app=XCUIApplication();app.launchArguments=["--ui-testing","--companion-testing","--auth-testing"]
+        let app=XCUIApplication();app.launchArguments=["--ui-testing","--companion-testing","--auth-testing","-starry.app.language.v1","zh-Hans"]
         app.launch();defer{app.terminate()}
         XCTAssertTrue(app.buttons["customizationButton"].waitForExistence(timeout:75))
-        app.waitForCharacter {self.motion($0)["supported"] as? Bool == false}
-        for role in ["lime","nozomi","plum"] {
+        app.waitForCharacter {self.motion($0)["supported"] as? Bool == true}
+        for role in ["lime","chiffon","plum"] {
             app.buttons["tab-discover"].tap()
             let search=app.textFields["discoverSearch"];XCTAssertTrue(search.waitForExistence(timeout:8))
             if app.buttons["clearDiscoverSearch"].exists {app.buttons["clearDiscoverSearch"].tap()}
             search.tap();search.typeText(role);app.buttons["discover-open-anime-"+role].tap()
             XCTAssertTrue(app.buttons["profileChatButton"].waitForExistence(timeout:8));app.buttons["profileChatButton"].tap()
             app.waitForCharacter({$0["modelId"] as? String == "anime-"+role && self.motion($0)["supported"] as? Bool == true},timeout:60)
-            app.openCharacterPerformance()
-            XCTAssertTrue(app.buttons["hostEmotionMotionTab"].waitForExistence(timeout:8))
-            app.buttons["hostEmotionMotionTab"].tap()
+            app.openCharacterDeveloper()
+            XCTAssertTrue(app.buttons["openHostEmotionMotion"].waitForExistence(timeout:8))
+            app.buttons["openHostEmotionMotion"].tap()
             let toggle=app.switches["hostEmotionMotionToggle"]
             XCTAssertTrue(toggle.waitForExistence(timeout:8));if toggle.value as? String != "1" {toggle.tap()}
             app.waitForCharacter {self.motion($0)["enabled"] as? Bool == true}
@@ -29,10 +29,10 @@ final class HostEmotionMotionTests:XCTestCase {
             let picture=XCTAttachment(screenshot:app.screenshot());picture.name=role+"-host-emotion";picture.lifetime = .keepAlways;add(picture)
             if role == "lime" {
                 app.waitForCharacter {self.motion($0)["gesture"] as? String == ""}
-                for id in ["agree","curious","shy","pout","sad","surprised"] {
+                for id in ["agree","curious","shy","pout","sad","surprised","welcome","encourage","disagree"] {
                     let preview=app.buttons["hostEmotionPreview-"+id]
                     for _ in 0..<3 {
-                        if app.scrollViews["hostEmotionMotionPanel"].frame.contains(preview.frame) {break}
+                        if preview.exists && preview.isHittable && app.scrollViews["hostEmotionMotionPanel"].frame.contains(preview.frame) {break}
                         app.scrollViews["hostEmotionMotionPanel"].swipeUp()
                     }
                     preview.tap()
@@ -48,7 +48,10 @@ final class HostEmotionMotionTests:XCTestCase {
             toggle.tap()
             app.waitForCharacter {self.motion($0)["enabled"] as? Bool == false && self.motion($0)["gesture"] as? String == ""}
             XCTAssertFalse(app.buttons["hostEmotionPreview-happy"].isEnabled)
+            app.buttons["closeHostEmotionMotion"].tap()
+            app.buttons["profilePerformanceButton"].tap()
             // Author gesture choices must still work while the new layer is off.
+            if role == "lime" {
             let group=app.buttons["performanceGroup-menu-5a963eacb2279abe"]
             let strip=app.scrollViews["performanceGroups"]
             for _ in 0..<22 {
@@ -64,10 +67,32 @@ final class HostEmotionMotionTests:XCTestCase {
                 let selections=($0["characterPlatform"] as? [String:Any])?["performanceSelections"] as? [String] ?? []
                 return selections.contains("gesture-left-2") && self.motion($0)["enabled"] as? Bool == false
             }
+            }
             app.buttons["performanceReset"].tap();app.closeCharacterPerformance()
+            if role == "lime" {
+                app.openCharacterDeveloper()
+                let library=app.buttons["openSourceMotionLibrary"]
+                for _ in 0..<3 {if library.isHittable {break};app.scrollViews.firstMatch.swipeUp()}
+                library.tap()
+                app.buttons["performanceGroup-source-library-source-face-motion"].tap()
+                let search=app.textFields["sourceMotionSearch"]
+                XCTAssertTrue(search.waitForExistence(timeout:5));search.tap();search.typeText("F_smile_1")
+                let source=app.buttons["performanceOption-source-motion-a712a81ddc58e9f45bb244c4dff3b092"]
+                XCTAssertTrue(source.waitForExistence(timeout:5));source.tap()
+                app.waitForCharacter {
+                    let p=($0["characterPlatform"] as? [String:Any])?["sourceMotionPreview"] as? [String:Any] ?? [:]
+                    return p["id"] as? String == "source-motion-a712a81ddc58e9f45bb244c4dff3b092" && (p["weight"] as? Double ?? 0) > 0.9
+                }
+                app.buttons["performanceDefault-source-library-source-face-motion"].tap()
+                app.waitForCharacter {
+                    let p=($0["characterPlatform"] as? [String:Any])?["sourceMotionPreview"] as? [String:Any] ?? [:]
+                    return p["id"] as? String == ""
+                }
+                app.closeCharacterPerformance()
+            }
         }
-        // Return to the pilot tab and leave the experiment enabled for review.
-        app.openCharacterPerformance();app.buttons["hostEmotionMotionTab"].tap()
+        // Return to the separate developer page and leave manual previews enabled.
+        app.openCharacterDeveloper();app.buttons["openHostEmotionMotion"].tap()
         app.switches["hostEmotionMotionToggle"].tap()
         app.waitForCharacter {self.motion($0)["enabled"] as? Bool == true}
     }

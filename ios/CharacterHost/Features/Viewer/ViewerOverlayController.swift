@@ -499,6 +499,12 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
             let safe = view.convert(window.safeAreaLayoutGuide.layoutFrame,from:window)
             values["nativeWindowGeometry"] = ["width":view.bounds.width,"height":view.bounds.height,
                 "safeTop":safe.minY,"safeLeft":safe.minX,"safeRight":view.bounds.width-safe.maxX]
+            values["nativeOrientation"] = ["device":UIDevice.current.orientation.rawValue,
+                "notifications":UIDevice.current.isGeneratingDeviceOrientationNotifications,
+                "scene":window.windowScene?.interfaceOrientation.rawValue ?? 0,
+                "rootMask":window.rootViewController?.supportedInterfaceOrientations.rawValue ?? 0,
+                "rootController":window.rootViewController.map {String(describing:type(of:$0))} ?? "none",
+                "keyWindow":window.isKeyWindow]
         }
         values["soundscape"] = chatSession?.soundscape.accessibilityEvidence
         if let x = event["headX"] as? Double, let y = event["headY"] as? Double, let window = view.window {

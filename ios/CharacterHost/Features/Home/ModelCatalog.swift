@@ -77,7 +77,7 @@ struct ModelDescriptor: Identifiable, Decodable, Sendable {
         let profile = try c.decodeIfPresent(PostureProfile.self,forKey:.posture)
         posture = profile?.poses.isEmpty == false ? profile : nil
         let importedPerformance = try c.decodeIfPresent(CharacterPerformanceProfile.self,forKey:.performance)
-        performance = [1,2].contains(importedPerformance?.schemaVersion ?? 0) && importedPerformance?.options.isEmpty == false ? importedPerformance : nil
+        performance = [1,2,3].contains(importedPerformance?.schemaVersion ?? 0) && importedPerformance?.options.isEmpty == false ? importedPerformance : nil
         let raw = try c.decode([DeclaredAction].self,forKey:.actions)
         actions = raw.filter(\.button).map { CharacterAction(id:$0.id,name:$0.label,symbol:$0.symbol,semantic:$0.semantic) }
     }
