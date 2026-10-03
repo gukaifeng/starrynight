@@ -27,9 +27,13 @@ struct TranslationResponse: Decodable, Sendable {
         }
         return script.beats.flatMap { beat -> [TranslationSegment] in
             if let parts = beat.parts {
-                return parts.enumerated().filter { $0.element.isVisible }.map {
+                var result=parts.enumerated().filter { $0.element.isVisible }.map {
                     .init(id:beat.beatId + ".part.\($0.offset)",kind:$0.element.kind,text:$0.element.text)
+                } as [TranslationSegment]
+                if !parts.contains(where:{$0.kind=="dialogue" && $0.isVisible}),let spoken=beat.dialogue {
+                    result.append(.init(id:beat.beatId+".dialogue",kind:"dialogue",text:spoken.text))
                 }
+                return result
             }
             var result = beat.narrations.enumerated().filter { $0.element.isVisible }.map {
                 TranslationSegment(id:beat.beatId + ".narration.\($0.offset)",kind:"narration",text:$0.element.text)

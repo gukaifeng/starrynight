@@ -4,7 +4,7 @@ final class ConversationContinuityTests:XCTestCase {
     @MainActor private func launch()->XCUIApplication {
         continueAfterFailure=false;XCUIDevice.shared.orientation = .portrait
         let app=XCUIApplication()
-        app.launchArguments=["--ui-testing","--companion-testing","--auth-testing","--conversation-continuity-fixture","--smart-reply-layout-fixture"]
+        app.launchArguments=["--ui-testing","--companion-testing","--auth-testing","--conversation-continuity-fixture","--smart-reply-layout-fixture","-starry.app.language.v1","zh-Hans"]
         app.launch()
         XCTAssertTrue(app.buttons["customizationButton"].waitForExistence(timeout:60))
         return app
@@ -28,12 +28,15 @@ final class ConversationContinuityTests:XCTestCase {
         let input=app.textViews["chatInput"]
         input.tap();input.typeText("Wait\n")
         XCTAssertTrue(app.images["streamingReply"].waitForExistence(timeout:5))
+        let role=app.characterRuntime["modelId"] as? String ?? "anime-chiffon"
         app.buttons["tab-messages"].tap()
         // A new message arrives while the conversation view is hidden. The
         // message-list preview observes the real store, not a UI fixture flag.
-        let row=app.buttons["message-anime-kipfel"]
+        let row=app.buttons["message-"+role]
         wait(22) {row.label.contains("切页之后，我把刚才的话接着说完了。")}
         row.tap()
+        let enter=app.buttons["enterConversation-"+role]
+        XCTAssertTrue(enter.waitForExistence(timeout:5));enter.tap()
         XCTAssertTrue(app.staticTexts["切页之后，我把刚才的话接着说完了。"].waitForExistence(timeout:5))
         XCTAssertFalse(app.images["streamingReply"].exists)
         XCTAssertFalse(app.otherElements["chatNotice"].exists)

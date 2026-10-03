@@ -111,6 +111,7 @@ final class CompanionSession {
     private(set) var lateVisualsDuringSpeech=0
     @ObservationIgnored private var token = UUID()
     @ObservationIgnored private var activeTurn = false
+    @ObservationIgnored private var activeUserMessageID:UUID?
     @ObservationIgnored private var pendingGreeting: ConversationEntry?
     @ObservationIgnored private let ownerID: String
     @ObservationIgnored private var preparedNickname:String
@@ -173,6 +174,14 @@ final class CompanionSession {
         preparedNickname = store.effectiveNickname(for:model.id)
         api = CharacterAI(accountID:store.accountID,characterID:model.id)
         speech = CloudSpeech(soundscape:soundscape,api:api,cacheScope:store.accountID+"|"+model.id)
+        if store.record(model.id).messages.contains(where:{$0.deliveryState=="sending"}) {
+            store.update(model.id) {record in
+                for i in record.messages.indices where record.messages[i].deliveryState=="sending" {
+                    record.messages[i].deliveryState="failed"
+                    record.messages[i].deliveryError="上次请求在 App 退出时中断。点消息旁的感叹号可重发，已完成的回复会直接恢复。"
+                }
+            }
+        }
         let account = store.accountID
         speech.onDuration = { [weak store] id,speed,duration in
             guard let store, store.accountID == account else { return }
@@ -305,13 +314,30 @@ final class CompanionSession {
         let text = String(input.trimmingCharacters(in:.whitespacesAndNewlines).prefix(500))
         guard !text.isEmpty, allowReply() else { return }
         stop(preservePreparation:true); input = ""; notice = nil
+        let messageID=UUID()
         store.update(model.id,countGuestTurn:true) { record in
-            var message=CompanionMessage(role:"user",text:text,source:"cloud-v1")
+            var message=CompanionMessage(id:messageID,role:"user",text:text,source:"cloud-v1",deliveryState:"sending")
             message.storyID=record.together.activeStoryID
             record.messages.append(message)
         }
         guard store.error == nil else { input = text; return }
-        generate(text,trigger:record.together.activeStoryID == nil ? "user_message" : "story",quickReplyID:quickReplyID)
+        generate(text,trigger:record.together.activeStoryID == nil ? "user_message" : "story",quickReplyID:quickReplyID,userMessageID:messageID)
+    }
+    func resend(_ messageID:UUID) {
+        guard store.accountID==ownerID,!api.requiresAuthentication,record.pendingDeletionID==nil,
+              let message=record.messages.first(where:{$0.id==messageID && $0.role=="user" && $0.deliveryState=="failed"}) else {return}
+        notice=nil
+        let body=message.requestPayload.flatMap {(try? JSONSerialization.jsonObject(with:$0)) as? [String:Any]}
+        generate(message.text,trigger:body?["trigger"] as? String ?? "user_message",userMessageID:messageID,savedBody:body)
+    }
+    private func updateDelivery(_ id:UUID?,state:String,error:String?=nil,payload:Data?=nil) {
+        guard let id,store.accountID==ownerID else {return}
+        store.update(model.id) {record in
+            guard let i=record.messages.firstIndex(where:{$0.id==id}) else {return}
+            record.messages[i].deliveryState=state;record.messages[i].deliveryError=error
+            if let payload {record.messages[i].requestPayload=payload}
+            else if state=="answered" {record.messages[i].requestPayload=nil}
+        }
     }
     func sendSuggested(_ option:AIQuickReply) {
         guard quickReplies.contains(where:{$0.id==option.id}),
@@ -389,7 +415,7 @@ final class CompanionSession {
     static func requestBody(store:CompanionStore,model:ModelDescriptor,text:String,trigger:String)->[String:Any] {
         let record=store.record(model.id)
         let p = record.together.preferences.normalized
-        var recent = record.messages.filter { $0.source == "cloud-v1" || $0.source == "bundled-opening-v1" }
+        var recent = record.messages.filter { ($0.source == "cloud-v1" || $0.source == "bundled-opening-v1") && $0.deliveryState != "failed" }
         if recent.last?.role == "user", recent.last?.text == text { recent.removeLast() }
         return ["request_id":UUID().uuidString,"character_id":model.id,"text":text,"trigger":trigger,
             "conversation_reset":record.conversationResetID ?? "",
@@ -417,21 +443,23 @@ final class CompanionSession {
         generate("",trigger:kind=="shake" ? "model_shaken" : "model_pinched",
             interaction:["kind":kind,"intensity":min(1,max(0,intensity))])
     }
-    private func generate(_ text: String,trigger: String,entry: ConversationEntry? = nil,interaction:[String:Any]? = nil,quickReplyID:String? = nil) {
+    private func generate(_ text: String,trigger: String,entry: ConversationEntry? = nil,interaction:[String:Any]? = nil,quickReplyID:String? = nil,userMessageID:UUID?=nil,savedBody:[String:Any]?=nil) {
         guard !model.isPreviewOnly else { return }
         guard !api.requiresAuthentication else {return}
         guard record.pendingDeletionID==nil else {return}
         stop(preservePreparation:true);quickReplies=[];quickReplySource=nil
+        activeUserMessageID=userMessageID
         let voiceTrace=VoiceTimeline.shared.begin(account:ownerID,character:model.id,kind:trigger)
         activeVoiceTrace=voiceTrace
         VoiceTimeline.shared.flag(voiceTrace,"playback",muted ? "静音" : presentationActive ? "启用" : "页面不可见")
         VoiceTimeline.shared.flag(voiceTrace,"audio_requested",muted ? "否；服务端跳过语音生成" : "是")
         let preparing=VoiceTimeline.shared.now(voiceTrace)
         let current = token; generating = true; beginTurn(); emit("state.thinking")
-        var body=requestBody(text,trigger:trigger)
+        var body=savedBody ?? requestBody(text,trigger:trigger)
         if let entry { body["entry_id"] = entry.id.uuidString }
         if let interaction {body["interaction"]=interaction}
         if let quickReplyID {body["quick_reply_id"]=quickReplyID}
+        updateDelivery(userMessageID,state:"sending",payload:try? JSONSerialization.data(withJSONObject:body))
         VoiceTimeline.shared.span(voiceTrace,"conversation.prepare_request",start:preparing)
         task = Task { @MainActor [weak self] in
             guard let self else { return }
@@ -452,10 +480,12 @@ final class CompanionSession {
             }
             defer {audio.cancel()}
             do {
-                let opening=VoiceTimeline.shared.now(voiceTrace)
-                try await registerOpeningContext()
-                VoiceTimeline.shared.span(voiceTrace,"conversation.register_opening",start:opening)
-                try await api.events(path:"/v1/conversations/"+model.id+"/messages",body:body,traceID:voiceTrace) { [weak self] event in
+                for attempt in 0..<3 {
+                  do {
+                    let opening=VoiceTimeline.shared.now(voiceTrace)
+                    try await registerOpeningContext()
+                    VoiceTimeline.shared.span(voiceTrace,"conversation.register_opening",start:opening)
+                    try await api.events(path:"/v1/conversations/"+model.id+"/messages",body:body,traceID:voiceTrace) { [weak self] event in
                     guard let self, current == self.token, self.store.accountID == self.ownerID else { throw CancellationError() }
                     switch event.type {
                     case "reply.narration.ready":
@@ -536,15 +566,32 @@ final class CompanionSession {
                             if self.speech.isSpeaking {self.lateVisualsDuringSpeech+=1}
                             self.dispatchVisuals(visuals,additional:true)
                         }
-                    case "reply.warning": self.notice = event.message
+                    case "reply.warning":
+                        // Optional decoration does not turn valid dialogue
+                        // into a user-visible failure. Retain developer evidence.
+                        VoiceTimeline.shared.flag(voiceTrace,"optional_warning",event.code ?? "PRESENTATION_UNAVAILABLE")
                     case "segment.audio.started", "segment.audio.chunk", "segment.audio.ready", "audio.error", "audio.completed":
                         try audio.send(event)
                     default: break
                     }
+                    }
+                    break
+                  } catch let error as AIConnectionError {
+                    guard error.canRetry,attempt<2 else {throw error}
+                    VoiceTimeline.shared.flag(voiceTrace,"automatic_retry",String(attempt+1))
+                    VoiceTimeline.shared.flag(voiceTrace,"retry_reason",error.localizedDescription)
+                    let waitingForCleanup:Bool
+                    if case .remote(let code)=error {waitingForCleanup=["TURN_IN_PROGRESS","TURN_CLEANUP_TIMEOUT","REQUEST_INCOMPLETE"].contains(code)}
+                    else {waitingForCleanup=false}
+                    try await Task.sleep(for:.seconds(waitingForCleanup ? (attempt==0 ? 1.2 : 2.4) : (attempt==0 ? 0.6 : 1.2)))
+                    try Task.checkCancellation()
+                  }
                 }
                 VoiceTimeline.shared.mark(voiceTrace,"processing_complete")
                 try await audio.finish()
                 guard current == token else { return }
+                updateDelivery(userMessageID,state:"answered")
+                activeUserMessageID=nil
                 generating = false; speech.finish()
                 VoiceTimeline.shared.finish(voiceTrace)
                 if !muted && speech.error == nil {replyReveal.finish()}
@@ -562,9 +609,14 @@ final class CompanionSession {
                 if received, let script=activeScript { playSilentVisuals(script) }
                 else { onEndAIVisual?() }
                 emit("state.idle")
-                if !(error is CancellationError) {
-                    notice = (error as? LocalizedError)?.errorDescription ?? "AI 连接中断，请稍后重试。"
-                    if !received && !text.isEmpty && input.isEmpty { input = text }
+                if error is CancellationError {
+                    updateDelivery(userMessageID,state:received ? "answered" : "failed",error:received ? nil : "这次请求在设备上被中断，尚未收到回复。点感叹号可以重发。")
+                    activeUserMessageID=nil
+                } else {
+                    let native=error as NSError
+                    notice = (error as? LocalizedError)?.errorDescription ?? "设备处理这次回复时出错（\(native.domain) \(native.code)）。点消息旁的感叹号可重发。"
+                    updateDelivery(userMessageID,state:"failed",error:notice)
+                    activeUserMessageID=nil
                 }
             }
         }
@@ -742,6 +794,9 @@ final class CompanionSession {
             let api=self.api
             Task {await api.pauseReactions(body)}
         }
+        if activeScript != nil {updateDelivery(activeUserMessageID,state:"answered")}
+        else {updateDelivery(activeUserMessageID,state:"failed",error:"这次请求已被中断。点消息旁的感叹号可重发，已完成的回复会直接恢复。")}
+        activeUserMessageID=nil
         pendingGreeting = nil; task?.cancel(); task = nil; idleTask?.cancel(); idleTask = nil
         silentVisualTask?.cancel(); silentVisualTask = nil
         revealTask?.cancel();revealTask=nil;replyReveal.finish()

@@ -33,6 +33,8 @@ struct CompanionChatView: View {
     @State private var editing = false
     @State private var voiceMode=false
     @State private var voiceEditing=false
+    @State private var resendMessage:CompanionMessage?
+    @State private var confirmResend=false
     // Keep outgoing content mounted through its dismissal, even when sending
     // immediately clears the session's suggestions for the next reply.
     @State private var presentedReplies:[AIQuickReply]=[]
@@ -91,6 +93,10 @@ struct CompanionChatView: View {
         .onPreferenceChange(ConversationComposerFramePreference.self) { onComposerFrameChanged?($0) }
         .onPreferenceChange(ConversationHitPreference.self) { onHitRegionsChanged?($0) }
         .foregroundStyle(Theme.ink).tint(Theme.accent).scrollIndicators(.hidden)
+        .alert("重新发送这条消息？",isPresented:$confirmResend) {
+            Button("重新发送") {if let message=resendMessage {session.resend(message.id)};resendMessage=nil}
+            Button("取消",role:.cancel) {resendMessage=nil}
+        } message: {Text(resendMessage?.deliveryError ?? "这条消息尚未收到完整回复。")}
         .animation(interfaceAnimation,value:editing)
         .animation(interfaceAnimation,value:session.generating)
         .animation(interfaceAnimation,value:session.quickReplyPanelPresented)
@@ -400,10 +406,20 @@ struct CompanionChatView: View {
                     .background(Theme.surface.opacity(reduceTransparency ? 1 : 0.64),in:AssistantBubbleShape())
                     .overlay { AssistantBubbleShape().stroke(Theme.gradient.opacity(session.focusedMessageID == message.id ? 0.65 : 0.20),lineWidth:0.6) }
             } else {
+              HStack(spacing:5) {
+                if message.deliveryState=="failed" {
+                    Button {resendMessage=message;confirmResend=true} label: {
+                        Image(systemName:"exclamationmark.circle.fill").font(.system(size:17,weight:.medium))
+                            .foregroundStyle(Color(red:0.94,green:0.42,blue:0.40)).frame(width:32,height:44)
+                    }.buttonStyle(.plain).accessibilityLabel("消息未收到回复，点击重发")
+                        .accessibilityIdentifier("resend-"+message.id.uuidString)
+                        .conversationHitRegion(.control,id:"resend-"+message.id.uuidString)
+                }
                 TranslatableReplyContent(session:session,message:message,fontSize:chatFontSize)
                     .padding(.horizontal,15).padding(.vertical,11)
                     .background(Theme.jade.opacity(reduceTransparency ? 1 : 0.60),in:RoundedRectangle(cornerRadius:22))
                     .overlay { RoundedRectangle(cornerRadius:22).stroke(Theme.gradient.opacity(session.focusedMessageID == message.id ? 0.65 : 0.08),lineWidth:0.6) }
+              }
             }
             if message.interrupted { Text("已停止生成").font(.caption2).foregroundStyle(Theme.secondary) }
         }

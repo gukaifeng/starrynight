@@ -42,6 +42,17 @@ import CryptoKit
         staged.beats[0].parts?.append(AIReplyPart(kind:"thought",text:"我还留着一个小问题。",at:1))
         reveal.update(staged)
         try require(reveal.count(message,beat:"speech")==4,"Late annotations must retain the audio fraction without revealing future clauses")
+        let visibleSpeech=reveal.visibleParts(message,beat:staged.beats[0]).filter {$0.kind=="dialogue"}.map(\.text).joined()
+        try require(visibleSpeech=="先说一句。接着说完。","Optional asides must never gate received spoken text")
+        var misplaced=staged
+        misplaced.beats[0].parts=[AIReplyPart(kind:"thought",text:"我有点期待。",at:0),AIReplyPart(kind:"narration",text:"轻轻点头",at:1),AIReplyPart(kind:"dialogue",text:"收到的完整台词。",at:0)]
+        reveal.begin(message,script:misplaced)
+        try require(reveal.visibleParts(message,beat:misplaced.beats[0]).map(\.kind)==["thought","dialogue"],"A future optional annotation must not hide the speech after it")
+        misplaced.beats[0].parts?.append(AIReplyPart(kind:"thought",text:"我还想多听一点。",at:0.2))
+        reveal.update(misplaced);let earlierRevision=reveal.revision
+        reveal.advance("speech",fraction:0.3)
+        try require(reveal.revision>earlierRevision,"A non-prefix annotation must notify layout and auto-scroll when revealed")
+        reveal.begin(message,script:staged);reveal.advance("speech",fraction:0.6)
         reveal.advance("speech",fraction:1)
         try require(reveal.count(message,beat:"speech")==5,"Final annotation must reveal at the completed spoken clause")
         reveal.finish()

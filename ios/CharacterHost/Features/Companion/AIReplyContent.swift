@@ -32,9 +32,9 @@ struct AIReplyContent: View {
         VStack(alignment:.leading,spacing:7) {
             if let script = message.aiScript {
                 ForEach(script.beats) { beat in
-                  if let rawParts=beat.parts {
-                    let parts=ReplyDisplayText.repaired(rawParts)
-                    ForEach(Array(parts.prefix(reveal.count(message.id,beat:beat.beatId) ?? parts.count).enumerated()),id:\.offset) { index,part in
+                  if beat.parts != nil {
+                    let parts=ReplyDisplayText.repaired(beat.parts ?? [])
+                    ForEach(Array(parts.enumerated().filter {reveal.isVisible(message.id,beat:beat.beatId,part:$0.element)}),id:\.offset) { index,part in
                         if part.isVisible {
                             let text = translated(part.text,beat.beatId + ".part.\(index)")
                             Text(part.kind == "dialogue" ? dialogue(text) : AttributedString(aside(text)))
@@ -45,6 +45,13 @@ struct AIReplyContent: View {
                                 .accessibilityIdentifier(part.kind == "dialogue" ? "assistantMessage" : part.kind == "thought" ? "aiThought" : "aiNarration")
                                 .transition(.opacity)
                         }
+                    }
+                    // An early/legacy decoration-only parts patch may still
+                    // carry validated speech in dialogue. Never hide that text.
+                    if !parts.contains(where:{$0.kind=="dialogue" && $0.isVisible}),let spoken=beat.dialogue {
+                        Text(dialogue(translated(spoken.text,beat.beatId+".dialogue")))
+                            .font(.system(size:fontSize)).lineSpacing(5)
+                            .fixedSize(horizontal:false,vertical:true).accessibilityIdentifier("assistantMessage")
                     }
                   } else {
                     ForEach(Array(beat.narrations.enumerated().filter { $0.element.isVisible }),id:\.offset) { index, narration in

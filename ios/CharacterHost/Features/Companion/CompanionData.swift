@@ -61,6 +61,11 @@ struct CompanionMessage: Codable, Identifiable, Sendable {
     var aiScript: AIScript? = nil
     var translations: [String:MessageTranslation]? = nil
     var source: String? = nil
+    // Optional fields preserve existing journals. Retry owns the original
+    // immutable request and reuses this bubble instead of restoring a draft.
+    var deliveryState: String? = nil
+    var deliveryError: String? = nil
+    var requestPayload: Data? = nil
     // A late narration enriches the same message. Track visible content rather
     // than only message count, and exclude audio duration/playback metadata.
     var visibleContentKey: [String] {

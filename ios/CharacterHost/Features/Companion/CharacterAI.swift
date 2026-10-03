@@ -120,15 +120,34 @@ struct AIReactionPoolStatus:Decodable,Sendable {
 }
 private struct AIReactionPause:Decodable,Sendable {var paused:Bool}
 enum AIConnectionError: LocalizedError {
-    case unconfigured, unavailable, server(Int), remote(String), testingDisabled, authenticationRequired
+    case unconfigured, unavailable, server(Int), remote(String), network(Int), invalidResponse, testingDisabled, authenticationRequired
     var errorDescription: String? {
         switch self {
         case .authenticationRequired: "登录星夜后，就可以继续聊天了。"
         case .unconfigured: "AI 连接尚未配置。"
         case .unavailable: "暂时连不上 AI 服务，请检查网络后重试。"
-        case .server(let code): code == 401 ? "AI 连接凭证已变更，请更新安装版本。" : [429,503].contains(code) ? "AI 服务暂时繁忙，请稍后重试。" : "AI 服务暂时不可用（\(code)）。"
+        case .invalidResponse: "AI 服务返回的数据格式异常，自动恢复仍未成功。点消息旁的感叹号可重发。"
+        case .network(let code): Self.networkDescription(code)
+        case .server(let code): code == 401 ? "登录已过期，请重新登录后重发消息。" : [429,503].contains(code) ? "AI 服务暂时繁忙，重试后仍未恢复。点消息旁的感叹号可重发。" : "AI 服务返回异常响应（HTTP \(code)），重试后仍未完成。点消息旁的感叹号可重发。"
         case .remote(let code): Self.remoteDescription(code)
         case .testingDisabled: "自动测试已关闭付费 AI 调用。"
+        }
+    }
+    var canRetry:Bool {
+        switch self {
+        case .unavailable,.network,.invalidResponse:return true
+        case .server(let code):return [408,409,429,500,502,503,504].contains(code)
+        case .remote(let code):return ["SERVER_BUSY","TURN_IN_PROGRESS","TURN_CLEANUP_TIMEOUT","STREAM_INTERRUPTED","REQUEST_INCOMPLETE","REPLY_TIMEOUT","CONNECTION_FAILED","PROVIDER_TIMEOUT","STRUCTURE_INVALID","REPLY_UNAVAILABLE","STREAM_INCOMPLETE"].contains(code) || code.hasPrefix("PROVIDER_429_") || code.hasPrefix("PROVIDER_5")
+        default:return false
+        }
+    }
+    static func networkDescription(_ code:Int)->String {
+        switch code {
+        case URLError.notConnectedToInternet.rawValue:return "当前设备没有网络连接。恢复网络后，点消息旁的感叹号重发。"
+        case URLError.timedOut.rawValue:return "连接 AI 服务超时，重试后仍未收到完整响应。点消息旁的感叹号可重发。"
+        case URLError.networkConnectionLost.rawValue:return "与 AI 服务的网络连接中断，重连仍未完成。点消息旁的感叹号可重发。"
+        case URLError.secureConnectionFailed.rawValue,URLError.serverCertificateUntrusted.rawValue:return "无法建立安全连接，请检查设备日期、网络或服务器证书。"
+        default:return "无法连接 AI 服务（网络错误 \(code)），重试后仍未恢复。点消息旁的感叹号可重发。"
         }
     }
     private static func remoteDescription(_ code:String)->String {
@@ -137,11 +156,16 @@ enum AIConnectionError: LocalizedError {
         case "SERVER_BUSY": return "AI 服务暂时繁忙，请稍后重试。"
         case "TURN_CLEANUP_TIMEOUT": return "AI 连接正在恢复，请重试。"
         case "DAILY_CALL_LIMIT","USAGE_LIMIT_TTS","USAGE_LIMIT_ASR": return "AI 服务仍在使用旧版测试额度设置，请更新本机服务。"
-        case "REQUEST_INCOMPLETE": return "这次回复已中断，可以重新发送。"
         case "REPLY_TIMEOUT": return "这次回复等待过久，可以重新发送。"
+        case "STREAM_INTERRUPTED","STREAM_INCOMPLETE","REQUEST_INCOMPLETE": return "AI 响应在传输中中断，自动恢复仍未成功。点消息旁的感叹号可重发。"
+        case "STRUCTURE_INVALID","STREAM_CONTENT_INVALID","STREAM_JSON_INVALID","STREAM_SPEECH_INVALID":return "AI 返回的回复格式异常，自动修复仍未成功。点消息旁的感叹号可重发。"
+        case "REPLY_UNAVAILABLE":return "AI 多次生成了重复内容，重新生成仍未通过检查。点消息旁的感叹号可重发。"
+        case "CONNECTION_FAILED","PROVIDER_TIMEOUT":return "服务器连接 AI 服务商超时或中断，重试后仍未恢复。点消息旁的感叹号可重发。"
         default:
             if code.hasPrefix("PROVIDER_429_") {return "AI 服务暂时繁忙，请稍后重试。"}
-            return "AI 暂时没有完成回复，请稍后重试。"
+            if code.hasPrefix("PROVIDER_403_") {return "AI 服务商拒绝了请求，请检查模型权限或账户余额（\(code)）。"}
+            if code.hasPrefix("PROVIDER_401_") {return "AI 服务商的认证已失效，需要管理员更新连接配置。"}
+            return "AI 服务未能完成这次请求（\(code)）。点消息旁的感叹号可重发。"
         }
     }
     static func http(_ status:Int,body:Data)->AIConnectionError {
@@ -277,7 +301,9 @@ private final class AINoRedirect: NSObject, URLSessionTaskDelegate, Sendable {
             request.httpMethod="POST";request.setValue("application/json",forHTTPHeaderField:"Content-Type")
             request.httpBody=try JSONSerialization.data(withJSONObject:body)
         }
-        let (data,response)=try await session.data(for:request)
+        let data:Data,response:URLResponse
+        do {(data,response)=try await session.data(for:request)}
+        catch let error as URLError {if Task.isCancelled {throw CancellationError()};throw AIConnectionError.network(error.code.rawValue)}
         guard (response as? HTTPURLResponse)?.statusCode==200 else {
             throw AIConnectionError.http((response as? HTTPURLResponse)?.statusCode ?? 0,body:data)
         }
@@ -321,6 +347,7 @@ private final class AINoRedirect: NSObject, URLSessionTaskDelegate, Sendable {
         return try JSONDecoder().decode(ConversationResetReceipt.self,from:data)
     }
     func registerOpening(_ script:AIScript,resetID:String) async throws {
+        guard Self.paidTestsEnabled else {return} // Ordinary UI tests never call the cloud.
 #if DEBUG && targetEnvironment(simulator)
         if ConversationContinuityFixture.enabled {return}
 #endif
@@ -384,8 +411,8 @@ private final class AINoRedirect: NSObject, URLSessionTaskDelegate, Sendable {
             timeline.mark(traceID,"network_complete")
           } onCancel: { cancellation.cancel() }
         } catch is CancellationError {timeline.finish(traceID,status:"cancelled");throw CancellationError() }
-        catch let error as AIConnectionError {timeline.flag(traceID,"error_type","AIConnectionError");timeline.finish(traceID,status:"failed");throw error }
-        catch {timeline.flag(traceID,"error_type",String(describing:type(of:error)));timeline.finish(traceID,status:Task.isCancelled ? "cancelled" : "failed");if Task.isCancelled { throw CancellationError() }; throw AIConnectionError.unavailable }
+        catch let error as AIConnectionError {timeline.flag(traceID,"error_type","AIConnectionError");if case .remote(let code)=error {timeline.flag(traceID,"error_code",code)};timeline.finish(traceID,status:"failed");throw error }
+        catch {timeline.flag(traceID,"error_type",String(describing:type(of:error)));timeline.finish(traceID,status:Task.isCancelled ? "cancelled" : "failed");if Task.isCancelled { throw CancellationError() };if let error=error as? URLError {throw AIConnectionError.network(error.code.rawValue)};throw AIConnectionError.invalidResponse }
     }
     func socket(nickname: String,traceID:String?=nil) throws -> URLSessionWebSocketTask {
         var request = try request("/v1/asr/" + characterID)

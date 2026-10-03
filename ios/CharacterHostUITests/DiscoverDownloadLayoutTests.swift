@@ -41,9 +41,9 @@ final class DiscoverDownloadLayoutTests:XCTestCase {
         if !shown {capture("download-confirmation-missing");print(app.debugDescription)}
         XCTAssertTrue(shown)
         XCTAssertGreaterThan(card.frame.width,330)
-        XCTAssertLessThanOrEqual(card.frame.width,380)
-        XCTAssertTrue(app.frame.insetBy(dx:12,dy:12).contains(card.frame))
-        capture("download-wider-confirmation")
+        XCTAssertLessThanOrEqual(card.frame.width,350)
+        XCTAssertTrue(app.frame.insetBy(dx:27,dy:12).contains(card.frame))
+        capture("download-confirmation-balanced-margins")
         app.coordinate(withNormalizedOffset:CGVector(dx:0.5,dy:0.12)).tap()
         XCTAssertTrue(open.waitForExistence(timeout:5));XCTAssertEqual(app.staticTexts["downloadConfirmationAccepted"].label,"0")
         XCTAssertFalse(confirm.exists)
