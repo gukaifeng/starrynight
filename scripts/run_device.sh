@@ -17,7 +17,7 @@ if [ "$#" -eq 2 ]; then
   esac
 fi
 bash scripts/build_device.sh --device "$DEVICE_ID"
-APP_PATH="$ROOT_DIR/.local/build/DeviceDerivedData/Build/Products/Release-iphoneos/CharacterHost.app"
+APP_PATH="$ROOT_DIR/.local/build/DeviceDerivedData/Build/Products/Release-iphoneos/StarryNight.app"
 codesign --verify --deep --strict "$APP_PATH"
 if [ ! -f "$APP_PATH/embedded.mobileprovision" ]; then
   echo 'No provisioning profile in app; refusing installation of an unsigned build.' >&2

@@ -265,7 +265,7 @@ def main():
         path=SOURCES/item['file']
         if args.fetch and not path.exists():path.write_bytes(urllib.request.urlopen(item['url'],timeout=60).read())
         if not path.exists() or hashlib.sha256(path.read_bytes()).hexdigest()!=item['sha256']:raise ValueError('Missing or changed pinned source: '+item['file'])
-    collections=ROOT/'ios/CharacterHost/Resources/CharacterCollections.json';c=json.loads(collections.read_text());reports=[]
+    collections=ROOT/'ios/StarryNight/Resources/CharacterCollections.json';c=json.loads(collections.read_text());reports=[]
     for i,role in enumerate(ROLES):
         manifest,report=package(role,i);reports.append(report);id=role['id'];existing=next((x for x in c['collections'] if x['modelID']==id),None);c['collections']=[x for x in c['collections']if x['modelID']!=id]
         environments=list(dict.fromkeys([role['environment'],'garden','seaside']))

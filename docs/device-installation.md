@@ -2,6 +2,8 @@
 
 本阶段目标：在用户连接手机前完成 iOS Device SDK 导出、Release 编译和可重复安装入口；连接后使用用户自己的 Apple Account / Personal Team 进行签名和安装。无需先购买 Apple Developer Program。免费描述文件有效期为 7 天，过期后需重新签名、安装。
 
+**2026-10-03 当前入口更新：** 真机打开 `ios/StarryNight.xcworkspace`，运行方案选择 `StarryNight`，签名产物为 `.local/build/DeviceDerivedData/Build/Products/Release-iphoneos/StarryNight.app`。模拟器打开 `ios/StarryNight-Simulator.xcworkspace`，同样选择 `StarryNight`。下文历史安装记录中的 `CharacterHost` 为当时的名称；当前构建、安装脚本已统一新名称。
+
 ## iPad 首次安装（2026-09-30，0.66.0 / build 92）
 
 用户将 iPad Pro 11 英寸（M4，2024）解锁、开启开发者模式并通过 USB 连接后，CoreDevice 实际读到 `paired`、`tunnelState=connected`、`transportType=wired`、`developerModeStatus=enabled`，开发服务可用。此前无线查询只有旧配对缓存与 `unavailable`，缓存中的 disabled 不是设备当前开发者模式状态，不能据此否定用户已开启的操作。

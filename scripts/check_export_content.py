@@ -15,32 +15,32 @@ try:
     content = json.loads(stamp.read_text())
 except (OSError, ValueError):
     content = {}
-catalog_path=ROOT/'ios/CharacterHost/Resources/CharacterCatalog.json'
+catalog_path=ROOT/'ios/StarryNight/Resources/CharacterCatalog.json'
 catalog=json.loads(catalog_path.read_text())
 if content.get('characterDeliveryRevision',0)<1:
     raise SystemExit('Unity export lacks verified downloaded-character loading; re-export this platform.')
 required={c['id'] for c in catalog['characters']}
 if content.get('characterApi')!=1 or content.get('catalogSha256')!=hashlib.sha256(catalog_path.read_bytes()).hexdigest() or required!=set(content.get('models',[])):
     raise SystemExit('Character catalog differs from Unity export. Export the selected platform again before building.')
-environment_catalog=ROOT/'ios/CharacterHost/Resources/EnvironmentCatalog.json'
+environment_catalog=ROOT/'ios/StarryNight/Resources/EnvironmentCatalog.json'
 if content.get('environmentApi')!=1 or not environment_catalog.exists() or content.get('environmentCatalogSha256')!=hashlib.sha256(environment_catalog.read_bytes()).hexdigest():
     raise SystemExit('Environment catalog differs from Unity export. Re-export this platform before building.')
 if content.get('imageBackdropRevision',0)<1:
     raise SystemExit('Unity export needs character image backgrounds v1; export this platform again.')
-atmospheres=ROOT/'ios/CharacterHost/Resources/CharacterAtmospheres.json'
+atmospheres=ROOT/'ios/StarryNight/Resources/CharacterAtmospheres.json'
 if content.get('imageBackdropCatalogSha256') != hashlib.sha256(atmospheres.read_bytes()).hexdigest():
     raise SystemExit('Character image backgrounds differ from Unity export; re-export this platform.')
-images = ROOT / 'ios/CharacterHost/Resources/Assets.xcassets'
+images = ROOT / 'ios/StarryNight/Resources/Assets.xcassets'
 if content.get('autonomyRevision', 0) < 2:
     raise SystemExit('Unity export lacks visible natural idle v2; re-export this platform before building.')
 if content.get('inspectionGestureRevision', 0) < 14:
     raise SystemExit('error: Unity export does not support head-safe immersive framing / bidirectional zoom and position editing v14. '
-                     f'Run: python3 scripts/export_unity_ios.py --platform {args.platform}; then rebuild CharacterHost. '
+                     f'Run: python3 scripts/export_unity_ios.py --platform {args.platform}; then rebuild StarryNight. '
                      'An unchanged character catalog does not prove that the runtime supports new native gestures. '
                      'The previously installed app is unchanged.')
 if content.get('nativeGestureRevision', 0) < 2 or content.get('immersionRevision', 0) < 2 or content.get('portraitRevision', 0) < 1 or content.get('gazeRevision', 0) < 1 or content.get('contentVersion', 0) < 6 or content.get('studioProtocol', 0) < 1 or content.get('atmosphereRevision', 0) < 1 or content.get('framingProtocol', 0) < 8 or content.get('companionProtocol', 0) < 1 or not required.issubset(content.get('models', [])) or not all((images / (c['display']['thumbnail']+'.imageset')).is_dir() for c in catalog['characters']):
     raise SystemExit('error: Unity export is missing native gestures v2 or the v6 character studio, atmosphere and safe-area framing protocol v8 / bounded gaze v1 / portrait v1 / immersion v2, character content, or rendered thumbnail. '
-                     f'Run: python3 scripts/export_unity_ios.py --platform {args.platform}; then rebuild CharacterHost. '
+                     f'Run: python3 scripts/export_unity_ios.py --platform {args.platform}; then rebuild StarryNight. '
                      'The previously installed app is unchanged.')
 print(f"Character API v1 / Environment API v1 catalog integrity PASS: {len(required)} characters, "
       f"{len(json.loads(environment_catalog.read_text())['environments'])} environments; framing v8, gaze v1, portrait v1, immersion v2, native gestures v2, head-safe immersive framing / bidirectional zoom and position editing v14.")

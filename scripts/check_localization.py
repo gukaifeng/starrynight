@@ -14,7 +14,7 @@ FORMATS = re.compile(r'%(?:\d+\$)?(?:lld|ld|\.[0-9]+f|d|f|@)')
 
 def check(extracted=None):
     errors=[];count=0;catalogs={}
-    for path in (ROOT/'ios/CharacterHost/Resources').glob('*.xcstrings'):
+    for path in (ROOT/'ios/StarryNight/Resources').glob('*.xcstrings'):
         catalog=json.loads(path.read_text());catalogs[path.stem]=catalog['strings']
         if catalog['sourceLanguage']!='zh-Hans':errors.append(f'{path.name}: incorrect source language')
         for key,entry in catalog['strings'].items():

@@ -59,7 +59,7 @@ public sealed class CharacterResourceBuilder : IProcessSceneWithReport
                 string error=AssetDatabase.MoveAsset(archive+"/"+id,folder+"/"+id);
                 if(!string.IsNullOrEmpty(error))throw new Exception(error);
             }
-        File.Copy(Path.Combine(CharacterPackageBuilder.Root,"ios/CharacterHost/Resources/CharacterAtmospheres.json"),
+        File.Copy(Path.Combine(CharacterPackageBuilder.Root,"ios/StarryNight/Resources/CharacterAtmospheres.json"),
             "Assets/Resources/CharacterAtmospheres.json",true);
         AssetDatabase.ImportAsset("Assets/Resources/CharacterAtmospheres.json",ImportAssetOptions.ForceSynchronousImport);
         AssetDatabase.SaveAssets();

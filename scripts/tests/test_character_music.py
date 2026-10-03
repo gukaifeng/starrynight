@@ -16,7 +16,7 @@ class CharacterMusicTests(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
         self.resources = Path(self.temporary.name)
-        source = ROOT / 'ios/CharacterHost/Resources'
+        source = ROOT / 'ios/StarryNight/Resources'
         for name in ['CharacterCatalog.json', 'EnvironmentCatalog.json', 'CharacterCollections.json']:
             shutil.copyfile(source / name, self.resources / name)
         for asset in source.glob('Music_*.caf'):

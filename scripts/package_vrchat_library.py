@@ -281,7 +281,7 @@ def assemble(row,folder,stage,order,allow_preview_shading=False,visual_only=Fals
         optional.append('core.autonomy@1')
         m['autonomy']=dict(schemaVersion=1,blink=dict(bindings=blink_bindings,intervals=[3.2,4.7,5.8,3.9,4.4],closeSeconds=.16,closedSeconds=.035,openSeconds=.26,firstDelay=1.8,suppressGroups=[],suppressOptions=[]))
     if 'performance' in m and len(m['performance']['defaults'])>64:raise ValueError('Renderer visibility budget requires review')
-    authored=ROOT/'ios/CharacterHost/Resources/CharacterPublicProfiles.json'
+    authored=ROOT/'ios/StarryNight/Resources/CharacterPublicProfiles.json'
     profile=next((entry for entry in json.loads(authored.read_text())['characters'] if entry['id']==row['id']),None) if authored.exists() else None
     if profile:
         m['display'].update(name=profile['name'],description=profile['story'],

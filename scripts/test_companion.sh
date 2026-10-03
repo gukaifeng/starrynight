@@ -14,8 +14,8 @@ xcrun simctl terminate "$DEVICE_ID" com.modelspace.viewer 2>/dev/null || true
 # newly linked binary. Replace only the test harness; preserve the app's data.
 xcrun simctl uninstall "$DEVICE_ID" com.modelspace.viewer.uitests.xctrunner 2>/dev/null || true
 TEST_FILTERS=()
-for CASE in ${(s:,:)TEST_CASE}; do TEST_FILTERS+=("-only-testing:CharacterHostUITests/$CASE"); done
-xcodebuild -workspace ios/StarryNight-Simulator.xcworkspace -scheme CharacterHost -configuration Debug \
+for CASE in ${(s:,:)TEST_CASE}; do TEST_FILTERS+=("-only-testing:StarryNightUITests/$CASE"); done
+xcodebuild -workspace ios/StarryNight-Simulator.xcworkspace -scheme StarryNight -configuration Debug \
  -destination "platform=iOS Simulator,id=$DEVICE_ID" -derivedDataPath .local/build/DerivedData \
  -resultBundlePath ".local/checks/$RESULT_NAME.xcresult" -parallel-testing-enabled NO \
  -maximum-concurrent-test-simulator-destinations 1 "${TEST_FILTERS[@]}" \

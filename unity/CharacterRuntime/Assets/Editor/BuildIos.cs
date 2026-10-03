@@ -307,7 +307,7 @@ public static class BuildIos
             RealCharacterReview.Portrait(camera,character);
         }
         string name = character.Manifest.display.thumbnail;
-        string directory = Path.Combine(Root,"ios/CharacterHost/Resources/Assets.xcassets/"+name+".imageset"); Directory.CreateDirectory(directory);
+        string directory = Path.Combine(Root,"ios/StarryNight/Resources/Assets.xcassets/"+name+".imageset"); Directory.CreateDirectory(directory);
         CharacterPerformanceVisualProbe.RenderFrozenPose(character,camera,Path.Combine(directory,name+".png"),1200,1200);
         File.WriteAllText(Path.Combine(directory,"Contents.json"),"{\"images\":[{\"filename\":\""+name+".png\",\"idiom\":\"universal\"}],\"info\":{\"author\":\"xcode\",\"version\":1}}");
         Debug.Log("MODELSPACE_THUMBNAIL_PASS");

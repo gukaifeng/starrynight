@@ -51,7 +51,7 @@ def main():
     checked=preflight();print('COMPANION_PREFLIGHT_PASS',len(checked),flush=True)
     if not args.apply:return
     backup=ROOT/'.local/vrchat-batch/companion-activation'/str(time.time_ns());backup.mkdir(parents=True)
-    native=ROOT/'ios/CharacterHost/Resources';old_catalog=native/'CharacterCatalog.json'
+    native=ROOT/'ios/StarryNight/Resources';old_catalog=native/'CharacterCatalog.json'
     shutil.copy2(old_catalog,backup/'CharacterCatalog.previous.json')
     for row in checked:
         shutil.copytree(OUT/row['id'],backup/'prepared'/row['id'],copy_function=clone)

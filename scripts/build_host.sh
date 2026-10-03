@@ -16,8 +16,8 @@ cd "$ROOT_DIR"
 mkdir -p .local/logs
 python3 scripts/check_export_content.py --platform simulator
 python3 scripts/generate_host.py "${GENERATE_ARGS[@]}"
-xcodebuild -workspace ios/StarryNight-Simulator.xcworkspace -scheme CharacterHost \
+xcodebuild -workspace ios/StarryNight-Simulator.xcworkspace -scheme StarryNight \
   -configuration "$BUILD_CONFIGURATION" -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
   -derivedDataPath .local/build/DerivedData CODE_SIGNING_ALLOWED=NO \
   build > .local/logs/host-simulator-build.log 2>&1
-echo "Host build succeeded: .local/build/DerivedData/Build/Products/$BUILD_CONFIGURATION-iphonesimulator/CharacterHost.app"
+echo "Host build succeeded: .local/build/DerivedData/Build/Products/$BUILD_CONFIGURATION-iphonesimulator/StarryNight.app"

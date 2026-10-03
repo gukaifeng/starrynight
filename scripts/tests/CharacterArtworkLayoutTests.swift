@@ -4,7 +4,7 @@ import CoreGraphics
 @main enum CharacterArtworkLayoutTests {
 static func main() throws {
 struct ArtworkCatalog:Decodable {struct Entry:Decodable {let runtimeID:String;let headBounds:CharacterHeadBounds};let covers:[Entry]}
-let data=try Data(contentsOf:URL(fileURLWithPath:"ios/CharacterHost/Resources/CharacterCoverCatalog.json"))
+let data=try Data(contentsOf:URL(fileURLWithPath:"ios/StarryNight/Resources/CharacterCoverCatalog.json"))
 let catalog=try JSONDecoder().decode(ArtworkCatalog.self,from:data)
 var checks=0
 for entry in catalog.covers {

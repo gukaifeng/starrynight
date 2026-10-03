@@ -229,7 +229,7 @@ def main():
         write_json(REPORTS/'conversion-report.json',dict(schemaVersion=1,characters=reports))
         # Keep already-authored private audio/scene choices while advancing the
         # package reference; otherwise the host correctly rejects a stale bundle.
-        collection_path=ROOT/'ios/CharacterHost/Resources/CharacterCollections.json'
+        collection_path=ROOT/'ios/StarryNight/Resources/CharacterCollections.json'
         collections=json.loads(collection_path.read_text())
         for role in ROLES:
             if args.only and args.only!=role['key']:continue

@@ -44,7 +44,7 @@ public static class FirstCompanionBackdrop
             pixels=new Texture2D(width,height,TextureFormat.RGB24,false);
             pixels.ReadPixels(new Rect(0,0,width,height),0,0);pixels.Apply();
             var root=Path.GetFullPath(Path.Combine(Application.dataPath,"../../.."));
-            var directory=Path.Combine(root,"ios/CharacterHost/Resources/Assets.xcassets/FirstCompanionBackdrop.imageset");
+            var directory=Path.Combine(root,"ios/StarryNight/Resources/Assets.xcassets/FirstCompanionBackdrop.imageset");
             Directory.CreateDirectory(directory);
             File.WriteAllBytes(Path.Combine(directory,"FirstCompanionBackdrop.jpg"),pixels.EncodeToJPG(94));
             File.WriteAllText(Path.Combine(directory,"Contents.json"),"{\"images\":[{\"filename\":\"FirstCompanionBackdrop.jpg\",\"idiom\":\"universal\"}],\"info\":{\"author\":\"xcode\",\"version\":1}}");

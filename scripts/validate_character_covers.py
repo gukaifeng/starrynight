@@ -8,8 +8,8 @@ import hashlib
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]
-RESOURCES = ROOT / "ios/CharacterHost/Resources"
-ASSETS = ROOT / "ios/CharacterHost/Assets.xcassets"
+RESOURCES = ROOT / "ios/StarryNight/Resources"
+ASSETS = ROOT / "ios/StarryNight/Assets.xcassets"
 
 
 def main():

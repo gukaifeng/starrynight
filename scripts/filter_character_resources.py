@@ -4,7 +4,7 @@ from pathlib import Path
 import shutil
 
 def active_resources(root: Path):
-    resources = root/'ios/CharacterHost/Resources'
+    resources = root/'ios/StarryNight/Resources'
     catalog = json.loads((resources/'CharacterCatalog.json').read_text())['characters']
     covers = json.loads((resources/'CharacterCoverCatalog.json').read_text())['covers']
     artwork = {c['display']['thumbnail'] for c in catalog}
@@ -15,7 +15,7 @@ def active_resources(root: Path):
     return artwork, audio
 
 def stage_catalog(root: Path, source: Path, artwork: set[str]):
-    destination = root/'.local/active-character-resources'/source.relative_to(root/'ios/CharacterHost')
+    destination = root/'.local/active-character-resources'/source.relative_to(root/'ios/StarryNight')
     destination.mkdir(parents=True,exist_ok=True)
     # Delete only this generated staging catalog, never the source artwork.
     for child in destination.iterdir():

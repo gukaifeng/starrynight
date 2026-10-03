@@ -218,7 +218,7 @@ def main():
     output.mkdir(parents=True, exist_ok=True)
     rows = {r['id']: r for r in read(ROOT/'.local/vrchat-batch/plan.json')['models']}
     identities = read(ROOT/'assets/characters/active-roster.json')['characters']
-    preview_ids = {c['modelID'] for c in read(ROOT/'ios/CharacterHost/Resources/CharacterCollections.json')['collections'] if c.get('previewOnly') is True}
+    preview_ids = {c['modelID'] for c in read(ROOT/'ios/StarryNight/Resources/CharacterCollections.json')['collections'] if c.get('previewOnly') is True}
     if args.only:
         chosen = set(args.only.split(','))
         if chosen - set(identities):

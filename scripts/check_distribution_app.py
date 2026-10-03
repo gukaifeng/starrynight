@@ -10,7 +10,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--platform', choices=['simulator', 'device'], default='simulator')
 parser.add_argument('--app', type=Path, help='Override the built .app directory')
 args = parser.parse_args()
-project = ROOT / 'ios' / ('CharacterHost-Simulator.xcodeproj' if args.platform == 'simulator' else 'CharacterHost.xcodeproj')
+project = ROOT / 'ios' / ('StarryNight-Simulator.xcodeproj' if args.platform == 'simulator' else 'StarryNight.xcodeproj')
 objects = json.loads(subprocess.check_output(['plutil', '-convert', 'json', '-o', '-', str(project/'project.pbxproj')]))['objects']
 for item in objects.values():
     if item.get('isa') == 'XCBuildConfiguration':
@@ -23,12 +23,12 @@ for item in objects.values():
             raise SystemExit('Private developer source/resource reference remains: '+path)
 folder = 'DerivedData' if args.platform == 'simulator' else 'DeviceDerivedData'
 sdk = 'iphonesimulator' if args.platform == 'simulator' else 'iphoneos'
-app = args.app or ROOT / f'.local/build/{folder}/Build/Products/Release-{sdk}/CharacterHost.app'
-if not (app/'CharacterHost').is_file():
+app = args.app or ROOT / f'.local/build/{folder}/Build/Products/Release-{sdk}/StarryNight.app'
+if not (app/'StarryNight').is_file():
     raise SystemExit('Build the distribution app first: '+str(app))
 if (app/'ClientAIRules.txt').exists():
     raise SystemExit('Private inspection rules remain in the app bundle; rebuild in a clean derived-data directory.')
-symbols = subprocess.check_output(['nm', str(app/'CharacterHost')], stderr=subprocess.DEVNULL, text=True)
+symbols = subprocess.check_output(['nm', str(app/'StarryNight')], stderr=subprocess.DEVNULL, text=True)
 for name in ('AIInspectionPanel', 'AIInspectionSectionPage', 'AppDeveloperPanel', 'CharacterDeveloperPanel',
              'DeveloperEntry', 'CharacterPerformancePanel', 'AvatarControlSlider'):
     if name in symbols:

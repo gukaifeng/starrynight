@@ -22,15 +22,15 @@ mkdir -p .local/checks .local/logs
 for TYPE in phone ipad; do
   if [ "$TYPE" = phone ]; then
     SIM_ID="$PHONE_ID"
-    CASES=(-only-testing:CharacterHostUITests/ViewerFlowTests/testD_CharacterSwitchAndAdditionalActions -only-testing:CharacterHostUITests/ViewerFlowTests/testE_MikuHeadInteractionFramingAndFrameTargets)
+    CASES=(-only-testing:StarryNightUITests/ViewerFlowTests/testD_CharacterSwitchAndAdditionalActions -only-testing:StarryNightUITests/ViewerFlowTests/testE_MikuHeadInteractionFramingAndFrameTargets)
   else
     SIM_ID="$TABLET_ID"
-    CASES=(-only-testing:CharacterHostUITests/ViewerFlowTests/testF_IPadPortraitAndLandscape)
+    CASES=(-only-testing:StarryNightUITests/ViewerFlowTests/testF_IPadPortraitAndLandscape)
   fi
   xcrun simctl boot "$SIM_ID" 2>/dev/null || true
   python3 scripts/wait_for_simulator.py "$SIM_ID"
   RESULT="$ROOT_DIR/.local/checks/$TEST_TAG-$TYPE.xcresult"
-  xcodebuild -workspace ios/StarryNight-Simulator.xcworkspace -scheme CharacterHost \
+  xcodebuild -workspace ios/StarryNight-Simulator.xcworkspace -scheme StarryNight \
     -configuration Debug -destination "platform=iOS Simulator,id=$SIM_ID" \
     -derivedDataPath .local/build/DerivedData -resultBundlePath "$RESULT" \
     -parallel-testing-enabled NO "${CASES[@]}" CODE_SIGNING_ALLOWED=NO test > ".local/logs/$TEST_TAG-$TYPE.log" 2>&1

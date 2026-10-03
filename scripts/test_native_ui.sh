@@ -26,10 +26,10 @@ python3 scripts/wait_for_simulator.py "$SIMULATOR_ID"
 mkdir -p .local/logs .local/checks
 IFS=',' read -ra CASES <<< "$TEST_CASES"
 TEST_FILTERS=()
-for CASE in "${CASES[@]}"; do TEST_FILTERS+=("-only-testing:CharacterHostUITests/$CASE"); done
+for CASE in "${CASES[@]}"; do TEST_FILTERS+=("-only-testing:StarryNightUITests/$CASE"); done
 LOG_PATH=".local/logs/$RUN_NAME.log"
 RESULT_PATH=".local/checks/$RUN_NAME.xcresult"
-if ! xcodebuild -workspace ios/StarryNight-NativeUI.xcworkspace -scheme CharacterHost \
+if ! xcodebuild -workspace ios/StarryNight-NativeUI.xcworkspace -scheme StarryNight \
   -configuration Debug -destination "platform=iOS Simulator,id=$SIMULATOR_ID" \
   -derivedDataPath .local/build/NativeUIDerivedData -resultBundlePath "$RESULT_PATH" \
   -parallel-testing-enabled NO "${PACKAGE_ARGS[@]}" "${TEST_FILTERS[@]}" CODE_SIGNING_ALLOWED=NO test > "$LOG_PATH" 2>&1; then

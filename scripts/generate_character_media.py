@@ -35,7 +35,7 @@ def save(path, data):
     temporary.replace(path)
 
 def reference(role):
-    folder = ROOT / 'ios/CharacterHost/Assets.xcassets' / ('Cover_' + role.replace('-', '_') + '.imageset')
+    folder = ROOT / 'ios/StarryNight/Assets.xcassets' / ('Cover_' + role.replace('-', '_') + '.imageset')
     files = sorted(folder.glob('source.*'))
     if not files:
         plan=json.loads((ROOT/'.local/vrchat-batch/plan.json').read_text())

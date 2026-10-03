@@ -7,7 +7,7 @@ if [ "${1:-}" = '--interpret' ]; then
   # host cannot launch freshly linked command-line binaries. No alternate model.
   python3 - <<'PY'
 from pathlib import Path
-core=Path('ios/CharacterHost/Features/Companion/VoiceCaptureState.swift').read_text()
+core=Path('ios/StarryNight/Features/Companion/VoiceCaptureState.swift').read_text()
 tests=Path('scripts/tests/VoiceCaptureStateTests.swift').read_text().replace('@main enum VoiceCaptureStateTests','enum VoiceCaptureStateTests')
 Path('.local/checks/voice-capture/InterpretedVoiceCaptureTests.swift').write_text(core+'\n'+tests+'\nVoiceCaptureStateTests.main()\n')
 PY
@@ -15,6 +15,6 @@ PY
   exit 0
 fi
 swiftc -swift-version 6 -parse-as-library -module-cache-path .local/build/VoiceModuleCache \
-  ios/CharacterHost/Features/Companion/VoiceCaptureState.swift \
+  ios/StarryNight/Features/Companion/VoiceCaptureState.swift \
   scripts/tests/VoiceCaptureStateTests.swift -o .local/checks/voice-capture/voice-capture-tests
 .local/checks/voice-capture/voice-capture-tests

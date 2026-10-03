@@ -42,7 +42,7 @@ def authored_options(manifest):
 
 def preflight(output):
     roster = read(ROOT/'assets/characters/active-roster.json')['characters']
-    collections=read(ROOT/'ios/CharacterHost/Resources/CharacterCollections.json')['collections']
+    collections=read(ROOT/'ios/StarryNight/Resources/CharacterCollections.json')['collections']
     preview_ids={c['modelID'] for c in collections if c.get('previewOnly') is True}
     status = {row['id']:row for row in read(output/'status.json')['characters']}
     checked = []
@@ -114,7 +114,7 @@ def main():
     print('MODEL_REVIEW_PREFLIGHT_PASS', len(checked), flush=True)
     if not args.apply:
         return
-    collections_path = ROOT/'ios/CharacterHost/Resources/CharacterCollections.json'
+    collections_path = ROOT/'ios/StarryNight/Resources/CharacterCollections.json'
     collections = read(collections_path)
     for row in checked:
         collection = next(c for c in collections['collections'] if c['modelID'] == row['id'])

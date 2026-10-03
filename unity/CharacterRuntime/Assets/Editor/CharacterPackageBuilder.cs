@@ -177,9 +177,9 @@ public static class CharacterPackageBuilder
     {
         var catalog=new Catalog { characters=characters.Select(c=>c.Manifest).OrderBy(c=>c.display.order).ThenBy(c=>c.id,StringComparer.Ordinal).ToArray() };
         if(catalog.characters.Select(c=>c.id).Distinct().Count()!=characters.Length) throw new Exception("CHARACTER_DUPLICATE_ID");
-        File.WriteAllText(Path.Combine(Root,"ios/CharacterHost/Resources/CharacterCatalog.json"),JsonUtility.ToJson(catalog,true)+"\n");
+        File.WriteAllText(Path.Combine(Root,"ios/StarryNight/Resources/CharacterCatalog.json"),JsonUtility.ToJson(catalog,true)+"\n");
     }
-    public static string CatalogHash => Hash(Path.Combine(Root,"ios/CharacterHost/Resources/CharacterCatalog.json"));
+    public static string CatalogHash => Hash(Path.Combine(Root,"ios/StarryNight/Resources/CharacterCatalog.json"));
     static string Hash(string path) { using(var sha=SHA256.Create()) return string.Concat(sha.ComputeHash(File.ReadAllBytes(path)).Select(b=>b.ToString("x2"))); }
     public static void PrepareEffects()
     {

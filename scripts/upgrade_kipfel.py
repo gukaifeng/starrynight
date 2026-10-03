@@ -273,7 +273,7 @@ def apply(output):
     manifest, _ = validate(output)
     if manifest['id'] != IDENTITY or read(output/'source-meta.json')['sourceSHA256'] != SOURCE_SHA:
         raise ValueError('Unexpected candidate identity')
-    resources = ROOT/'ios/CharacterHost/Resources'
+    resources = ROOT/'ios/StarryNight/Resources'
     collection_path = resources/'CharacterCollections.json'
     collections = read(collection_path)
     collection = next(c for c in collections['collections'] if c['modelID'] == IDENTITY)

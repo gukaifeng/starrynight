@@ -9,7 +9,7 @@ from filter_character_resources import active_resources
 ROOT=Path(__file__).resolve().parents[1]
 
 def check(app=None):
-    source=ROOT/'ios/CharacterHost/Resources'
+    source=ROOT/'ios/StarryNight/Resources'
     resources=Path(app) if app else source
     def read(name): return json.loads((resources/(name+'.json')).read_text())
     active=set(json.loads((ROOT/'assets/characters/active-roster.json').read_text())['characters'])

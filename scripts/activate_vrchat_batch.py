@@ -27,7 +27,7 @@ def main():
     batches=json.loads((ROOT/'assets/characters/import-batches.json').read_text())
     batch=next(b for b in batches['batches'] if b['id']==args.batch)
     plan=json.loads((ROOT/'.local/vrchat-batch/plan.json').read_text());rows={r['id']:r for r in plan['models']}
-    res=ROOT/'ios/CharacterHost/Resources'
+    res=ROOT/'ios/StarryNight/Resources'
     collections=json.loads((res/'CharacterCollections.json').read_text())
     covers=json.loads((res/'CharacterCoverCatalog.json').read_text())
     roster=json.loads((ROOT/'assets/characters/active-roster.json').read_text())
@@ -67,7 +67,7 @@ def main():
             collection['defaultVoice']=identity+'/preview'
             collection['music']=[]
             collection['defaultMusic']=''
-        asset='Cover_'+identity.replace('-','_');folder=ROOT/'ios/CharacterHost/Assets.xcassets'/(asset+'.imageset');folder.mkdir(exist_ok=True)
+        asset='Cover_'+identity.replace('-','_');folder=ROOT/'ios/StarryNight/Assets.xcassets'/(asset+'.imageset');folder.mkdir(exist_ok=True)
         name='source'+art.suffix.lower();shutil.copy2(art,folder/name)
         write(folder/'Contents.json',dict(images=[dict(filename=name,idiom='universal')],info=dict(author='xcode',version=1)))
         covers['covers']=[c for c in covers['covers'] if c['runtimeID']!=identity]

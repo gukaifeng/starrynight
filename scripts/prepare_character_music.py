@@ -19,7 +19,7 @@ def main():
     catalog=json.loads((ROOT/'assets/characters/music-sources.json').read_text())
     recipes={r['id']:r for r in json.loads((ROOT/'assets/characters/media-recipes.json').read_text())['characters']}
     work=ROOT/'.local/character-media/music';work.mkdir(parents=True,exist_ok=True)
-    resources=ROOT/'ios/CharacterHost/Resources'
+    resources=ROOT/'ios/StarryNight/Resources'
     audit=ROOT/'docs/verification/character-music/audio-audit.json'
     tracks=json.loads(audit.read_text())['tracks'] if (args.only or args.apply_existing) and audit.exists() else []
     if args.only and set(args.only)-{e['role'] for e in catalog['tracks']}:parser.error('Unknown music role')

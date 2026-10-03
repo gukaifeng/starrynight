@@ -14,7 +14,7 @@ from pathlib import Path
 import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
-OUT = ROOT / 'ios/CharacterHost/Resources'
+OUT = ROOT / 'ios/StarryNight/Resources'
 WORK = ROOT / '.local/checks/character-music'
 AUDIT = ROOT / 'docs/verification/character-music/audio-audit.json'
 RATE = 32000

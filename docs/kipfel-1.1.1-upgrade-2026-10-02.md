@@ -72,11 +72,11 @@ unity run "$PWD/unity/CharacterRuntime" --timeout 1200 -- \
 模拟器 UI 检查使用独立 DerivedData 和 QA 设备。若使用优化后的 Release 配置，须显式提供测试探针条件（正式手机安装未这样构建）：
 
 ```sh
-xcodebuild -workspace ios/StarryNight-Simulator.xcworkspace -scheme CharacterHost \
+xcodebuild -workspace ios/StarryNight-Simulator.xcworkspace -scheme StarryNight \
   -configuration Release 'SWIFT_ACTIVE_COMPILATION_CONDITIONS=$(inherited) DEBUG STARRY_TEST_TOOLS' \
   -destination 'platform=iOS Simulator,id=EFA3B59D-3939-4659-B60B-123516393F43' \
   -derivedDataPath .local/build/KipfelSimulatorDerivedData \
-  '-only-testing:CharacterHostUITests/VrchatCharacterTests/testUpgradedKipfelRetainsConversationAndAuthoredEffects()' \
+  '-only-testing:StarryNightUITests/VrchatCharacterTests/testUpgradedKipfelRetainsConversationAndAuthoredEffects()' \
   -parallel-testing-enabled NO test
 ```
 

@@ -6,7 +6,7 @@ mkdir -p .local/checks
 # works on development Macs that disallow launching fresh unsigned CLI binaries.
 python3 - <<'PY'
 from pathlib import Path
-core=Path('ios/CharacterHost/Features/Companion/AtmosphereBlend.swift').read_text()
+core=Path('ios/StarryNight/Features/Companion/AtmosphereBlend.swift').read_text()
 tests=Path('scripts/tests/AtmosphereBlendTests.swift').read_text().replace('@main enum','enum')
 Path('.local/checks/AtmosphereBlendChecks.swift').write_text(core+'\n'+tests+'\nAtmosphereBlendTests.main()\n')
 PY

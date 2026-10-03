@@ -13,7 +13,7 @@ public static class EnvironmentPackageBuilder
 {
     static string Root=>CharacterPackageBuilder.Root;
     static string Assets=>"Assets/EnvironmentPackages";
-    public static string CatalogHash { get { using(var sha=SHA256.Create()) return string.Concat(sha.ComputeHash(File.ReadAllBytes(Path.Combine(Root,"ios/CharacterHost/Resources/EnvironmentCatalog.json"))).Select(b=>b.ToString("x2"))); } }
+    public static string CatalogHash { get { using(var sha=SHA256.Create()) return string.Concat(sha.ComputeHash(File.ReadAllBytes(Path.Combine(Root,"ios/StarryNight/Resources/EnvironmentCatalog.json"))).Select(b=>b.ToString("x2"))); } }
     [Serializable] class Catalog { public int schemaVersion=1,apiMajor=1;public EnvironmentManifest[] environments; }
     public static void Preflight()
     {
@@ -64,7 +64,7 @@ public static class EnvironmentPackageBuilder
         }
         director.stages=stages.OrderBy(s=>s.Manifest.display.order).ToArray();
         director.Bind(1.7f);director.Configure(new StudioSettings());
-        File.WriteAllText(Path.Combine(Root,"ios/CharacterHost/Resources/EnvironmentCatalog.json"),JsonUtility.ToJson(new Catalog {environments=director.stages.Select(s=>s.Manifest).ToArray()},true)+"\n");
+        File.WriteAllText(Path.Combine(Root,"ios/StarryNight/Resources/EnvironmentCatalog.json"),JsonUtility.ToJson(new Catalog {environments=director.stages.Select(s=>s.Manifest).ToArray()},true)+"\n");
     }
     static void GroupBuiltin(Transform root,string id)
     {
@@ -131,7 +131,7 @@ public static class EnvironmentPackageBuilder
                 try
                 {
                     image.ReadPixels(new Rect(0,0,480,320),0,0);image.Apply();
-                    string name=stage.Manifest.display.thumbnail;string folder=Path.Combine(Root,"ios/CharacterHost/Resources/Assets.xcassets",name+".imageset");Directory.CreateDirectory(folder);
+                    string name=stage.Manifest.display.thumbnail;string folder=Path.Combine(Root,"ios/StarryNight/Resources/Assets.xcassets",name+".imageset");Directory.CreateDirectory(folder);
                     File.WriteAllBytes(Path.Combine(folder,name+".png"),image.EncodeToPNG());File.WriteAllText(Path.Combine(folder,"Contents.json"),"{\"images\":[{\"filename\":\""+name+".png\",\"idiom\":\"universal\"}],\"info\":{\"author\":\"xcode\",\"version\":1}}");
                 }
                 finally { UnityEngine.Object.DestroyImmediate(image); }

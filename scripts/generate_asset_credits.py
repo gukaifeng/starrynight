@@ -36,7 +36,7 @@ def character_notice(folder: Path, manifest: dict) -> str:
 
 
 def generate_asset_credits(root: Path) -> dict[str, str]:
-    resources = root / 'ios/CharacterHost/Resources'
+    resources = root / 'ios/StarryNight/Resources'
     credits = {
         'studio-robot': 'Luma / Studio Robot：星夜项目原创模型、材质与交互动作。',
         'hatsune-miku': (resources / 'MikuCredits.txt').read_text(encoding='utf-8'),

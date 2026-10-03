@@ -9,10 +9,10 @@ def stage_island_avatars(root:Path)->Path:
     destination=root/'.local/island-resources/IslandAvatars.xcassets'
     destination.mkdir(parents=True,exist_ok=True)
     (destination/'Contents.json').write_text(json.dumps({'info':{'author':'xcode','version':1}}))
-    catalog=json.loads((root/'ios/CharacterHost/Resources/CharacterCatalog.json').read_text())['characters']
+    catalog=json.loads((root/'ios/StarryNight/Resources/CharacterCatalog.json').read_text())['characters']
     for role in catalog:
         name='Avatar_'+role['id'].replace('-','_')
-        source=root/'ios/CharacterHost/Assets.xcassets'/f'{name}.imageset'
+        source=root/'ios/StarryNight/Assets.xcassets'/f'{name}.imageset'
         if not source.exists():continue
         images=json.loads((source/'Contents.json').read_text())['images']
         filename=next((i['filename'] for i in images if i.get('filename')),None)

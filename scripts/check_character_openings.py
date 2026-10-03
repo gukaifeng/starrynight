@@ -9,7 +9,7 @@ import json
 from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[1]
-RES=ROOT/'ios/CharacterHost/Resources'
+RES=ROOT/'ios/StarryNight/Resources'
 
 def check():
     recipes=json.loads((ROOT/'assets/characters/openings.json').read_text())

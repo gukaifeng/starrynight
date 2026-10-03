@@ -2,26 +2,26 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 mkdir -p .local/checks/starry-core
-cp ios/CharacterHost/Resources/{CharacterCatalog,EnvironmentCatalog,CharacterCollections,CharacterPublicProfiles,CharacterDelivery}.json .local/checks/starry-core/
-cp ios/CharacterHost/Resources/Music_*.caf .local/checks/starry-core/
+cp ios/StarryNight/Resources/{CharacterCatalog,EnvironmentCatalog,CharacterCollections,CharacterPublicProfiles,CharacterDelivery}.json .local/checks/starry-core/
+cp ios/StarryNight/Resources/Music_*.caf .local/checks/starry-core/
 # The standalone macOS harness uses the production Codable declarations. Their
 # files also contain UIKit/SwiftUI views, which belong to the iOS build checks.
 python3 - <<'PY'
 from pathlib import Path
 parts = ['import Foundation\n']
-platform = Path('ios/CharacterHost/Features/Account/PlatformAPI.swift').read_text()
+platform = Path('ios/StarryNight/Features/Account/PlatformAPI.swift').read_text()
 start = platform.index('indirect enum JSONValue:')
 end = platform.index('\nenum PlatformError:', start)
 parts.append(platform[start:end])
-resources = Path('ios/CharacterHost/Features/Resources/CharacterInstalledResources.swift').read_text()
+resources = Path('ios/StarryNight/Features/Resources/CharacterInstalledResources.swift').read_text()
 parts.append('import os\n'+resources[resources.index('enum CharacterDeliveryPolicy {'):])
 # This harness checks bundled data and preference migration, not OSS install I/O.
 # Installed release registration/playback are exercised by the iOS UI tests.
 parts.append('enum CharacterInstalledResources { static func resource(_ name:String,extension ext:String)->URL? { nil } }')
 for source, boundary in [
-    ('ios/CharacterHost/App/AppLanguage.swift', '@MainActor @Observable final class AppLanguageSettings'),
-    ('ios/CharacterHost/Features/Companion/ConversationGoals.swift', 'struct ConversationGoalsPanel: View'),
-    ('ios/CharacterHost/Features/Companion/MessageTranslation.swift', '@MainActor enum ReplyTranslation'),
+    ('ios/StarryNight/App/AppLanguage.swift', '@MainActor @Observable final class AppLanguageSettings'),
+    ('ios/StarryNight/Features/Companion/ConversationGoals.swift', 'struct ConversationGoalsPanel: View'),
+    ('ios/StarryNight/Features/Companion/MessageTranslation.swift', '@MainActor enum ReplyTranslation'),
 ]:
     text = Path(source).read_text()
     assert text.count(boundary) == 1, 'Data declaration boundary changed: ' + source
@@ -31,28 +31,28 @@ Path('.local/checks/starry-core/CompanionWireTypes.swift').write_text('\n'.join(
 PY
 SOURCES=(
  .local/checks/starry-core/CompanionWireTypes.swift
- ios/CharacterHost/Features/Social/CharacterCollection.swift
- ios/CharacterHost/Features/Home/ModelCatalog.swift
- ios/CharacterHost/Features/Home/CharacterModelReview.swift
- ios/CharacterHost/Features/Account/DemoAccount.swift
- ios/CharacterHost/Features/Account/LoginMethod.swift
- ios/CharacterHost/Features/Companion/CharacterPosture.swift
- ios/CharacterHost/Features/Companion/CharacterPerformanceProfile.swift
- ios/CharacterHost/Features/Companion/CharacterFraming.swift
- ios/CharacterHost/Features/Companion/CharacterStudio.swift
- ios/CharacterHost/Features/Companion/EnvironmentCatalog.swift
- ios/CharacterHost/Features/Viewer/CharacterViewPresets.swift
- ios/CharacterHost/Features/Companion/CharacterAI.swift
- ios/CharacterHost/Features/Companion/VoiceTimeline.swift
- ios/CharacterHost/Features/Companion/CompanionData.swift
- ios/CharacterHost/Features/Companion/CompanionExperiences.swift
- ios/CharacterHost/Features/Companion/CharacterPublicProfile.swift
- ios/CharacterHost/Features/Companion/ExperienceStore.swift
- ios/CharacterHost/Features/Companion/ConversationGreeting.swift
- ios/CharacterHost/Features/Companion/CompanionStore.swift
- ios/CharacterHost/Features/Social/AuthorProfile.swift
- ios/CharacterHost/Features/Social/CharacterLibrary.swift
- ios/CharacterHost/Features/Social/ConversationSearch.swift
+ ios/StarryNight/Features/Social/CharacterCollection.swift
+ ios/StarryNight/Features/Home/ModelCatalog.swift
+ ios/StarryNight/Features/Home/CharacterModelReview.swift
+ ios/StarryNight/Features/Account/DemoAccount.swift
+ ios/StarryNight/Features/Account/LoginMethod.swift
+ ios/StarryNight/Features/Companion/CharacterPosture.swift
+ ios/StarryNight/Features/Companion/CharacterPerformanceProfile.swift
+ ios/StarryNight/Features/Companion/CharacterFraming.swift
+ ios/StarryNight/Features/Companion/CharacterStudio.swift
+ ios/StarryNight/Features/Companion/EnvironmentCatalog.swift
+ ios/StarryNight/Features/Viewer/CharacterViewPresets.swift
+ ios/StarryNight/Features/Companion/CharacterAI.swift
+ ios/StarryNight/Features/Companion/VoiceTimeline.swift
+ ios/StarryNight/Features/Companion/CompanionData.swift
+ ios/StarryNight/Features/Companion/CompanionExperiences.swift
+ ios/StarryNight/Features/Companion/CharacterPublicProfile.swift
+ ios/StarryNight/Features/Companion/ExperienceStore.swift
+ ios/StarryNight/Features/Companion/ConversationGreeting.swift
+ ios/StarryNight/Features/Companion/CompanionStore.swift
+ ios/StarryNight/Features/Social/AuthorProfile.swift
+ ios/StarryNight/Features/Social/CharacterLibrary.swift
+ ios/StarryNight/Features/Social/ConversationSearch.swift
 )
 TESTS=(CharacterLibraryTests)
 # Keep the additional standalone harness explicit; the app's greeting flows are

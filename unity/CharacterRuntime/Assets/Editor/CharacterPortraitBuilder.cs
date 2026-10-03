@@ -12,7 +12,7 @@ public static class CharacterPortraitBuilder
         if(scene.isDirty) throw new System.InvalidOperationException("Save the active scene before exporting portraits.");
         var viewer = Object.FindFirstObjectByType<ViewerController>();
         if(!viewer) throw new System.InvalidOperationException("Open ViewerScene before exporting portraits.");
-        string native = Path.GetFullPath(Path.Combine(Application.dataPath,"../../../ios/CharacterHost/Resources"));
+        string native = Path.GetFullPath(Path.Combine(Application.dataPath,"../../../ios/StarryNight/Resources"));
         var catalog = JsonUtility.FromJson<HostCatalog>(File.ReadAllText(Path.Combine(native,"CharacterCatalog.json")));
         foreach(var model in viewer.characters)
         {

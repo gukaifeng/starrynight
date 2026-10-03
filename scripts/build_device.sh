@@ -44,12 +44,12 @@ python3 scripts/generate_host.py "${GENERATE_ARGS[@]}"
 mkdir -p .local/logs
 BUILD_LOG=".local/logs/host-device-$(date +%Y%m%d-%H%M%S).log"
 echo "Building device Release; log: $BUILD_LOG"
-if ! xcodebuild -workspace ios/StarryNight.xcworkspace -scheme CharacterHost \
+if ! xcodebuild -workspace ios/StarryNight.xcworkspace -scheme StarryNight \
   -configuration Release -sdk iphoneos -destination "$DESTINATION" \
   -derivedDataPath .local/build/DeviceDerivedData "${SIGNING_ARGS[@]}" \
   build > "$BUILD_LOG" 2>&1; then
   tail -60 "$BUILD_LOG" >&2
   exit 1
 fi
-echo 'Device build succeeded: .local/build/DeviceDerivedData/Build/Products/Release-iphoneos/CharacterHost.app'
+echo 'Device build succeeded: .local/build/DeviceDerivedData/Build/Products/Release-iphoneos/StarryNight.app'
 if $UNSIGNED; then echo 'Unsigned preparation only. Apple signing is still required before installation.'; fi

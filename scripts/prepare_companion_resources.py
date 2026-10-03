@@ -16,7 +16,7 @@ def write(p,v):p.write_text(json.dumps(v,ensure_ascii=False,indent=2)+'\n')
 def digest(p):return hashlib.sha256(p.read_bytes()).hexdigest()
 
 def main():
-    native=ROOT/'ios/CharacterHost/Resources';unity=ROOT/'unity/CharacterRuntime/Assets/Resources'
+    native=ROOT/'ios/StarryNight/Resources';unity=ROOT/'unity/CharacterRuntime/Assets/Resources'
     roster=read(ROOT/'assets/characters/active-roster.json')['characters']
     adaptation=read(ROOT/'assets/characters/companion-adaptations.json')
     assert set(adaptation['characters'])==set(roster)

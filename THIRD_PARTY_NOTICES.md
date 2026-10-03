@@ -54,7 +54,7 @@ Unity Editor, its bundled packages, and externally downloaded packages remain su
 
 ## 小夏写实角色（0.6）
 
-MakeHuman Community / MPFB 生成的成年虚构女性，基础网格、目标、骨架和系统资产 CC0；皮肤 OnlyTheGhosts、裤子 MRT（MargaretToigo）来自官方 CC0 包。Elvaerwyn 的 Daisy Hair / Short Side Do 为 CC-BY，Mindfront 的 Knitted Sweater 01 为 CC BY 4.0。已保留作者、来源、修改说明及官方资产包记录：[完整署名](ios/CharacterHost/Resources/RealCharacterCredits.txt)、[逐资产出处与哈希](unity/CharacterRuntime/Assets/ThirdParty/MakeHuman/provenance.json)。
+MakeHuman Community / MPFB 生成的成年虚构女性，基础网格、目标、骨架和系统资产 CC0；皮肤 OnlyTheGhosts、裤子 MRT（MargaretToigo）来自官方 CC0 包。Elvaerwyn 的 Daisy Hair / Short Side Do 为 CC-BY，Mindfront 的 Knitted Sweater 01 为 CC BY 4.0。已保留作者、来源、修改说明及官方资产包记录：[完整署名](ios/StarryNight/Resources/RealCharacterCredits.txt)、[逐资产出处与哈希](unity/CharacterRuntime/Assets/ThirdParty/MakeHuman/provenance.json)。
 
 MPFB 2.0.17（GPL-3.0）与 Blender bpy 4.5.3 仅在本机用于制作，不随应用分发代码；产物按对应资产许可使用。官方说明：https://static.makehumancommunity.org/about/license.html 。
 
@@ -117,6 +117,6 @@ StarryNight's development AI worker uses [BAAI/bge-small-zh-v1.5](https://huggin
 ## v0.60 — Chiffon / Karin and the portable avatar adapter
 
 - User-supplied Chiffon 1.00 and Karin 1.11 are by **こまど / komado（あまとうさぎ）**. Creator pages: [Chiffon](https://komado.booth.pm/items/5354471), [Karin](https://komado.booth.pm/items/3470989). Models, original art, textures and sampled controls remain local private-preview assets under the original terms; the public repository includes only source tooling, schemas and provenance hashes. No general redistribution grant is implied.
-- [lilToon 2.3.4](https://github.com/lilxyzw/lilToon/releases/tag/2.3.4) is MIT-licensed. Its license, bundled third-party notices and VRC Light Volumes shader-include license are preserved in `ios/CharacterHost/Resources/LilToonCredits.txt` and included in generated offline app credits. `scripts/prepare_liltoon.py` pins the original source archive hash.
+- [lilToon 2.3.4](https://github.com/lilxyzw/lilToon/releases/tag/2.3.4) is MIT-licensed. Its license, bundled third-party notices and VRC Light Volumes shader-include license are preserved in `ios/StarryNight/Resources/LilToonCredits.txt` and included in generated offline app credits. `scripts/prepare_liltoon.py` pins the original source archive hash.
 - VRChat SDK 3.10.5 is a private reference input for known mask data and control semantics, subject to its [SDK license](https://hello.vrchat.com/legal/sdk). No SDK DLL, arbitrary source scripts or platform animation clips are installed in the production Unity project or shipped in the App. `prepare_vrc_reference_data.py` extracts only five mask data files into the private dependency cache.
 - The portable adapter preserves author control data but uses explicitly documented host standing, neutral-hand and bounded secondary-motion adaptations where applicable. These are not claims of numerical PhysBone equivalence or complete VRChat platform support. See the [portable avatar standard](docs/character-standard/09-portable-avatar-standard.md).

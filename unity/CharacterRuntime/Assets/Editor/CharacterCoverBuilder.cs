@@ -29,7 +29,7 @@ public static class CharacterCoverBuilder
 
     public static void Export()
     {
-        var catalog = JsonUtility.FromJson<Catalog>(File.ReadAllText(Path.Combine(Root,"ios/CharacterHost/Resources/CharacterCoverCatalog.json")));
+        var catalog = JsonUtility.FromJson<Catalog>(File.ReadAllText(Path.Combine(Root,"ios/StarryNight/Resources/CharacterCoverCatalog.json")));
         if(catalog.schemaVersion != 1 || catalog.covers.Select(c=>c.runtimeID).Distinct().Count()!=catalog.covers.Length)
             throw new Exception("CHARACTER_COVER_CATALOG_INVALID");
         EditorSceneManager.OpenScene(ScenePath);
@@ -54,7 +54,7 @@ public static class CharacterCoverBuilder
             throw new Exception("CHARACTER_COVER_SOURCE_MISSING: "+cover.runtimeID);
         if(cover.source=="author-supplied" || cover.source=="bailian-generated")
         {
-            string folder=Path.Combine(Root,"ios/CharacterHost/Assets.xcassets",cover.asset+".imageset");
+            string folder=Path.Combine(Root,"ios/StarryNight/Assets.xcassets",cover.asset+".imageset");
             string file=cover.source=="bailian-generated" ? Path.Combine(folder,"generated.png") : Directory.GetFiles(folder,"source.*").Single();byte[] bytes=File.ReadAllBytes(file);
             using(var sha=System.Security.Cryptography.SHA256.Create())
                 if(BitConverter.ToString(sha.ComputeHash(bytes)).Replace("-","").ToLowerInvariant()!=cover.sourceSHA256)throw new Exception("SOURCE_COVER_HASH_MISMATCH");
@@ -117,7 +117,7 @@ public static class CharacterCoverBuilder
             RenderTexture.active = target;
             pixels = new Texture2D(1024,768,TextureFormat.RGB24,false);
             pixels.ReadPixels(new Rect(0,0,1024,768),0,0); pixels.Apply();
-            string folder = Path.Combine(Root,"ios/CharacterHost/Assets.xcassets",cover.asset+".imageset");
+            string folder = Path.Combine(Root,"ios/StarryNight/Assets.xcassets",cover.asset+".imageset");
             Directory.CreateDirectory(folder); File.WriteAllBytes(Path.Combine(folder,"cover.png"),pixels.EncodeToPNG());
             File.WriteAllText(Path.Combine(folder,"Contents.json"),"{\"images\":[{\"filename\":\"cover.png\",\"idiom\":\"universal\"}],\"info\":{\"author\":\"xcode\",\"version\":1}}\n");
             Debug.Log("CHARACTER_COVER_RENDERED "+cover.runtimeID+" environment="+cover.environmentID);

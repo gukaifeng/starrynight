@@ -8,7 +8,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 def validate(resources=None, audit_path=None):
-    resources = Path(resources) if resources else ROOT / 'ios/CharacterHost/Resources'
+    resources = Path(resources) if resources else ROOT / 'ios/StarryNight/Resources'
     audit_path = Path(audit_path) if audit_path else ROOT / 'docs/verification/character-music/audio-audit.json'
     models = {c['id']: c for c in json.loads((resources / 'CharacterCatalog.json').read_text())['characters']}
     scenes = {c['id'] for c in json.loads((resources / 'EnvironmentCatalog.json').read_text())['environments']}

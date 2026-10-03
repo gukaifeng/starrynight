@@ -23,7 +23,7 @@ def verify_png(path, receipt, size):
 
 def validate(root=ROOT):
     roster = set(read(root / 'assets/characters/active-roster.json')['characters'])
-    native = root / 'ios/CharacterHost/Resources'
+    native = root / 'ios/StarryNight/Resources'
     unity = root / 'unity/CharacterRuntime/Assets/Resources'
     catalog = read(native / 'CharacterAtmospheres.json')
     assert catalog == read(unity / 'CharacterAtmospheres.json'), 'Native/Unity atmosphere catalogs differ'
@@ -63,7 +63,7 @@ def validate(root=ROOT):
                 key = 'asset' if kind == 'cover' else 'avatar'
                 name = covers[role][key]
                 assert name == kind.capitalize() + '_' + role.replace('-', '_')
-                images = root / 'ios/CharacterHost/Assets.xcassets' / (name + '.imageset')
+                images = root / 'ios/StarryNight/Assets.xcassets' / (name + '.imageset')
                 assert read(images / 'Contents.json')['images'] == [{'filename': 'generated.png', 'idiom': 'universal'}]
                 verify_png(images / 'generated.png', receipt, size)
                 if kind == 'cover':

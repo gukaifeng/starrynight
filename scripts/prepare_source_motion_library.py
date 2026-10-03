@@ -157,8 +157,8 @@ def prepare(identity):
 
 def activate(rows):
     backup=OUT/'activation'/str(time.time_ns());backup.mkdir(parents=True)
-    catalog=ROOT/'ios/CharacterHost/Resources/CharacterCatalog.json'
-    collections=ROOT/'ios/CharacterHost/Resources/CharacterCollections.json'
+    catalog=ROOT/'ios/StarryNight/Resources/CharacterCatalog.json'
+    collections=ROOT/'ios/StarryNight/Resources/CharacterCollections.json'
     shutil.copy2(catalog,backup/'CharacterCatalog.json');shutil.copy2(collections,backup/'CharacterCollections.json')
     for row in rows:
         active=ROOT/'character-packages/imported'/row['id']

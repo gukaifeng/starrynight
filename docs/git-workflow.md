@@ -45,7 +45,7 @@
 6. `python3 scripts/export_unity_ios.py --platform simulator` 后执行 `bash scripts/build_host.sh`。真机使用独立 device 导出与 `scripts/build_device.sh`，个人签名设置写入忽略的 `ios/Config/Local.xcconfig`。
    0.67 起先按[角色媒体制作与恢复](character-media-authoring.md)恢复 AI 封面、头像、背景及每角色唯一音乐，并运行媒体/音乐一致性检查。生成结果与回执不随公开仓库上传；优先从原机器恢复，不重复收费制作。
    0.73 起还需恢复包内初见 PCM 及私有指纹回执；0.83 包含 33 条当前 v2 音频及 33 条旧版回放音频。运行 `python3 scripts/prepare_character_openings.py --check` 验证全部 66 项，不能把旧 ID 指向新台词音频。只有明确需要付费生成时使用 `--synthesize --limit N`，优先恢复已有文件，详见 [预制初见与删除](design/2026-10-01-first-meetings-and-reset.md)及 [v2 心声与语句边界](design/2026-10-01-clause-safe-replies-and-message-scroll.md)。后续不得因恢复或构建自动调用图片生成模型。
-7. Xcode 模拟器入口为 `ios/StarryNight-Simulator.xcworkspace`，真机入口为 `ios/StarryNight.xcworkspace`；scheme 均为 `CharacterHost`。先做实际构建与运行，再记录该机器的验证结果。
+7. Xcode 模拟器入口为 `ios/StarryNight-Simulator.xcworkspace`，真机入口为 `ios/StarryNight.xcworkspace`；scheme 均为 `StarryNight`。先做实际构建与运行，再记录该机器的验证结果。
 
 源码层面的 SDK 契约测试可独立运行（安装 `character-sdk/requirements.txt` 后）：
 

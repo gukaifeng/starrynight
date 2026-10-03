@@ -1,6 +1,6 @@
 // Linked only by generate_host.py --native-ui-fixture. This isolated simulator
 // app exercises production native pages; it cannot validate Unity rendering.
-#import "../../ios/CharacterHost/Bridge/UnityRuntimeBridge.h"
+#import "../../ios/StarryNight/Bridge/UnityRuntimeBridge.h"
 
 @implementation UnityRuntimeBridge {
     BOOL _started;

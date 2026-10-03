@@ -3,7 +3,7 @@ import Foundation
 @main struct CharacterActionMenuTests {
     @MainActor static func main() throws {
         struct Catalog: Decodable { let characters: [ModelDescriptor] }
-        let data = try Data(contentsOf:URL(fileURLWithPath:"ios/CharacterHost/Resources/CharacterCatalog.json"))
+        let data = try Data(contentsOf:URL(fileURLWithPath:"ios/StarryNight/Resources/CharacterCatalog.json"))
         let models = try JSONDecoder().decode(Catalog.self,from:data).characters
         var checks = 0
         func check(_ condition:Bool,_ description:String) { precondition(condition,description); checks += 1 }

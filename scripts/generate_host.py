@@ -30,11 +30,11 @@ if args.distribution: test_tools=False
 sdk = 'iphonesimulator' if args.platform == 'simulator' else 'iphoneos'
 ios = ROOT / 'ios'
 # Keep the physical-device workspace stable while simulator builds/tests run.
-# Both projects stay beside CharacterHost/, preserving SRCROOT-relative paths.
-project_name = 'CharacterHost-Simulator.xcodeproj' if args.platform == 'simulator' else 'CharacterHost.xcodeproj'
+# Both projects stay beside StarryNight/, preserving SRCROOT-relative paths.
+project_name = 'StarryNight-Simulator.xcodeproj' if args.platform == 'simulator' else 'StarryNight.xcodeproj'
 workspace_name = 'StarryNight-Simulator.xcworkspace' if args.platform == 'simulator' else 'StarryNight.xcworkspace'
 if args.native_ui_fixture:
-    project_name='CharacterHost-NativeUI.xcodeproj';workspace_name='StarryNight-NativeUI.xcworkspace'
+    project_name='StarryNight-NativeUI.xcodeproj';workspace_name='StarryNight-NativeUI.xcworkspace'
 export = ROOT / 'build' / f'unity-{args.platform}'
 unity_path = export / 'Unity-iPhone.xcodeproj'
 if not args.native_ui_fixture:
@@ -77,15 +77,15 @@ def configuration(key, settings):
 # available offline in both About and each character's source-attribution page.
 if not args.native_ui_fixture:generate_asset_credits(ROOT)
 source_refs=[]; source_build=[]; resource_build=[]
-active_music = {t['asset'] for c in json.loads((ios/'CharacterHost/Resources/CharacterCollections.json').read_text())['collections'] for t in c['music']}
+active_music = {t['asset'] for c in json.loads((ios/'StarryNight/Resources/CharacterCollections.json').read_text())['collections'] for t in c['music']}
 delivery=json.loads((ROOT/'assets/characters/delivery-policy.json').read_text())
-(ios/'CharacterHost/Resources/CharacterDelivery.json').write_text(json.dumps(delivery,indent=2)+'\n')
+(ios/'StarryNight/Resources/CharacterDelivery.json').write_text(json.dumps(delivery,indent=2)+'\n')
 remote_roles=set(delivery['downloadOnly'])
-remote_music={t['asset'] for c in json.loads((ios/'CharacterHost/Resources/CharacterCollections.json').read_text())['collections'] if c['modelID'] in remote_roles for t in c['music']}
-remote_openings={v['audio'] for c in json.loads((ios/'CharacterHost/Resources/CharacterOpenings.json').read_text())['characters'] if c['characterID'] in remote_roles for v in c['variants']+c.get('legacyVariants',[])}
+remote_music={t['asset'] for c in json.loads((ios/'StarryNight/Resources/CharacterCollections.json').read_text())['collections'] if c['modelID'] in remote_roles for t in c['music']}
+remote_openings={v['audio'] for c in json.loads((ios/'StarryNight/Resources/CharacterOpenings.json').read_text())['characters'] if c['characterID'] in remote_roles for v in c['variants']+c.get('legacyVariants',[])}
 active_artwork, active_openings = active_resources(ROOT)
-active_character_ids = {c['id'] for c in json.loads((ios/'CharacterHost/Resources/CharacterCatalog.json').read_text())['characters']}
-for path in sorted((ios/'CharacterHost').rglob('*')):
+active_character_ids = {c['id'] for c in json.loads((ios/'StarryNight/Resources/CharacterCatalog.json').read_text())['characters']}
+for path in sorted((ios/'StarryNight').rglob('*')):
     if any(p.suffix == '.xcassets' for p in path.parents): continue
     if path.suffix == '.xcassets':
         staged,_ = stage_catalog(ROOT,path,active_artwork)
@@ -139,7 +139,7 @@ if test_tools:
     rules=ROOT/'.local/character-ai-client/ClientAIRules.txt'
     rules.parent.mkdir(parents=True,exist_ok=True)
     names=('CompanionSession.swift','ConversationGreeting.swift','CloudSpeech.swift','SpeechClipCache.swift','CharacterAI.swift','ReplyReveal.swift','AIReplyContent.swift')
-    rules.write_text('\n\n'.join('===== '+name+' =====\n'+(ios/'CharacterHost/Features/Companion'/name).read_text() for name in names))
+    rules.write_text('\n\n'.join('===== '+name+' =====\n'+(ios/'StarryNight/Features/Companion'/name).read_text() for name in names))
     ref=obj('ai-test-rules','PBXFileReference',lastKnownFileType='text',path='../.local/character-ai-client/ClientAIRules.txt',sourceTree='<group>')
     source_refs.append(ref);resource_build.append(buildfile('ai-test-rules',ref))
 # The platform endpoint is independently configurable; it contains no credentials.
@@ -165,7 +165,7 @@ if connection.exists() and not uses_cloud_accounts and not args.distribution and
     ref=obj('ai-connection','PBXFileReference',lastKnownFileType='text.json',path='../.local/character-ai-client/Connection.json',sourceTree='<group>')
     source_refs.append(ref); resource_build.append(buildfile('ai-connection',ref))
 
-app=obj('app-product','PBXFileReference',explicitFileType='wrapper.application',path='CharacterHost.app',sourceTree='BUILT_PRODUCTS_DIR',includeInIndex='0')
+app=obj('app-product','PBXFileReference',explicitFileType='wrapper.application',path='StarryNight.app',sourceTree='BUILT_PRODUCTS_DIR',includeInIndex='0')
 if not args.native_ui_fixture:
     unity_ref=obj('unity-project','PBXFileReference',lastKnownFileType='wrapper.pb-project',path=f'../build/unity-{args.platform}/Unity-iPhone.xcodeproj',sourceTree='<group>')
     target_proxy=obj('unity-target-proxy','PBXContainerItemProxy',containerPortal=unity_ref,proxyType='1',remoteGlobalIDString=utarget,remoteInfo='UnityFramework')
@@ -186,9 +186,9 @@ content_check=obj('check-content','PBXShellScriptBuildPhase',buildActionMask='21
     shellScript='set -e\nif [ "${ACTION:-}" = install ] && echo "${SWIFT_ACTIVE_COMPILATION_CONDITIONS:-}" | /usr/bin/grep -q STARRY_TEST_TOOLS; then\n  echo "error: Developer tools cannot be archived. Regenerate with scripts/generate_host.py --platform device --distribution."\n  exit 1\nfi\n'
         f'python3 "${{SRCROOT}}/../scripts/check_export_content.py" --platform {args.platform}\n'
         'python3 "${SRCROOT}/../scripts/check_character_openings.py"\n')
-settings={'PRODUCT_NAME':'$(TARGET_NAME)','PRODUCT_BUNDLE_IDENTIFIER':'com.modelspace.viewer',
+settings={'PRODUCT_NAME':'StarryNight','PRODUCT_MODULE_NAME':'StarryNight','PRODUCT_BUNDLE_IDENTIFIER':'com.modelspace.viewer',
     'PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]':'$(MODELSPACE_DEVICE_BUNDLE_IDENTIFIER)',
-    'INFOPLIST_FILE':'../.local/native-ui-fixture/Info.plist' if args.native_ui_fixture else 'CharacterHost/Info.plist','SWIFT_VERSION':'6.0','SWIFT_OBJC_BRIDGING_HEADER':'CharacterHost/Bridge/CharacterHost-Bridging-Header.h',
+    'INFOPLIST_FILE':'../.local/native-ui-fixture/Info.plist' if args.native_ui_fixture else 'StarryNight/Info.plist','SWIFT_VERSION':'6.0','SWIFT_OBJC_BRIDGING_HEADER':'StarryNight/Bridge/StarryNight-Bridging-Header.h',
     'IPHONEOS_DEPLOYMENT_TARGET':'17.0','TARGETED_DEVICE_FAMILY':'1,2','SDKROOT':sdk,
     # Each Unity export contains one Apple platform, even when both use arm64.
     # Offering both destinations lets the host build for Simulator while its
@@ -198,13 +198,13 @@ settings={'PRODUCT_NAME':'$(TARGET_NAME)','PRODUCT_BUNDLE_IDENTIFIER':'com.model
     'FRAMEWORK_SEARCH_PATHS':['$(inherited)','$(BUILT_PRODUCTS_DIR)'],
     'OTHER_LDFLAGS':['$(inherited)','-lc++','-framework','CoreML','-framework','Accelerate'],
     'GCC_ENABLE_CPP_EXCEPTIONS':'YES',
-    'CODE_SIGN_STYLE':'Automatic','CURRENT_PROJECT_VERSION':'133','MARKETING_VERSION':'0.102.0',
+    'CODE_SIGN_STYLE':'Automatic','CURRENT_PROJECT_VERSION':'134','MARKETING_VERSION':'0.103.0',
     'ENABLE_USER_SCRIPT_SANDBOXING':'NO','SUPPORTS_MACCATALYST':'NO','SWIFT_EMIT_LOC_STRINGS':'YES',
     'ARCHS':'arm64','ENABLE_DEBUG_DYLIB':'NO','ASSETCATALOG_COMPILER_APPICON_NAME':'AppIcon'}
 if args.native_ui_fixture:
     settings['PRODUCT_BUNDLE_IDENTIFIER']='app.starrynight.native-ui-fixture'
     objects[content_check]['shellScript']='set -e\nif [ "${CONFIGURATION}" != Debug ] || [ "${ACTION:-}" = install ]; then echo "error: Native UI fixture is simulator-test-only"; exit 1; fi\n'
-target=obj('host-target','PBXNativeTarget',name='CharacterHost',productName='CharacterHost',productType='com.apple.product-type.application',productReference=app,
+target=obj('host-target','PBXNativeTarget',name='StarryNight',productName='StarryNight',productType='com.apple.product-type.application',productReference=app,
     buildConfigurationList=configuration('host',settings),buildPhases=[content_check,sources,frameworks,resources,embed],buildRules=[],packageProductDependencies=[zip_product],dependencies=[] if args.native_ui_fixture else [dependency])
 
 # A data-only widget extension. Shared attributes have no host/Unity dependency;
@@ -229,7 +229,7 @@ island_settings={'PRODUCT_NAME':'$(TARGET_NAME)','PRODUCT_BUNDLE_IDENTIFIER':'co
     'PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]':'$(MODELSPACE_DEVICE_BUNDLE_IDENTIFIER).ConversationIsland',
     'INFOPLIST_FILE':'ConversationIsland/Info.plist','SWIFT_VERSION':'6.0','IPHONEOS_DEPLOYMENT_TARGET':'17.0',
     'TARGETED_DEVICE_FAMILY':'1,2','SDKROOT':sdk,'SUPPORTED_PLATFORMS':sdk,'CLANG_ENABLE_MODULES':'YES',
-    'CURRENT_PROJECT_VERSION':'133','MARKETING_VERSION':'0.102.0','CODE_SIGN_STYLE':'Automatic',
+    'CURRENT_PROJECT_VERSION':'134','MARKETING_VERSION':'0.103.0','CODE_SIGN_STYLE':'Automatic',
     'APPLICATION_EXTENSION_API_ONLY':'YES','SKIP_INSTALL':'YES','ARCHS':'arm64',
     'LD_RUNPATH_SEARCH_PATHS':['$(inherited)','@executable_path/Frameworks','@executable_path/../../Frameworks']}
 if args.native_ui_fixture:island_settings['PRODUCT_BUNDLE_IDENTIFIER']='app.starrynight.native-ui-fixture.ConversationIsland'
@@ -245,11 +245,11 @@ objects[target]['buildPhases'].append(island_embed);objects[products]['children'
 
 # Native UI tests exercise the real installed app, including Unity's touch surface.
 test_refs=[]; test_build=[]
-for path in sorted(p for p in (ios/'CharacterHostUITests').iterdir() if p.suffix in ('.swift','.m')):
+for path in sorted(p for p in (ios/'StarryNightUITests').iterdir() if p.suffix in ('.swift','.m')):
     relative=str(path.relative_to(ios))
     ref=obj(relative,'PBXFileReference',lastKnownFileType='sourcecode.c.objc' if path.suffix == '.m' else 'sourcecode.swift',path=relative,sourceTree='<group>')
     test_refs.append(ref); test_build.append(buildfile(relative,ref))
-test_product=obj('test-product','PBXFileReference',explicitFileType='wrapper.cfbundle',path='CharacterHostUITests.xctest',sourceTree='BUILT_PRODUCTS_DIR')
+test_product=obj('test-product','PBXFileReference',explicitFileType='wrapper.cfbundle',path='StarryNightUITests.xctest',sourceTree='BUILT_PRODUCTS_DIR')
 test_sources=obj('test-sources','PBXSourcesBuildPhase',buildActionMask='2147483647',files=test_build,runOnlyForDeploymentPostprocessing='0')
 test_frameworks=obj('test-frameworks','PBXFrameworksBuildPhase',buildActionMask='2147483647',files=[],runOnlyForDeploymentPostprocessing='0')
 test_resource_build=[]
@@ -259,20 +259,20 @@ if args.platform=='simulator' and os.environ.get('STARRY_OSS_UI_TESTS')=='1':
     ref=obj('download-test-account','PBXFileReference',lastKnownFileType='text.json',path='../.local/character-delivery/DownloadTestAccount.json',sourceTree='<group>')
     test_refs.append(ref);test_resource_build.append(buildfile('download-test-account',ref))
 if not args.native_ui_fixture:
-    for key,path in [('active-roster','../assets/characters/active-roster.json'),('character-catalog','CharacterHost/Resources/CharacterCatalog.json'),('character-collections','CharacterHost/Resources/CharacterCollections.json')]:
+    for key,path in [('active-roster','../assets/characters/active-roster.json'),('character-catalog','StarryNight/Resources/CharacterCatalog.json'),('character-collections','StarryNight/Resources/CharacterCollections.json')]:
         ref=obj('test-'+key,'PBXFileReference',lastKnownFileType='text.json',path=path,sourceTree='<group>')
         test_refs.append(ref);test_resource_build.append(buildfile('test-'+key,ref))
 test_resources=obj('test-resources','PBXResourcesBuildPhase',buildActionMask='2147483647',files=test_resource_build,runOnlyForDeploymentPostprocessing='0')
-host_proxy=obj('host-proxy','PBXContainerItemProxy',containerPortal=uid('project'),proxyType='1',remoteGlobalIDString=target,remoteInfo='CharacterHost')
+host_proxy=obj('host-proxy','PBXContainerItemProxy',containerPortal=uid('project'),proxyType='1',remoteGlobalIDString=target,remoteInfo='StarryNight')
 host_dependency=obj('host-dependency','PBXTargetDependency',target=target,targetProxy=host_proxy)
 test_settings={'PRODUCT_NAME':'$(TARGET_NAME)','PRODUCT_BUNDLE_IDENTIFIER':'com.modelspace.viewer.uitests','GENERATE_INFOPLIST_FILE':'YES',
     'PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]':'$(MODELSPACE_DEVICE_BUNDLE_IDENTIFIER).uitests',
     'SWIFT_VERSION':'6.0','IPHONEOS_DEPLOYMENT_TARGET':'17.0','TARGETED_DEVICE_FAMILY':'1,2','SDKROOT':sdk,
     'SUPPORTED_PLATFORMS':sdk,
-    'SWIFT_OBJC_BRIDGING_HEADER':'CharacterHostUITests/InspectionEventSynthesis.h',
-    'TEST_TARGET_NAME':'CharacterHost','CODE_SIGN_STYLE':'Automatic','CLANG_ENABLE_MODULES':'YES','ARCHS':'arm64'}
+    'SWIFT_OBJC_BRIDGING_HEADER':'StarryNightUITests/InspectionEventSynthesis.h',
+    'TEST_TARGET_NAME':'StarryNight','CODE_SIGN_STYLE':'Automatic','CLANG_ENABLE_MODULES':'YES','ARCHS':'arm64'}
 if args.native_ui_fixture:test_settings['PRODUCT_BUNDLE_IDENTIFIER']='app.starrynight.native-ui-fixture.uitests'
-test_target=obj('test-target','PBXNativeTarget',name='CharacterHostUITests',productName='CharacterHostUITests',productType='com.apple.product-type.bundle.ui-testing',productReference=test_product,
+test_target=obj('test-target','PBXNativeTarget',name='StarryNightUITests',productName='StarryNightUITests',productType='com.apple.product-type.bundle.ui-testing',productReference=test_product,
     buildConfigurationList=configuration('tests',test_settings),buildPhases=[test_sources,test_frameworks,test_resources],buildRules=[],dependencies=[host_dependency])
 objects[products]['children'].append(test_product)
 base_config=obj('base-config','PBXFileReference',lastKnownFileType='text.xcconfig',path='Config/Base.xcconfig',sourceTree='<group>')
@@ -293,8 +293,8 @@ unity_workspace_ref='' if args.native_ui_fixture else f'<FileRef location="group
 (workspace/'contents.xcworkspacedata').write_text(f'<?xml version="1.0" encoding="UTF-8"?><Workspace version="1.0"><FileRef location="group:{project_name}"/>{unity_workspace_ref}</Workspace>\n')
 def reference(identifier,name,product,container):
     return f'<BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="{identifier}" BuildableName="{product}" BlueprintName="{name}" ReferencedContainer="container:{container}"/>'
-host_ref=reference(target,'CharacterHost','CharacterHost.app',project_name)
-test_ref=reference(test_target,'CharacterHostUITests','CharacterHostUITests.xctest',project_name)
+host_ref=reference(target,'StarryNight','StarryNight.app',project_name)
+test_ref=reference(test_target,'StarryNightUITests','StarryNightUITests.xctest',project_name)
 run_configuration = 'Release' if args.platform == 'device' else 'Debug'
 scheme=f'''<?xml version="1.0" encoding="UTF-8"?>
 <Scheme LastUpgradeVersion="2640" version="1.3">
@@ -307,7 +307,7 @@ scheme=f'''<?xml version="1.0" encoding="UTF-8"?>
  <AnalyzeAction buildConfiguration="Debug"/><ArchiveAction buildConfiguration="Release" revealArchiveInOrganizer="YES"/>
 </Scheme>'''
 schemes=workspace/'xcshareddata/xcschemes'; schemes.mkdir(parents=True,exist_ok=True)
-(schemes/'CharacterHost.xcscheme').write_text(scheme)
+(schemes/'StarryNight.xcscheme').write_text(scheme)
 info={'CFBundleDevelopmentRegion':'zh-Hans','CFBundleLocalizations':['zh-Hans','zh-Hant','en'],'CFBundleDisplayName':json.loads((ROOT/'assets/brand/brand.json').read_text())['displayName'],'CFBundleExecutable':'$(EXECUTABLE_NAME)',
     'CFBundleIdentifier':'$(PRODUCT_BUNDLE_IDENTIFIER)','CFBundleInfoDictionaryVersion':'6.0','CFBundleName':'$(PRODUCT_NAME)',
     'CFBundlePackageType':'APPL','CFBundleShortVersionString':'$(MARKETING_VERSION)','CFBundleVersion':'$(CURRENT_PROJECT_VERSION)',
@@ -323,7 +323,7 @@ info={'CFBundleDevelopmentRegion':'zh-Hans','CFBundleLocalizations':['zh-Hans','
     'UISupportedInterfaceOrientations':['UIInterfaceOrientationPortrait','UIInterfaceOrientationLandscapeLeft','UIInterfaceOrientationLandscapeRight'],
     'UISupportedInterfaceOrientations~ipad':['UIInterfaceOrientationPortrait','UIInterfaceOrientationPortraitUpsideDown','UIInterfaceOrientationLandscapeLeft','UIInterfaceOrientationLandscapeRight'],
     'CADisableMinimumFrameDurationOnPhone':True,'UIRequiresFullScreen':False}
-info_path=ROOT/'.local/native-ui-fixture/Info.plist' if args.native_ui_fixture else ios/'CharacterHost/Info.plist'
+info_path=ROOT/'.local/native-ui-fixture/Info.plist' if args.native_ui_fixture else ios/'StarryNight/Info.plist'
 info_path.parent.mkdir(parents=True,exist_ok=True)
 info_path.write_bytes(plistlib.dumps(info,sort_keys=False))
 print(f'Generated {workspace.relative_to(ROOT)} for {args.platform}; {len(source_build)} native sources.')

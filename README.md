@@ -2,9 +2,9 @@
 
 源码仓库：[gukaifeng/starrynight](https://github.com/gukaifeng/starrynight)。本库跟踪客户端源码、角色标准、工具与开发记录；受限角色资源、生成媒体、构建缓存和个人签名配置留在本机。新机器的资源恢复顺序与持续推送约定见 [Git 与资源恢复](docs/git-workflow.md)。仅克隆仓库不能直接构建包含受限 VRChat 角色的完整 App。
 
-正式英文名 **StarryNight**，仓库和根目录统一为 `starrynight`。当前根目录 `/Users/gukaifeng/Documents/starrynight`，Xcode 真机入口为 `ios/StarryNight.xcworkspace`，模拟器入口为 `ios/StarryNight-Simulator.xcworkspace`，scheme 均为 `CharacterHost`。命名约定与迁移记录见 [英文命名与目录](docs/project-naming.md)。
+正式英文名 **StarryNight**，仓库和根目录统一为 `starrynight`。当前根目录 `/Users/gukaifeng/Documents/starrynight`，Xcode 真机入口为 `ios/StarryNight.xcworkspace`，模拟器入口为 `ios/StarryNight-Simulator.xcworkspace`，scheme 均为 `StarryNight`。命名约定与迁移记录见 [英文命名与目录](docs/project-naming.md)。
 
-以精致 3D 角色为核心的 AI 陪伴产品。当前源码 **v0.84.0 / build 114**，名称保持「星夜」，默认月白深色主题，保留彩色星夜等可选主题，Logo 为极简月白星月矢量标志。原生 SwiftUI / UIKit + Unity as a Library，当前适配 **iPhone 17 与 iPad Pro 11 英寸 M4（2024）**。
+以精致 3D 角色为核心的 AI 陪伴产品。当前源码 **v0.103.0 / build 134**，名称保持「星夜」，默认月白深色主题，保留彩色星夜等可选主题，Logo 为极简月白星月矢量标志。原生 SwiftUI / UIKit + Unity as a Library，当前适配 **iPhone 17 与 iPad Pro 11 英寸 M4（2024）**。
 
 v0.84 已切换至云端 HTTPS 入口 `https://39.105.116.74:8443`，iPhone 17 已安装并验证账户和 AI 认证链路。首次聊天需注册或登录正式账户；安装包不再包含旧 Mac AI 共享凭证。Mac 原服务及 AI 自动启动项已停用，旧运行数据按用户要求清理。见[服务端分离记录](docs/server-separation-2026-10-02.md)。
 
@@ -136,7 +136,7 @@ v0.5.1 更名与新图标见[品牌更新记录](docs/verification/xiaoban/READM
 
 ## 直接运行
 
-运行模拟器时，先用 `python3 scripts/generate_host.py --platform simulator` 生成模拟器入口，再在 Xcode 打开 **ios/StarryNight-Simulator.xcworkspace**，选择 **CharacterHost** scheme 和 **iPhone 17 模拟器**，点击 Run。真机固定使用 **ios/StarryNight.xcworkspace**；模拟器构建不会再覆盖真机工程和运行目标。必须从 workspace 的宿主 scheme 运行完整 App。这台机器已保留 Unity 模拟器导出和构建缓存，也可重新安装运行现有构建：
+运行模拟器时，先用 `python3 scripts/generate_host.py --platform simulator` 生成模拟器入口，再在 Xcode 打开 **ios/StarryNight-Simulator.xcworkspace**，选择 **StarryNight** scheme 和 **iPhone 17 模拟器**，点击 Run。真机固定使用 **ios/StarryNight.xcworkspace**；模拟器构建不会再覆盖真机工程和运行目标。必须从 workspace 的宿主 scheme 运行完整 App。这台机器已保留 Unity 模拟器导出和构建缓存，也可重新安装运行现有构建：
 
 ```bash
 bash scripts/run_simulator.sh
@@ -192,14 +192,14 @@ XCTest 操作真实 App：加载取消及重试、30 个前台计时 tick 的等
 | 路径 | 职责 |
 |---|---|
 | `unity/CharacterRuntime/` | Unity 源工程：URP、模型适配、动作、镜头和触摸交互 |
-| `ios/CharacterHost/` | 原生源码：首页、角色档案、对话／记忆、语音播放、生命周期和桥接 |
+| `ios/StarryNight/` | 原生源码：首页、角色档案、对话／记忆、语音播放、生命周期和桥接 |
 | `../starrynight-server/` | 独立仓库：账户 API、AI 网关、数据、部署与付费验证 |
 | `config/PlatformConnection.json` | 无密钥的云端 HTTPS 默认入口；本机差异配置在 `.local/platform-client/` |
 | `build/unity-simulator/` | Unity 生成的 ARM64 Simulator SDK Xcode 工程 |
 | `build/unity-device/` | 独立 Device SDK 导出，不与模拟器框架混用 |
-| `ios/CharacterHost.xcodeproj` | 脚本生成的真机宿主和 UI 测试工程 |
+| `ios/StarryNight.xcodeproj` | 脚本生成的真机宿主和 UI 测试工程 |
 | `ios/StarryNight.xcworkspace` | 真机 App 入口，依赖、链接并嵌入 Device UnityFramework |
-| `ios/CharacterHost-Simulator.xcodeproj` | 脚本生成的模拟器宿主和 UI 测试工程 |
+| `ios/StarryNight-Simulator.xcodeproj` | 脚本生成的模拟器宿主和 UI 测试工程 |
 | `ios/StarryNight-Simulator.xcworkspace` | 模拟器 App 入口，依赖 Simulator UnityFramework |
 
 本仓库的业务源码分原生与 Unity 两套，服务端在独立仓库。Unity 导出的 Xcode 工程是可恢复产物。`scripts/generate_host.py` 生成 workspace 和跨工程依赖，不需要 CocoaPods / Carthage / XcodeGen。`--platform simulator` 与 `--platform device` 分别生成独立工程，两者共用原生源码且可同时保留，互不覆盖平台设置。
@@ -261,7 +261,7 @@ xcrun devicectl list devices
 bash scripts/run_device.sh DEVICE_UDID
 ```
 
-未连接设备时可用 `bash scripts/build_device.sh --unsigned` 提前完成 Release 编译；该产物必须经过开发签名才能安装。也可在 Xcode 中选择 CharacterHost、自己的 Team 和真实手机后 Run。切回模拟器时运行 `python3 scripts/generate_host.py --platform simulator`。
+未连接设备时可用 `bash scripts/build_device.sh --unsigned` 提前完成 Release 编译；该产物必须经过开发签名才能安装。也可在 Xcode 中选择 StarryNight、自己的 Team 和真实手机后 Run。切回模拟器时运行 `python3 scripts/generate_host.py --platform simulator`。
 
 初版双角色已完成真机签名、安装、启动和短时性能采集，详见初音验证报告；该数据不能作为动作修正版的真机结果。长时温升、耗电及不同设备状态仍需单独验收。没有发布到 TestFlight / App Store。
 

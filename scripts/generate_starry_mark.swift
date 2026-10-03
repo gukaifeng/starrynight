@@ -4,7 +4,7 @@ import AppKit
 // iOS's required opaque raster app icon. No raster trace or external dependency.
 let root = URL(fileURLWithPath:CommandLine.arguments.dropFirst().first ?? FileManager.default.currentDirectoryPath)
 let brand = root.appendingPathComponent("assets/brand")
-let assets = root.appendingPathComponent("ios/CharacterHost/Resources/Assets.xcassets")
+let assets = root.appendingPathComponent("ios/StarryNight/Resources/Assets.xcassets")
 let moon = CGMutablePath()
 moon.move(to:CGPoint(x:615,y:222))
 moon.addCurve(to:CGPoint(x:484,y:205),control1:CGPoint(x:568,y:205),control2:CGPoint(x:526,y:199))

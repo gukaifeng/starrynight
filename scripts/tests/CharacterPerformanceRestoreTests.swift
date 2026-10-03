@@ -2,7 +2,7 @@ import Foundation
 
 @main struct CharacterPerformanceRestoreTests {
     @MainActor static func main() throws {
-        let path="ios/CharacterHost/Resources/CharacterCatalog.json"
+        let path="ios/StarryNight/Resources/CharacterCatalog.json"
         let root=try JSONSerialization.jsonObject(with:Data(contentsOf:URL(fileURLWithPath:path))) as! [String:Any]
         var tested=0
         for row in root["characters"] as! [[String:Any]] {

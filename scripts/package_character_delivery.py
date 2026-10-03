@@ -14,7 +14,7 @@ import uuid
 import zipfile
 
 ROOT=Path(__file__).resolve().parents[1]
-RES=ROOT/'ios/CharacterHost/Resources'
+RES=ROOT/'ios/StarryNight/Resources'
 def read(path):return json.loads(path.read_text())
 def digest(path):
     h=hashlib.sha256()
@@ -22,7 +22,7 @@ def digest(path):
         while data:=f.read(1024*1024):h.update(data)
     return h.hexdigest()
 def artwork(asset):
-    folders=list((ROOT/'ios/CharacterHost').rglob(f'{asset}.imageset'))
+    folders=list((ROOT/'ios/StarryNight').rglob(f'{asset}.imageset'))
     if len(folders)!=1:raise ValueError('Artwork catalog is missing or ambiguous: '+asset)
     folder=folders[0]
     names=[i['filename'] for i in read(folder/'Contents.json')['images'] if i.get('filename')]

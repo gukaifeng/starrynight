@@ -10,7 +10,7 @@ def sha(path):return hashlib.sha256(path.read_bytes()).hexdigest()
 def install():
     recipes=json.loads((ROOT/'assets/characters/media-recipes.json').read_text())
     roster=json.loads((ROOT/'assets/characters/active-roster.json').read_text())['characters']
-    native=ROOT/'ios/CharacterHost/Resources'
+    native=ROOT/'ios/StarryNight/Resources'
     cover_path=native/'CharacterCoverCatalog.json';covers=json.loads(cover_path.read_text())
     entries={entry['runtimeID']:entry for entry in covers['covers']}
     media=[]
@@ -24,7 +24,7 @@ def install():
             assert receipt['status']=='complete' and sha(file)==receipt['sha256'],f'Invalid {role}/{kind}'
             receipts[kind]=receipt
         for kind,prefix in [('cover','Cover_'),('avatar','Avatar_')]:
-            name=prefix+role.replace('-','_');target=ROOT/'ios/CharacterHost/Assets.xcassets'/(name+'.imageset')
+            name=prefix+role.replace('-','_');target=ROOT/'ios/StarryNight/Assets.xcassets'/(name+'.imageset')
             target.mkdir(parents=True,exist_ok=True);shutil.copyfile(folder/(kind+'.png'),target/'generated.png')
             (target/'Contents.json').write_text(json.dumps({'images':[{'filename':'generated.png','idiom':'universal'}],'info':{'author':'xcode','version':1}})+'\n')
         # Review focal points against the generated image, not the requested

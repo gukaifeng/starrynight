@@ -15,7 +15,7 @@ mkdir -p .local/logs .local/checks
 python3 scripts/generate_host.py --platform simulator
 xcrun simctl boot "$SIMULATOR_ID" 2>/dev/null || true
 python3 scripts/wait_for_simulator.py "$SIMULATOR_ID"
-xcodebuild -workspace ios/StarryNight-Simulator.xcworkspace -scheme CharacterHost \
+xcodebuild -workspace ios/StarryNight-Simulator.xcworkspace -scheme StarryNight \
   -configuration Debug -destination "platform=iOS Simulator,id=$SIMULATOR_ID" \
   -derivedDataPath .local/build/DerivedData -resultBundlePath "$RESULT_PATH" \
   -parallel-testing-enabled NO CODE_SIGNING_ALLOWED=NO test > ".local/logs/$RUN_NAME.log" 2>&1

@@ -8,7 +8,7 @@ root=Path(__file__).resolve().parents[1]
 out=root/'.local/tests/character-downloads'
 (out/'Sources/DownloadCore').mkdir(parents=True,exist_ok=True)
 (out/'Tests/DownloadCoreTests').mkdir(parents=True,exist_ok=True)
-shutil.copy2(root/'ios/CharacterHost/Features/Resources/CharacterDownloadStore.swift',out/'Sources/DownloadCore/CharacterDownloadStore.swift')
+shutil.copy2(root/'ios/StarryNight/Features/Resources/CharacterDownloadStore.swift',out/'Sources/DownloadCore/CharacterDownloadStore.swift')
 shutil.copy2(root/'scripts/tests/CharacterDownloadTests.swift',out/'Tests/DownloadCoreTests/CharacterDownloadTests.swift')
 (out/'Package.swift').write_text('''// swift-tools-version:6.0
 import PackageDescription

@@ -158,8 +158,8 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--only',nargs='+');args=parser.parse_args()
     OUT.mkdir(parents=True,exist_ok=True)
     roster=read(ROOT/'assets/characters/active-roster.json')['characters']
-    profiles={p['id']:p for p in read(ROOT/'ios/CharacterHost/Resources/CharacterPublicProfiles.json')['characters']}
-    collections={p['modelID']:p for p in read(ROOT/'ios/CharacterHost/Resources/CharacterCollections.json')['collections']}
+    profiles={p['id']:p for p in read(ROOT/'ios/StarryNight/Resources/CharacterPublicProfiles.json')['characters']}
+    collections={p['modelID']:p for p in read(ROOT/'ios/StarryNight/Resources/CharacterCollections.json')['collections']}
     selected=[i for i in roster if not args.only or i in args.only]
     results=[]
     for identity in selected:

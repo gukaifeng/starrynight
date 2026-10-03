@@ -10,6 +10,8 @@ build/
 **/xcuserdata/
 *.xcuserstate
 ios/Config/Local.xcconfig
+ios/StarryNight-NativeUI.xcodeproj/
+# Keep any pre-migration generated fixture cache private.
 ios/CharacterHost-NativeUI.xcodeproj/
 ios/StarryNight-NativeUI.xcworkspace/
 *.mobileprovision
@@ -54,21 +56,21 @@ __pycache__/
 /unity/CharacterRuntime/Assets/Resources/Characters.meta
 # BuildIos.Setup regenerates the scene, including private avatar prefab overrides.
 /unity/CharacterRuntime/Assets/Scenes/ViewerScene.unity
-/ios/CharacterHost/Resources/CharacterCatalog.json
+/ios/StarryNight/Resources/CharacterCatalog.json
 
 # Generated character portraits/covers are rebuilt with the local model assets.
-/ios/CharacterHost/Assets.xcassets/Cover_*.imageset/
-/ios/CharacterHost/Assets.xcassets/Avatar_*.imageset/
+/ios/StarryNight/Assets.xcassets/Cover_*.imageset/
+/ios/StarryNight/Assets.xcassets/Avatar_*.imageset/
 /unity/CharacterRuntime/Assets/Resources/Atmospheres/
 /unity/CharacterRuntime/Assets/Resources/Atmospheres.meta
 /unity/CharacterRuntime/Assets/ArchivedAtmospheres/
 /unity/CharacterRuntime/Assets/ArchivedAtmospheres.meta
-/ios/CharacterHost/Resources/Music_*_theme.caf
-/ios/CharacterHost/Resources/Assets.xcassets/Anime_*.imageset/
-/ios/CharacterHost/Resources/Assets.xcassets/MikuThumbnail*.imageset/
-/ios/CharacterHost/Resources/Assets.xcassets/HumanThumbnail*.imageset/
-/ios/CharacterHost/Resources/Assets.xcassets/Package_*.imageset/
-/ios/CharacterHost/Resources/Assets.xcassets/FirstCompanionBackdrop.imageset/
+/ios/StarryNight/Resources/Music_*_theme.caf
+/ios/StarryNight/Resources/Assets.xcassets/Anime_*.imageset/
+/ios/StarryNight/Resources/Assets.xcassets/MikuThumbnail*.imageset/
+/ios/StarryNight/Resources/Assets.xcassets/HumanThumbnail*.imageset/
+/ios/StarryNight/Resources/Assets.xcassets/Package_*.imageset/
+/ios/StarryNight/Resources/Assets.xcassets/FirstCompanionBackdrop.imageset/
 
 # Keep written verification findings in Git; raw captures and source audits
 # remain on the development machine. Existing tracked baseline evidence stays.
@@ -81,7 +83,7 @@ __pycache__/
 /docs/character-standard/deliverables/
 /docs/environment-standard/deliverables/
 # Generated opening voices stay local with the licensed character media.
-ios/CharacterHost/Resources/Opening_*.pcm
+ios/StarryNight/Resources/Opening_*.pcm
 # Private compiled OSS character payloads; never publish licensed model data.
 unity/CharacterRuntime/Assets/DownloadableCharacters/
 unity/CharacterRuntime/Assets/DownloadableCharacters.meta

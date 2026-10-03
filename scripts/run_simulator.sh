@@ -17,7 +17,7 @@ if not devices: raise SystemExit('Create an iPhone 17 simulator in Xcode first')
 print(devices[0]['udid'])
 PY
 )"
-APP_PATH="$ROOT_DIR/.local/build/DerivedData/Build/Products/$BUILD_CONFIGURATION-iphonesimulator/CharacterHost.app"
+APP_PATH="$ROOT_DIR/.local/build/DerivedData/Build/Products/$BUILD_CONFIGURATION-iphonesimulator/StarryNight.app"
 SOURCE_VERSION="$(python3 - <<'PYVERSION'
 import re
 from pathlib import Path

@@ -23,7 +23,7 @@ public static class RealCharacterReview
         CharacterVisualReview.Render(camera,Path.Combine(directory,"human-full.png"));
         Portrait(camera,character);
         CharacterVisualReview.Render(camera,Path.Combine(directory,"human-portrait.png"));
-        string thumbnail=Path.GetFullPath("../../ios/CharacterHost/Resources/Assets.xcassets/HumanThumbnail.imageset");Directory.CreateDirectory(thumbnail);
+        string thumbnail=Path.GetFullPath("../../ios/StarryNight/Resources/Assets.xcassets/HumanThumbnail.imageset");Directory.CreateDirectory(thumbnail);
         File.Copy(Path.Combine(directory,"human-portrait.png"),Path.Combine(thumbnail,"HumanThumbnail.png"),true);
         File.WriteAllText(Path.Combine(thumbnail,"Contents.json"),"{\"images\":[{\"filename\":\"HumanThumbnail.png\",\"idiom\":\"universal\"}],\"info\":{\"author\":\"xcode\",\"version\":1}}");
         driver.Configure(new StudioSettings{hair="bob",room="evening",faceWidth=.8f,jawShape=.7f,eyeSize=.65f,mouthShape=.75f,skin="warm",lightAngle=45,lightHeight=32});
