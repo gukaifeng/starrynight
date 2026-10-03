@@ -48,7 +48,7 @@ public static class HostEmotionMotionBuilder
         var library=JsonUtility.FromJson<SourceMotionLibraryBuilder.Library>(CharacterMotionData.Read(folder+"/source-motions.json"));
         var excluded=character.Manifest.speech.visemes.SelectMany(v=>v.bindings).Concat(character.Manifest.speech.amplitude).Select(b=>b.renderer+"/"+b.shape).ToHashSet();
         string Intent(string gesture)=>gesture=="agree" || gesture=="happy" || gesture=="welcome" || gesture=="encourage"?"soft_smile":gesture=="disagree"?"pout":gesture=="curious"?"confused":gesture;
-        rig.faces=HostEmotionMotion.Gestures.Select(gesture=>{
+        rig.faces=HostEmotionMotion.FacialGestures.Select(gesture=>{
             string intent=Intent(gesture);
             bool Face(SourceMotionLibraryBuilder.Motion m)=>m.curves.Any(c=>"Avatar/"+c.path==character.Manifest.rig.headRenderer && c.property.StartsWith("blendShape.") && !excluded.Contains("Avatar/"+c.path+"/"+c.property.Substring(11)) && c.keys.Any(k=>k.value>5));
             string Alias(SourceMotionLibraryBuilder.Motion m){

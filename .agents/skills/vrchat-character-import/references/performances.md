@@ -1,14 +1,24 @@
 # 原作动作、表情和形态迁移
 
+## 当前宿主增量：0.99 情感动作实验 v3
+
+见 [48 组合设计与兼容](../../../../docs/design/2026-10-03-emotional-gesture-library.md)。旧十个动作 ID 保留，单一宿主目录 `Assets/Resources/HostEmotionGestures.json` 定义 48 组、八类、时长和解剖角度，原生开发者页直接读取同一文件。仍使用角色既有十类原作脸部基底，不把 48 组合声称为 48 个原装脸部资源。
+
+身体幅度增加、头颈限幅和 C2 进入/恢复都在宿主层，骨轴、口型排除与原作优先级不变。`host.motion.speech.configure` 是默认关闭的语音联动实验；明确开启后，以已有作者表情 `ai.intent` 配合真正的 `state.speaking`，不新增 AI 请求。起步约 120ms 的小窗口只等已有表情任务，不延迟音频。停止语音须释放并清掉队列，原作身体姿态/源预览/位置操作优先。
+
+v2 已生成的 `HostEmotionRig` 骨轴与十类脸部可直接承载 v3，**仅此次宿主编排升级不需要重发 OSS release 4**。如果更改校准、源片段或其他角色包内容，仍必须两平台重建并发布不可变新包。禁止通过旧注释推断所有升级都需要重导模型，也不能把这个特例推广到骨架或包数据变更。
+
+动画数值验证使用 `HostEmotionMotionReview.RunNumerical`，独立 Metal 画面使用 `CaptureGallery`；图形审查结束后在新 Editor 导出，保持已有崩溃隔离。结果留 `.local/checks/host-emotion-motion-v3`。实际原生链路运行 `zsh scripts/test_companion.sh <simulator-id> HostEmotionMotionTests <new-result-name>`，不调用图片 API。测试和真机帧率仍分别报告。
+
 ## 当前增量：0.94 完整原作片段库与开发者动作实验
 
 见 [新标准](../../../../docs/character-standard/10-source-motion-library.md)。不再只检查作者菜单：隔离 stage 的完整 `avatar-motions.json` 包含 `.anim` 与 FBX/.asset/.controller 子资产，身份是 GUID 或 GUID:fileID。`scripts/prepare_source_motion_library.py` 把可绑定曲线投影为 `source-motions.json.gz`，逐通道记录不支持原因，加入原作肢体/表情/部件分组。复用原采样，不重新下载，不调 AI，不改用户源档案。先准备候选并预检，再 `--apply` 激活，激活副本保存在 `.local/vrchat-batch/source-motion-library/activation/`。
 
 新包为 3.4.0，required 包含 `core.source-motions@1`、`core.avatar-controls@2`、`core.performance@3`。`avatar-motions.json` 也采用无损 `.gz`，必须使用 SDK 的 bounded reader 或 Editor `CharacterMotionData.Read`，不能继续直接 File.ReadAllText。128 MiB 解压预算、旧 256 MiB 包预算仍生效，不能为了数量绕过预算。SDK validate 与 `check_character_collections.py` 核对全部当前角色。
 
-`SourceMotionLibraryReview.BuildAndReview` 执行 Setup/Validate、全库求值恢复和 16×10×60/120 Hz 宿主组合审查。报告和 CPU 蒙皮图留 `.local/checks/source-motion-library` / `host-emotion-motion`，不提交受限曲线、材质、图像。恢复 Update 组件必须有独立 `.cs/.meta`，与 LateUpdate 预览组件分开，以便 Unity 正确序列化 Prefab；恢复序号为 Host20→Source25→Autonomy30→Performance35，避免叠加基线污染。
+`SourceMotionLibraryReview.BuildAndReview` 执行 Setup/Validate、全库求值恢复和当前名册×宿主目录组合×60/120 Hz 审查；当前宿主独立检查路径见上文 v3。报告与 CPU 蒙皮图留本机忽略目录，不提交受限曲线、材质、图像。恢复 Update 组件必须有独立 `.cs/.meta`，与 LateUpdate 组件分开，以便 Unity 正确序列化 Prefab；顺序 Host20→Source25→Autonomy30→Performance35，避免叠加基线污染。
 
-新增 10 组合只在浮动开发者按钮→动作实验，自动 AI 入口拒绝 `preview:false`；脸部使用该角色可靠原作形变，口型排除。没有完整 human 映射时不猜骨名。它不是原作动画，关闭开关不影响原作能力。检验脚部时对照同一帧作者 Animator 基线，不把作者的待机位移归责于新增层。
+0.94 的新增 10 组合当时只在开发者页手动预览；0.99 当前升级规则见上文。脸部使用可靠原作形变，口型排除，human 映射不完整时不猜骨名。新增宿主组合不是原作动画，开关不影响原作能力。检验脚部对照同一帧作者 Animator 基线，不把作者待机位移归责于新增层。
 
 更新下载角色时必须分别编译两平台 `CharacterBundleBuilder.BuildDevice/BuildSimulator`，运行 `package_character_delivery.py --version N` 并发布新不可变 OSS 版本，不能只更新本机资源或原生 catalog。源库数包含静态姿势与显隐片段，不能宣传成等量连续身体动画；部分投影与完全不可用必须列清。
 

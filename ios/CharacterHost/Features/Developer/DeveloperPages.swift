@@ -52,7 +52,7 @@ struct CharacterDeveloperPanel:View {
                             DeveloperEntry(title:"定制颜色",detail:"全部组件 · 主色、阴影与高光 · 保留原作纹理",symbol:"paintpalette",id:"openCharacterPalette") {open("palette")}
                             DeveloperEntry(title:"语音耗时",detail:"生成、网络、缓存、排队与播放的逐次拆解",symbol:"waveform.path",id:"openCharacterVoiceTimings") {open("voice")}
                             if let state=performanceState,state.hostMotionSupported {
-                                DeveloperEntry(title:"动作实验",detail:"10 个通用身体与表情组合 · 仅手动预览",symbol:"figure.wave",id:"openHostEmotionMotion") {open("motion")}
+                                DeveloperEntry(title:"动作实验",detail:"48 个情感组合 · 手动预览与语音联动",symbol:"figure.wave",id:"openHostEmotionMotion") {open("motion")}
                             }
                             if model.performance != nil {
                                 DeveloperEntry(title:"角色表现",detail:"手动检查原生表情、动作和物理能力",symbol:"theatermasks",id:"profilePerformanceButton") {open("performance")}

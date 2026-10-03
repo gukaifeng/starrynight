@@ -4,6 +4,27 @@ final class HostEmotionMotionTests:XCTestCase {
     private func motion(_ state:[String:Any])->[String:Any] {
         (state["characterPlatform"] as? [String:Any])?["hostEmotionMotion"] as? [String:Any] ?? [:]
     }
+    @MainActor private func choose(_ id:String,in app:XCUIApplication) {
+        let search=app.textFields["hostEmotionSearch"]
+        for _ in 0..<5 {if search.isHittable {break};app.scrollViews["hostEmotionMotionPanel"].swipeDown()}
+        XCTAssertTrue(search.isHittable)
+        if app.buttons["hostEmotionSearchClear"].exists {app.buttons["hostEmotionSearchClear"].tap()}
+        search.tap();search.typeText(id+"\n")
+        let preview=app.buttons["hostEmotionPreview-"+id]
+        XCTAssertTrue(preview.waitForExistence(timeout:5));XCTAssertTrue(preview.isHittable);preview.tap()
+    }
+    @MainActor func testSpeechLinkedOpeningUsesActualPlaybackState() {
+        continueAfterFailure=false
+        let app=XCUIApplication()
+        app.launchArguments=["--ui-testing","--companion-testing","--auth-testing",
+            "-hostEmotionMotionEnabled.v1","YES","-hostEmotionMotionSpeechLinked.v3","YES"]
+        app.launch();defer{app.terminate()}
+        XCTAssertTrue(app.buttons["customizationButton"].waitForExistence(timeout:75))
+        app.waitForCharacter({self.motion($0)["speaking"] as? Bool==true &&
+            self.motion($0)["automatic"] as? Bool==true && (self.motion($0)["peakDegrees"] as? Double ?? 0)>2},timeout:30)
+        let attachment=XCTAttachment(screenshot:app.screenshot());attachment.name="opening-voice-and-body";attachment.lifetime = .keepAlways;add(attachment)
+        app.waitForCharacter({self.motion($0)["speaking"] as? Bool==false && self.motion($0)["gesture"] as? String==""},timeout:60)
+    }
     @MainActor func testPilotPreviewsSwitchAndOriginalControls() {
         continueAfterFailure=false
         let app=XCUIApplication();app.launchArguments=["--ui-testing","--companion-testing","--auth-testing","-starry.app.language.v1","zh-Hans"]
@@ -23,28 +44,31 @@ final class HostEmotionMotionTests:XCTestCase {
             let toggle=app.switches["hostEmotionMotionToggle"]
             XCTAssertTrue(toggle.waitForExistence(timeout:8));if toggle.value as? String != "1" {toggle.tap()}
             app.waitForCharacter {self.motion($0)["enabled"] as? Bool == true}
+            XCTAssertEqual(motion(app.characterRuntime)["gestureCount"] as? Int,48)
             let count=motion(app.characterRuntime)["started"] as? Int ?? 0
-            app.buttons["hostEmotionPreview-happy"].tap()
+            choose("happy",in:app)
             app.waitForCharacter { (self.motion($0)["started"] as? Int ?? 0)>count && (self.motion($0)["peakDegrees"] as? Double ?? 0)>2 }
             let picture=XCTAttachment(screenshot:app.screenshot());picture.name=role+"-host-emotion";picture.lifetime = .keepAlways;add(picture)
             if role == "lime" {
                 app.waitForCharacter {self.motion($0)["gesture"] as? String == ""}
-                for id in ["agree","curious","shy","pout","sad","surprised","welcome","encourage","disagree"] {
-                    let preview=app.buttons["hostEmotionPreview-"+id]
-                    for _ in 0..<3 {
-                        if preview.exists && preview.isHittable && app.scrollViews["hostEmotionMotionPanel"].frame.contains(preview.frame) {break}
-                        app.scrollViews["hostEmotionMotionPanel"].swipeUp()
-                    }
-                    preview.tap()
+                for id in ["agree","curious","shy","pout","sad","surprised","welcome","encourage","disagree",
+                           "reunion","empathetic","celebrate","idea","comfort","affection","jealous","stretch"] {
+                    choose(id,in:app)
                     app.waitForCharacter {self.motion($0)["gesture"] as? String == id}
                     app.waitForCharacter {self.motion($0)["gesture"] as? String == ""}
                 }
-                app.scrollViews["hostEmotionMotionPanel"].swipeDown()
-                app.buttons["hostEmotionPreview-happy"].tap()
+                choose("happy",in:app)
                 app.waitForCharacter {self.motion($0)["gesture"] as? String == "happy"}
                 app.buttons["hostEmotionStop"].tap()
                 app.waitForCharacter {self.motion($0)["gesture"] as? String == ""}
             }
+            for _ in 0..<5 {if toggle.isHittable {break};app.scrollViews["hostEmotionMotionPanel"].swipeDown()}
+            let speech=app.switches["hostEmotionSpeechToggle"]
+            XCTAssertTrue(speech.isHittable)
+            if speech.value as? String != "1" {speech.tap()}
+            app.waitForCharacter {self.motion($0)["speechLinked"] as? Bool==true}
+            speech.tap()
+            app.waitForCharacter {self.motion($0)["speechLinked"] as? Bool==false}
             toggle.tap()
             app.waitForCharacter {self.motion($0)["enabled"] as? Bool == false && self.motion($0)["gesture"] as? String == ""}
             XCTAssertFalse(app.buttons["hostEmotionPreview-happy"].isEnabled)
@@ -76,7 +100,7 @@ final class HostEmotionMotionTests:XCTestCase {
                 library.tap()
                 app.buttons["performanceGroup-source-library-source-face-motion"].tap()
                 let search=app.textFields["sourceMotionSearch"]
-                XCTAssertTrue(search.waitForExistence(timeout:5));search.tap();search.typeText("F_smile_1")
+                XCTAssertTrue(search.waitForExistence(timeout:5));search.tap();search.typeText("F_smile_1\n")
                 let source=app.buttons["performanceOption-source-motion-a712a81ddc58e9f45bb244c4dff3b092"]
                 XCTAssertTrue(source.waitForExistence(timeout:5));source.tap()
                 app.waitForCharacter {

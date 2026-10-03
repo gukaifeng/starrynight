@@ -89,6 +89,7 @@ struct CharacterPerformancePanel: View {
     var onOpenPreview:(()->Void)? = nil
     @State private var selectedGroup = ""
     @State private var search=""
+    @FocusState private var sourceSearchFocused:Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var groups: [CharacterPerformanceProfile.Group] {
@@ -141,6 +142,7 @@ struct CharacterPerformancePanel: View {
                 HStack(spacing:8) {
                     Image(systemName:"magnifyingglass").font(.system(size:11)).foregroundStyle(Theme.secondary)
                     TextField("搜索原作片段",text:$search).font(.system(size:12)).autocorrectionDisabled()
+                        .focused($sourceSearchFocused).submitLabel(.search).onSubmit{sourceSearchFocused=false}
                         .accessibilityIdentifier("sourceMotionSearch")
                     Text("\(options.count)").font(.system(size:10,design:.monospaced)).foregroundStyle(Theme.secondary)
                 }.padding(.horizontal,12).frame(height:32)

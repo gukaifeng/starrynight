@@ -108,6 +108,11 @@ for path in sorted((ios/'CharacterHost').rglob('*')):
     source_refs.append(ref)
     if path.suffix in ('.swift','.mm'): source_build.append(buildfile(relative,ref))
     elif path.suffix in ('.png','.txt','.json','.wav','.pcm', '.caf','.storyboard','.xcstrings'): resource_build.append(buildfile(relative,ref))
+if test_tools:
+    # Native UI and Unity consume the same host-authored gesture catalog.
+    relative='../unity/CharacterRuntime/Assets/Resources/HostEmotionGestures.json'
+    ref=obj(relative,'PBXFileReference',lastKnownFileType='text.json',path=relative,sourceTree='<group>')
+    source_refs.append(ref);resource_build.append(buildfile(relative,ref))
 if args.native_ui_fixture:
     relative='../scripts/tests/NativeUIBridge.mm'
     ref=obj(relative,'PBXFileReference',lastKnownFileType='sourcecode.cpp.objcpp',path=relative,sourceTree='<group>')
@@ -193,7 +198,7 @@ settings={'PRODUCT_NAME':'$(TARGET_NAME)','PRODUCT_BUNDLE_IDENTIFIER':'com.model
     'FRAMEWORK_SEARCH_PATHS':['$(inherited)','$(BUILT_PRODUCTS_DIR)'],
     'OTHER_LDFLAGS':['$(inherited)','-lc++','-framework','CoreML','-framework','Accelerate'],
     'GCC_ENABLE_CPP_EXCEPTIONS':'YES',
-    'CODE_SIGN_STYLE':'Automatic','CURRENT_PROJECT_VERSION':'129','MARKETING_VERSION':'0.98.0',
+    'CODE_SIGN_STYLE':'Automatic','CURRENT_PROJECT_VERSION':'130','MARKETING_VERSION':'0.99.0',
     'ENABLE_USER_SCRIPT_SANDBOXING':'NO','SUPPORTS_MACCATALYST':'NO','SWIFT_EMIT_LOC_STRINGS':'YES',
     'ARCHS':'arm64','ENABLE_DEBUG_DYLIB':'NO','ASSETCATALOG_COMPILER_APPICON_NAME':'AppIcon'}
 if args.native_ui_fixture:

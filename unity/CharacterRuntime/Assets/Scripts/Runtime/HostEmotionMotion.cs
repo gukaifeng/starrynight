@@ -6,9 +6,9 @@ namespace ModelSpace
 {
     [Serializable] public sealed class HostEmotionMotionState
     {
-        public int revision=2,started,completed,gestureCount=10;
-        public bool supported,enabled,suppressed;
-        public string gesture="",expression="",origin="starrynight.host-emotion.v2.developer-preview";
+        public int revision=3,started,completed,gestureCount=48;
+        public bool supported,enabled,suppressed,speechLinked,speaking,automatic;
+        public string gesture="",expression="",origin="starrynight.host-emotion.v3.experiment";
         public string[] expressions=Array.Empty<string>();
         public float weight,progress,peakDegrees;
     }
@@ -21,7 +21,10 @@ namespace ModelSpace
     [DefaultExecutionOrder(90)]
     public sealed class HostEmotionMotion : MonoBehaviour
     {
-        public static readonly string[] Gestures={"agree","happy","curious","shy","pout","sad","surprised","welcome","encourage","disagree"};
+        public static string[] Gestures=>Array.ConvertAll(HostEmotionGestureLibrary.Catalog.gestures,p=>p.id);
+        // Serialized v2 packages already contain these calibrated author faces.
+        // New choreography reuses them, so old OSS packages need no rebuild.
+        public static readonly string[] FacialGestures={"agree","happy","curious","shy","pout","sad","surprised","welcome","encourage","disagree"};
         public HostEmotionMotionState State {get;private set;}=new HostEmotionMotionState();
         public Action OnChanged;
         HostEmotionRig rig;
@@ -29,18 +32,22 @@ namespace ModelSpace
         CharacterActions actions;
         AvatarControlDriver author;
         Quaternion[] before=Array.Empty<Quaternion>();
-        HostEmotionRig.Face face;
+        HostEmotionRig.Face face,secondaryFace;
+        HostEmotionGesture profile;
         float[] faceBefore=Array.Empty<float>();
+        float[] secondaryBefore=Array.Empty<float>();
         struct Guard {public int hash;public string kind;public float initial;}
         Guard[] guards=Array.Empty<Guard>();
         bool applied,interacting,reportedPose;
-        string queued="";
-        float elapsed,gap,intensity=1,release=-1,releaseStart=1;
+        string queued="",speechIntent="neutral",lastAutomatic="";
+        bool queuedAutomatic;
+        int speechSequence;
+        float elapsed,gap,intensity=1,release=-1,releaseStart=1,speechStartDelay;
         public void Bind(ViewerCharacter actor,CharacterActions source)
         {
             Clear();character=actor;actions=source;rig=actor.GetComponent<HostEmotionRig>();
             author=actor.GetComponent<AvatarControlDriver>();
-            State=new HostEmotionMotionState {supported=rig && rig.joints.Length>=10,
+            State=new HostEmotionMotionState {supported=rig && rig.joints.Length>=10,gestureCount=Gestures.Length,
                 expressions=rig?Array.ConvertAll(rig.faces,f=>f.gesture+" · "+f.label):Array.Empty<string>()};
             before=new Quaternion[rig?rig.joints.Length:0];
             var list=new List<Guard>();
@@ -56,7 +63,8 @@ namespace ModelSpace
         {
             RestorePose();rig=null;character=null;author=null;queued="";
             elapsed=gap=0;release=-1;interacting=false;State=new HostEmotionMotionState();
-            face=null;faceBefore=Array.Empty<float>();
+            face=secondaryFace=null;profile=null;faceBefore=secondaryBefore=Array.Empty<float>();
+            speechIntent="neutral";lastAutomatic="";speechSequence=0;queuedAutomatic=false;speechStartDelay=0;
         }
         public void Configure(bool value)
         {
@@ -64,6 +72,32 @@ namespace ModelSpace
             if(!State.enabled)Cancel();
         }
         public void SetInteracting(bool value) {interacting=value;}
+        public void ConfigureSpeech(bool value)
+        {
+            State.speechLinked=value;
+            if(!value && State.automatic)Cancel();
+            if(value && State.enabled && State.speaking)speechStartDelay=.12f;
+        }
+        public void SetSpeech(bool value)
+        {
+            bool entering=value && !State.speaking;State.speaking=value;
+            if(!value){if(State.automatic)Cancel();speechIntent="neutral";speechStartDelay=0;}
+            // The native beat callback schedules expression tasks just before
+            // the speaking event. Allow a few frames for those existing tasks;
+            // audio itself is never delayed or awaited by this layer.
+            if(entering && State.enabled && State.speechLinked)speechStartDelay=.12f;
+        }
+        public string CueIntent(string intent)
+        {
+            speechIntent=HostEmotionGestureLibrary.Normalize(intent);
+            if(!State.speechLinked)return "HOST_MOTION_DEVELOPER_ONLY";
+            if(!State.speaking)return null; // Beat cues can arrive just before audio begins.
+            if(speechStartDelay>0)return null;
+            if(State.gesture.Length>0 && (!State.automatic || elapsed<1.5f))return null;
+            string chosen=HostEmotionGestureLibrary.Select(speechIntent,++speechSequence,lastAutomatic);
+            if(chosen.Length==0)return "HOST_MOTION_UNKNOWN_INTENT";
+            return Request(chosen,false);
+        }
         public void Cancel()
         {
             queued="";
@@ -83,31 +117,38 @@ namespace ModelSpace
         }
         public string CueOriginalExpression(string option)
         {
-            // This revision is an inspection experiment. Promotion to automatic
-            // conversation requires the user's visual approval in a later change.
-            return "HOST_MOTION_DEVELOPER_ONLY";
+            if(!State.speechLinked)return "HOST_MOTION_DEVELOPER_ONLY";
+            var choices=character?.Manifest?.performance?.options;
+            if(choices==null)return null;
+            var choice=Array.Find(choices,o=>o.id==option);
+            if(choice?.ai==null || !choice.ai.automatic || choice.ai.kind!="expression")return null;
+            return CueIntent(choice.ai.intent);
         }
         public string Request(string gesture,bool preview)
         {
             if(!State.supported)return "HOST_MOTION_UNSUPPORTED";
             if(!State.enabled)return "HOST_MOTION_DISABLED";
-            if(!preview)return "HOST_MOTION_DEVELOPER_ONLY";
-            if(Array.IndexOf(Gestures,gesture)<0)return "HOST_MOTION_UNKNOWN";
+            if(!preview && (!State.speechLinked || !State.speaking))return "HOST_MOTION_DEVELOPER_ONLY";
+            if(HostEmotionGestureLibrary.Find(gesture)==null)return "HOST_MOTION_UNKNOWN";
             if(Blocked())return "HOST_MOTION_AUTHOR_PRIORITY";
             if(State.gesture.Length>0 || gap>0) {
                 // A bounded latest-only queue; speech can never build a backlog.
-                if(gesture!=State.gesture || preview)queued=gesture;
-                if(preview) {Cancel();queued=gesture;}
+                if(gesture!=State.gesture || preview){queued=gesture;queuedAutomatic=!preview;}
+                if(preview) {Cancel();queued=gesture;queuedAutomatic=false;}
                 return null;
             }
-            StartGesture(gesture);return null;
+            StartGesture(gesture,!preview);return null;
         }
-        void StartGesture(string gesture)
+        void StartGesture(string gesture,bool automatic=false)
         {
             State.gesture=gesture;elapsed=0;release=-1;State.weight=1;
             State.progress=State.peakDegrees=0;State.started++;reportedPose=false;
-            face=Array.Find(rig.faces,f=>f.gesture==gesture);faceBefore=new float[face?.indices.Length ?? 0];
+            profile=HostEmotionGestureLibrary.Find(gesture);State.automatic=automatic;
+            if(automatic)lastAutomatic=gesture;
+            face=Array.Find(rig.faces,f=>f.gesture==profile.expression);faceBefore=new float[face?.indices.Length ?? 0];
+            secondaryFace=Array.Find(rig.faces,f=>f.gesture==profile.secondary);secondaryBefore=new float[secondaryFace?.indices.Length ?? 0];
             State.expression=face?.label ?? "中性表情";
+            if(secondaryFace!=null)State.expression+=" → "+secondaryFace.label;
             // Stable alternation keeps a replay auditable, without frame-dependent noise.
             intensity=(State.started%2==0?.94f:1)*rig.amplitude;
         }
@@ -133,25 +174,37 @@ namespace ModelSpace
             bool wasSuppressed=State.suppressed;State.suppressed=Blocked();
             if(wasSuppressed!=State.suppressed)OnChanged?.Invoke();
             if(State.suppressed || !State.enabled)Cancel();
+            if(speechStartDelay>0) {
+                speechStartDelay=Mathf.Max(0,speechStartDelay-dt);
+                if(speechStartDelay==0 && State.enabled && State.speechLinked && State.speaking && !State.suppressed)
+                    CueIntent(speechIntent);
+            }
             gap=Mathf.Max(0,gap-dt);
             if(State.gesture.Length==0) {
                 if(State.enabled && !State.suppressed && gap==0 && queued.Length>0) {
-                    var next=queued;queued="";StartGesture(next);
+                    var next=queued;bool automatic=queuedAutomatic;queued="";
+                    if(!automatic || (State.speechLinked && State.speaking))StartGesture(next,automatic);
+                    else return;
                 } else return;
             }
             elapsed+=dt;
             float duration=Duration(State.gesture);State.progress=Mathf.Clamp01(elapsed/duration);
             if(release>=0) {release+=dt;State.weight=releaseStart*(1-Smooth(release/.48f));}
             if(elapsed>=duration || (release>=.48f)) {
-                State.completed++;State.gesture=State.expression="";State.weight=0;State.progress=1;gap=.18f;release=-1;OnChanged?.Invoke();return;
+                State.completed++;State.gesture=State.expression="";State.weight=0;State.progress=1;gap=.24f;release=-1;OnChanged?.Invoke();return;
             }
+            float transition=secondaryFace!=null?Smooth((elapsed/duration-.37f)/.26f):0;
             if(face!=null){
-                float faceWeight=Pulse(elapsed/duration,.04f,.3f,.62f,1)*State.weight;
+                float faceWeight=Pulse(elapsed/duration,.04f,.3f,.62f,1)*State.weight*profile.face*(1-transition);
                 for(int i=0;i<face.indices.Length;i++){var skin=face.skins[i];faceBefore[i]=skin.GetBlendShapeWeight(face.indices[i]);skin.SetBlendShapeWeight(face.indices[i],Mathf.Lerp(faceBefore[i],face.values[i],faceWeight));}
+            }
+            if(secondaryFace!=null){
+                float faceWeight=Pulse(elapsed/duration,.04f,.3f,.62f,1)*State.weight*profile.face*transition;
+                for(int i=0;i<secondaryFace.indices.Length;i++){var skin=secondaryFace.skins[i];secondaryBefore[i]=skin.GetBlendShapeWeight(secondaryFace.indices[i]);skin.SetBlendShapeWeight(secondaryFace.indices[i],Mathf.Lerp(secondaryBefore[i],secondaryFace.values[i],faceWeight));}
             }
             for(int i=0;i<rig.joints.Length;i++) {
                 var j=rig.joints[i];before[i]=j.bone.localRotation;
-                var euler=Sample(State.gesture,j.human,elapsed)*intensity*State.weight;
+                var euler=Sample(profile,j.human,elapsed)*intensity*State.weight;
                 if(j.human.EndsWith("Shoulder",StringComparison.Ordinal) || j.human.EndsWith("UpperArm",StringComparison.Ordinal))
                     euler.z*=j.lateralSign*(j.human.StartsWith("Left",StringComparison.Ordinal)?1:-1);
                 var delta=j.elbowAxis.sqrMagnitude>.9f?Quaternion.AngleAxis(-euler.x,j.elbowAxis):
@@ -167,49 +220,55 @@ namespace ModelSpace
         {
             if(!applied || !rig)return;
             for(int i=0;i<rig.joints.Length;i++)if(rig.joints[i].bone)rig.joints[i].bone.localRotation=before[i];
+            // Reverse order matters when two authored faces share morph channels.
+            if(secondaryFace!=null)for(int i=0;i<secondaryFace.indices.Length;i++)if(secondaryFace.skins[i])secondaryFace.skins[i].SetBlendShapeWeight(secondaryFace.indices[i],secondaryBefore[i]);
             if(face!=null)for(int i=0;i<face.indices.Length;i++)if(face.skins[i])face.skins[i].SetBlendShapeWeight(face.indices[i],faceBefore[i]);
             applied=false;
         }
-        public static float Duration(string gesture)=>gesture=="shy" || gesture=="sad"?4.4f:gesture=="curious" || gesture=="welcome"?4.1f:3.6f;
+        public static float Duration(string gesture)=>HostEmotionGestureLibrary.Find(gesture)?.duration ?? 4.5f;
         public static float Smooth(float t) {t=Mathf.Clamp01(t);return t*t*t*(t*(t*6-15)+10);}
         static float Pulse(float t,float begin,float apex,float hold,float end)
             => t<begin || t>=end?0:t<apex?Smooth((t-begin)/(apex-begin)):t<hold?1:1-Smooth((t-hold)/(end-hold));
 
-        // Choreography in the calibrated neutral character frame, degrees.
-        // Small anticipation -> torso lead -> head/arm follow -> long settling.
-        // Elbows lift forward/outward; hands never sweep across face or chest.
+        // Host-authored choreography, NOT motion capture. Each profile has
+        // anatomical amplitudes, distinct asymmetry and rhythmic accents.
+        // Forward/outward elbows keep hands away from face/chest; never IK reach.
         public static Vector3 Sample(string gesture,string human,float seconds)
+            =>Sample(HostEmotionGestureLibrary.Find(gesture),human,seconds);
+        static Vector3 Sample(HostEmotionGesture p,string human,float seconds)
         {
-            float t=seconds/Duration(gesture);
-            float body=Pulse(t,.03f,.28f,.49f,.92f);
-            float head=Pulse(t,.09f,.35f,.54f,.99f);
-            float arm=Pulse(t,.12f,.4f,.56f,.95f);
+            if(p==null)return Vector3.zero;
+            float t=seconds/p.duration;
+            float body=Pulse(t,.025f,.27f,.5f,.94f);
+            float head=Pulse(t,.085f,.34f,.57f,1);
+            float arm=Pulse(t,.13f,.4f,.59f,.98f);
             float anticipation=Pulse(t,0,.09f,.1f,.24f);
-            float nod=Pulse(t,.12f,.3f,.31f,.51f)+.55f*Pulse(t,.46f,.6f,.61f,.86f);
-            float sway=Pulse(t,.1f,.31f,.36f,.56f)-.65f*Pulse(t,.47f,.68f,.7f,.96f);
-            float pitch=0,yaw=0,roll=0,chest=0,lean=0,open=0,elbow=0;
-            switch(gesture) {
-                case "agree":pitch=12*nod-2*anticipation;chest=2.2f*body;elbow=7*arm;break;
-                case "happy":pitch=5*nod-3*head;roll=4*sway;chest=-2.5f*body;lean=1.4f*sway;open=10*arm;elbow=22*arm;break;
-                case "curious":pitch=-3*head;roll=11*head-1.5f*anticipation;yaw=4*sway;chest=2*body;lean=2*body;elbow=11*arm;break;
-                case "shy":pitch=13*head;yaw=7*sway;roll=-5*head;chest=4*body;lean=-1.5f*body;open=2*arm;elbow=15*arm;break;
-                case "pout":pitch=-3*head;yaw=12*sway;roll=3*head;chest=-2*body;lean=-1.8f*sway;open=5*arm;elbow=18*arm;break;
-                case "sad":pitch=12*head;roll=5*head;chest=4.5f*body;lean=1.2f*body;elbow=5*arm;break;
-                case "surprised":pitch=-9*head-1*anticipation;chest=-3.2f*body;open=9*arm;elbow=26*arm;break;
-                case "welcome":pitch=6*nod;roll=3*sway;chest=-1.5f*body;open=14*arm;elbow=38*arm;break;
-                case "encourage":pitch=9*nod;roll=-3*head;chest=-2*body;open=8*arm;elbow=31*arm;break;
-                case "disagree":pitch=2*head;yaw=17*sway;chest=2*body;open=4*arm;elbow=12*arm;break;
-            }
+            float nod=Pulse(t,.13f,.3f,.31f,.51f);
+            if(p.beats>=2)nod+=.65f*Pulse(t,.47f,.6f,.61f,.85f);
+            if(p.beats>=3)nod+=.35f*Pulse(t,.71f,.79f,.8f,.95f);
+            float sway=Pulse(t,.12f,.3f,.34f,.55f)-.7f*Pulse(t,.49f,.68f,.72f,.97f);
+            float pitch=Mathf.Clamp(p.c[0]*head+p.nod*nod-1.7f*anticipation,-18,24);
+            float yaw=Mathf.Clamp(p.c[1]*head+p.shake*sway,-26,26);
+            float roll=Mathf.Clamp(p.c[2]*head-p.c[2]*.12f*anticipation,-17,17);
+            float chest=p.c[3]*body,lean=p.c[4]*body,twist=p.c[5]*body;
             bool left=human.StartsWith("Left",StringComparison.Ordinal);float side=left?1:-1;
+            float open=p.c[left?6:7]*arm;
+            float forward=p.c[left?8:9]*arm;
+            float elbow=p.c[left?10:11]*arm;
+            float wrist=p.c[12]*arm;
+            float wave=p.wave*sway;
+            // The wave lives in the raised RIGHT forearm/wrist; no high speed
+            // sine noise. Nods/accents share C2 envelopes and a long release.
+            if(!left){elbow+=4*wave;open+=3*wave;}
             switch(human) {
-                case "Spine":return new Vector3(chest*.35f,0,lean*.35f);
-                case "Chest":return new Vector3(chest*.65f,0,lean*.65f);
+                case "Spine":return new Vector3(chest*.35f,twist*.4f,lean*.35f);
+                case "Chest":return new Vector3(chest*.65f,twist*.6f,lean*.65f);
                 case "Neck":return new Vector3(pitch*.3f,yaw*.3f,roll*.3f);
                 case "Head":return new Vector3(pitch*.7f,yaw*.7f,roll*.7f);
-                case "LeftShoulder":case "RightShoulder":return new Vector3(0,0,side*open*.2f);
-                case "LeftUpperArm":case "RightUpperArm":return new Vector3(-elbow*.14f,0,side*open*(gesture=="welcome" || gesture=="encourage"?(left?.32f:1):1));
-                case "LeftLowerArm":case "RightLowerArm":return new Vector3(-elbow*(gesture=="welcome" || gesture=="encourage"?(left?.25f:1):(left?1:.82f)),0,0);
-                case "LeftHand":case "RightHand":return new Vector3(0,gesture=="welcome" && !left?7*sway:0,gesture=="welcome" && !left?6*sway:0);
+                case "LeftShoulder":case "RightShoulder":return new Vector3(-forward*.14f,0,side*open*.16f);
+                case "LeftUpperArm":case "RightUpperArm":return new Vector3(-forward,0,side*open);
+                case "LeftLowerArm":case "RightLowerArm":return new Vector3(-Mathf.Clamp(elbow,0,72),0,0);
+                case "LeftHand":case "RightHand":return new Vector3(0,side*wrist*.5f,side*wrist*.35f+(!left?12*wave:0));
                 default:return Vector3.zero;
             }
         }

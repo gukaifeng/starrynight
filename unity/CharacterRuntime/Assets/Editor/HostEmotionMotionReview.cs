@@ -11,12 +11,48 @@ public static class HostEmotionMotionReview
     [Serializable] sealed class Row {public string actor,gesture,expression;public int hz;public float peakDegrees,maxFrameDegrees,maxAuthorFrameDegrees,maxCombinedFrameDegrees,maxWristTravel;}
     [Serializable] sealed class Report {public string scope="Host-only upper body; original Animator, masks, cancel/rebind, 60/120 Hz numerical sampling. Not device FPS.";public int assertions;public List<Row> samples=new List<Row>();}
     static Report report;
-    static string Output=>Path.Combine(CharacterPackageBuilder.Root,".local/checks/host-emotion-motion");
+    static bool capture=true;
+    static string Output=>Path.Combine(CharacterPackageBuilder.Root,".local/checks/host-emotion-motion-v3");
     static void Check(bool ok,string label){if(!ok)throw new Exception("HOST_EMOTION_REVIEW: "+label);report.assertions++;}
     public static void BuildAndReview(){BuildIos.Setup();BuildIos.Validate();Run();}
+    public static void RunNumerical(){capture=false;Run();}
+    public static void CaptureGallery()
+    {
+        Directory.CreateDirectory(Output);
+        EditorSceneManager.OpenScene("Assets/Scenes/ViewerScene.unity");
+        var viewer=UnityEngine.Object.FindFirstObjectByType<ViewerController>();
+        foreach(var c in viewer.characters)c.gameObject.SetActive(false);
+        foreach(var source in viewer.characters.Where(c=>new[]{"anime-chiffon","anime-hikarun","anime-ichigo","anime-lime"}.Contains(c.modelId))) {
+            var c=UnityEngine.Object.Instantiate(source);c.gameObject.SetActive(true);c.ApplyContract();
+            var host=new GameObject("HostEmotionGallery");var driver=host.AddComponent<HostEmotionMotion>();
+            try {
+                var author=c.GetComponent<AvatarControlDriver>();
+                foreach(string gesture in new[]{"welcome","happy","curious","shy","celebrate","comfort","disagree","stretch"}) {
+                    driver.Bind(c,null);if(author){author.Reset();author.animator.Update(.02f);}
+                    driver.Configure(true);driver.Request(gesture,true);
+                    driver.Step(0);Capture(c,viewer.viewCamera,gesture+"-start");
+                    for(int i=0;i<Mathf.RoundToInt(60*HostEmotionMotion.Duration(gesture)*.43f);i++) {
+                        driver.RestorePose();if(author)author.animator.Update(1f/60);driver.Step(1f/60);
+                    }
+                    Capture(c,viewer.viewCamera,gesture+"-peak");
+                    driver.Clear();
+                }
+                Debug.Log("HOST_EMOTION_GALLERY_ROLE_PASS "+c.modelId);
+            } finally {driver.Clear();UnityEngine.Object.DestroyImmediate(host);UnityEngine.Object.DestroyImmediate(c.gameObject);}
+        }
+        Debug.Log("HOST_EMOTION_GALLERY_PASS");
+    }
     public static void Run()
     {
         report=new Report();Directory.CreateDirectory(Output);
+        Check(HostEmotionMotion.Gestures.Length==48,"48 distinct combinations");
+        Check(HostEmotionGestureLibrary.Catalog.groups.Length==8,"eight companion contexts");
+        foreach(string gesture in HostEmotionMotion.Gestures) {
+            foreach(string joint in HostEmotionMotionBuilder.Joints.Concat(new[]{"LeftHand","RightHand"})) {
+                Check(HostEmotionMotion.Sample(gesture,joint,0)==Vector3.zero,"neutral start "+gesture);
+                Check(HostEmotionMotion.Sample(gesture,joint,HostEmotionMotion.Duration(gesture))==Vector3.zero,"neutral end "+gesture);
+            }
+        }
         EditorSceneManager.OpenScene("Assets/Scenes/ViewerScene.unity");
         var viewer=UnityEngine.Object.FindFirstObjectByType<ViewerController>();
         foreach(var c in viewer.characters)c.gameObject.SetActive(false);
@@ -36,7 +72,8 @@ public static class HostEmotionMotionReview
                     var rig=c.GetComponent<HostEmotionRig>();
                     var feet=new[]{rig.leftFoot,rig.rightFoot};Check(feet.All(t=>t),c.modelId+" both feet mapped");
                     var hands=new[]{rig.leftHand,rig.rightHand};Check(hands.All(t=>t),c.modelId+" both wrists mapped");
-                    Check(rig.faces.Length==10,c.modelId+" ten expression combinations");
+                    Check(rig.faces.Length==10,c.modelId+" retained author-face palette");
+                    Check(driver.State.gestureCount==48,"new catalog on old calibration");
                     var rootPosition=c.transform.position;var rootScale=c.transform.localScale;var rootRotation=c.transform.rotation;
                     foreach(int hz in new[]{60,120})foreach(string gesture in HostEmotionMotion.Gestures) {
                         driver.Clear();driver.Bind(c,null);driver.Configure(true);
@@ -69,11 +106,13 @@ public static class HostEmotionMotionReview
                                 Check(Vector3.Distance(feet[i].position,feetStart[i])<.0001f,c.modelId+" planted feet");
                                 row.maxWristTravel=Mathf.Max(row.maxWristTravel,Vector3.Distance(hands[i].position,handStart[i]));
                             }
-                            if(hz==60 && (frame==0 || frame==80))Capture(c,viewer.viewCamera,gesture+"-"+frame);
+                            if(capture && hz==60 && new[]{"anime-chiffon","anime-hikarun","anime-ichigo","anime-lime"}.Contains(c.modelId) &&
+                               new[]{"welcome","happy","curious","shy","celebrate","comfort","disagree","stretch"}.Contains(gesture) &&
+                               (frame==0 || frame==Mathf.RoundToInt(hz*HostEmotionMotion.Duration(gesture)*.43f)))Capture(c,viewer.viewCamera,gesture+"-"+frame);
                             if(gesture=="happy" && frame==Mathf.RoundToInt(hz*1.5f))
                                 Check(Vector3.Distance(hands[0].position,hands[1].position)>wristGap+.02f,c.modelId+" sleeves open away from body");
                         }
-                        Check(row.peakDegrees>4 && row.peakDegrees<40,c.modelId+" useful bounded motion");
+                        Check(row.peakDegrees>12 && row.peakDegrees<73,c.modelId+" useful bounded motion "+gesture+" "+row.peakDegrees);
                         Check(row.maxFrameDegrees<2.2f,c.modelId+" no frame snaps "+row.maxFrameDegrees);
                         Check(driver.State.gesture=="" && driver.State.completed==1,"natural return");
                         Check(c.transform.position==rootPosition && c.transform.rotation==rootRotation && c.transform.localScale==rootScale,"root invariant");
@@ -97,6 +136,15 @@ public static class HostEmotionMotionReview
                         author.Set("StandStyle",1);Check(driver.Request("happy",true)=="HOST_MOTION_AUTHOR_PRIORITY","original body pose wins");author.Reset();
                     }
                     Check(driver.CueOriginalExpression("")=="HOST_MOTION_DEVELOPER_ONLY","normal conversation cannot start added choreography");
+                    driver.ConfigureSpeech(true);driver.CueIntent("happy");
+                    Check(driver.State.gesture=="","cue cannot animate before audio");
+                    driver.SetSpeech(true);for(int i=0;i<10;i++)driver.Step(1f/60);
+                    Check(driver.State.automatic && driver.State.gesture.Length>0,"voice starts body and face together");
+                    for(int i=0;i<130;i++)driver.Step(1f/60);
+                    driver.CueIntent("curious");driver.SetSpeech(false);
+                    for(int i=0;i<70;i++)driver.Step(1f/60);
+                    Check(driver.State.gesture=="","voice stop releases and drops queued cue");
+                    driver.ConfigureSpeech(false);
                     Check(driver.Request("happy",true)==null,"manual preview still works");
                     driver.Step(.03f);driver.Clear();
                     var clean=rig.joints.Select(j=>j.bone.localRotation).ToArray();driver.Step(.03f);

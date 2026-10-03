@@ -467,6 +467,9 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
     }
     private func configureHostEmotionMotion() {
         signal(CharacterIntent(eventName:"host.motion.configure",intensity:HostEmotionMotionPreference.enabled ? 1 : 0))
+#if STARRY_TEST_TOOLS
+        signal(CharacterIntent(eventName:"host.motion.speech.configure",intensity:HostEmotionMotionPreference.speechLinked ? 1 : 0))
+#endif
     }
     @ObservationIgnored private var visualReceipts:[String:(trace:String,start:Double)]=[:]
     private func signal(_ intent: CharacterIntent,traceID:String?=nil) {

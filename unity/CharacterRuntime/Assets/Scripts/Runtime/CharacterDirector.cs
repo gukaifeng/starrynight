@@ -80,6 +80,8 @@ namespace ModelSpace
             {
                 case "host.motion.configure":
                     hostEmotionMotion.Configure(s.intensity>.5f);receipt.executed++;return Finish(receipt);
+                case "host.motion.speech.configure":
+                    hostEmotionMotion.ConfigureSpeech(s.intensity>.5f);receipt.executed++;return Finish(receipt);
                 case "host.motion.stop":
                     hostEmotionMotion.Cancel();receipt.executed++;return Finish(receipt);
                 case "host.motion.preview":case "host.motion.cue":
@@ -98,6 +100,7 @@ namespace ModelSpace
                     // Audio frames never cross back into the host (no mesh bake / JSON per audio sample).
                     State.lastEvent=s.eventName; return receipt;
                 case "state.listening": case "state.thinking": case "state.speaking": case "state.idle":
+                    hostEmotionMotion.SetSpeech(s.eventName=="state.speaking");
                     speech.SetState(s.eventName.Substring(6)); break;
                 case "action.request":
                     var action=Array.Find(manifest.actions,a=>a.id==s.target || a.semantic==s.target);
@@ -121,7 +124,14 @@ namespace ModelSpace
                     string performanceError=s.eventName=="performance.select" ? performance.Select(s.target,s.intensity) :
                         s.eventName=="performance.replace" ? performance.Replace(s.target,s.selections) : performance.Reset(s.target);
                     if(performanceError!=null) {receipt.status="rejected";receipt.code=performanceError;}
-                    else receipt.executed++;
+                    else {
+                        receipt.executed++;
+                        // Reuse already selected authored expression semantics;
+                        // no new AI request, gesture remains an independent opt-in.
+                        if(s.eventName=="performance.select")hostEmotionMotion.CueOriginalExpression(s.target);
+                        else if(s.eventName=="performance.replace" && s.selections!=null)
+                            foreach(string option in s.selections)hostEmotionMotion.CueOriginalExpression(option);
+                    }
                     return Finish(receipt);
             }
             bool matched=false;
@@ -199,7 +209,7 @@ namespace ModelSpace
         void Update() { if(manifest!=null) Tick(Time.unscaledTime); }
         void Cancel()
         {
-            if(hostEmotionMotion)hostEmotionMotion.Cancel();
+            if(hostEmotionMotion){hostEmotionMotion.SetSpeech(false);hostEmotionMotion.Cancel();}
             pending.Clear(); leases.Clear(); actions?.ReturnToIdle(); expressions?.Set("neutral",0); effects?.Stop();
             speech?.SetState("idle"); speech?.SetMouth(0); if(gaze) gaze.Attention=1;
             State.expression="neutral"; State.effect="";
