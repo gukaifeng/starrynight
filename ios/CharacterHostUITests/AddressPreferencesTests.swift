@@ -4,7 +4,7 @@ final class AddressPreferencesTests:XCTestCase {
     @MainActor func testGlobalDefaultRoleOverrideAndInheritance() {
         continueAfterFailure = false
         let app = XCUIApplication()
-        app.launchArguments = ["--ui-testing","--companion-testing","--auth-testing"]
+        app.launchArguments = ["--ui-testing","--companion-testing","--auth-testing","-starry.app.language.v1","zh-Hans"]
         app.launch(); defer { app.terminate() }
         XCTAssertTrue(app.buttons["tab-mine"].waitForExistence(timeout:75))
         openDefault(app)

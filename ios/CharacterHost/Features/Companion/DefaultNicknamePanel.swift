@@ -3,13 +3,15 @@ import SwiftUI
 struct DefaultNicknamePanel: View {
     let store:CompanionStore
     let models:[ModelDescriptor]
+    let portraits:CharacterPortraitStore
     @State private var nickname:String
     @State private var originalNickname:String
     @State private var roleNames:[String:String]
     @State private var originalRoleNames:[String:String]
     @Environment(\.softPanelCloseRequest) private var close
-    init(store:CompanionStore,models:[ModelDescriptor]=[]) {
+    init(store:CompanionStore,models:[ModelDescriptor]=[],portraits:CharacterPortraitStore) {
         self.store = store
+        self.portraits = portraits
         var ids=Set<String>()
         let unique=models.filter{ids.insert($0.id).inserted}
         self.models=unique
@@ -40,22 +42,21 @@ struct DefaultNicknamePanel: View {
                             .font(.system(size:12)).foregroundStyle(Theme.secondary)
                             .accessibilityIdentifier("defaultNicknamePreview")
                     }.padding(18).background(Theme.surface.opacity(0.8),in:RoundedRectangle(cornerRadius:20))
-                    Text("专属称呼优先，留空就使用全局默认称呼。返回时保存。")
+                    Text("角色专属称呼会覆盖全局称呼，留空则使用全局称呼。返回时保存。")
                         .font(.system(size:12)).lineSpacing(5).foregroundStyle(Theme.secondary)
                     if !models.isEmpty {
                         Text("各角色的专属称呼").font(.system(size:14,weight:.medium))
                         LazyVStack(spacing:10) {
                             ForEach(models) {model in
-                                VStack(alignment:.leading,spacing:8) {
-                                    Text(store.record(model.id).profile.name).font(.system(size:14,weight:.medium))
-                                    TextField("留空使用全局默认称呼",text:Binding(get:{roleNames[model.id] ?? ""},set:{roleNames[model.id]=String($0.prefix(20))}))
-                                        .font(.system(size:15)).textInputAutocapitalization(.never).submitLabel(.done).onSubmit{save()}
-                                        .accessibilityIdentifier("roleNicknameInput-"+model.id)
-                                    let specific=TogetherPreferences.cleanNickname(roleNames[model.id] ?? "")
-                                    let effective=specific.isEmpty ? clean : specific
-                                    Text(effective.isEmpty ? "尚未设置称呼" : "实际称呼：\(effective)")
-                                        .font(.system(size:12)).foregroundStyle(Theme.secondary)
-                                        .accessibilityIdentifier("nicknameEffective-"+model.id)
+                                HStack(spacing:12) {
+                                    let profile=store.record(model.id).profile
+                                    CharacterAvatar(model:model,profile:profile,portraits:portraits,size:40,floatingEnabled:false)
+                                    VStack(alignment:.leading,spacing:8) {
+                                        Text(profile.name).font(.system(size:14,weight:.medium))
+                                        TextField("留空使用全局默认称呼",text:Binding(get:{roleNames[model.id] ?? ""},set:{roleNames[model.id]=String($0.prefix(20))}))
+                                            .font(.system(size:15)).textInputAutocapitalization(.never).submitLabel(.done).onSubmit{save()}
+                                            .accessibilityIdentifier("roleNicknameInput-"+model.id)
+                                    }
                                 }.padding(14).frame(maxWidth:.infinity,alignment:.leading)
                                     .background(Theme.surface.opacity(0.8),in:RoundedRectangle(cornerRadius:16))
                             }

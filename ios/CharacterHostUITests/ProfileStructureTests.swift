@@ -41,16 +41,18 @@ final class ProfileStructureTests:XCTestCase {
         let role=app.textFields.matching(NSPredicate(format:"identifier BEGINSWITH %@","roleNicknameInput-")).firstMatch
         XCTAssertTrue(global.waitForExistence(timeout:5));global.tap();global.typeText("Sky")
         XCTAssertTrue(role.exists)
-        let effective=app.staticTexts["nicknameEffective-"+String(role.identifier.dropFirst("roleNicknameInput-".count))]
+        XCTAssertFalse(app.staticTexts.matching(NSPredicate(format:"identifier BEGINSWITH %@","nicknameEffective-")).firstMatch.exists)
         for _ in 0..<3 {if role.isHittable {break};app.scrollViews.firstMatch.swipeUp()}
         role.tap();role.typeText("Captain")
-        XCTAssertTrue(effective.label.contains("Captain"))
+        XCTAssertEqual(role.value as? String,"Captain")
         app.buttons["closeDefaultNicknameButton"].tap();app.buttons["defaultNicknameSettingsButton"].tap()
         XCTAssertEqual(global.value as? String,"Sky");XCTAssertEqual(role.value as? String,"Captain")
         role.tap();role.typeText(String(repeating:XCUIKeyboardKey.delete.rawValue,count:7))
-        XCTAssertTrue(effective.label.contains("Sky"))
+        XCTAssertEqual(global.value as? String,"Sky")
         app.buttons["closeDefaultNicknameButton"].tap();app.buttons["defaultNicknameSettingsButton"].tap()
-        XCTAssertTrue(effective.label.contains("Sky"))
+        XCTAssertEqual(global.value as? String,"Sky")
+        XCTAssertEqual(role.value as? String,"留空使用全局默认称呼")
+        let shot=XCTAttachment(screenshot:app.screenshot());shot.name="nickname-role-avatars";shot.lifetime = .keepAlways;add(shot)
     }
     @MainActor func testNicknameAndAIAddressAreEditedIndependently() {
         continueAfterFailure=false

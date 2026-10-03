@@ -23238,6 +23238,29 @@
           }
         }
       }
+    },
+    "角色专属称呼会覆盖全局称呼，留空则使用全局称呼。返回时保存。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "角色专属称呼会覆盖全局称呼，留空则使用全局称呼。返回时保存。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "角色專屬稱呼會覆蓋全域稱呼，留空則使用全域稱呼。返回時儲存。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A character-specific name overrides your global name. Leave it blank to use the global name. Changes save when you go back."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

@@ -76,7 +76,7 @@ struct MyPage: View {
             }.padding(.horizontal,24).padding(.top,28).padding(.bottom,24)
         }.scrollIndicators(.hidden).background(Theme.background)
             .softSheet(isPresented:$showingNickname,height:860) {
-                DefaultNicknamePanel(store:coordinator.companionStore,models:coordinator.library.discover)
+                DefaultNicknamePanel(store:coordinator.companionStore,models:coordinator.library.discover,portraits:coordinator.portraits)
             }
             .softSheet(isPresented:$showingTools,height:860) {
                 NavigationStack {
@@ -327,7 +327,7 @@ struct ProfileSettingsView: View {
                     .environment(\.softPanelDismiss,{chatDisplayClose.request()}).transition(.opacity)
 #endif
             } else if showingNickname {
-                DefaultNicknamePanel(store:coordinator.companionStore,models:coordinator.library.discover)
+                DefaultNicknamePanel(store:coordinator.companionStore,models:coordinator.library.discover,portraits:coordinator.portraits)
                     .environment(\.softPanelCloseRequest,chatDisplayClose)
                     .environment(\.softPanelDismiss,{ chatDisplayClose.request() })
                     .transition(.opacity)
