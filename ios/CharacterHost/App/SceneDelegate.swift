@@ -9,9 +9,12 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     private var bootstrapTask:Task<Void,Never>?
     private var isolatedGoalFixture = false
     private var isolatedModelReviewCheck = false
+    private var pendingConversationURL:URL?
 
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
         guard let windowScene = scene as? UIWindowScene else { return }
+        pendingConversationURL=connectionOptions.urlContexts.first?.url
+        Task {await ActivityKitIslandSink.removeOrphans()}
         CharacterModelReview.configure()
         LaunchTrace.begin()
         let window = UIWindow(windowScene: windowScene)
@@ -57,6 +60,11 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 #endif
 #endif
 #if DEBUG && targetEnvironment(simulator)
+        if ProcessInfo.processInfo.arguments.contains("--island-system-preview") {
+            isolatedGoalFixture=true
+            window.rootViewController=LanguageHostingController(rootView:ConversationIslandFixture())
+            return
+        }
         if ProcessInfo.processInfo.arguments.contains("--download-confirmation-check") {
             isolatedGoalFixture=true
             window.rootViewController=LanguageHostingController(rootView:CharacterDownloadConfirmationCheckView())
@@ -241,6 +249,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
                 self?.startup?.finish { [weak self] in
                     guard let self else { return }
                     self.coordinator?.completeStartup()
+                    self.openPendingConversationURL()
                     self.startupWindow?.isHidden = true
                     self.startupWindow = nil; self.startup = nil
                     if self.coordinator?.page != .viewer { self.window?.makeKeyAndVisible() }
@@ -257,6 +266,19 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         startup?.setActive(true)
         if let windowScene = scene as? UIWindowScene { bootstrap(in:windowScene) }
         coordinator?.activate()
+        openPendingConversationURL()
+    }
+    func scene(_ scene:UIScene,openURLContexts URLContexts:Set<UIOpenURLContext>) {
+        pendingConversationURL=URLContexts.first?.url;openPendingConversationURL()
+    }
+    private func openPendingConversationURL() {
+        guard let coordinator,!coordinator.startupInProgress,let url=pendingConversationURL else {return}
+        pendingConversationURL=nil
+        guard let route=ConversationActivityAttributes.decodeRoute(url),
+              coordinator.library.model(route.character) != nil,
+              coordinator.companionStore.contains(route.character) else {return}
+        let message=route.message.flatMap {id in coordinator.companionStore.record(route.character).messages.contains {$0.id==id} ? id : nil}
+        coordinator.openCharacter(route.character,messageID:message,greetingReason:.conversationReturn)
     }
     func sceneWillResignActive(_ scene: UIScene) { startup?.setActive(false); coordinator?.deactivate() }
     func sceneDidEnterBackground(_ scene: UIScene) { coordinator?.enteredBackground() }

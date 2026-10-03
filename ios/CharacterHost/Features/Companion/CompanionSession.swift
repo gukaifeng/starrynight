@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import UIKit
 @MainActor private final class PreparedPlayback {var task:Task<Bool,Error>?}
 
 @MainActor @Observable
@@ -112,6 +113,9 @@ final class CompanionSession {
     @ObservationIgnored private var token = UUID()
     @ObservationIgnored private var activeTurn = false
     @ObservationIgnored private var activeUserMessageID:UUID?
+    @ObservationIgnored private var backgroundReplyTask:UIBackgroundTaskIdentifier = .invalid
+    @ObservationIgnored private var backgroundFinishTask:Task<Void,Never>?
+    @ObservationIgnored private var systemSpeechPaused=false
     @ObservationIgnored private var pendingGreeting: ConversationEntry?
     @ObservationIgnored private let ownerID: String
     @ObservationIgnored private var preparedNickname:String
@@ -149,6 +153,7 @@ final class CompanionSession {
     }
     func requestLogin() { dismissKeyboardRequest += 1; onLoginRequested?() }
     private func allowReply() -> Bool {
+        ConversationLiveActivity.debug("allowReply",["auth":String(api.requiresAuthentication),"guestLimit":String(isGuest && store.guestLimitReached),"previewOnly":String(model.isPreviewOnly)])
         if model.isPreviewOnly { return false }
         if api.requiresAuthentication { requestLogin(); return false }
         guard record.pendingDeletionID==nil else {notice="上次删除尚未完成，请在消息页重试删除。";return false}
@@ -222,6 +227,7 @@ final class CompanionSession {
         }
         speech.onBeat = { [weak self] id in
             guard let self,self.presentationActive,let beat = self.activeScript?.beats.first(where:{ $0.beatId == id }) else { return }
+            self.updateIsland(.speaking,emotion:beat.dialogue?.speech?.emotion)
             self.performedBeats.insert(id)
             self.dispatchVisuals(beat.visuals)
             self.replyReveal.advance(id,fraction:0)
@@ -297,7 +303,7 @@ final class CompanionSession {
                 if muted {playSilentVisuals(script);revealSilently(script);VoiceTimeline.shared.finish(trace)}
                 else {_ = try await speech.cachedReplay(script,messageID:id,traceID:trace);replyReveal.finish()}
                 guard token==current,store.accountID==ownerID else {return}
-                emit("state.idle");scheduleIdle()
+                emit("state.idle");finishBackgroundReply();scheduleIdle()
                 // Preparation is for future interactions, never for this opening.
                 scheduleReactionPreparation(delay:1)
             } catch {
@@ -307,6 +313,7 @@ final class CompanionSession {
                 // Missing package media is a build error. Never silently replace
                 // a first meeting with a paid/network-generated greeting.
                 notice="这份角色的开场语音尚未打包，文字与表情仍可查看。"
+                finishBackgroundReply()
             }
         }
     }
@@ -401,8 +408,67 @@ final class CompanionSession {
         scheduleReactionPreparation()
     }
     private func emit(_ name: String) {
+        // ActivityKit is independent from the 3D view's visibility. A hidden
+        // retained page can finish one pending reply without restarting it.
+        if activeTurn {
+            switch name {
+            case "turn.begin","state.thinking":updateIsland(.thinking)
+            case "state.speaking":updateIsland(.speaking)
+            case "state.idle":
+                // Microphone/engine shutdown also emits idle when the app
+                // backgrounds. It is not completion of a pending network turn.
+                if generating {updateIsland(.thinking)}
+                else if activeScript != nil {updateIsland(systemSpeechPaused ? .paused : .ready)}
+                else {ConversationLiveActivity.shared.end(turn:token)}
+            case "turn.cancel":ConversationLiveActivity.shared.end(turn:token)
+            default:break
+            }
+        }
         guard presentationActive else {return}
         onIntent?(CharacterIntent(eventName:name,turnId:activeTurn ? token.uuidString : ""))
+    }
+    private func updateIsland(_ phase:ConversationActivityAttributes.ContentState.Phase,emotion:String?=nil) {
+        let duration=activeScript?.beats.reduce(0.0) {$0+($1.readingDuration ?? max(1.8,Double($1.dialogue?.text.count ?? 0)/5.5))}
+        ConversationLiveActivity.shared.show(turn:token,model:model,phase:phase,
+            text:activeScript?.beats.compactMap {$0.dialogue?.text}.joined(separator:" "),
+            emotion:emotion ?? activeScript?.beats.first?.dialogue?.speech?.emotion ?? "neutral",
+            messageID:activeScript?.messageId,duration:duration)
+    }
+    /// iOS grants bounded completion time, not a persistent background service.
+    /// Keep an existing turn only; no idle or preparation calls run here.
+    func suspendForSystem() {
+        ConversationLiveActivity.debug("suspend",["generating":String(generating),"busy":String(speech.isBusy),"speaking":String(speech.isSpeaking),"task":String(task != nil)])
+        guard task != nil,(generating || speech.isBusy || speech.isSpeaking) else {return}
+        systemSpeechPaused = systemSpeechPaused || speech.isSpeaking
+        backgroundFinishTask?.cancel();backgroundFinishTask=nil
+        if backgroundReplyTask == .invalid {
+            backgroundReplyTask=UIApplication.shared.beginBackgroundTask(withName:"Finish StarryNight reply") { [weak self] in
+                Task { @MainActor in
+                    guard let self else {return}
+                    ConversationLiveActivity.debug("backgroundExpired")
+                    let pending=self.activeScript == nil ? self.activeUserMessageID : nil
+                    self.stop()
+                    self.updateDelivery(pending,state:"failed",error:"iOS 已结束这次后台处理，尚未收到回复。回到会话后，点感叹号重发即可继续。")
+                }
+            }
+            ConversationLiveActivity.debug("backgroundStarted",["id":String(backgroundReplyTask.rawValue),"remaining":String(UIApplication.shared.backgroundTimeRemaining)])
+        }
+        if speech.isSpeaking {updateIsland(.paused)}
+    }
+    func resumeFromSystem() {systemSpeechPaused=false;endBackgroundReply()}
+    private func finishBackgroundReply() {
+        guard backgroundReplyTask != .invalid else {return}
+        backgroundFinishTask?.cancel()
+        let current=token
+        backgroundFinishTask=Task { @MainActor [weak self] in
+            do {try await Task.sleep(for:.seconds(ConversationLiveActivity.completionLinger+1))} catch {return}
+            guard let self,self.token==current else {return};self.endBackgroundReply()
+        }
+    }
+    private func endBackgroundReply() {
+        backgroundFinishTask?.cancel();backgroundFinishTask=nil
+        let id=backgroundReplyTask;backgroundReplyTask = .invalid
+        if id != .invalid {UIApplication.shared.endBackgroundTask(id)}
     }
     private func beginTurn() { activeTurn = true; emit("turn.begin") }
     func requestBody(_ text:String,trigger:String)->[String:Any] {
@@ -599,6 +665,7 @@ final class CompanionSession {
                 // Each group has its own bounded restore timer. Finishing a
                 // short utterance must not immediately erase its expression.
                 emit("state.idle")
+                finishBackgroundReply()
                 if reactionPreparationTask==nil {scheduleReactionPreparation(delay:0.2)}
                 scheduleIdle()
             } catch {
@@ -609,6 +676,7 @@ final class CompanionSession {
                 if received, let script=activeScript { playSilentVisuals(script) }
                 else { onEndAIVisual?() }
                 emit("state.idle")
+                finishBackgroundReply()
                 if error is CancellationError {
                     updateDelivery(userMessageID,state:received ? "answered" : "failed",error:received ? nil : "这次请求在设备上被中断，尚未收到回复。点感叹号可以重发。")
                     activeUserMessageID=nil
@@ -770,20 +838,24 @@ final class CompanionSession {
         task = Task { @MainActor [weak self] in
             guard let self else { return }
             do {
-                if try await speech.cachedReplay(script,messageID:message.id,traceID:voiceTrace) { playSilentVisuals(script); return }
+                if try await speech.cachedReplay(script,messageID:message.id,traceID:voiceTrace) { playSilentVisuals(script);finishBackgroundReply();return }
                 speech.prepare(message.id,script:script,traceID:voiceTrace)
                 try await api.events(path:"/v1/conversations/"+model.id+"/messages/"+script.messageId+"/audio",body:nil,traceID:voiceTrace) { [weak self] event in
                     guard let self, self.token == current else { throw CancellationError() }
                     try await self.speech.accept(event)
                 }
-                guard current == token else { return }; speech.finish(); playSilentVisuals(script)
+                guard current == token else { return }; speech.finish(); playSilentVisuals(script);finishBackgroundReply()
             } catch {
                 guard current == token, !Task.isCancelled else { return }
                 speech.stop(); playSilentVisuals(script); notice = (error as? LocalizedError)?.errorDescription ?? "语音暂时不可用。"
+                finishBackgroundReply()
             }
         }
     }
     func stop(preservePreparation:Bool = false) {
+        ConversationLiveActivity.shared.end(turn:token)
+        systemSpeechPaused=false
+        endBackgroundReply()
         VoiceTimeline.shared.finish(activeVoiceTrace,status:"cancelled");activeVoiceTrace=nil
         preparedReactionReady=[:]
         quickReplyTask?.cancel();quickReplyTask=nil;quickRepliesLoading=false

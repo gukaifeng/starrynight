@@ -812,6 +812,7 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
         signal(CharacterIntent(eventName:"action.request",target:action))
     }
     func activate() {
+        companion?.resumeFromSystem()
         let returning = !active && backgroundConversation
         active = true
         backgroundConversation = false
@@ -857,8 +858,8 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
         overlay?.cancelInspection()
         active = false
         windowHandoff.settle()
+        companion?.suspendForSystem()
         setConversationAudioActive(false)
-        companion?.stop()
         cancelPrewarm()
         captureTask?.cancel(); captureTask = nil
         UIApplication.shared.isIdleTimerDisabled = false

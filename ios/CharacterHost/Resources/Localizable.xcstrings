@@ -23100,6 +23100,144 @@
           }
         }
       }
+    },
+    "灵动岛陪伴": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "灵动岛陪伴"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "靈動島陪伴"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dynamic Island companion"
+          }
+        }
+      }
+    },
+    "显示这句对话": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "显示这句对话"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "顯示這句對話"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show a short reply preview"
+          }
+        }
+      }
+    },
+    "角色思考、轻声说话时，在灵动岛和锁屏陪你一小会儿。默认只显示状态，开启后才显示简短台词。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "角色思考、轻声说话时，在灵动岛和锁屏陪你一小会儿。默认只显示状态，开启后才显示简短台词。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "角色思考、輕聲說話時，在靈動島和鎖屏陪你一小會兒。預設只顯示狀態，開啟後才顯示簡短台詞。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stay close while your companion thinks or speaks, on the Dynamic Island and Lock Screen. Only status is shown unless you enable short reply previews."
+          }
+        }
+      }
+    },
+    "系统已允许实时活动": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "系统已允许实时活动"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "系統已允許即時動態"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Live Activities are allowed"
+          }
+        }
+      }
+    },
+    "系统未允许实时活动": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "系统未允许实时活动"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "系統未允許即時動態"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Live Activities are disabled by iOS"
+          }
+        }
+      }
+    },
+    "可在 iOS 设置中的星夜页面管理实时活动。切出 App 会暂停声音；仍在生成的回复会尽力完成，点灵动岛回到会话。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "可在 iOS 设置中的星夜页面管理实时活动。切出 App 会暂停声音；仍在生成的回复会尽力完成，点灵动岛回到会话。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "可在 iOS 設定中的星夜頁面管理即時動態。切出 App 會暫停聲音；仍在生成的回覆會盡力完成，點靈動島回到對話。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Manage Live Activities in iOS Settings for StarryNight. Voice pauses when you leave the app; a pending reply can finish within the background time iOS permits. Tap the island to return."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

@@ -69,7 +69,7 @@ def configuration(key, settings):
     configs = [obj(f'{key}:{name}','XCBuildConfiguration',name=name,buildSettings=dict(settings,**(
         {'SWIFT_OPTIMIZATION_LEVEL':'-Onone','GCC_OPTIMIZATION_LEVEL':'0','DEBUG_INFORMATION_FORMAT':'dwarf','SWIFT_ACTIVE_COMPILATION_CONDITIONS':'$(inherited) DEBUG'+(' STARRY_TEST_TOOLS' if test_tools else '')} if name=='Debug' else
         {'SWIFT_OPTIMIZATION_LEVEL':'-O','GCC_OPTIMIZATION_LEVEL':'s','DEBUG_INFORMATION_FORMAT':'dwarf-with-dsym','SWIFT_ACTIVE_COMPILATION_CONDITIONS':'$(inherited)'+(' STARRY_TEST_TOOLS' if test_tools else '')}))) for name in ['Debug','Release']]
-    if key in ('host','tests'):
+    if key in ('host','tests','island'):
         for config in configs: objects[config]['baseConfigurationReference'] = uid('base-config')
     return obj(key+':configs','XCConfigurationList',buildConfigurations=configs,defaultConfigurationIsVisible='0',defaultConfigurationName='Debug')
 
@@ -121,7 +121,7 @@ if args.native_ui_fixture:
 # Run the same pure Swift checks in the iOS runtime when local macOS executables
 # cannot launch. The SceneDelegate entry is DEBUG + simulator + explicit flag only.
 if args.platform == 'simulator':
-    for test_name in ['VoiceTimingChecks', 'CharacterResourceChecks', 'MessageConversationFixture', 'AppLanguageFixture', 'ConversationContinuityFixture', 'CharacterOpeningChecks', 'VoiceAtmosphereFixture', 'ReplyFlowFixture', 'ConversationGestureFixture', 'ConversationPresentationFixture', 'ChatComposerInputTests', 'CloudSpeechPlaybackTests', 'CompanionExperienceTests', 'ConversationGreetingTests', 'ConversationExportTests', 'CharacterLibraryTests', 'AuthorSubscriptionTests', 'CacheStorageTests', 'CharacterViewPresetTests', 'MarketplaceCoreTests']:
+    for test_name in ['ConversationIslandFixture', 'VoiceTimingChecks', 'CharacterResourceChecks', 'MessageConversationFixture', 'AppLanguageFixture', 'ConversationContinuityFixture', 'CharacterOpeningChecks', 'VoiceAtmosphereFixture', 'ReplyFlowFixture', 'ConversationGestureFixture', 'ConversationPresentationFixture', 'ChatComposerInputTests', 'CloudSpeechPlaybackTests', 'CompanionExperienceTests', 'ConversationGreetingTests', 'ConversationExportTests', 'CharacterLibraryTests', 'AuthorSubscriptionTests', 'CacheStorageTests', 'CharacterViewPresetTests', 'MarketplaceCoreTests']:
         relative=f'../scripts/tests/{test_name}.swift'
         ref=obj(relative,'PBXFileReference',lastKnownFileType='sourcecode.swift',path=relative,sourceTree='<group>')
         source_refs.append(ref); source_build.append(buildfile(relative,ref))
@@ -198,7 +198,7 @@ settings={'PRODUCT_NAME':'$(TARGET_NAME)','PRODUCT_BUNDLE_IDENTIFIER':'com.model
     'FRAMEWORK_SEARCH_PATHS':['$(inherited)','$(BUILT_PRODUCTS_DIR)'],
     'OTHER_LDFLAGS':['$(inherited)','-lc++','-framework','CoreML','-framework','Accelerate'],
     'GCC_ENABLE_CPP_EXCEPTIONS':'YES',
-    'CODE_SIGN_STYLE':'Automatic','CURRENT_PROJECT_VERSION':'132','MARKETING_VERSION':'0.101.0',
+    'CODE_SIGN_STYLE':'Automatic','CURRENT_PROJECT_VERSION':'133','MARKETING_VERSION':'0.102.0',
     'ENABLE_USER_SCRIPT_SANDBOXING':'NO','SUPPORTS_MACCATALYST':'NO','SWIFT_EMIT_LOC_STRINGS':'YES',
     'ARCHS':'arm64','ENABLE_DEBUG_DYLIB':'NO','ASSETCATALOG_COMPILER_APPICON_NAME':'AppIcon'}
 if args.native_ui_fixture:
@@ -206,6 +206,42 @@ if args.native_ui_fixture:
     objects[content_check]['shellScript']='set -e\nif [ "${CONFIGURATION}" != Debug ] || [ "${ACTION:-}" = install ]; then echo "error: Native UI fixture is simulator-test-only"; exit 1; fi\n'
 target=obj('host-target','PBXNativeTarget',name='CharacterHost',productName='CharacterHost',productType='com.apple.product-type.application',productReference=app,
     buildConfigurationList=configuration('host',settings),buildPhases=[content_check,sources,frameworks,resources,embed],buildRules=[],packageProductDependencies=[zip_product],dependencies=[] if args.native_ui_fixture else [dependency])
+
+# A data-only widget extension. Shared attributes have no host/Unity dependency;
+# small existing avatar thumbnails are the only character assets it bundles.
+shared_path='Shared/ConversationActivityAttributes.swift'
+shared_ref=obj(shared_path,'PBXFileReference',lastKnownFileType='sourcecode.swift',path=shared_path,sourceTree='<group>')
+source_refs.append(shared_ref);objects[sources]['files'].append(buildfile(shared_path,shared_ref))
+island_refs=[shared_ref];island_build=[buildfile('island:'+shared_path,shared_ref)]
+for path in sorted((ios/'ConversationIsland').glob('*.swift')):
+    relative=str(path.relative_to(ios))
+    ref=obj(relative,'PBXFileReference',lastKnownFileType='sourcecode.swift',path=relative,sourceTree='<group>')
+    island_refs.append(ref);island_build.append(buildfile('island:'+relative,ref))
+from stage_island_avatars import stage_island_avatars
+island_art=stage_island_avatars(ROOT)
+island_art_ref=obj('island-art','PBXFileReference',lastKnownFileType='folder.assetcatalog',path='../'+str(island_art.relative_to(ROOT)),sourceTree='<group>')
+island_refs.append(island_art_ref)
+island_product=obj('island-product','PBXFileReference',explicitFileType='wrapper.app-extension',path='ConversationIsland.appex',sourceTree='BUILT_PRODUCTS_DIR')
+island_sources=obj('island-sources','PBXSourcesBuildPhase',buildActionMask='2147483647',files=island_build,runOnlyForDeploymentPostprocessing='0')
+island_resources=obj('island-resources','PBXResourcesBuildPhase',buildActionMask='2147483647',files=[buildfile('island-art',island_art_ref)],runOnlyForDeploymentPostprocessing='0')
+island_frameworks=obj('island-frameworks','PBXFrameworksBuildPhase',buildActionMask='2147483647',files=[],runOnlyForDeploymentPostprocessing='0')
+island_settings={'PRODUCT_NAME':'$(TARGET_NAME)','PRODUCT_BUNDLE_IDENTIFIER':'com.modelspace.viewer.ConversationIsland',
+    'PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]':'$(MODELSPACE_DEVICE_BUNDLE_IDENTIFIER).ConversationIsland',
+    'INFOPLIST_FILE':'ConversationIsland/Info.plist','SWIFT_VERSION':'6.0','IPHONEOS_DEPLOYMENT_TARGET':'17.0',
+    'TARGETED_DEVICE_FAMILY':'1,2','SDKROOT':sdk,'SUPPORTED_PLATFORMS':sdk,'CLANG_ENABLE_MODULES':'YES',
+    'CURRENT_PROJECT_VERSION':'133','MARKETING_VERSION':'0.102.0','CODE_SIGN_STYLE':'Automatic',
+    'APPLICATION_EXTENSION_API_ONLY':'YES','SKIP_INSTALL':'YES','ARCHS':'arm64',
+    'LD_RUNPATH_SEARCH_PATHS':['$(inherited)','@executable_path/Frameworks','@executable_path/../../Frameworks']}
+if args.native_ui_fixture:island_settings['PRODUCT_BUNDLE_IDENTIFIER']='app.starrynight.native-ui-fixture.ConversationIsland'
+island_target=obj('island-target','PBXNativeTarget',name='ConversationIsland',productName='ConversationIsland',
+    productType='com.apple.product-type.app-extension',productReference=island_product,
+    buildConfigurationList=configuration('island',island_settings),buildPhases=[island_sources,island_frameworks,island_resources],buildRules=[],dependencies=[])
+island_proxy=obj('island-proxy','PBXContainerItemProxy',containerPortal=uid('project'),proxyType='1',remoteGlobalIDString=island_target,remoteInfo='ConversationIsland')
+island_dependency=obj('island-dependency','PBXTargetDependency',target=island_target,targetProxy=island_proxy)
+objects[target]['dependencies'].append(island_dependency)
+island_embed=obj('island-embed','PBXCopyFilesBuildPhase',buildActionMask='2147483647',dstPath='',dstSubfolderSpec='13',
+    name='Embed Live Activity Extension',files=[buildfile('island-embed',island_product,settings={'ATTRIBUTES':['RemoveHeadersOnCopy']})],runOnlyForDeploymentPostprocessing='0')
+objects[target]['buildPhases'].append(island_embed);objects[products]['children'].append(island_product)
 
 # Native UI tests exercise the real installed app, including Unity's touch surface.
 test_refs=[]; test_build=[]
@@ -240,10 +276,10 @@ test_target=obj('test-target','PBXNativeTarget',name='CharacterHostUITests',prod
     buildConfigurationList=configuration('tests',test_settings),buildPhases=[test_sources,test_frameworks,test_resources],buildRules=[],dependencies=[host_dependency])
 objects[products]['children'].append(test_product)
 base_config=obj('base-config','PBXFileReference',lastKnownFileType='text.xcconfig',path='Config/Base.xcconfig',sourceTree='<group>')
-main_group=obj('main-group','PBXGroup',children=source_refs+test_refs+[base_config]+([] if args.native_ui_fixture else [unity_ref])+[products],sourceTree='<group>')
+main_group=obj('main-group','PBXGroup',children=source_refs+island_refs[1:]+test_refs+[base_config]+([] if args.native_ui_fixture else [unity_ref])+[products],sourceTree='<group>')
 project=obj('project','PBXProject',attributes={'BuildIndependentTargetsInParallel':'YES','LastUpgradeCheck':'2640','TargetAttributes':{target:{'CreatedOnToolsVersion':'26.4'},test_target:{'CreatedOnToolsVersion':'26.4','TestTargetID':target}}},
     packageReferences=[zip_package],
-    buildConfigurationList=configuration('project',{'CLANG_ENABLE_MODULES':'YES','CLANG_ENABLE_OBJC_ARC':'YES'}),compatibilityVersion='Xcode 14.0',developmentRegion='zh-Hans',hasScannedForEncodings='0',knownRegions=['zh-Hans','zh-Hant','en','Base'],mainGroup=main_group,productRefGroup=products,projectDirPath='',projectRoot='',targets=[target,test_target],projectReferences=[] if args.native_ui_fixture else [{'ProductGroup':unity_products,'ProjectRef':unity_ref}])
+    buildConfigurationList=configuration('project',{'CLANG_ENABLE_MODULES':'YES','CLANG_ENABLE_OBJC_ARC':'YES'}),compatibilityVersion='Xcode 14.0',developmentRegion='zh-Hans',hasScannedForEncodings='0',knownRegions=['zh-Hans','zh-Hant','en','Base'],mainGroup=main_group,productRefGroup=products,projectDirPath='',projectRoot='',targets=[target,test_target,island_target],projectReferences=[] if args.native_ui_fixture else [{'ProductGroup':unity_products,'ProjectRef':unity_ref}])
 
 def pbx(value):
     if isinstance(value,dict): return '{\n'+''.join(f'{json.dumps(str(k))} = {pbx(v)};\n' for k,v in value.items())+'}'
@@ -280,6 +316,8 @@ info={'CFBundleDevelopmentRegion':'zh-Hans','CFBundleLocalizations':['zh-Hans','
     'NSPhotoLibraryUsageDescription':'选择照片作为星夜头像。你可以只允许选中的照片，也可以允许全部照片。',
     'NSLocalNetworkUsageDescription':'开发版连接同一网络中的星夜 AI 服务，完成真实对话和语音。',
     'NSAppTransportSecurity':{'NSAllowsLocalNetworking':True},
+    'NSSupportsLiveActivities':True,
+    'CFBundleURLTypes':[{'CFBundleURLName':'app.starrynight.conversation','CFBundleURLSchemes':['starrynight']}],
     'LSRequiresIPhoneOS':True,'UILaunchScreen':{'UIColorName':'LaunchNight'},'UIUserInterfaceStyle':'Dark',
     'UIApplicationSceneManifest':{'UIApplicationSupportsMultipleScenes':False,'UISceneConfigurations':{'UIWindowSceneSessionRoleApplication':[{'UISceneConfigurationName':'Model Space','UISceneDelegateClassName':'$(PRODUCT_MODULE_NAME).SceneDelegate'}]}},
     'UISupportedInterfaceOrientations':['UIInterfaceOrientationPortrait','UIInterfaceOrientationLandscapeLeft','UIInterfaceOrientationLandscapeRight'],

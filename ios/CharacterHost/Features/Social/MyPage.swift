@@ -378,6 +378,8 @@ struct ProfileSettingsView: View {
                         .accessibilityIdentifier("languageSettingsButton")
                     NavigationLink { ThemeSettingsView() } label: { Label("主题与样式",systemImage:"circle.lefthalf.filled") }
                         .accessibilityIdentifier("themeSettingsButton")
+                    NavigationLink { ConversationIslandSettingsView() } label: { Label("灵动岛陪伴",systemImage:"capsule") }
+                        .accessibilityIdentifier("islandSettingsButton")
                     NavigationLink { CacheSettingsView(coordinator:coordinator) } label: { Label("存储与缓存",systemImage:"internaldrive") }
                         .accessibilityIdentifier("cacheSettingsButton")
                     NavigationLink { AboutView(embedded:true) } label: { Label("关于星夜",systemImage:"info.circle") }

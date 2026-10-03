@@ -80,7 +80,11 @@ struct AIReplyPart: Codable, Sendable {
         return (kind == "dialogue" || kind == "narration") && !text.isEmpty && at.isFinite && (0...1).contains(at)
     }
 }
-struct AIDialogue: Codable, Sendable { var text: String }
+struct AIDialogue: Codable, Sendable {
+    struct Speech:Codable,Sendable {var emotion:String?}
+    var text: String
+    var speech:Speech? = nil
+}
 struct AIVocalEvent: Codable, Sendable { var event: String }
 struct AINarration: Codable, Sendable {
     var text: String; var mode: String; var grounding: String

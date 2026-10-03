@@ -12,7 +12,7 @@ final class ConversationContinuityTests:XCTestCase {
     @MainActor func testThinkingSurvivesTabReturnAndReplyFinishesOnce() {
         let app=launch();defer {app.terminate()}
         let input=app.textViews["chatInput"]
-        input.tap();input.typeText("Wait\n")
+        sendWait(input,app:app)
         XCTAssertTrue(app.images["streamingReply"].waitForExistence(timeout:5))
         app.buttons["tab-discover"].tap()
         XCTAssertTrue(app.buttons["tab-home"].waitForExistence(timeout:5));app.buttons["tab-home"].tap()
@@ -26,7 +26,7 @@ final class ConversationContinuityTests:XCTestCase {
     @MainActor func testHiddenReplyPersistsAndSuggestedSendAnimates() {
         let app=launch();defer {app.terminate()}
         let input=app.textViews["chatInput"]
-        input.tap();input.typeText("Wait\n")
+        sendWait(input,app:app)
         XCTAssertTrue(app.images["streamingReply"].waitForExistence(timeout:5))
         let role=app.characterRuntime["modelId"] as? String ?? "anime-chiffon"
         app.buttons["tab-messages"].tap()
@@ -56,6 +56,12 @@ final class ConversationContinuityTests:XCTestCase {
     @MainActor private func wait(_ timeout:Double,_ predicate:@escaping @MainActor ()->Bool) {
         let check=XCTNSPredicateExpectation(predicate:NSPredicate {_,_ in MainActor.assumeIsolated {predicate()}},object:nil)
         XCTAssertEqual(XCTWaiter.wait(for:[check],timeout:timeout),.completed)
+    }
+    @MainActor private func sendWait(_ input:XCUIElement,app:XCUIApplication) {
+        input.tap();input.typeText("Wait")
+        XCTAssertEqual(input.value as? String,"Wait")
+        let send=app.keyboards.buttons.matching(NSPredicate(format:"label IN %@",["发送","Send","send"])).firstMatch
+        XCTAssertTrue(send.waitForExistence(timeout:5));send.tap()
     }
     @MainActor private func capture(_ name:String) {
         let shot=XCTAttachment(screenshot:XCUIScreen.main.screenshot());shot.name=name;shot.lifetime = .keepAlways;add(shot)
