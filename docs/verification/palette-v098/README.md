@@ -59,4 +59,8 @@ iPhone 17 / iOS 26.4 模拟器：13 个内置角色逐一进入会话、读取�
 
 期间发现颜色页的容器 accessibilityIdentifier 传播至返回按钮，首次旧包测试不能找到关闭入口。修正容器语义，用独立且可见的颜色目录状态文本作为动态状态元素，避免状态标识覆盖控制；又修正测试在渐变子页挂载前读取快照的等待。失败记录保留于 `Palette-v098-Player` 和 `Palette-v098-Final`，最终操作/关闭/保存均复核通过。默认选择优先可见的头发材质，避免首次调色误选仅用于表情覆盖的 Face_effect。最新选择逻辑、原作通道切回整体和重启保留再次通过 59.563s，结果 `.local/checks/Palette-v098-Persistence.xcresult`。
 
-模拟器和设备 Unity 导出分别成功，设备 Release 0.98.0 / 129 的 Apple 签名编译成功。安装到 iPhone 的 30s 连接尝试超时；本机同时列出的 iPhone disconnected、iPad unavailable，没有宣称手机已升级。设备包留在 `.local/build/DeviceDerivedData/Build/Products/Release-iphoneos/CharacterHost.app`。真机不可用时继续模拟器；以上没有真机帧率测量。
+模拟器和设备 Unity 导出分别成功，设备 Release 0.98.0 / 129 的 Apple 签名编译成功。最初的 30s 连接尝试超时，当时 iPhone disconnected、iPad unavailable。用户于 2026-10-03 通知手机回到同一网络后，重新建立无线 tunnel；45s 安装尝试仍超时，但随后设备变为 available，实际读取旧版本为 0.96.0 / 127。沿用已签名设备包，不重复编译，改用足够的传输时限后，于约 14:10 无线安装成功。
+
+安装 JSON 的 outcome 为 success；随后独立查询手机 App 清单，确认 `com.gukaifeng.xiaoban.dev` 为 **0.98.0 / 129**。远程启动被 iOS 明确以 `Locked` 拒绝，原因是手机锁屏，安装本身已经完成；没有把安装成功描述为真机画面或性能验证通过。用户解锁后可直接打开 App。本机证据为 `.local/checks/device-install-v098-wireless.json`、`device-app-v098-installed.json`、`device-launch-v098-wireless.json`，保留在忽略目录。
+
+设备包留在 `.local/build/DeviceDerivedData/Build/Products/Release-iphoneos/CharacterHost.app`。以上实际画面、调色操作与持久化验证均来自 Editor/模拟器；本期没有真机帧率测量。
