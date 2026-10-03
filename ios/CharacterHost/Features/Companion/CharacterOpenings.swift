@@ -40,6 +40,7 @@ enum CharacterOpenings {
     private static let installed=OSAllocatedUnfairLock(initialState:[String:Package]())
     static func register(_ package:Package) {installed.withLock {$0[package.characterID]=package}}
     static func clearInstalled() {installed.withLock {$0.removeAll()}}
+    static func unregister(_ id:String) {installed.withLock {$0[id]=nil}}
     private static var packages:[Package] {
         let downloaded=installed.withLock {Array($0.values)}
         return bundled.filter {p in !downloaded.contains(where:{$0.characterID==p.characterID})} + downloaded

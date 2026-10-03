@@ -1,5 +1,19 @@
 # 自然待机与环境风（0.47）
 
+## 原作加法层转换与空状态（0.96）
+
+如果 Humanoid 片段先采样为绝对 Generic Transform 曲线，再放进 Animator 的 Additive 层，不能假定 Unity 会自动扣除原骨架参考姿态。Hikarun 原 Breathing 层在呼吸与空状态间反复切换时，旧转换会重复叠加 bind rotation，使髋部转约 88 度、躯干折叠。修复位于 `PortableAvatarControllerBuilder`，适用于所有角色的原作加法图；Override 图与原作手动片段不变。
+
+- 单独生成加法用途的 clip/blend tree：旋转为 `inverse(firstRotation) * sampleRotation`，位置为 `samplePosition - firstPosition`，缩放为 `sampleScale / firstScale`。不修改原始绝对片段，也不把整套动画图统一改为加法。
+- 对图中加法状态持有的骨路径取并集。每个加法片段（包括空状态、部分曲线状态和缺失 SDK 中性代理）明确写入 identity quaternion、零位移、单位缩放，再叠加自己的相对曲线；只修呼吸片段而不修空状态仍会横倒。曲线首帧参考语义须按作者图核对，后续遇到作者另设加法参考的图不能盲用首帧。
+- 重建控制器后重新保存引用它的 Package / Resources / Downloadable prefab，实际验证必须 `Rebind` 且 `layerCount > 0`。删除 controller 后仍使用旧 GUID 的 prefab 会产生“没有坏姿态”的假通过。
+- 用 `AvatarConversationPoseReview.Run` 检查当前发布名册：每个角色待机 10 秒，Hikarun 30 秒覆盖多次呼吸/空状态切换，并执行全部 `ai.automatic` 控件。设置 `STARRY_POSE_ASSERT=1`，输出放私有 `STARRY_POSE_REPORT`；它是 Editor 骨骼数值检查，不是设备 FPS 或所有原作特殊姿势的验收。
+- 继续做真实 Unity 模拟器的表现页面与选择/恢复验证。部分角色的首组只有 slider，不能因没有按钮就判定页面不可用。OSS 下载角色必须重建两个平台的 Bundle，发布新不可变 release；仅更新 App 不会修改已下载 Bundle。
+
+结果与原理见 [0.96 姿态与资源管理验收](../../../../docs/verification/conversation-pose-resources-v096/README.md)。
+
+## 既有待机适配
+
 用户2026-09-30明确授权新增自动眨眼、呼吸待机和环境风，覆盖早期“只保留原作、不加眨眼/微风”的限制。保留原始ZIP/Prefab/源动画，生成包可以增加明确标注的App适配，不应把旧限制作为要求用户再次批准的理由。
 
 入口为 `scripts/vrchat_autonomy.py`，由 `prepare_vrchat_characters.py` 重导调用。琪宝/豆日向包2.2.0，使用可选 [core.autonomy@1](../../../../docs/character-standard/07-natural-idle-standard.md)，保持API1.1、角色ID和用户数据。导入后必须真正Setup，再导出两平台；不靠修改stamp冒充更新。

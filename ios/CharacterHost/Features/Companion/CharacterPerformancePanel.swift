@@ -86,6 +86,7 @@ struct CharacterPerformancePanel: View {
     var onAdjust: (String, Double) -> Void = { _,_ in }
     var onVisibilityChanged: (Bool) -> Void = { _ in }
     var sourceLibrary=false
+    var onOpenPreview:(()->Void)? = nil
     @State private var selectedGroup = ""
     @State private var search=""
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -108,6 +109,15 @@ struct CharacterPerformancePanel: View {
                         .foregroundStyle(Theme.secondary).frame(minHeight:44).contentShape(Rectangle())
                 }.buttonStyle(.plain).disabled(!canSelect)
                     .accessibilityLabel("全部恢复默认").accessibilityIdentifier("performanceReset")
+            }
+            if let onOpenPreview {
+                HStack(spacing:10) {
+                    Text("已显示完整目录，进入角色会话后可手动预览。").font(.system(size:11)).foregroundStyle(Theme.secondary)
+                    Spacer(minLength:0)
+                    Button("进入预览",action:onOpenPreview).font(.system(size:11,weight:.medium)).accessibilityIdentifier("developerOpenConversation")
+                }.padding(.horizontal,18).padding(.bottom,8)
+            } else if !state.ready {
+                HStack(spacing:7) {ProgressView().controlSize(.mini);Text("正在同步角色表现…").font(.system(size:11)).foregroundStyle(Theme.secondary)}.padding(.bottom,8)
             }
             ScrollView(.horizontal) {
                 HStack(spacing:6) {

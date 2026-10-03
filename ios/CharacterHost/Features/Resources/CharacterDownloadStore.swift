@@ -51,7 +51,7 @@ actor CharacterDownloadStore {
     }
     struct Member:Codable,Sendable {let path,sha256:String;let size:Int64}
     enum Failure:LocalizedError {
-        case invalidManifest,invalidResponse,integrity,insufficientSpace,insecureURL
+        case invalidManifest,invalidResponse,integrity,insufficientSpace,insecureURL,inUse
         var errorDescription:String? {
             switch self {
             case .invalidManifest:"角色资源清单不兼容或不完整。"
@@ -59,6 +59,7 @@ actor CharacterDownloadStore {
             case .integrity:"角色资源校验失败，原有版本已保留。"
             case .insufficientSpace:"空间不足，请先清理缓存再下载。"
             case .insecureURL:"角色下载地址未通过安全检查。"
+            case .inUse:"角色资源正在使用，请稍后再试。"
             }
         }
     }
@@ -74,6 +75,44 @@ actor CharacterDownloadStore {
     nonisolated static func safeRelativePath(_ value:String)->Bool {
         !value.isEmpty && value.count<=240 && value.unicodeScalars.allSatisfy({CharacterSet(charactersIn:"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_./-").contains($0)}) && !value.hasPrefix("/") && !value.contains("\\") &&
         value.split(separator:"/",omittingEmptySubsequences:false).allSatisfy { !$0.isEmpty && $0 != "." && $0 != ".." }
+    }
+    struct Usage:Sendable,Identifiable {let id:String;let bytes:Int64;let installed:Bool;let downloading:Bool}
+    private func directory(_ id:String,accountID:String,platform:String)->URL {
+        let key=SHA256.hash(data:Data((accountID+"|"+id+"|"+platform).utf8)).map{String(format:"%02x",$0)}.joined()
+        return root.appendingPathComponent(key,isDirectory:true)
+    }
+    func usage(characterIDs:Set<String>,accountID:String,platform:String)throws->[Usage] {
+        guard !accountID.isEmpty,["ios","ios-simulator"].contains(platform) else {throw Failure.invalidManifest}
+        return try characterIDs.sorted().map {id in
+            let base=directory(id,accountID:accountID,platform:platform)
+            var bytes:Int64=0
+            if FileManager.default.fileExists(atPath:base.path) {
+                let keys:Set<URLResourceKey>=[.isRegularFileKey,.isSymbolicLinkKey,.fileSizeKey]
+                var failure:Error?
+                let files=FileManager.default.enumerator(at:base,includingPropertiesForKeys:Array(keys),options:[],errorHandler:{_,error in failure=error;return false})
+                while let file=files?.nextObject() as? URL {
+                    let values=try file.resourceValues(forKeys:keys)
+                    if values.isSymbolicLink==true {files?.skipDescendants();continue}
+                    if values.isRegularFile==true {bytes+=Int64(values.fileSize ?? 0)}
+                }
+                if let failure{throw failure}
+            }
+            return Usage(id:id,bytes:bytes,installed:try installed(characterID:id,accountID:accountID,platform:platform) != nil,
+                         downloading:inFlight.contains(base.lastPathComponent))
+        }
+    }
+    /// Account-scoped, including older releases and interrupted partials. Rename
+    /// first so a concurrent restore never sees half a package. Never touch chats.
+    func remove(characterID:String,accountID:String,platform:String)throws {
+        guard !characterID.isEmpty,!accountID.isEmpty,["ios","ios-simulator"].contains(platform) else {throw Failure.invalidManifest}
+        let base=directory(characterID,accountID:accountID,platform:platform)
+        guard !inFlight.contains(base.lastPathComponent) else {throw Failure.inUse}
+        guard FileManager.default.fileExists(atPath:base.path) else {return}
+        let values=try base.resourceValues(forKeys:[.isSymbolicLinkKey]);guard values.isSymbolicLink != true else {throw Failure.integrity}
+        let trash=root.appendingPathComponent("removed-"+UUID().uuidString,isDirectory:true)
+        try FileManager.default.moveItem(at:base,to:trash)
+        do {try FileManager.default.removeItem(at:trash)}
+        catch {try? FileManager.default.moveItem(at:trash,to:base);throw error}
     }
     func install(_ manifest:Manifest,accountID:String,progress:@escaping @Sendable (Double,String)->Void = {_,_ in}) async throws -> URL {
         guard manifest.schemaVersion==1,manifest.version>0,!manifest.characterId.isEmpty,!manifest.releaseId.isEmpty,["xcp/1","starry-runtime/1"].contains(manifest.runtimeVersion),

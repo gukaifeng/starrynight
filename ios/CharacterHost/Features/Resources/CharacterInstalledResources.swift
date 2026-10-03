@@ -15,6 +15,7 @@ enum CharacterInstalledResources {
         }
     }
     static func clear() {releases.withLock {$0.removeAll()};CharacterOpenings.clearInstalled();CharacterAtmosphere.clearInstalled()}
+    static func unregister(_ id:String) {releases.withLock {$0[id]=nil};CharacterOpenings.unregister(id);CharacterAtmosphere.unregister(id)}
     static func image(_ name:String,characterID:String)->URL? {
         guard ["cover","avatar"].contains(name) else{return nil}
         return releases.withLock {items in

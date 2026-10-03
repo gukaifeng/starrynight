@@ -16,6 +16,7 @@ struct CharacterStoreListing:Codable,Sendable,Identifiable {
     private(set) var states:[String:Phase]=[:]
     private(set) var error:String?
     private(set) var refreshing=false
+    private(set) var removing=Set<String>()
     private(set) var auditionID:String?
     @ObservationIgnored private var auditionEnd:Task<Void,Never>?
     @ObservationIgnored private var player:AVAudioPlayer?
@@ -67,10 +68,10 @@ struct CharacterStoreListing:Codable,Sendable,Identifiable {
     func needsInstallation(_ id:String)->Bool {requiresDownload(id) && (releases[id]==nil || (versions[id] ?? 0)<(listing(id)?.releaseVersion ?? 0))}
     func localRelease(_ id:String)->URL? {releases[id]}
     func restore(_ id:String,accountID:String) async throws->URL? {
-        guard owner==accountID else {throw CancellationError()}
+        guard owner==accountID,!removing.contains(id) else {throw CancellationError()}
         if let release=releases[id]{return release}
         guard let release=try await CharacterDownloadStore.shared.installed(characterID:id,accountID:accountID,platform:Self.platform) else {return nil}
-        guard owner==accountID else {throw CancellationError()}
+        guard owner==accountID,!removing.contains(id) else {throw CancellationError()}
         releases[id]=release;states[id] = .ready;CharacterInstalledResources.register(id,release:release)
         if let data=try? Data(contentsOf:release.appendingPathComponent("content/package.json")),let package=try? JSONDecoder().decode(CharacterDownloadStore.Package.self,from:data){versions[id]=package.version}
         return release
@@ -95,7 +96,9 @@ struct CharacterStoreListing:Codable,Sendable,Identifiable {
         } catch {self.error="商店暂时无法刷新，已下载的角色仍可使用。"}
     }
     func download(_ id:String,accountID:String) async throws->URL {
+        guard !removing.contains(id) else {throw CharacterDownloadStore.Failure.inUse}
         if let ready=try await restore(id,accountID:accountID),!needsInstallation(id){return ready}
+        guard owner==accountID,!removing.contains(id) else {throw CancellationError()}
         if let task=tasks[id]{return try await task.value}
         guard PlatformAPI.shared.activeSession?.user.id==accountID else {throw PlatformError.status(401)}
         states[id] = .downloading(0,"正在准备下载")
@@ -118,6 +121,18 @@ struct CharacterStoreListing:Codable,Sendable,Identifiable {
         }
     }
     func cancel(_ id:String){tasks[id]?.cancel()}
+    func remove(_ id:String,accountID:String,releaseRuntime:() async throws->Void) async throws {
+        guard owner==accountID,requiresDownload(id),!removing.contains(id) else {throw CharacterDownloadStore.Failure.inUse}
+        removing.insert(id);defer {removing.remove(id)}
+        if let task=tasks[id] {task.cancel();_ = try? await task.value}
+        guard owner==accountID else {throw CancellationError()}
+        try await releaseRuntime()
+        guard owner==accountID else {throw CancellationError()}
+        try await CharacterDownloadStore.shared.remove(characterID:id,accountID:accountID,platform:Self.platform)
+        tasks[id]=nil;releases[id]=nil;versions[id]=nil;states[id] = .missing
+        CharacterInstalledResources.unregister(id)
+        if auditionID==id {stopAudition()}
+    }
     func stopAudition(){auditionEnd?.cancel();auditionEnd=nil;player?.stop();player=nil;auditionID=nil}
     func audition(_ id:String) async {
         if auditionID==id{stopAudition();return};stopAudition();auditionID=id

@@ -50,9 +50,10 @@ final class CacheSettingsModel {
 }
 
 struct CacheSettingsView: View {
+    let coordinator:ViewerCoordinator
     @State private var model: CacheSettingsModel
     @Environment(\.scenePhase) private var scenePhase
-    init(coordinator: ViewerCoordinator) { _model = State(initialValue:CacheSettingsModel(coordinator:coordinator)) }
+    init(coordinator: ViewerCoordinator) {self.coordinator=coordinator; _model = State(initialValue:CacheSettingsModel(coordinator:coordinator)) }
     var body: some View {
         ScrollView {
             VStack(alignment:.leading,spacing:24) {
@@ -73,6 +74,16 @@ struct CacheSettingsView: View {
                 }.padding(.top,4)
                 Text("声音、头像和长图可以重新准备。清理不会删除聊天、账号、订阅或角色定制。")
                     .font(.system(size:13)).lineSpacing(4).foregroundStyle(Theme.secondary)
+                NavigationLink {CharacterResourceSettingsView(coordinator:coordinator)} label: {
+                    HStack(spacing:12) {
+                        Image(systemName:"square.stack.3d.up").font(.system(size:19,weight:.light)).foregroundStyle(Theme.peach).frame(width:30)
+                        VStack(alignment:.leading,spacing:5) {
+                            Text("角色资源").font(.system(size:14,weight:.medium))
+                            Text("查看下载占用 · 按角色删除本地资源").font(.system(size:11)).foregroundStyle(Theme.secondary)
+                        }
+                        Spacer();Image(systemName:"chevron.right").font(.system(size:10)).foregroundStyle(Theme.secondary)
+                    }.padding(16).background(Theme.surface,in:RoundedRectangle(cornerRadius:18))
+                }.buttonStyle(.plain).accessibilityIdentifier("characterResourceSettingsButton")
                 VStack(spacing:0) {
                     ForEach(model.snapshot?.categories ?? CacheCategory.allCases.map { CacheUsage(category:$0) }) { usage in
                         row(usage)

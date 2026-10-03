@@ -10,6 +10,31 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
     let assets = CharacterAssetLibrary.shared
     var downloadPromptID:String?
     var downloadError:String?
+    @ObservationIgnored private var downloadCheckID=UUID()
+    @ObservationIgnored private var removalRequests:[String:CheckedContinuation<Bool,Never>]=[:]
+    func removeDownloadedCharacter(_ id:String) async throws {
+        guard page == .home,selectedTab != .home else {throw CharacterDownloadStore.Failure.inUse}
+        let owner=library.accountID
+        try await assets.remove(id,accountID:owner) { [self] in
+            guard library.accountID==owner,page == .home else {throw CharacterDownloadStore.Failure.inUse}
+            cancelPrewarm();portraitTask?.cancel();portraitTask=nil
+            if selectedModel.runtimeID==id {discardConversation();frameReady=false}
+            guard bridge.started else {return}
+            guard ready else {throw CharacterDownloadStore.Failure.inUse}
+            let request=nextRequest()
+            bridge.setPaused(false)
+            let released=await withCheckedContinuation {continuation in
+                removalRequests[request]=continuation
+                send("removeCharacter",payload:["modelId":id],request:request)
+                Task { @MainActor [weak self] in
+                    try? await Task.sleep(for:.seconds(15))
+                    self?.removalRequests.removeValue(forKey:request)?.resume(returning:false)
+                }
+            }
+            if page == .home {bridge.setPaused(true)}
+            guard released else {throw CharacterDownloadStore.Failure.inUse}
+        }
+    }
     @ObservationIgnored private var platformSync:AccountSync?
     var selectedTab: AppTab = .home
     var loginPresented = false
@@ -182,6 +207,7 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
         prediction.visits = predictionDefaults.data(forKey:predictionKey).flatMap { try? JSONDecoder().decode([CharacterPrediction.Visit].self,from:$0) } ?? []
     }
     func accountChanged() {
+        downloadCheckID=UUID();downloadPromptID=nil
         loginPresented = false; pendingLogin = false
         pendingCharacter = nil; pendingMessage = nil; needsAccountActivation = true
         if page == .home { finishAccountActivation() }
@@ -195,12 +221,14 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
     }
     func requestLogin() {
         guard !account.isSignedIn else { return }
+        downloadCheckID=UUID();downloadPromptID=nil
         selectedTab = .mine
         if page == .home { loginPresented = true }
         else { pendingLogin = true; closeViewer() }
     }
     func navigate(_ tab:AppTab) {
         guard page != .closing else { return }
+        downloadCheckID=UUID();downloadPromptID=nil
         transitionSourceTab = tab == .home && selectedTab != .home ? selectedTab : nil
         selectedTab = tab; pendingCharacter = nil; pendingMessage = nil; pendingCustomizationID = nil
         if tab == .home {
@@ -213,11 +241,17 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
         else { schedulePrewarm() }
     }
     func openCharacter(_ id:String, messageID:UUID? = nil, customize:Bool = false, greetingReason:ConversationEntryReason? = nil, showInMessages:Bool = true) {
+        if let model=library.model(id),assets.removing.contains(model.runtimeID) {return}
+        let check=UUID();downloadCheckID=check
         if let model=library.model(id),assets.needsInstallation(model.runtimeID) {
             let owner=library.accountID
             Task { @MainActor [weak self] in
-                guard let self,self.library.accountID==owner else{return}
-                if (try? await self.assets.restore(model.runtimeID,accountID:owner)) != nil,!self.assets.needsInstallation(model.runtimeID) {
+                guard let self,self.library.accountID==owner,self.downloadCheckID==check else{return}
+                let existing=try? await self.assets.restore(model.runtimeID,accountID:owner)
+                // Restore can wait behind a download/scan. Never reopen an old
+                // upgrade prompt after the user navigated or chose another role.
+                guard self.library.accountID==owner,self.downloadCheckID==check else{return}
+                if existing != nil,!self.assets.needsInstallation(model.runtimeID) {
                     self.openCharacter(id,messageID:messageID,customize:customize,greetingReason:greetingReason,showInMessages:showInMessages)
                 }else {self.downloadPromptID=model.runtimeID}
             }
@@ -1040,6 +1074,8 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
             overlay?.setRuntimeFraming(event)
         }
         switch name {
+        case "characterRemoved","characterRemoveFailed":
+            if let request=event["requestId"] as? String {removalRequests.removeValue(forKey:request)?.resume(returning:name=="characterRemoved")}
         case "characterShaken","characterPinched":
             guard page == .viewer,desiredVisible,event["presentationId"] as? Int==presentation,
                   event["modelId"] as? String==selectedModel.runtimeID else {return}

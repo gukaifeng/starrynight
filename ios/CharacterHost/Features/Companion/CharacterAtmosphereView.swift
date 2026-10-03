@@ -12,6 +12,7 @@ struct CharacterAtmosphere:Decodable,Sendable {
     private static let installed=OSAllocatedUnfairLock(initialState:[String:Self]())
     static func register(_ recipe:Self) {installed.withLock {$0[recipe.id]=recipe}}
     static func clearInstalled() {installed.withLock {$0.removeAll()}}
+    static func unregister(_ id:String) {installed.withLock {$0[id]=nil}}
     static var all:[Self] {
         let downloaded=installed.withLock {Array($0.values)}
         return bundled.filter {r in !downloaded.contains(where:{$0.id==r.id})} + downloaded

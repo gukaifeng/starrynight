@@ -315,6 +315,31 @@ namespace ModelSpace
             characters=retained?new[]{retained,keep}:new[]{keep};
             ScheduleResourceRelease();
         }
+        IEnumerator RemoveInstalledCharacter(BridgeCommand command)
+        {
+            string id=command.payload?.modelId;
+            if(string.IsNullOrEmpty(id) || !downloads.ContainsKey(id)) {Emit("characterRemoved",command.requestId);yield break;}
+            // Fence all asynchronous loads before unloading. StopCoroutine alone
+            // cannot cancel Unity's native AssetBundle requests.
+            characterLoadSequence++;pendingCharacterLoad=null;
+            while(activeResourceLoads>0 || resourceUnload!=null && !resourceUnload.isDone)yield return null;
+            if(character && character.modelId==id) {
+                var fallback=characters.FirstOrDefault(c=>c && c.modelId!=id);
+                if(!fallback) {
+                    var load=Resources.LoadAsync<GameObject>("Characters/"+resourceCharacterIDs[0]);yield return load;
+                    if(!(load.asset is GameObject asset)){Emit("characterRemoveFailed",command.requestId);yield break;}
+                    var instance=Instantiate(asset);instance.SetActive(false);fallback=instance.GetComponent<ViewerCharacter>();
+                    characters=characters.Where(c=>c).Append(fallback).ToArray();
+                }
+                SelectModel(fallback.modelId,"");
+            }
+            foreach(var actor in characters.Where(c=>c && c.modelId==id))Destroy(actor.gameObject);
+            characters=characters.Where(c=>c && c.modelId!=id).ToArray();downloads.Remove(id);
+            CharacterImageBackdrop.Downloaded.Remove(id);
+            yield return null; // Destroy before unloading meshes/textures.
+            if(loadedBundles.TryGetValue(id,out var bundle)){bundle.Unload(true);loadedBundles.Remove(id);}
+            Emit("characterRemoved",command.requestId);ScheduleResourceRelease();
+        }
         void ScheduleResourceRelease() {if(!releaseScheduled && Application.isPlaying) {releaseScheduled=true;StartCoroutine(ReleaseCharacterResources());}}
         IEnumerator ReleaseCharacterResources() {
             yield return null;
@@ -748,6 +773,7 @@ namespace ModelSpace
                         }
                         downloads[installedID]=command.payload;Emit("characterInstalled",command.requestId);break;
                     case "selectModel": SelectModel(command.payload?.modelId, command.requestId); break;
+                    case "removeCharacter":StartCoroutine(RemoveInstalledCharacter(command));break;
                     case "prepareReveal":
                         if(pendingPresentation!=null) StopCoroutine(pendingPresentation);
                         pendingPresentation=StartCoroutine(PrepareReveal(command));

@@ -22686,6 +22686,420 @@
           }
         }
       }
+    },
+    "%lld 个角色随 App 内置，由 App 更新管理，不占上述下载空间。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 个角色随 App 内置，由 App 更新管理，不占上述下载空间。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 個角色隨 App 內建，由 App 更新管理，不占上述下載空間。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld characters are included with the app and managed by app updates. They are separate from downloaded storage."
+          }
+        }
+      }
+    },
+    "删除本地角色资源？": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除本地角色资源？"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "刪除本機角色資源？"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove local character resources?"
+          }
+        }
+      }
+    },
+    "删除资源": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除资源"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "刪除資源"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove resources"
+          }
+        }
+      }
+    },
+    "只移除“%@”的本机下载包。聊天、记忆和订阅会保留，再次进入会话需要重新下载。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "只移除“%@”的本机下载包。聊天、记忆和订阅会保留，再次进入会话需要重新下载。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "只移除「%@」的本機下載包。聊天、記憶和訂閱會保留，再次進入會話需要重新下載。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only the local package for “%@” is removed. Chats, memories and subscriptions are preserved. Download again before entering the conversation."
+          }
+        }
+      }
+    },
+    "在发现页把喜欢的角色带到身边后，\n可以在这里管理她的资源。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在发现页把喜欢的角色带到身边后，\n可以在这里管理她的资源。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在發現頁把喜歡的角色帶到身邊後，\n可以在這裡管理她的資源。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Download a character from Discover,\nthen manage their resources here."
+          }
+        }
+      }
+    },
+    "已下载角色资源": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已下载角色资源"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已下載角色資源"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Downloaded character resources"
+          }
+        }
+      }
+    },
+    "已就绪 · 含全部本地版本": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已就绪 · 含全部本地版本"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已就緒 · 含全部本機版本"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ready · Includes older local versions"
+          }
+        }
+      }
+    },
+    "已显示完整目录，进入角色会话后可手动预览。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已显示完整目录，进入角色会话后可手动预览。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已顯示完整目錄，進入角色會話後可手動預覽。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The full catalogue is shown. Open the conversation to preview performances."
+          }
+        }
+      }
+    },
+    "按角色管理模型、背景、音乐和配套资源。删除后仍保留聊天、记忆与订阅，下次相处时可重新下载。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "按角色管理模型、背景、音乐和配套资源。删除后仍保留聊天、记忆与订阅，下次相处时可重新下载。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "按角色管理模型、背景、音樂和配套資源。刪除後仍保留聊天、記憶與訂閱，下次相處時可重新下載。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Manage each character’s model, background, music and companion resources. Chats, memories and subscriptions stay with you. Download again whenever you wish."
+          }
+        }
+      }
+    },
+    "未完成的下载资源": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未完成的下载资源"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未完成的下載資源"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Incomplete download"
+          }
+        }
+      }
+    },
+    "查看下载占用 · 按角色删除本地资源": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "查看下载占用 · 按角色删除本地资源"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "查看下載用量 · 按角色刪除本機資源"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "View storage · Remove individual downloads"
+          }
+        }
+      }
+    },
+    "正在同步角色表现…": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在同步角色表现…"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在同步角色表現…"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Syncing performances…"
+          }
+        }
+      }
+    },
+    "角色资源": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "角色资源"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "角色資源"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Character resources"
+          }
+        }
+      }
+    },
+    "角色资源正在使用，请稍后再试。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "角色资源正在使用，请稍后再试。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "角色資源正在使用，請稍後再試。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Character resources are in use. Please try again shortly."
+          }
+        }
+      }
+    },
+    "还没有下载的角色": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "还没有下载的角色"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "還沒有下載的角色"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No downloaded characters yet"
+          }
+        }
+      }
+    },
+    "进入预览": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "进入预览"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "進入預覽"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open preview"
+          }
+        }
+      }
+    },
+    "部分角色资源暂时无法读取，请稍后重新计算。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "部分角色资源暂时无法读取，请稍后重新计算。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "部分角色資源暫時無法讀取，請稍後重新計算。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Some resources could not be read. Refresh storage to try again."
+          }
+        }
+      }
+    },
+    "重新计算角色资源": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新计算角色资源"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新計算角色資源"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Refresh character storage"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

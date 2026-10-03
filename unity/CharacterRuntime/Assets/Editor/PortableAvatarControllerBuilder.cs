@@ -130,6 +130,44 @@ public static class PortableAvatarControllerBuilder
             var clipSettings=AnimationUtility.GetAnimationClipSettings(clip);clipSettings.loopTime=source.loop;AnimationUtility.SetAnimationClipSettings(clip,clipSettings);clip.EnsureQuaternionContinuity();
             clips.Add(source.guid,clip);
         }
+        // Humanoid source samples are absolute Generic transform curves. Unity's
+        // additive humanoid reference metadata does not subtract that rest pose
+        // from these Generic curves. Bake explicit deltas ONLY for additive use;
+        // override clips and the original preview library stay absolute.
+        var additiveClips=new Dictionary<string,AnimationClip>();
+        AnimationClip AdditiveClip(string id,string graphID,HashSet<string> paths) {
+            string key=graphID+"/"+id;
+            if(additiveClips.TryGetValue(key,out var cached))return cached;
+            var source=motions.motions.FirstOrDefault(m=>m.guid==id);
+            var original=source!=null?clips[id]:neutralFX;
+            if(paths.Count==0)return original;
+            var clip=Own(UnityEngine.Object.Instantiate(original));clip.name=(source?.name??"Host neutral")+" / additive delta";
+            // Empty/partial additive states otherwise write the Generic rig's
+            // bind rotation as their default, folding the body between breaths.
+            // Anchor every channel owned by this additive graph to zero motion.
+            foreach(string path in paths) {
+                for(int axis=0;axis<4;axis++)AnimationUtility.SetEditorCurve(clip,EditorCurveBinding.FloatCurve(path,typeof(Transform),"m_LocalRotation."+"xyzw"[axis]),AnimationCurve.Constant(0,Mathf.Max(.01f,source?.duration??1),axis==3?1:0));
+                for(int axis=0;axis<3;axis++) {
+                    AnimationUtility.SetEditorCurve(clip,EditorCurveBinding.FloatCurve(path,typeof(Transform),"m_LocalPosition."+"xyz"[axis]),AnimationCurve.Constant(0,Mathf.Max(.01f,source?.duration??1),0));
+                    AnimationUtility.SetEditorCurve(clip,EditorCurveBinding.FloatCurve(path,typeof(Transform),"m_LocalScale."+"xyz"[axis]),AnimationCurve.Constant(0,Mathf.Max(.01f,source?.duration??1),1));
+                }
+            }
+            foreach(var track in source?.tracks??Array.Empty<Track>()) {
+                if(!string.IsNullOrEmpty(track.path) && !root.Find(track.path))continue;
+                var times=track.times?.Length>0?track.times:source.times;
+                for(int axis=0;axis<4;axis++) {
+                    var values=track.rotations.Select(q=>(Quaternion.Inverse(track.rotations[0])*q).normalized[axis]).ToArray();
+                    AnimationUtility.SetEditorCurve(clip,EditorCurveBinding.FloatCurve(track.path,typeof(Transform),"m_LocalRotation."+"xyzw"[axis]),Linear(times,values));
+                }
+                for(int axis=0;axis<3;axis++) {
+                    AnimationUtility.SetEditorCurve(clip,EditorCurveBinding.FloatCurve(track.path,typeof(Transform),"m_LocalPosition."+"xyz"[axis]),Linear(times,track.positions.Select(p=>p[axis]-track.positions[0][axis]).ToArray()));
+                    float baselineScale=track.scales[0][axis];
+                    if(Mathf.Abs(baselineScale)<.000001f)throw new Exception("AVATAR_ADDITIVE_ZERO_SCALE: "+source.name+"/"+track.path);
+                    AnimationUtility.SetEditorCurve(clip,EditorCurveBinding.FloatCurve(track.path,typeof(Transform),"m_LocalScale."+"xyz"[axis]),Linear(times,track.scales.Select(s=>s[axis]/baselineScale).ToArray()));
+                }
+            }
+            clip.EnsureQuaternionContinuity();additiveClips[key]=clip;return clip;
+        }
         var masks=new Dictionary<string,AvatarMask>();
         foreach(var source in data.masks)
         {
@@ -152,28 +190,40 @@ public static class PortableAvatarControllerBuilder
         var groups=new List<AvatarLayerGroup>();
         foreach(var graph in data.controllers)
         {
+            var graphMachines=graph.machines.ToDictionary(m=>m.id);
+            IEnumerable<string> DescendantStates(string id) => graphMachines[id].states.Concat(graphMachines[id].children.SelectMany(DescendantStates));
+            var additiveStates=new HashSet<string>(graph.layers.Where(l=>l.additive).SelectMany(l=>DescendantStates(l.root)));
+            var blendSpecs=graph.blends.ToDictionary(b=>b.id);
+            IEnumerable<string> Leaves(string id) => blendSpecs.TryGetValue(id,out var blend)?blend.children.SelectMany(c=>Leaves(c.motion)):new[]{id};
+            var additiveIDs=new HashSet<string>(graph.states.Where(s=>additiveStates.Contains(s.id)).SelectMany(s=>Leaves(s.motion)));
+            var additivePaths=new HashSet<string>(motions.motions.Where(m=>additiveIDs.Contains(m.guid)).SelectMany(m=>m.tracks.Select(t=>t.path)).Where(p=>string.IsNullOrEmpty(p) || root.Find(p)));
+            if(additiveIDs.Overlaps(data.baselineFallbackMotions??Array.Empty<string>()))
+                additivePaths.UnionWith(AnimationUtility.GetCurveBindings(baseline).Where(b=>b.type==typeof(Transform)).Select(b=>b.path));
             var machines=graph.machines.ToDictionary(m=>m.id,m=>Own(new AnimatorStateMachine {name=m.name}));
             var states=graph.states.ToDictionary(s=>s.id,s=>Own(new AnimatorState {name=s.name}));
             var blends=graph.blends.ToDictionary(b=>b.id,b=>Own(new BlendTree {name=b.name}));
-            Motion Resolve(string id)
+            var additiveBlends=graph.blends.Where(b=>additiveStates.Count>0).ToDictionary(b=>b.id,b=>Own(new BlendTree {name=b.name+" / additive"}));
+            Motion Resolve(string id,bool additive=false)
             {
                 if(string.IsNullOrEmpty(id) || id=="0")return null;
-                if(clips.TryGetValue(id,out var clip))return clip;
-                if(blends.TryGetValue(id,out var blend))return blend;
+                if(clips.TryGetValue(id,out var clip))return additive?AdditiveClip(id,graph.id,additivePaths):clip;
+                if(blends.TryGetValue(id,out var blend))return additive?additiveBlends[id]:blend;
                 // VRChat's FX playable excludes humanoid motion. A missing SDK
                 // neutral-hand proxy here must not inject a full-body pose above
                 // the Gesture playable and then drop it when a face is selected.
-                if((data.baselineFallbackMotions??Array.Empty<string>()).Contains(id))return graph.playable==5?neutralFX:baseline;
+                if((data.baselineFallbackMotions??Array.Empty<string>()).Contains(id))return additive?AdditiveClip(id,graph.id,additivePaths):graph.playable==5?neutralFX:baseline;
                 throw new Exception("AVATAR_MOTION_DEPENDENCY_MISSING: "+id);
             }
             foreach(var b in graph.blends)
             {
-                var tree=blends[b.id];tree.blendType=(BlendTreeType)b.kind;tree.blendParameter=b.x;tree.blendParameterY=b.y;tree.useAutomaticThresholds=false;tree.minThreshold=b.minimum;tree.maxThreshold=b.maximum;
-                tree.children=b.children.Select(c=>new ChildMotion {motion=Resolve(c.motion),threshold=c.threshold,position=new Vector2(c.x,c.y),timeScale=c.speed,cycleOffset=c.cycle,mirror=c.mirror,directBlendParameter=c.parameter}).ToArray();
+                foreach(bool additive in additiveStates.Count>0?new[]{false,true}:new[]{false}) {
+                    var tree=additive?additiveBlends[b.id]:blends[b.id];tree.blendType=(BlendTreeType)b.kind;tree.blendParameter=b.x;tree.blendParameterY=b.y;tree.useAutomaticThresholds=false;tree.minThreshold=b.minimum;tree.maxThreshold=b.maximum;
+                    tree.children=b.children.Select(c=>new ChildMotion {motion=Resolve(c.motion,additive),threshold=c.threshold,position=new Vector2(c.x,c.y),timeScale=c.speed,cycleOffset=c.cycle,mirror=c.mirror,directBlendParameter=c.parameter}).ToArray();
+                }
             }
             foreach(var s in graph.states)
             {
-                var state=states[s.id];state.motion=Resolve(s.motion);state.speed=s.speed;state.cycleOffset=s.cycle;state.writeDefaultValues=s.writeDefaults;state.mirror=s.mirror;
+                var state=states[s.id];state.motion=Resolve(s.motion,additiveStates.Contains(s.id));state.speed=s.speed;state.cycleOffset=s.cycle;state.writeDefaultValues=s.writeDefaults;state.mirror=s.mirror;
                 state.timeParameter=s.timeParameter;state.timeParameterActive=!string.IsNullOrEmpty(s.timeParameter);state.speedParameter=s.speedParameter;state.speedParameterActive=!string.IsNullOrEmpty(s.speedParameter);
                 if(s.behaviors?.Length>0)state.AddStateMachineBehaviour<AvatarStateBehavior>().operations=s.behaviors;
             }
@@ -249,5 +299,10 @@ public static class PortableAvatarControllerBuilder
         var animator=root.gameObject.AddComponent<Animator>();animator.runtimeAnimatorController=controller;animator.cullingMode=AnimatorCullingMode.AlwaysAnimate;animator.applyRootMotion=false;
         var driver=character.AddComponent<AvatarControlDriver>();driver.animator=animator;driver.profile=new AvatarControlProfile {parameters=data.parameters,controls=data.controls};driver.layerGroups=groups.ToArray();
         driver.Reset();EditorUtility.SetDirty(controller);
+    }
+    static AnimationCurve Linear(float[] times,float[] values) {
+        var curve=new AnimationCurve(times.Select((time,i)=>new Keyframe(time,values[i])).ToArray());
+        for(int i=0;i<times.Length;i++){AnimationUtility.SetKeyLeftTangentMode(curve,i,AnimationUtility.TangentMode.Linear);AnimationUtility.SetKeyRightTangentMode(curve,i,AnimationUtility.TangentMode.Linear);}
+        return curve;
     }
 }

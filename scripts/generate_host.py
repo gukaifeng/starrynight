@@ -116,7 +116,7 @@ if args.native_ui_fixture:
 # Run the same pure Swift checks in the iOS runtime when local macOS executables
 # cannot launch. The SceneDelegate entry is DEBUG + simulator + explicit flag only.
 if args.platform == 'simulator':
-    for test_name in ['MessageConversationFixture', 'AppLanguageFixture', 'ConversationContinuityFixture', 'CharacterOpeningChecks', 'VoiceAtmosphereFixture', 'ReplyFlowFixture', 'ConversationGestureFixture', 'ConversationPresentationFixture', 'ChatComposerInputTests', 'CloudSpeechPlaybackTests', 'CompanionExperienceTests', 'ConversationGreetingTests', 'ConversationExportTests', 'CharacterLibraryTests', 'AuthorSubscriptionTests', 'CacheStorageTests', 'CharacterViewPresetTests', 'MarketplaceCoreTests']:
+    for test_name in ['CharacterResourceChecks', 'MessageConversationFixture', 'AppLanguageFixture', 'ConversationContinuityFixture', 'CharacterOpeningChecks', 'VoiceAtmosphereFixture', 'ReplyFlowFixture', 'ConversationGestureFixture', 'ConversationPresentationFixture', 'ChatComposerInputTests', 'CloudSpeechPlaybackTests', 'CompanionExperienceTests', 'ConversationGreetingTests', 'ConversationExportTests', 'CharacterLibraryTests', 'AuthorSubscriptionTests', 'CacheStorageTests', 'CharacterViewPresetTests', 'MarketplaceCoreTests']:
         relative=f'../scripts/tests/{test_name}.swift'
         ref=obj(relative,'PBXFileReference',lastKnownFileType='sourcecode.swift',path=relative,sourceTree='<group>')
         source_refs.append(ref); source_build.append(buildfile(relative,ref))
@@ -193,7 +193,7 @@ settings={'PRODUCT_NAME':'$(TARGET_NAME)','PRODUCT_BUNDLE_IDENTIFIER':'com.model
     'FRAMEWORK_SEARCH_PATHS':['$(inherited)','$(BUILT_PRODUCTS_DIR)'],
     'OTHER_LDFLAGS':['$(inherited)','-lc++','-framework','CoreML','-framework','Accelerate'],
     'GCC_ENABLE_CPP_EXCEPTIONS':'YES',
-    'CODE_SIGN_STYLE':'Automatic','CURRENT_PROJECT_VERSION':'126','MARKETING_VERSION':'0.95.0',
+    'CODE_SIGN_STYLE':'Automatic','CURRENT_PROJECT_VERSION':'127','MARKETING_VERSION':'0.96.0',
     'ENABLE_USER_SCRIPT_SANDBOXING':'NO','SUPPORTS_MACCATALYST':'NO','SWIFT_EMIT_LOC_STRINGS':'YES',
     'ARCHS':'arm64','ENABLE_DEBUG_DYLIB':'NO','ASSETCATALOG_COMPILER_APPICON_NAME':'AppIcon'}
 if args.native_ui_fixture:

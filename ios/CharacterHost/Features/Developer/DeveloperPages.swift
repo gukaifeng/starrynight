@@ -13,6 +13,7 @@ struct CharacterDeveloperPanel:View {
     var onVisibility:(Bool)->Void = {_ in}
     var onOpenConversation:()->Void = {}
     @State private var destination:String?
+    @State private var catalogState=CharacterPerformanceState()
     @State private var childClose=SoftPanelCloseRequest()
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     private func open(_ value:String) {
@@ -32,9 +33,9 @@ struct CharacterDeveloperPanel:View {
             } else if destination == "motion",let state=performanceState {
                 HostEmotionMotionPanel(model:model,state:state)
                     .environment(\.softPanelCloseRequest,childClose).environment(\.softPanelDismiss,{childClose.request()}).transition(.opacity)
-            } else if (destination == "performance" || destination == "source"),let profile=model.performance,let state=performanceState {
-                CharacterPerformancePanel(model:model,profile:profile.scopedToSourceLibrary(destination == "source"),state:state,onSelect:onSelect,onReset:onReset,
-                    onAdjust:onAdjust,sourceLibrary:destination == "source")
+            } else if (destination == "performance" || destination == "source"),let profile=model.performance {
+                CharacterPerformancePanel(model:model,profile:profile.scopedToSourceLibrary(destination == "source"),state:performanceState ?? catalogState,onSelect:onSelect,onReset:onReset,
+                    onAdjust:onAdjust,onVisibilityChanged:onVisibility,sourceLibrary:destination == "source",onOpenPreview:performanceState == nil ? onOpenConversation : nil)
                     .environment(\.softPanelCloseRequest,childClose).environment(\.softPanelDismiss,{childClose.request()})
                     .transition(.opacity)
             } else {
@@ -48,13 +49,14 @@ struct CharacterDeveloperPanel:View {
                             if let state=performanceState,state.hostMotionSupported {
                                 DeveloperEntry(title:"动作实验",detail:"10 个通用身体与表情组合 · 仅手动预览",symbol:"figure.wave",id:"openHostEmotionMotion") {open("motion")}
                             }
-                            if performanceState != nil,model.performance != nil {
+                            if model.performance != nil {
                                 DeveloperEntry(title:"角色表现",detail:"手动检查原生表情、动作和物理能力",symbol:"theatermasks",id:"profilePerformanceButton") {open("performance")}
                                 if let library=model.performance?.scopedToSourceLibrary(true),!library.options.isEmpty {
                                     DeveloperEntry(title:"原作片段库",detail:"\(library.options.count) 个可绑定片段 · 肢体、表情与部件",symbol:"film.stack",id:"openSourceMotionLibrary") {open("source")}
                                 }
                             } else {
-                                DeveloperEntry(title:"角色表现",detail:"进入会话后，在开发者页面预览动作",symbol:"theatermasks",id:"developerOpenConversation",action:onOpenConversation)
+                                Text("当前角色的表现目录暂未就绪。请退出本页后重新进入会话；已下载的角色可在存储与缓存中重新下载资源。")
+                                    .font(.system(size:12)).foregroundStyle(Theme.secondary).accessibilityIdentifier("performanceCatalogUnavailable")
                             }
                             VStack(alignment:.leading,spacing:8) {
                                 Text("资源与能力").font(.system(size:14,weight:.medium))
