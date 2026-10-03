@@ -44,6 +44,10 @@ public static class HostEmotionMotionBuilder
             var bone=character.transform.Find("Avatar/"+geometry.human.Single(h=>h.human==human).path);
             return new HostEmotionRig.Joint {human=human,bone=bone,rest=bone.localRotation,axes=Quaternion.Inverse(bone.rotation)*character.transform.rotation};
         })).ToArray();
+        rig.naturalJoints=geometry.human.Where(h=>new[]{"Hips","LeftUpperLeg","LeftLowerLeg","LeftFoot","LeftToes","RightUpperLeg","RightLowerLeg","RightFoot","RightToes"}.Contains(h.human) || h.human.EndsWith("Proximal")).Select(h=>{
+            var bone=HumanBone(h.human);if(!bone)return null;
+            return new HostEmotionRig.Joint {human=h.human,bone=bone,rest=bone.localRotation,axes=Quaternion.Inverse(bone.rotation)*character.transform.rotation};
+        }).Where(j=>j!=null && j.bone).ToArray();
         if(!File.Exists(folder+"/source-motions.json.gz"))return;
         var library=JsonUtility.FromJson<SourceMotionLibraryBuilder.Library>(CharacterMotionData.Read(folder+"/source-motions.json"));
         var excluded=character.Manifest.speech.visemes.SelectMany(v=>v.bindings).Concat(character.Manifest.speech.amplitude).Select(b=>b.renderer+"/"+b.shape).ToHashSet();

@@ -3,8 +3,8 @@ using UnityEngine;
 
 namespace ModelSpace
 {
-    // HOST-EMOTION-EXPERIMENT v2. Generated calibration, never part of the
-    // author's XCP contract/controller. Removing the builder hook removes it.
+    // Shared host anatomical calibration. The optional emotion experiment and
+    // natural-body/collision layers reuse this map; never modifies source rigs.
     public sealed class HostEmotionRig : MonoBehaviour
     {
         [Serializable] public sealed class Joint
@@ -17,6 +17,9 @@ namespace ModelSpace
             public float lateralSign=1;
         }
         public Joint[] joints=Array.Empty<Joint>();
+        // Additive calibration for the shared natural-body layer. Old bundles
+        // keep their upper-body rig; runtime derives verified direct leg chains.
+        public Joint[] naturalJoints=Array.Empty<Joint>();
         [Serializable] public sealed class Face
         {
             public string gesture,label;

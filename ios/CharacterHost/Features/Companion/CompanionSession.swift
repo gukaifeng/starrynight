@@ -523,9 +523,11 @@ final class CompanionSession {
                     case "reply.visuals.updated":
                         guard let script=event.script,script.characterId==self.model.id,
                               self.activeScript?.messageId==script.messageId,let id=UUID(uuidString:script.messageId) else {return}
-                        // Update only replayable visual controls. Never restart
-                        // speech, change its text/parts or append late narration.
+                        // Optional annotations follow already validated speech;
+                        // update their reveal at the current audio fraction.
+                        // Playback/text never restart for a late visual patch.
                         self.activeScript=script
+                        self.replyReveal.update(script)
                         self.store.update(self.model.id) {record in
                             if let index=record.messages.firstIndex(where:{$0.id==id}) {record.messages[index].aiScript=script}
                         }

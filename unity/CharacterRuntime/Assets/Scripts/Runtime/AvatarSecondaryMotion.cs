@@ -57,6 +57,7 @@ namespace ModelSpace
         public Sphere[] colliders=Array.Empty<Sphere>();
         public Plane[] planes=Array.Empty<Plane>();
         public SecondaryPhysicsControl[] controls=Array.Empty<SecondaryPhysicsControl>();
+        [NonSerialized] public AvatarClothingClearance clothingClearance;
         public void ApplyControls(CharacterPerformanceDriver driver)
         {
             if(controls.Length==0)return;
@@ -132,6 +133,7 @@ namespace ModelSpace
             Vector3 flow=new Vector3(.72f*(float)Math.Sin(airClock*.72)+.28f*(float)Math.Sin(airClock*1.17+.65),0,
                 .32f*(float)Math.Sin(airClock*.47+1.2))*fade;
             WindStrands=0;
+            if(clothingClearance)clothingClearance.State.clothSegments=0;
             // Ordered root-to-tip chains; target includes the parent's solved pose.
             foreach(var strand in strands)
             {
@@ -145,6 +147,10 @@ namespace ModelSpace
                 Vector3 force=Vector3.zero;
                 bool cloth=strand.wind=="cloth";
                 bool hair=strand.wind=="hair" || (string.IsNullOrEmpty(strand.wind) && strand.isHair);
+                // Some source outfits have inertia-only accessory chains, with
+                // no wind classification. Their collision must still work.
+                bool guarded=!hair && clothingClearance;
+                if(guarded)clothingClearance.State.clothSegments++;
                 float airAngle=(cloth?Mathf.Clamp(ambientClothAngle,0,MaxClothAngle):hair?Mathf.Clamp(ambientHairAngle,0,MaxHairAngle):0)*Mathf.Deg2Rad;
                 if(airAngle>0)
                 {
@@ -165,12 +171,20 @@ namespace ModelSpace
                     foreach(var sphere in colliders)
                     {
                         if(!sphere.enabled || !sphere.bone || !Applies(strand,sphere.id))continue;
-                        Vector3 center=sphere.bone.TransformPoint(sphere.offset),delta=strand.point-center;
+                        Vector3 center=sphere.bone.TransformPoint(sphere.offset);
                         var scale=sphere.bone.lossyScale;
                         float colliderScale=sphere.localRadius?Mathf.Max(Mathf.Abs(scale.x),Mathf.Abs(scale.y),Mathf.Abs(scale.z)):Mathf.Abs(transform.lossyScale.x);
                         float radius=sphere.radius*colliderScale+strand.radius*Mathf.Abs(transform.lossyScale.x);
-                        if(delta.sqrMagnitude<radius*radius)
-                            strand.point=center+(delta.sqrMagnitude>.000001f?delta.normalized:(target-center).normalized)*radius;
+                        // Preserve author collider IDs, but constrain the entire
+                        // free segment, not just its end point.
+                        if(guarded) {
+                            float allowed=Mathf.Min(radius,SegmentDistance(origin,target,center,center));
+                            AvatarClothingClearance.ProjectSegment(origin,ref strand.point,center,center,allowed);
+                        } else {
+                            var delta=strand.point-center;
+                            if(delta.sqrMagnitude<radius*radius)
+                                strand.point=center+(delta.sqrMagnitude>.000001f?delta.normalized:(target-center).normalized)*radius;
+                        }
                     }
                     foreach(var plane in planes)
                     {
@@ -180,10 +194,23 @@ namespace ModelSpace
                         float radius=strand.radius*Mathf.Abs(transform.lossyScale.x);
                         if(distance<radius)strand.point+=normal*(radius-distance);
                     }
+                    if(guarded)clothingClearance.ProjectCloth(strand,origin,target,ref strand.point,strand.radius*Mathf.Abs(transform.lossyScale.x));
                 }
                 // Anatomical silhouette limit wins over an unsatisfiable collider;
                 // do not turn hair inside out trying to solve intersecting spheres.
                 Vector3 limited=LimitDirection(axis,strand.point-origin,length,strand.angle);
+                // Projection back to the angular cone can re-enter a collider.
+                // Reject that extra wind/inertia, returning towards the current
+                // authored pose, which may already contain intended overlaps.
+                if(guarded) {
+                    var end=origin+limited;
+                    for(int attempt=0;attempt<7;attempt++) {
+                        var probe=end;clothingClearance.ProjectCloth(strand,origin,target,ref probe,strand.radius*Mathf.Abs(transform.lossyScale.x));
+                        if((probe-end).sqrMagnitude<1e-10f)break;
+                        limited=LimitDirection(axis,Vector3.Lerp(limited,axis,.5f),length,strand.angle);end=origin+limited;
+                        if(attempt==6)limited=axis;
+                    }
+                }
                 // FromToRotation loses very small per-frame angles to dot-product
                 // rounding on short hair segments (especially at 120 Hz). atan2
                 // retains the cross-product signal instead of freezing the tip.
@@ -192,6 +219,7 @@ namespace ModelSpace
                 var rotation=sine>1e-8f?Quaternion.AngleAxis(Mathf.Atan2(sine,Vector3.Dot(from,to))*Mathf.Rad2Deg,cross/sine):Quaternion.identity;
                 strand.bone.rotation=rotation*strand.bone.rotation;
                 strand.point=strand.tip.position;
+                if(guarded)clothingClearance.MeasureCloth(strand,origin,target,strand.point);
                 if(hair)HairTravel+=Vector3.Distance(previousPoint,strand.point);
                 if(cloth)ClothTravel+=Vector3.Distance(previousPoint,strand.point);
                 // Constraints should not accumulate a velocity pushing forever
@@ -217,6 +245,10 @@ namespace ModelSpace
             if(angle<=limit)return to*length;
             var normal=sine>1e-8f?cross/sine:Vector3.Cross(from,Mathf.Abs(from.y)<.9f?Vector3.up:Vector3.right).normalized;
             return Quaternion.AngleAxis(limit,normal)*from*length;
+        }
+        static float SegmentDistance(Vector3 a,Vector3 b,Vector3 c,Vector3 d)
+        {
+            AvatarClothingClearance.ClosestSegments(a,b,c,d,out var p,out var q,out _);return Vector3.Distance(p,q);
         }
         void ClassifyAirResponse(Strand strand)
         {

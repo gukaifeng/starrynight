@@ -19,6 +19,7 @@ namespace ModelSpace
         CharacterAutonomy autonomy;
         AvatarControlDriver avatarControl;
         HostEmotionMotion hostEmotionMotion;
+        AvatarNaturalMotion naturalMotion;
         SourceMotionPreview sourceMotionPreview;
         CharacterPetFeedback petFeedback;
         public Action OnHostMotionChanged;
@@ -33,10 +34,11 @@ namespace ModelSpace
             state.avatarControlValues=avatarControl?avatarControl.Values:Array.Empty<CharacterParameterValue>();
             state.performanceTransitioning=performance && performance.Transitioning;state.autonomy=autonomy?autonomy.State:null;
             state.hostEmotionMotion=hostEmotionMotion?hostEmotionMotion.State:null;
+            state.naturalMotion=naturalMotion?naturalMotion.State:null;
             state.sourceMotionPreview=sourceMotionPreview?sourceMotionPreview.State:null;
             state.petMode=petFeedback?petFeedback.Mode:0;state.petReactions=petFeedback?petFeedback.ReactionCount:0;
             return state; } private set { state=value; } }
-        public void ClearPerformance() { if(hostEmotionMotion)hostEmotionMotion.Clear();if(sourceMotionPreview)sourceMotionPreview.Clear();if(autonomy)autonomy.Clear();if(performance)performance.Clear(); }
+        public void ClearPerformance() { if(hostEmotionMotion)hostEmotionMotion.Clear();if(naturalMotion)naturalMotion.Clear();if(sourceMotionPreview)sourceMotionPreview.Clear();if(autonomy)autonomy.Clear();if(performance)performance.Clear(); }
         public void Bind(ViewerCharacter character,CharacterActions actionSource,CompanionAvatarDriver speechSource,CharacterGaze gazeSource)
         {
             if(autonomy)autonomy.Clear();
@@ -56,6 +58,8 @@ namespace ModelSpace
             hostEmotionMotion=GetComponent<HostEmotionMotion>() ?? gameObject.AddComponent<HostEmotionMotion>();
             hostEmotionMotion.Bind(character,actions);
             hostEmotionMotion.OnChanged=()=>OnHostMotionChanged?.Invoke();
+            naturalMotion=GetComponent<AvatarNaturalMotion>()??gameObject.AddComponent<AvatarNaturalMotion>();
+            naturalMotion.Bind(character,actions,performance,hostEmotionMotion);
             sequence=localSequence=0; turn=""; seen.Clear(); seenOrder.Clear(); cooldowns.Clear();
             State=new CharacterPlatformState { packageVersion=manifest.packageVersion,expression="neutral",effect="" };
         }
@@ -101,6 +105,7 @@ namespace ModelSpace
                     State.lastEvent=s.eventName; return receipt;
                 case "state.listening": case "state.thinking": case "state.speaking": case "state.idle":
                     hostEmotionMotion.SetSpeech(s.eventName=="state.speaking");
+                    naturalMotion.SetSpeech(s.eventName=="state.speaking");
                     speech.SetState(s.eventName.Substring(6)); break;
                 case "action.request":
                     var action=Array.Find(manifest.actions,a=>a.id==s.target || a.semantic==s.target);
@@ -210,6 +215,7 @@ namespace ModelSpace
         void Cancel()
         {
             if(hostEmotionMotion){hostEmotionMotion.SetSpeech(false);hostEmotionMotion.Cancel();}
+            if(naturalMotion)naturalMotion.SetSpeech(false);
             pending.Clear(); leases.Clear(); actions?.ReturnToIdle(); expressions?.Set("neutral",0); effects?.Stop();
             speech?.SetState("idle"); speech?.SetMouth(0); if(gaze) gaze.Attention=1;
             State.expression="neutral"; State.effect="";

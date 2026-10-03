@@ -6,7 +6,7 @@ namespace ModelSpace
     // saved view settings and shake-reaction accounting.
     public sealed class CharacterAmbientTurn
     {
-        public const float IdleYaw=6.5f,IdlePitch=2.6f,SpeechYaw=3.2f,SpeechPitch=1.3f;
+        public const float IdleYaw=8f,IdlePitch=3.2f,SpeechYaw=3.2f,SpeechPitch=1.3f;
         Vector2 offset,target,velocity;
         System.Random random=new System.Random();
         float remaining=.8f;

@@ -107,3 +107,9 @@ VRM 为 glTF 人形角色定义元数据、表达式和视线等语义，适合�
 GLB 保留标准 glTF 的网格、材质、蒙皮、morph 与动画表达，JSON Schema 用于清单的可执行验证。[glTF 2.0 规范](https://github.com/KhronosGroup/glTF/blob/main/specification/2.0/Specification.adoc)、[JSON Schema 2020-12](https://json-schema.org/draft/2020-12)。
 
 Unity 的编译资源与平台及引擎版本有关，所以我们把稳定源包和设备编译产物分开，未来更新引擎时重编译资产。[Unity AssetBundle 文档](https://docs.unity.com/en-us/engine/6000.0/manual/assets-and-media/assets-managing-runtime/assetbundles-section/asset-bundles-intro)。
+
+### 2026-10-03 自然骨骼待机扩展
+
+AvatarNaturalMotion 是运行时共用的限幅附加层，位于原作连续性/视线之后、情绪动作及次级物理之前。使用已审查的 Human/局部轴校准与当前作者姿态，提供肩肘手腕/手指、呼吸、骨盆重心与脚底约束；非站姿/原作动作优先且淡出，不是任意混合作者上下身动画。附加校准与状态字段可选，旧包降级派生直接腿链。详见 [实施与验证](../natural-body-and-visible-asides-2026-10-03.md)。
+
+AvatarClothingClearance 在新增肢体动作之后、次级物理之前提供服装包络避让；胶囊来自 Human 映射与实际蒙皮厚度，一次校准，不每帧烘焙。它限制宿主动作造成的新挤压，衣物/配饰链以整段接触求解，保留原作接缝、控制权和碰撞白名单。这是可选宿主适配，不能宣称所有网格布料自碰撞或完整 PhysBone 仿真；对来源角色只增加运行时缓存，原资产不变。恢复顺序 10、执行顺序 100，字段与来源标记见上述实施文档。

@@ -70,7 +70,10 @@ final class ConversationSettingsTests:XCTestCase {
                     app.waitForCharacter {abs((($0["sound"] as? [String:Any])?["volume"] as? Double ?? -1)-0.28)<0.01 && (($0["sound"] as? [String:Any])?["speechVolume"] as? Double)==1}
                 } else if section == "atmosphere" {
                     let slider=app.sliders["atmosphereLevelSlider"]
-                    XCTAssertTrue(slider.isHittable);slider.adjust(toNormalizedSliderPosition:0)
+                    XCTAssertTrue(slider.isHittable);for _ in 0..<3 {
+                        slider.adjust(toNormalizedSliderPosition:0)
+                        if slider.value as? String == "关闭" {break}
+                    }
                     XCTAssertEqual(slider.value as? String,"关闭")
                     slider.adjust(toNormalizedSliderPosition:1)
                     XCTAssertEqual(slider.value as? String,"100%")

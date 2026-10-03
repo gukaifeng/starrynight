@@ -38,6 +38,12 @@ import CryptoKit
         try require(reveal.count(message,beat:"speech")==1,"Initial presentation must contain only its first stage")
         reveal.advance("speech",fraction:0.6);reveal.advance("speech",fraction:0.1)
         try require(reveal.count(message,beat:"speech")==3,"Corrected audio duration must not retract delivered text")
+        staged.beats[0].parts?.insert(AIReplyPart(kind:"thought",text:"我想仔细听你说。",at:0),at:0)
+        staged.beats[0].parts?.append(AIReplyPart(kind:"thought",text:"我还留着一个小问题。",at:1))
+        reveal.update(staged)
+        try require(reveal.count(message,beat:"speech")==4,"Late annotations must retain the audio fraction without revealing future clauses")
+        reveal.advance("speech",fraction:1)
+        try require(reveal.count(message,beat:"speech")==5,"Final annotation must reveal at the completed spoken clause")
         reveal.finish()
         try require(reveal.count(message,beat:"speech")==nil,"Cancellation/history replay must expose the complete saved script")
         func oldVoiceKey(_ beat:String)->String {

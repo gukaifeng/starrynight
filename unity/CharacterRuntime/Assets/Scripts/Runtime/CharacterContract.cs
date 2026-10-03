@@ -145,6 +145,7 @@ namespace ModelSpace
         public CharacterParameterValue[] avatarControlValues=Array.Empty<CharacterParameterValue>();
         public CharacterAutonomyState autonomy;
         public HostEmotionMotionState hostEmotionMotion; // Optional host experiment, not an authored capability.
+        public AvatarNaturalMotionState naturalMotion; // Optional host body layer, not source PhysBones.
         public SourceMotionPreviewState sourceMotionPreview;
     }
     // Runtime-owned capability vocabulary. Unknown required capabilities refuse activation;

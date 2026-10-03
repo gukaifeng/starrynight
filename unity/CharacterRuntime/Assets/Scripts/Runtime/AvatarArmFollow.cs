@@ -38,7 +38,7 @@ namespace ModelSpace
             delta.ToAngleAxis(out float angle,out var axis);
             if(angle>180)angle-=360;
             var angularVelocity=float.IsFinite(axis.sqrMagnitude)?transform.InverseTransformDirection(axis)*Mathf.Clamp(angle/dt,-720,720):Vector3.zero;
-            var target=Vector3.ClampMagnitude(-angularVelocity*.014f,4);
+            var target=Vector3.ClampMagnitude(-angularVelocity*.02f,4);
             int steps=Mathf.Max(1,Mathf.CeilToInt(dt*120));float h=dt/steps;
             for(int i=0;i<steps;i++){velocity+=(target-offset)*110*h;velocity*=Mathf.Exp(-18*h);offset+=velocity*h;offset=Vector3.ClampMagnitude(offset,4);}
             MaximumOffset=0;

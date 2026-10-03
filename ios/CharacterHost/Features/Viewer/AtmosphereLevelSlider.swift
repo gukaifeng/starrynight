@@ -41,3 +41,36 @@ struct AtmosphereLevelSlider:UIViewRepresentable {
         }
     }
 }
+
+/// Shared native thumb animation for externally changed settings, including
+/// reset. Touch tracking remains native; an update never fights the user's drag.
+struct SettingsValueSlider:UIViewRepresentable {
+    @Binding var value:Double
+    var identifier:String
+    var label:String
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    func makeCoordinator()->Coordinator {Coordinator(self)}
+    func makeUIView(context:Context)->UISlider {
+        let slider=UISlider()
+        slider.minimumValue=0;slider.maximumValue=1;slider.isContinuous=true
+        slider.accessibilityIdentifier=identifier;slider.accessibilityLabel=label
+        slider.setValue(Float(value),animated:false)
+        slider.addTarget(context.coordinator,action:#selector(Coordinator.changed(_:)),for:.valueChanged)
+        return slider
+    }
+    func updateUIView(_ slider:UISlider,context:Context) {
+        context.coordinator.parent=self
+        slider.minimumTrackTintColor=UIColor(Theme.accent)
+        slider.maximumTrackTintColor=UIColor(Theme.ink.opacity(0.16))
+        slider.thumbTintColor=UIColor(Theme.ink)
+        slider.accessibilityValue=value<=0 ? L10n.text("静音") : "\(Int((value*100).rounded()))%"
+        if !slider.isTracking,abs(slider.value-Float(value))>0.0001 {
+            slider.setValue(Float(value),animated:!reduceMotion)
+        }
+    }
+    final class Coordinator:NSObject {
+        var parent:SettingsValueSlider
+        init(_ parent:SettingsValueSlider) {self.parent=parent}
+        @objc func changed(_ slider:UISlider) {parent.value=Double(slider.value)}
+    }
+}
