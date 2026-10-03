@@ -1,0 +1,16 @@
+flowchart TD
+    C["🎭 角色定义<br/>固定身份、性格、模型与音色"]
+    S["📖 设定模板<br/>情景、玩法、语言规则与开场策略"]
+    B["🔗 角色与设定的适配<br/>兼容条件、参数与专属开场"]
+    I["💬 用户对话实例<br/>绑定版本、实际参数与当前目标"]
+    M["💾 独立状态<br/>聊天、记忆、关系及任务进度"]
+    C -->|一个角色支持多种设定| B
+    S -->|一种设定适配多个角色| B
+    B -->|同一组合可多次独立开始| I
+    I --> M
+    classDef content fill:#e1ecf8,stroke:#315d82,stroke-width:2px,color:#18374f
+    classDef binding fill:#e2f0df,stroke:#436b3d,stroke-width:2px,color:#284325
+    classDef session fill:#f7ead9,stroke:#946d37,stroke-width:2px,color:#563b17
+    class C,S content
+    class B binding
+    class I,M session
