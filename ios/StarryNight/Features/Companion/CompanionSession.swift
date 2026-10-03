@@ -513,12 +513,13 @@ final class CompanionSession {
         guard !model.isPreviewOnly else { return }
         guard !api.requiresAuthentication else {return}
         guard record.pendingDeletionID==nil else {return}
-        stop(preservePreparation:true);quickReplies=[];quickReplySource=nil
+        stop(preservePreparation:true);notice=nil;quickReplies=[];quickReplySource=nil
         activeUserMessageID=userMessageID
         let voiceTrace=VoiceTimeline.shared.begin(account:ownerID,character:model.id,kind:trigger)
         activeVoiceTrace=voiceTrace
         VoiceTimeline.shared.flag(voiceTrace,"playback",muted ? "静音" : presentationActive ? "启用" : "页面不可见")
         VoiceTimeline.shared.flag(voiceTrace,"audio_requested",muted ? "否；服务端跳过语音生成" : "是")
+        VoiceTimeline.shared.flag(voiceTrace,"reply_origin",userMessageID == nil ? "automatic" : "user")
         let preparing=VoiceTimeline.shared.now(voiceTrace)
         let current = token; generating = true; beginTurn(); emit("state.thinking")
         var body=savedBody ?? requestBody(text,trigger:trigger)
@@ -540,7 +541,10 @@ final class CompanionSession {
                     if !self.muted {self.speech.finish();self.replyReveal.finish();self.emit("state.idle")}
                 } else {
                     if localPlayback.task != nil {return}
-                    if !self.muted {try await self.speech.accept(event)}
+                    if !self.muted {
+                        try await self.speech.accept(event)
+                        if event.type=="segment.audio.started",self.speech.playbackDeferred,let script=self.activeScript {self.playSilentVisuals(script)}
+                    }
                     if event.type=="audio.error",let script=self.activeScript {self.playSilentVisuals(script);self.revealSilently(script)}
                 }
             }
@@ -669,6 +673,8 @@ final class CompanionSession {
                 if reactionPreparationTask==nil {scheduleReactionPreparation(delay:0.2)}
                 scheduleIdle()
             } catch {
+                let native=error as NSError
+                VoiceTimeline.shared.flag(voiceTrace,"reply_error","\(native.domain):\(native.code)")
                 VoiceTimeline.shared.finish(voiceTrace,status:Task.isCancelled ? "cancelled" : "failed")
                 guard current == token, !Task.isCancelled else { return }
                 generating = false; speech.stop()
@@ -681,9 +687,12 @@ final class CompanionSession {
                     updateDelivery(userMessageID,state:received ? "answered" : "failed",error:received ? nil : "这次请求在设备上被中断，尚未收到回复。点感叹号可以重发。")
                     activeUserMessageID=nil
                 } else {
-                    let native=error as NSError
-                    notice = (error as? LocalizedError)?.errorDescription ?? "设备处理这次回复时出错（\(native.domain) \(native.code)）。点消息旁的感叹号可重发。"
-                    updateDelivery(userMessageID,state:"failed",error:notice)
+                    // Automatic greetings/reactions have no outgoing bubble to
+                    // resend. Keep their exhausted retries in diagnostics only.
+                    if userMessageID != nil {
+                        notice = (error as? LocalizedError)?.errorDescription ?? "设备处理这次回复时出错（\(native.domain) \(native.code)）。点消息旁的感叹号可重发。"
+                        updateDelivery(userMessageID,state:"failed",error:notice)
+                    }
                     activeUserMessageID=nil
                 }
             }
@@ -832,7 +841,7 @@ final class CompanionSession {
         if speech.activeMessageID == message.id { stop(); return }
         guard !muted else { notice = "请先在声音面板调高角色语音音量。"; return }
         guard let script = message.aiScript else { return }
-        stop(); let current = token; activeScript = script; beginTurn()
+        stop(); soundscape.resumePlayback();let current = token; activeScript = script; beginTurn()
         let voiceTrace=VoiceTimeline.shared.begin(account:ownerID,character:model.id,kind:"replay",message:script.messageId)
         activeVoiceTrace=voiceTrace
         task = Task { @MainActor [weak self] in

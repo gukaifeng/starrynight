@@ -1,5 +1,6 @@
 import Foundation
 import CryptoKit
+import AVFoundation
 
 /// Exercises the real AVAudioEngine output thread, sequential beats, cache
 /// replay and cancellation without contacting any AI or using private speech.
@@ -208,12 +209,92 @@ import CryptoKit
         do {try await cancelledPump.finish();try require(false,"Cancelled audio worker reported success")}
         catch is CancellationError {}
         try require(cancelled && !nextBeatAccepted,"Cancellation left audio from the old turn queued")
+        // Real system notifications, not a mocked availability getter. A
+        // temporary output pause must preserve the complete downloadable reply.
+        func interruption(_ type:AVAudioSession.InterruptionType,resume:Bool=true) async {
+            NotificationCenter.default.post(name:AVAudioSession.interruptionNotification,object:AVAudioSession.sharedInstance(),userInfo:[
+                AVAudioSessionInterruptionTypeKey:type.rawValue,
+                AVAudioSessionInterruptionOptionKey:resume ? AVAudioSession.InterruptionOptions.shouldResume.rawValue : UInt(0)])
+            try? await Task.sleep(for:.milliseconds(40))
+        }
+        var interruptedScript=script;interruptedScript.messageId=UUID().uuidString;interruptedScript.beats=Array(script.beats.prefix(1))
+        let interruptedID=UUID(uuidString:interruptedScript.messageId)!
+        let recovering=CloudSpeech(soundscape:soundscape,api:api,cacheScope:scope)
+        let recoveryKey=SpeechClipCache.shared.key(scope:scope,text:interruptedScript.messageId+"|speech",speed:1)
+        defer {recovering.stop();try? FileManager.default.removeItem(at:CacheLocations.live.speech.appendingPathComponent(recoveryKey+".wav"))}
+        await interruption(.began)
+        try require(soundscape.interrupted,"A began notification must block speaker activation")
+        recovering.prepare(interruptedID,script:interruptedScript)
+        try await recovering.accept(AIEvent(type:"segment.audio.started",beatId:"speech"))
+        try await recovering.accept(AIEvent(type:"segment.audio.chunk",data:pcm.base64EncodedString()))
+        try await recovering.accept(AIEvent(type:"segment.audio.ready",beatId:"speech"))
+        try require(recovering.playbackDeferred && !recovering.isSpeaking && recovering.audibleSegments==0,"An interruption must drain and cache without starting output or failing the reply")
+        recovering.finish()
+        try require(recovering.hasCached(interruptedScript),"Interrupted output discarded a complete reply's durable audio")
+        await interruption(.ended)
+        try require(!soundscape.interrupted && !soundscape.playbackSuspended,"Ended/shouldResume must unlock the audio session")
+        try require(try await recovering.cachedReplay(interruptedScript,messageID:interruptedID),"Audio could not replay after an ended interruption")
+        try require(recovering.audibleSegments==1,"Recovery did not produce real audio output")
+        // Interrupt between network chunks, before cache persistence. Verify
+        // that both halves survive, not merely an older complete cached clip.
+        recovering.prepare(interruptedID,script:interruptedScript)
+        try await recovering.accept(AIEvent(type:"segment.audio.started",beatId:"speech"))
+        try await recovering.accept(AIEvent(type:"segment.audio.chunk",data:Data(pcm.prefix(14400)).base64EncodedString()))
+        await interruption(.began)
+        try await recovering.accept(AIEvent(type:"segment.audio.chunk",data:Data(pcm.dropFirst(14400)).base64EncodedString()))
+        try await recovering.accept(AIEvent(type:"segment.audio.ready",beatId:"speech"))
+        recovering.finish()
+        let interruptedDisk=SpeechClipCache(directory:CacheLocations.live.speech)
+        let saved=interruptedDisk.data(recoveryKey)
+        try require(saved.map {Data($0.dropFirst(44))==pcm}==true,"A mid-stream interruption lost PCM or cache identity")
+        await interruption(.ended,resume:false)
+        try require(!soundscape.interrupted && soundscape.playbackSuspended,"A should-not-resume recommendation must pause output without latching the interruption")
+        soundscape.resumePlayback()
+        try require(try await recovering.cachedReplay(interruptedScript,messageID:interruptedID),"Explicit replay must resume after a privacy pause")
+        NotificationCenter.default.post(name:AVAudioSession.routeChangeNotification,object:AVAudioSession.sharedInstance(),userInfo:[AVAudioSessionRouteChangeReasonKey:AVAudioSession.RouteChangeReason.oldDeviceUnavailable.rawValue])
+        try await Task.sleep(for:.milliseconds(40))
+        try require(soundscape.playbackSuspended && !soundscape.interrupted,"Headset removal was mistaken for a permanent system interruption")
+        try require(try await recovering.cachedReplay(interruptedScript,messageID:interruptedID),"Suspended output must remain consumable without a transport error")
+        try require(recovering.playbackDeferred,"Automatic speech must respect a removed headset")
+        soundscape.resumePlayback()
+        soundscape.setActive(false)
+        try require(try await recovering.cachedReplay(interruptedScript,messageID:interruptedID),"Foreground/session activation race must not fail the reply")
+        try require(recovering.playbackDeferred,"Inactive output started a speaker")
+        soundscape.setActive(true)
+        // Exercise actual auto-reaction sessions for different roles. There is
+        // no user message, and no paid transport or preparation is permitted.
+        if ConversationContinuityFixture.enabled {
+            for role in ["anime-hikarun","anime-chiffon"] {
+                guard let model=ModelDescriptor.all.first(where:{$0.id==role}) else {throw NSError(domain:"SpeechPlaybackCheck",code:2)}
+                let folder=FileManager.default.temporaryDirectory.appendingPathComponent("automatic-audio-\(UUID())")
+                let journal=CompanionStore(storageURL:folder.appendingPathComponent("journal.json"),arguments:[])
+                let session=CompanionSession(store:journal,model:model,soundscape:soundscape)
+                defer {session.stop()}
+                await interruption(.began)
+                session.reactToModelInteraction(kind:role=="anime-hikarun" ? "shake" : "pinch_out",intensity:0.7)
+                for _ in 0..<400 {
+                    if !session.generating,!session.speech.isBusy,journal.record(role).messages.contains(where:{$0.role=="assistant"}) {break}
+                    try await Task.sleep(for:.milliseconds(10))
+                }
+                let messages=journal.record(role).messages
+                try require(messages.count==1 && messages[0].role=="assistant" && session.notice==nil,"Automatic interrupted speech created a phantom outgoing message or resend notice for \(role)")
+                try require(messages[0].aiScript.map(session.speech.hasCached)==true && session.speech.playbackDeferred,"Automatic reply audio was not retained for \(role)")
+                await interruption(.ended)
+                session.playMessage(messages[0])
+                for _ in 0..<200 {if session.speech.audibleSegments>0 && !session.speech.isBusy && !session.speech.isSpeaking {break};try await Task.sleep(for:.milliseconds(10))}
+                try require(session.speech.audibleSegments>0,"Automatic reply could not replay after recovery for \(role)")
+                session.reactToShake(intensity:1)
+                for _ in 0..<300 {if !session.generating {break};try await Task.sleep(for:.milliseconds(10))}
+                try require(!session.generating && session.notice==nil && journal.record(role).messages.count==1,"Exhausted automatic network retries displayed a nonexistent resend action for \(role)")
+                try require(!journal.record(role).messages.contains(where:{$0.deliveryState=="failed"}),"Automatic failure marked an unrelated outgoing message")
+            }
+        }
         let traces=VoiceTimeline.shared.records.filter {$0.account==scope}
         try require(traces.contains(where:{$0.marks["first_output"] != nil && $0.spans.contains(where:{$0.name=="audio.pcm_convert"})}),"Voice trace missed real output or PCM conversion")
         try require(traces.contains(where:{$0.spans.contains(where:{$0.name=="audio.cache_write"}) && $0.spans.contains(where:{$0.name=="audio.drain" && $0.durationMs>50})}),"Voice trace omitted cache I/O or real speaker drain")
         try require(traces.contains(where:{$0.flags["audio_source"]=="持久语音缓存"}),"Durable replay source was not recorded")
         let encoded=try JSONEncoder().encode(traces)
         try require(!String(decoding:encoded,as:UTF8.self).contains("Audio regression"),"Diagnostics stored dialogue content")
-        return "PASS: real audio metering, cache replay, monotonic lip-sync, bounded queue, cancellation and detailed persisted voice traces; prefetched PCM first output \(Int(prefetchedOutput ?? -1)) ms (simulator audio fixture), zero network calls."
+        return "PASS: real output/cache/lip-sync/queue/cancellation; interruptions before and during PCM, ended recovery, route privacy, inactive-session race, Hikarun/Chiffon automatic replies and exhausted automatic retries; prefetched output \(Int(prefetchedOutput ?? -1)) ms (simulator fixture), zero network calls."
     }
 }

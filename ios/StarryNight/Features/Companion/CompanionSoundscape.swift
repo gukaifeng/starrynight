@@ -2,6 +2,10 @@ import AVFoundation
 import Observation
 import UIKit
 
+enum CompanionAudioUnavailable: Error {
+    case inactive, interrupted, suspended
+}
+
 /// The only owner of the app's audio session. Speech releases focus, not the session.
 @MainActor @Observable
 final class CompanionSoundscape: NSObject {
@@ -16,6 +20,14 @@ final class CompanionSoundscape: NSObject {
     private(set) var volume: Double = 0.28
     private(set) var playing = false
     private(set) var interrupted = false
+    /// A removed headset / should-not-resume recommendation pauses output,
+    /// rather than pretending a system interruption is still in progress.
+    private(set) var playbackSuspended = false
+    var voiceUnavailable: CompanionAudioUnavailable? {
+        if !active { return .inactive }
+        if interrupted { return .interrupted }
+        return playbackSuspended ? .suspended : nil
+    }
     private(set) var focus = VoiceFocus.none
     private(set) var active = false
     private(set) var measuredSamples = 0
@@ -42,14 +54,14 @@ final class CompanionSoundscape: NSObject {
         let clean = collection.normalize(profile).audio!
         availableTracks = collection.music; collectionScope = collection.optionScope; trackID = clean.trackID
         volume = clean.volume
-        speechVolume = clean.speechVolume ?? 1; interrupted = false; error = nil
+        speechVolume = clean.speechVolume ?? 1; error = nil
         onPreferences = onChange
         reconcile()
     }
     var status: String {
         if masterMuted { return "声音已关闭" }
         if error != nil { return "音乐暂时无法播放" }
-        if interrupted { return "音乐已暂停，轻点继续" }
+        if interrupted || playbackSuspended { return "音乐已暂停，轻点继续" }
         if !enabled { return "给此刻一点音乐" }
         if focus == .recording { return "录音时暂停音乐" }
         if !active { return "离开空间，音乐已暂停" }
@@ -61,6 +73,7 @@ final class CompanionSoundscape: NSObject {
         NotificationCenter.default.addObserver(self,selector:#selector(routeChanged),name:AVAudioSession.routeChangeNotification,object:nil)
     }
     func setActive(_ value: Bool) {
+        guard active != value else { return }
         let wasPlaying = player?.isPlaying == true
         active = value
         if !value { player?.pause(); retired?.stop(); playing = false; stopMeter() }
@@ -68,39 +81,47 @@ final class CompanionSoundscape: NSObject {
         reconcile()
     }
     func setEnabled(_ value:Bool) { setVolume(value ? max(volume,0.28) : 0) }
-    func setSpeechVolume(_ value:Double) { speechVolume = value.isFinite ? min(1,max(0,value)) : 1; persist() }
+    func setSpeechVolume(_ value:Double) { speechVolume = value.isFinite ? min(1,max(0,value)) : 1; resumePlayback(); persist() }
+    /// Only explicit playback/volume interaction lifts a route privacy pause.
+    /// An actual system interruption remains authoritative until it ends.
+    func resumePlayback() {
+        error = nil
+        guard playbackSuspended else { return }
+        playbackSuspended = false; reconcile()
+    }
     func toggle() {
-        if interrupted { interrupted = false; volume = max(volume,0.28) } else { volume = enabled ? 0 : 0.28 }
+        if playbackSuspended { playbackSuspended = false; volume = max(volume,0.28) } else { volume = enabled ? 0 : 0.28 }
         error = nil; persist(); reconcile()
     }
     func select(_ id: String) {
         guard availableTracks.contains(where: { $0.id == id }) else { return }
         if trackID != id { retirePlayer(); trackID = id }
-        interrupted = false; error = nil; persist(); reconcile()
+        playbackSuspended = false; error = nil; persist(); reconcile()
     }
     func setVolume(_ value: Double) {
         volume = value.isFinite ? min(1,max(0,value)) : 0.28
-        interrupted = false; error = nil; persist(); reconcile()
+        playbackSuspended = false; error = nil; persist(); reconcile()
     }
     func beginVoice(_ value: VoiceFocus) async throws {
-        guard active, !interrupted else { throw NSError(domain:"XuyuAudio",code:1) }
+        if let reason = voiceUnavailable { throw reason }
         focus = value
         if value == .recording { player?.pause(); playing = false; stopMeter() }
         sessionTask?.cancel();sessionRevision += 1
         let revision=sessionRevision
         try await configureSession()
         try Task.checkCancellation()
-        guard revision==sessionRevision,active,!interrupted else {throw CancellationError()}
+        guard revision==sessionRevision else {throw CancellationError()}
+        if let reason = voiceUnavailable { throw reason }
         reconcileMusic()
     }
     func endVoice() { focus = .none; reconcile() }
     private func persist() { onPreferences?(CharacterAudioPreferences(enabled:true,trackID:trackID,volume:volume,masterMuted:false,speechVolume:speechVolume,volumeControlsVersion:CharacterAudioPreferences.currentVolumeControlsVersion)) }
     private func configureSession() async throws {
         try await AudioSessionHardware.configure(recording:focus == .recording,speaking:focus == .speech,
-            active:active && !interrupted && (focus != .none || enabled))
+            active:voiceUnavailable == nil && (focus != .none || enabled))
     }
     private func reconcile() {
-        if !active || interrupted {
+        if voiceUnavailable != nil {
             player?.pause(); playing = false; stopMeter()
         }
         sessionTask?.cancel();sessionRevision += 1
@@ -117,7 +138,7 @@ final class CompanionSoundscape: NSObject {
         }
     }
     private func reconcileMusic() {
-        guard active, enabled, !interrupted, focus != .recording else { player?.pause(); playing = false; stopMeter(); return }
+        guard voiceUnavailable == nil, enabled, focus != .recording else { player?.pause(); playing = false; stopMeter(); return }
         do {
             if player == nil {
                 guard let track, track.id.hasPrefix(collectionScope+"/"), let url = track.resourceURL else { throw CocoaError(.fileNoSuchFile) }
@@ -171,12 +192,24 @@ final class CompanionSoundscape: NSObject {
     }
     private func stopMeter() { timer?.invalidate(); timer = nil; outputVolume = 0 }
     @objc nonisolated private func audioInterrupted(_ note: Notification) {
-        let began = (note.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt) == AVAudioSession.InterruptionType.began.rawValue
-        if began { Task { @MainActor [weak self] in self?.interrupted = true; self?.reconcile() } }
+        guard let raw = note.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt,
+              let type = AVAudioSession.InterruptionType(rawValue:raw) else { return }
+        let resume = AVAudioSession.InterruptionOptions(rawValue:note.userInfo?[AVAudioSessionInterruptionOptionKey] as? UInt ?? 0).contains(.shouldResume)
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            switch type {
+            case .began: interrupted = true
+            case .ended:
+                interrupted = false
+                if !resume { playbackSuspended = true }
+            @unknown default: return
+            }
+            reconcile()
+        }
     }
     @objc nonisolated private func routeChanged(_ note: Notification) {
         let removed = (note.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt) == AVAudioSession.RouteChangeReason.oldDeviceUnavailable.rawValue
-        if removed { Task { @MainActor [weak self] in self?.interrupted = true; self?.reconcile() } }
+        if removed { Task { @MainActor [weak self] in self?.playbackSuspended = true; self?.reconcile() } }
     }
     var accessibilityEvidence: String {
 #if DEBUG
@@ -184,7 +217,7 @@ final class CompanionSoundscape: NSObject {
             let data = try? JSONSerialization.data(withJSONObject:["masterMuted":masterMuted,"speechVolume":speechVolume,"sessionCategory":AVAudioSession.sharedInstance().category.rawValue,"enabled":enabled,"playing":player?.isPlaying == true,"active":active,"track":trackID,
                 "collectionScope":collectionScope,"asset":track?.asset ?? "","sourceModelID":track?.sourceModelID ?? "","assetSHA256":track?.sha256 ?? "",
                 "availableTrackIDs":availableTracks.map(\.id),"duration":player?.duration ?? 0,
-                "volume":volume,"outputVolume":outputVolume,"samples":measuredSamples,"duckedSamples":duckedSamples,"minimumDuckedVolume":minimumDuckedVolume,"lifecyclePauses":lifecyclePauses,"time":playbackTime,"interrupted":interrupted])
+                "volume":volume,"outputVolume":outputVolume,"samples":measuredSamples,"duckedSamples":duckedSamples,"minimumDuckedVolume":minimumDuckedVolume,"lifecyclePauses":lifecyclePauses,"time":playbackTime,"interrupted":interrupted,"playbackSuspended":playbackSuspended])
             if let data { return String(decoding:data,as:UTF8.self) }
         }
 #endif

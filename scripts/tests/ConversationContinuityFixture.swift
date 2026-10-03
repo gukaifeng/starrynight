@@ -11,6 +11,10 @@ import Foundation
     private static var attempts:[String:Int]=[:]
     static func events(characterID:String,body:[String:Any]?,consume:(AIEvent) async throws -> Void) async throws {
         let prompt=body?["text"] as? String ?? ""
+        if ProcessInfo.processInfo.arguments.contains("--automatic-audio-recovery-check"),
+           let interaction=body?["interaction"] as? [String:Any],interaction["intensity"] as? Double == 1 {
+            throw AIConnectionError.network(URLError.notConnectedToInternet.rawValue)
+        }
         if ProcessInfo.processInfo.arguments.contains("--resilient-reply-fixture"),!prompt.isEmpty {
             let id=body?["request_id"] as? String ?? "missing"
             attempts[id,default:0]+=1

@@ -8,12 +8,12 @@ final class RealAIConversationTests: XCTestCase {
         try await super.tearDown()
     }
     @MainActor func testAudioThreadPlaybackAndCachedVocalBeat() {
-        let app = XCUIApplication(); app.launchArguments = ["--speech-playback-check"]
+        let app = XCUIApplication(); app.launchArguments = ["--speech-playback-check","--ui-testing","--conversation-continuity-fixture","--automatic-audio-recovery-check"]
         app.launch()
         let result = app.staticTexts["speechPlaybackResult"]
         XCTAssertTrue(result.waitForExistence(timeout:10))
         let completed = NSPredicate { _,_ in result.label.hasPrefix("PASS:") || result.label.hasPrefix("FAIL:") }
-        XCTAssertEqual(XCTWaiter.wait(for:[XCTNSPredicateExpectation(predicate:completed,object:nil)],timeout:20),.completed)
+        XCTAssertEqual(XCTWaiter.wait(for:[XCTNSPredicateExpectation(predicate:completed,object:nil)],timeout:45),.completed)
         XCTAssertTrue(result.label.hasPrefix("PASS:"),result.label)
         let evidence = XCTAttachment(string:result.label); evidence.name = "audio-thread-playback"; evidence.lifetime = .keepAlways; add(evidence)
         app.terminate()

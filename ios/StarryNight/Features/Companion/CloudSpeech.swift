@@ -73,6 +73,7 @@ private final class MicrophonePCM: @unchecked Sendable {
     private(set) var durations: [UUID:Double] = [:]
     private(set) var durationSpeeds: [UUID:Double] = [:]
     private(set) var audibleSegments = 0
+    private(set) var playbackDeferred = false
     @ObservationIgnored var onTranscript: ((String) -> Void)?
     @ObservationIgnored var onPartial: ((String) -> Void)?
     @ObservationIgnored var nickname: (() -> String)?
@@ -122,27 +123,43 @@ private final class MicrophonePCM: @unchecked Sendable {
     func setPresentationActive(_ active:Bool) {
         presentationActive=active
         guard !active else {return}
+        deferOutput(reason:"presentation_inactive")
+    }
+    /// Stop only the speaker. The reply's stream generation, PCM, message and
+    /// cache identity remain intact through an interruption or route change.
+    private func deferOutput(reason:String) {
+        guard activeMessageID != nil || isBusy || isSpeaking || engine != nil else { return }
+        playbackDeferred=true
+        VoiceTimeline.shared.flag(voiceTrace,"audio_output_deferred",reason)
         segmentAudible=false;playbackSegment=UUID();buffers=0
         timer?.invalidate();timer=nil;player?.stop();engine?.stop();player=nil;engine=nil
         isSpeaking=false;playbackLevel=0;onFrame?(playbackElapsed,0)
+        if !beat.isEmpty {onBeatProgress?(beat,1)}
         soundscape.endVoice()
     }
     init(soundscape: CompanionSoundscape, api: CharacterAI, cacheScope: String, clipCache:SpeechClipCache = .shared) {
         self.soundscape = soundscape; self.api = api; self.cacheScope = cacheScope; self.clipCache=clipCache
         super.init()
-        for name in [UIApplication.didEnterBackgroundNotification,AVAudioSession.interruptionNotification] {
+        for name in [UIApplication.didEnterBackgroundNotification,AVAudioSession.interruptionNotification,AVAudioSession.routeChangeNotification] {
             NotificationCenter.default.addObserver(self,selector:#selector(interrupted),name:name,object:nil)
         }
     }
     @objc nonisolated private func interrupted(_ note: Notification) {
         if note.name == AVAudioSession.interruptionNotification,
            (note.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt) != AVAudioSession.InterruptionType.began.rawValue {return}
-        Task { @MainActor [weak self] in self?.stop();self?.onCaptureCancelled?() }
+        if note.name == AVAudioSession.routeChangeNotification,
+           (note.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt) != AVAudioSession.RouteChangeReason.oldDeviceUnavailable.rawValue {return}
+        let reason=note.name == AVAudioSession.interruptionNotification ? "system_interruption" : note.name == AVAudioSession.routeChangeNotification ? "output_route_removed" : "application_background"
+        Task { @MainActor [weak self] in
+            guard let self else {return}
+            if isRecording || recording != nil {stop();onCaptureCancelled?()}
+            else {deferOutput(reason:reason)}
+        }
     }
     func check() async { ready = await api.check(); status = ready ? "声音已连接" : "请检查 AI 服务连接" }
     func refreshVolume() { player?.volume = Float(soundscape.speechVolume) }
     func prepare(_ message: UUID, script: AIScript,traceID:String?=nil) {
-        stop(); error = nil; activeMessageID = message; cacheMessage = script.messageId
+        stop(); error = nil; playbackDeferred=false; activeMessageID = message; cacheMessage = script.messageId
         voiceTrace=traceID ?? VoiceTimeline.shared.begin(account:api.accountID,character:api.characterID,kind:"playback",message:script.messageId)
         VoiceTimeline.shared.mark(voiceTrace,"playback_prepare")
         VoiceTimeline.shared.flag(voiceTrace,"speech_volume",String(soundscape.speechVolume))
@@ -187,17 +204,28 @@ private final class MicrophonePCM: @unchecked Sendable {
             onFrame?(playbackElapsed,0)
             segmentAudible=presentationActive
             timeline.flag(voiceTrace,"presentation_active",presentationActive ? "是" : "否；仅缓存不出声")
-            guard segmentAudible else {return}
+            if !segmentAudible {deferOutput(reason:"presentation_inactive");return}
+            if let reason=soundscape.voiceUnavailable {deferOutput(reason:String(describing:reason));return}
             stage=voiceTrace.map {timeline.now($0)} ?? 0
-            do {try await soundscape.beginVoice(.speech)}
-            catch {if !presentationActive {segmentAudible=false;return};throw error}
+            let current=generation
+            do {
+                try await soundscape.beginVoice(.speech)
+                try Task.checkCancellation()
+                guard current==generation else {throw CancellationError()}
+            } catch {
+                // A superseded hardware configuration is not a cancelled AI
+                // turn. Only cancellation of this worker/generation propagates.
+                if Task.isCancelled || current != generation {throw CancellationError()}
+                let native=error as NSError
+                deferOutput(reason:"session:\(native.domain):\(native.code)")
+                return
+            }
             timeline.span(voiceTrace,"audio.session",start:stage,beat:beat)
-            guard presentationActive else {segmentAudible=false;return}
+            if !presentationActive || soundscape.voiceUnavailable != nil {deferOutput(reason:"session_changed");return}
             stage=voiceTrace.map {timeline.now($0)} ?? 0
             let engine = AVAudioEngine(), player = AVAudioPlayerNode()
             engine.attach(player); engine.connect(player,to:engine.mainMixerNode,format:AVAudioFormat(standardFormatWithSampleRate:24000,channels:1))
             self.engine = engine; self.player = player; refreshVolume()
-            let current = generation
             let segment = playbackSegment
             // Meter audio that actually reaches the output mixer. Network chunks
             // can arrive far ahead of playback, especially during cached replay.
@@ -212,7 +240,12 @@ private final class MicrophonePCM: @unchecked Sendable {
                     }
                 }
             })
-            engine.prepare(); try engine.start(); player.play()
+            do {engine.prepare();try engine.start();player.play()}
+            catch {
+                let native=error as NSError
+                deferOutput(reason:"engine:\(native.domain):\(native.code)")
+                return
+            }
             timeline.span(voiceTrace,"audio.engine",start:stage,beat:beat)
         case "segment.audio.chunk":
             let decoding=voiceTrace.map {timeline.now($0)} ?? 0

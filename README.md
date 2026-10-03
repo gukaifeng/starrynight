@@ -4,7 +4,7 @@
 
 正式英文名 **StarryNight**，仓库和根目录统一为 `starrynight`。当前根目录 `/Users/gukaifeng/Documents/starrynight`，Xcode 真机入口为 `ios/StarryNight.xcworkspace`，模拟器入口为 `ios/StarryNight-Simulator.xcworkspace`，scheme 均为 `StarryNight`。命名约定与迁移记录见 [英文命名与目录](docs/project-naming.md)。
 
-以精致 3D 角色为核心的 AI 陪伴产品。当前源码 **v0.103.0 / build 134**，名称保持「星夜」，默认月白深色主题，保留彩色星夜等可选主题，Logo 为极简月白星月矢量标志。原生 SwiftUI / UIKit + Unity as a Library，当前适配 **iPhone 17 与 iPad Pro 11 英寸 M4（2024）**。
+以精致 3D 角色为核心的 AI 陪伴产品。当前源码 **v0.103.1 / build 135**，名称保持「星夜」，默认月白深色主题，保留彩色星夜等可选主题，Logo 为极简月白星月矢量标志。原生 SwiftUI / UIKit + Unity as a Library，当前适配 **iPhone 17 与 iPad Pro 11 英寸 M4（2024）**。
 
 v0.84 已切换至云端 HTTPS 入口 `https://39.105.116.74:8443`，iPhone 17 已安装并验证账户和 AI 认证链路。首次聊天需注册或登录正式账户；安装包不再包含旧 Mac AI 共享凭证。Mac 原服务及 AI 自动启动项已停用，旧运行数据按用户要求清理。见[服务端分离记录](docs/server-separation-2026-10-02.md)。
 
