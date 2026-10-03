@@ -143,7 +143,7 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
         guard let session=chatSession else {return}
         UIImpactFeedbackGenerator(style:.light).impactOccurred(intensity:0.45)
         presentConversationPanel(height:560) {
-            CharacterDeveloperPanel(model:self.model,store:session.store,session:session,performanceState:self.characterPerformance,
+            CharacterDeveloperPanel(model:self.model,store:session.store,session:session,performanceState:self.characterPerformance,paletteState:self.characterPalette,
                 onSelect:{[weak self] id,on in self?.onSelectPerformance?(id,on)},
                 onReset:{[weak self] group in self?.onResetPerformance?(group)},
                 onAdjust:{[weak self] id,value in self?.onAdjustPerformance?(id,value)},
@@ -381,6 +381,9 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
     var portraits:CharacterPortraitStore!
     var library:CharacterLibrary!
     var characterPerformance:CharacterPerformanceState!
+#if STARRY_TEST_TOOLS
+    var characterPalette:CharacterPaletteState!
+#endif
     var onSelectPerformance:((String,Bool)->Void)?
     var onAdjustPerformance:((String,Double)->Void)?
     var onResetPerformance:((String)->Void)?

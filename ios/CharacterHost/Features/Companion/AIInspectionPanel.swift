@@ -106,8 +106,10 @@ struct AIInspectionPanel:View {
             switch error {
             case AIConnectionError.authenticationRequired,AIConnectionError.server(401):
                 failure="请登录已授权的开发账号后刷新。当前仅显示本机资料，服务端完整设定尚未读取。"
-            case AIConnectionError.server(403),AIConnectionError.server(404):
+            case AIConnectionError.server(403):
                 failure="当前账号未开通服务端设定检查。当前仅显示本机资料；该权限由服务器管理员配置。"
+            case AIConnectionError.server(404):
+                failure="服务端设定检查入口或当前角色不可用。请确认账号授权与服务端入口，当前仍可查看本机资料。"
             default:
                 failure="暂时无法读取服务端完整设定，请检查网络后刷新。当前仅显示本机资料。"
             }

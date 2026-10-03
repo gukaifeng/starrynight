@@ -37,6 +37,22 @@ final class CharacterResourceDownloadUITests:XCTestCase {
         app.navigationBars["角色资源"].buttons.firstMatch.tap();app.navigationBars["存储与缓存"].buttons.firstMatch.tap();app.buttons["closeSettingsButton"].tap()
         for name in ["fiona","mizuki","ramune"] {
             openRole(name,app)
+            app.openCharacterDeveloper();app.buttons["openCharacterPalette"].tap()
+            let palette=app.staticTexts["paletteStatus"]
+            XCTAssertTrue(palette.waitForExistence(timeout:8),name)
+            let paletteReady=NSPredicate {_,_ in MainActor.assumeIsolated {(palette.value as? String ?? "").contains("ready:true")}}
+            XCTAssertEqual(XCTWaiter.wait(for:[XCTNSPredicateExpectation(predicate:paletteReady,object:nil)],timeout:15),.completed)
+            let hue=app.sliders["paletteHue"]
+            if !hue.isHittable {app.scrollViews.firstMatch.swipeUp()}
+            XCTAssertTrue(hue.isHittable,name);hue.adjust(toNormalizedSliderPosition:0.67)
+            let edited=NSPredicate {_,_ in MainActor.assumeIsolated {(palette.value as? String ?? "").contains("engineEdits:1")}}
+            XCTAssertEqual(XCTWaiter.wait(for:[XCTNSPredicateExpectation(predicate:edited,object:nil)],timeout:10),.completed)
+            let reset=app.buttons["paletteResetComponent"]
+            if !reset.isHittable {app.scrollViews.firstMatch.swipeDown()}
+            reset.tap()
+            let restored=NSPredicate {_,_ in MainActor.assumeIsolated {(palette.value as? String ?? "").contains("engineEdits:0")}}
+            XCTAssertEqual(XCTWaiter.wait(for:[XCTNSPredicateExpectation(predicate:restored,object:nil)],timeout:10),.completed)
+            app.buttons["closeCharacterPalette"].tap();app.buttons["closeCharacterDeveloper"].tap()
             app.openCharacterDeveloper();app.buttons["profilePerformanceButton"].tap()
             XCTAssertTrue(app.buttons["closeCharacterPerformance"].waitForExistence(timeout:8),name)
             XCTAssertTrue(app.buttons["performanceReset"].isEnabled,name)

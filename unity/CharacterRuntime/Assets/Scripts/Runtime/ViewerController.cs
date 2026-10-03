@@ -29,6 +29,7 @@ namespace ModelSpace
         public StudioSettings studio;
         public CharacterSignal signal;
         public CharacterParameterValue[] parameters;
+        public PaletteEdit palette;
     }
     [Serializable] public class BridgeCommand
     {
@@ -91,6 +92,7 @@ namespace ModelSpace
         public GazeState gaze;
         public CharacterPlatformState characterPlatform;
         public CharacterReceipt receipt;
+        public PaletteSnapshot palette;
         public string[] capabilities;
     }
 
@@ -792,6 +794,21 @@ namespace ModelSpace
                         } else StartCoroutine(PrewarmCharacter(command));
                         break;
                     case "getState": if (ready) Emit("state", command.requestId); break;
+                    case "getPalette":
+                    case "setPalette":
+                    case "resetPalette":
+                        if(!ready || !character || command.payload?.modelId!=activeModelId)throw new ArgumentException("Palette character mismatch");
+                        var palette=character.GetComponent<CharacterPaletteRuntime>();
+                        // A normal unedited startup must not load the developer
+                        // shader library or enumerate thousands of channels.
+                        if(!palette && command.name=="resetPalette" && command.payload.palette==null)break;
+                        if(!palette)palette=character.gameObject.AddComponent<CharacterPaletteRuntime>();
+                        var editedPalette=palette;
+                        palette.OnResetSettled=()=> {if(ready && character && character.GetComponent<CharacterPaletteRuntime>()==editedPalette)EmitPalette(editedPalette,"",true);};
+                        if(command.name=="setPalette")palette.Edit(command.payload.palette);
+                        else if(command.name=="resetPalette")palette.Reset(command.payload.palette?.component,command.payload.immediate);
+                        EmitPalette(palette,command.requestId,command.name=="setPalette");
+                        break;
                     case "resetView": ResetView(command.payload != null && command.payload.immediate, command.requestId, presentation); break;
                     case "configureFraming":
                         // A panel's initial value / cancellation can arrive while the layout is still
@@ -886,6 +903,16 @@ namespace ModelSpace
                 Emit("portraitReady",command.requestId);
             }
             catch(Exception error) { Debug.LogWarning("Portrait deferred: "+error.Message); Emit("portraitFailed",command.requestId,error.Message); }
+        }
+        void EmitPalette(CharacterPaletteRuntime palette,string request,bool acknowledgement=false)
+        {
+            var json=JsonUtility.ToJson(new BridgeEvent {name=acknowledgement ? "paletteApplied" : "palette",requestId=request,modelId=activeModelId,presentationId=presentation,
+                palette=acknowledgement ? new PaletteSnapshot {modelId=activeModelId,editedSlots=palette.EditedSlots} : palette.Snapshot(activeModelId)});
+#if UNITY_IOS && !UNITY_EDITOR
+            MSNativeSendEvent(json);
+#else
+            Debug.Log("MODELSPACE_PALETTE components="+palette.Snapshot(activeModelId).components.Length);
+#endif
         }
         void Emit(string name, string request = "", string message = "", int? eventPresentation = null, string action = "", string source = "")
         {

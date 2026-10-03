@@ -7,6 +7,7 @@ struct CharacterDeveloperPanel:View {
     let store:CompanionStore
     var session:CompanionSession? = nil
     var performanceState:CharacterPerformanceState? = nil
+    var paletteState:CharacterPaletteState? = nil
     var onSelect:(String,Bool)->Void = {_,_ in}
     var onReset:(String)->Void = {_ in}
     var onAdjust:(String,Double)->Void = {_,_ in}
@@ -23,7 +24,10 @@ struct CharacterDeveloperPanel:View {
     }
     var body:some View {
         ZStack {
-            if destination == "voice" {
+            if destination == "palette" {
+                CharacterPalettePanel(model:model,state:paletteState,onOpenPreview:onOpenConversation)
+                    .environment(\.softPanelCloseRequest,childClose).environment(\.softPanelDismiss,{childClose.request()}).transition(.opacity)
+            } else if destination == "voice" {
                 VoiceTimingPanel(account:store.accountID,character:model.id)
                     .environment(\.softPanelCloseRequest,childClose).environment(\.softPanelDismiss,{childClose.request()}).transition(.opacity)
             } else if destination == "ai" {
@@ -45,6 +49,7 @@ struct CharacterDeveloperPanel:View {
                         VStack(alignment:.leading,spacing:14) {
                             Text("开发构建专用").font(.system(size:11,weight:.medium)).foregroundStyle(Theme.accent)
                             DeveloperEntry(title:"AI 设定检查",detail:"完整设定、提示词、上下文与实际请求",symbol:"curlybraces",id:"openAIInspector") {open("ai")}
+                            DeveloperEntry(title:"定制颜色",detail:"全部组件 · 主色、阴影与高光 · 保留原作纹理",symbol:"paintpalette",id:"openCharacterPalette") {open("palette")}
                             DeveloperEntry(title:"语音耗时",detail:"生成、网络、缓存、排队与播放的逐次拆解",symbol:"waveform.path",id:"openCharacterVoiceTimings") {open("voice")}
                             if let state=performanceState,state.hostMotionSupported {
                                 DeveloperEntry(title:"动作实验",detail:"10 个通用身体与表情组合 · 仅手动预览",symbol:"figure.wave",id:"openHostEmotionMotion") {open("motion")}

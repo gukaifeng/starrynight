@@ -13,6 +13,7 @@ parser=argparse.ArgumentParser()
 parser.add_argument('--platform',choices=['simulator','device'],default='simulator')
 parser.add_argument('--prepare-timeout',type=int,default=3600,help='Seconds allowed for scene preparation, including a cold iOS asset import')
 args=parser.parse_args()
+subprocess.run(['python3',str(ROOT/'scripts/prepare_palette_shaders.py')],check=True)
 if args.prepare_timeout < 1:
     parser.error('--prepare-timeout must be positive')
 method='BuildIos.ExportSimulator' if args.platform=='simulator' else 'BuildIos.ExportDevice'

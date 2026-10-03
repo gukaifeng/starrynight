@@ -292,6 +292,9 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
     let soundscape = CompanionSoundscape()
     let portraits = CharacterPortraitStore()
     let characterPerformance = CharacterPerformanceState()
+#if STARRY_TEST_TOOLS
+    let characterPalette = CharacterPaletteState()
+#endif
     @ObservationIgnored private var portraitTask: Task<Void,Never>?
     @ObservationIgnored private var portraitRequests: [String:(model:ModelDescriptor,key:String)] = [:]
     private var companion: CompanionSession?
@@ -607,6 +610,13 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
         stageLoadingVisible = true
         presentation += 1; desiredVisible = true; page = .loading
         characterPerformance.begin(modelID:model.runtimeID,presentation:presentation)
+#if STARRY_TEST_TOOLS
+        characterPalette.begin(account:companionStore.accountID,modelID:model.runtimeID,presentation:presentation)
+        characterPalette.send = { [weak self] name,payload in
+            guard let self,payload["modelId"] as? String == self.selectedModel.runtimeID,self.ready else {return}
+            self.send(name,payload:payload)
+        }
+#endif
         // Keep a fully opaque native canvas above Unity even if its startup makes a
         // new window key. Unity can render normally underneath until its frame fence.
         if let window { windowHandoff.cover(window) }
@@ -892,6 +902,9 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
             let overlay = ViewerOverlayController()
             overlay.portraits = portraits; overlay.library = library
             overlay.characterPerformance = characterPerformance
+#if STARRY_TEST_TOOLS
+            overlay.characterPalette = characterPalette
+#endif
             overlay.onSelectPerformance = { [weak self] option,enabled in self?.selectPerformance(option,enabled:enabled) }
             overlay.onAdjustPerformance = { [weak self] option,value in
                 guard let self, self.selectedModel.performance?.options.contains(where:{$0.id==option && $0.control?.kind=="slider"}) == true else {return}
@@ -1067,9 +1080,14 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
             return
         }
 #endif
-        logger.info("unity_event \(json, privacy:.public)")
-        recordTestEvent(json)
+        if name != "palette",name != "paletteApplied" {
+            logger.info("unity_event \(json, privacy:.public)")
+            recordTestEvent(json)
+        }
         characterPerformance.receive(event)
+#if STARRY_TEST_TOOLS
+        characterPalette.receive(event)
+#endif
         if let receipt=event["receipt"] as? [String:Any],let id=receipt["eventId"] as? String,
            let pending=visualReceipts.removeValue(forKey:id) {
             VoiceTimeline.shared.span(pending.trace,"unity.performance_ack",start:pending.start)
@@ -1129,6 +1147,9 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
         case "modelSelected":
             guard event["presentationId"] as? Int == presentation,
                   event["modelId"] as? String == selectedModel.runtimeID else { return }
+#if STARRY_TEST_TOOLS
+            characterPalette.restore()
+#endif
             if page == .loading, event["requestId"] as? String == pendingReset { pendingReset = ""; prepareSceneForReveal() }
         case "presentationReady":
             guard page == .loading, desiredVisible,

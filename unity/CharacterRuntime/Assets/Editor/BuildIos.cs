@@ -25,6 +25,7 @@ public static class BuildIos
     {
         if (EditorUtility.scriptCompilationFailed) throw new Exception("Cannot generate a scene while C# compilation has errors");
         CharacterPackageBuilder.Preflight();
+        CharacterPaletteBuilder.Prepare();
         EnvironmentPackageBuilder.Preflight();
         Directory.CreateDirectory("Assets/Prefabs");
         Directory.CreateDirectory("Assets/Materials");

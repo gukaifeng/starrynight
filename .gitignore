@@ -87,3 +87,8 @@ unity/CharacterRuntime/Assets/DownloadableCharacters/
 unity/CharacterRuntime/Assets/DownloadableCharacters.meta
 unity/CharacterRuntime/Assets/DownloadableAtmospheres/
 unity/CharacterRuntime/Assets/DownloadableAtmospheres.meta
+# Reproducible host-owned copies of the pinned MIT shader dependency.
+/unity/CharacterRuntime/Assets/GeneratedPaletteShaders/
+/unity/CharacterRuntime/Assets/GeneratedPaletteShaders.meta
+/unity/CharacterRuntime/Assets/Resources/PaletteShaderLibrary.asset*
+/unity/CharacterRuntime/Assets/Resources/PaletteVariants.shadervariants*
