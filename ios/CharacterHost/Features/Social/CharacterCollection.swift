@@ -35,6 +35,10 @@ struct CharacterAudioPreferences: Codable, Equatable, Sendable {
     var effectsEnabled: Bool? = nil
     var effectsVolume: Double? = nil
     var volumeControlsVersion: Int? = nil
+    // A preview's forced silence is not a user preference. Keep provenance so
+    // activating a complete companion can restore sound without guessing again.
+    var previewSilenced: Bool? = nil
+    static let currentVolumeControlsVersion = 2
     var normalizedAutoplay: Self {
         guard autoplayVersion == nil else { return self }
         var value = self
@@ -77,6 +81,11 @@ struct CharacterCollection: Codable, Equatable, Sendable {
     /// No model.collection access here: callers may use this from that property.
     func scoped(to characterID:String) -> Self {
         let latest = Self.all.first { $0.modelID == modelID }
+        // Cached market/created-role snapshots from the model-only stage must
+        // not downgrade a now-complete package's voice or conversation support.
+        if previewOnly == true, let latest, latest.previewOnly != true {
+            return latest.scoped(to:characterID)
+        }
         let sourceMusic = latest?.music ?? music
         if characterID == modelID, scopeID == nil, sourceMusic == music { return self }
         func remap(_ value:String) -> String {
@@ -103,22 +112,34 @@ struct CharacterCollection: Codable, Equatable, Sendable {
         profile.studio = normalize(profile.resolvedStudio)
         profile.voiceID = voice(profile.voiceID).id
         var audio = (profile.audio ?? CharacterAudioPreferences(trackID:defaultMusic)).normalizedAutoplay
+        if previewOnly != true {
+            let wasPreview = audio.previewSilenced == true
+            let legacyPreview = audio.volumeControlsVersion == 1 && !profile.autoSpeak
+            let legacyZero = audio.volumeControlsVersion == 1 && audio.speechVolume == 0 && audio.masterMuted != true
+            if wasPreview || legacyZero {
+                audio.speechVolume = 1
+            }
+            if wasPreview || (legacyPreview && audio.volume == 0) { audio.volume = 0.28 }
+            audio.previewSilenced = nil
+        }
         // Convert legacy toggles into visible zero-volume values once. Raising a
         // slider can then always produce sound: there is no hidden mute gate.
         if audio.volumeControlsVersion == nil {
             let allMuted = audio.masterMuted == true
             if allMuted || !audio.enabled { audio.volume = 0 }
             if allMuted || !profile.autoSpeak { audio.speechVolume = 0 }
-            audio.volumeControlsVersion = 1
         }
+        audio.volumeControlsVersion = CharacterAudioPreferences.currentVolumeControlsVersion
         audio.masterMuted = false; audio.enabled = true
         audio.effectsEnabled = nil; audio.effectsVolume = nil
         profile.autoSpeak = true
         audio.trackID = migratedOptionID(audio.trackID) ?? defaultMusic
         if !music.contains(where:{ $0.id == audio.trackID }) { audio.trackID = defaultMusic }
         audio.volume = audio.volume.isFinite ? min(1,max(0,audio.volume)) : 0.28
-        audio.speechVolume = audio.speechVolume.map { $0.isFinite ? min(1,max(0,$0)) : 1 }
-        if previewOnly == true { audio.volume = 0; audio.speechVolume = 0; profile.autoSpeak = false }
+        audio.speechVolume = audio.speechVolume.map { $0.isFinite ? min(1,max(0,$0)) : 1 } ?? 1
+        if previewOnly == true {
+            audio.volume = 0; audio.speechVolume = 0; profile.autoSpeak = false; audio.previewSilenced = true
+        }
         profile.audio = audio
         return profile
     }

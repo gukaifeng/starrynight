@@ -5,7 +5,7 @@ struct ConversationSoundControls: View {
     private var audio: CompanionSoundscape { session.soundscape }
     var body: some View {
         VStack(spacing:2) {
-            channel("心声",symbol:"quote.bubble",volume:Binding(get:{audio.speechVolume},set:{session.setSpeechVolume($0)}),id:"speech")
+            channel("角色语音",symbol:"speaker.wave.1",volume:Binding(get:{audio.speechVolume},set:{session.setSpeechVolume($0)}),id:"speech")
             separator
             channel("背景音乐",symbol:"music.note",volume:Binding(get:{audio.volume},set:{audio.setVolume($0)}),id:"music")
             HStack(spacing:4) {

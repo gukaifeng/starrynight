@@ -171,14 +171,13 @@ struct DiscoverPage: View {
             VStack(alignment:.leading,spacing:0) {
                 CharacterCover(model:item.model).aspectRatio(0.94,contentMode:.fit)
                 VStack(alignment:.leading,spacing:5) {
-                    Text(item.profile.name).font(.system(size:13,weight:.semibold,design:.rounded)).lineLimit(1)
+                    HStack(spacing:4) {
+                        Text(item.profile.name).font(.system(size:13,weight:.semibold,design:.rounded)).lineLimit(1)
+                        Spacer(minLength:0)
+                        downloadStatus(item.model)
+                    }.frame(height:17)
                     Text(CharacterPublicProfile.find(item.model.runtimeID)?.invitation ?? item.model.display.invitation).font(.system(size:10)).foregroundStyle(Theme.secondary).lineLimit(1)
-                    if coordinator.assets.requiresDownload(item.model.runtimeID) {
-                        HStack(spacing:4) {
-                            Image(systemName:coordinator.assets.phase(item.model.runtimeID) == .ready ? "checkmark.circle" : "arrow.down.circle")
-                            Text(coordinator.assets.phase(item.model.runtimeID) == .ready ? "已下载" : "下载后相处")
-                        }.font(.system(size:9)).foregroundStyle(Theme.accent.opacity(0.8))
-                    }
+                        .frame(height:13,alignment:.leading)
                 }.padding(8).frame(maxWidth:.infinity,alignment:.leading)
             }.background(Theme.surface.opacity(Theme.panelOpacity))
                 .clipShape(RoundedRectangle(cornerRadius:13,style:.continuous))
@@ -186,5 +185,34 @@ struct DiscoverPage: View {
                 .contentShape(RoundedRectangle(cornerRadius:13))
         }.buttonStyle(.plain).accessibilityIdentifier("discover-open-"+item.id)
             .accessibilityLabel("查看"+item.profile.name+"的资料")
+            .accessibilityValue(coordinator.assets.requiresDownload(item.model.runtimeID) ? downloadStatusLabel(item.model) : "")
+    }
+    /// All cards reserve the same name-row slot; progress never alters grid geometry.
+    private func downloadStatus(_ model:ModelDescriptor)->some View {
+        Group {
+            switch coordinator.assets.phase(model.runtimeID) {
+            case .missing: Image(systemName:"arrow.down.circle")
+            case .ready: Image(systemName:"checkmark.circle.fill")
+            case .failed: Image(systemName:"arrow.clockwise.circle")
+            case .downloading(let value,_):
+                ZStack {
+                    Circle().stroke(Theme.accent.opacity(0.2),lineWidth:1.4)
+                    Circle().trim(from:0,to:min(1,max(0,value))).stroke(Theme.accent,style:StrokeStyle(lineWidth:1.4,lineCap:.round))
+                        .rotationEffect(.degrees(-90))
+                        .animation(reduceMotion ? nil : .easeInOut(duration:0.25),value:value)
+                    Image(systemName:"arrow.down").font(.system(size:6,weight:.semibold))
+                }.padding(1)
+            }
+        }.font(.system(size:11,weight:.regular)).foregroundStyle(Theme.accent.opacity(0.8))
+            .frame(width:14,height:14).opacity(coordinator.assets.requiresDownload(model.runtimeID) ? 1 : 0)
+            .accessibilityHidden(true)
+    }
+    private func downloadStatusLabel(_ model:ModelDescriptor)->String {
+        switch coordinator.assets.phase(model.runtimeID) {
+        case .missing: L10n.text("待下载")
+        case .ready: L10n.text("已下载")
+        case .failed: L10n.text("下载未完成")
+        case .downloading(let value,_): L10n.text("正在下载")+" \(Int(min(1,max(0,value))*100))%"
+        }
     }
 }

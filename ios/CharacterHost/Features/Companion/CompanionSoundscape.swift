@@ -94,7 +94,7 @@ final class CompanionSoundscape: NSObject {
         reconcileMusic()
     }
     func endVoice() { focus = .none; reconcile() }
-    private func persist() { onPreferences?(CharacterAudioPreferences(enabled:true,trackID:trackID,volume:volume,masterMuted:false,speechVolume:speechVolume,volumeControlsVersion:1)) }
+    private func persist() { onPreferences?(CharacterAudioPreferences(enabled:true,trackID:trackID,volume:volume,masterMuted:false,speechVolume:speechVolume,volumeControlsVersion:CharacterAudioPreferences.currentVolumeControlsVersion)) }
     private func configureSession() async throws {
         try await AudioSessionHardware.configure(recording:focus == .recording,speaking:focus == .speech,
             active:active && !interrupted && (focus != .none || enabled))

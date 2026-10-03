@@ -22,10 +22,10 @@ struct CharacterModelReviewTests {
         check(!ModelDescriptor.all.contains {$0.id=="anime-kipfel-v111"},"Duplicate new cat preview is retired")
         let expected=["chiffon":"Chiffon","fiona":"Fiona","hikarun":"Hikarun","ichigo":"Ichigo","koharu":"Koharu","lime":"Lime","mafuyu":"Mafuyu","meiyun":"Meiyun","milfy":"Milfy","mao":"Mao","mizuki":"Mizuki","perula":"Perula","plum":"Plum","ramune":"Ramune","shinano":"Shinano","sio":"Sio"]
         check(Set(ModelDescriptor.all.map(\.id))==Set(expected.keys.map {"anime-"+$0}),"Exactly the selected sixteen roles are bundled")
-        check(full.count==5 && previews.count==11,"Existing five full companions and eleven previews are retained")
+        check(full.count==16 && previews.isEmpty,"All sixteen selected models are complete companions")
         check(ModelDescriptor.defaultCharacter.id=="anime-chiffon","Default character is in the selected roster")
         for model in ModelDescriptor.all {check(model.display.name==expected[String(model.id.dropFirst(6))],"Original character name is used")}
-        check(!previews.isEmpty && !full.isEmpty,"Mixed collection retains complete and preview characters")
+        check(!full.isEmpty,"Complete characters remain available")
         for model in previews {
             let api=CharacterAI(accountID:"review",characterID:model.id)
             for path in ["/v1/status","/v1/reactions/prepare","/v1/tts","/v1/asr"] {

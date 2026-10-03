@@ -173,7 +173,12 @@ final class CompanionSession {
                 }
             }
         }
-        soundscape.configure(collection:model.collection,profile:model.conversationProfile(preserving:store.record(model.id).profile)) { [weak store] preferences in
+        let savedProfile=store.record(model.id).profile
+        let playbackProfile=model.conversationProfile(preserving:savedProfile)
+        if savedProfile.audio != playbackProfile.audio || savedProfile.autoSpeak != playbackProfile.autoSpeak {
+            store.update(model.id) {$0.profile.audio=playbackProfile.audio;$0.profile.autoSpeak=playbackProfile.autoSpeak}
+        }
+        soundscape.configure(collection:model.collection,profile:playbackProfile) { [weak store] preferences in
             guard let store, store.accountID == account else { return }; store.update(model.id) { $0.profile.audio = preferences }
         }
         speech.nickname = { [weak self] in

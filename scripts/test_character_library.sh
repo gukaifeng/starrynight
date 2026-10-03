@@ -2,7 +2,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 mkdir -p .local/checks/starry-core
-cp ios/CharacterHost/Resources/{CharacterCatalog,EnvironmentCatalog,CharacterCollections,CharacterPublicProfiles}.json .local/checks/starry-core/
+cp ios/CharacterHost/Resources/{CharacterCatalog,EnvironmentCatalog,CharacterCollections,CharacterPublicProfiles,CharacterDelivery}.json .local/checks/starry-core/
 cp ios/CharacterHost/Resources/Music_*.caf .local/checks/starry-core/
 # The standalone macOS harness uses the production Codable declarations. Their
 # files also contain UIKit/SwiftUI views, which belong to the iOS build checks.
@@ -13,6 +13,11 @@ platform = Path('ios/CharacterHost/Features/Account/PlatformAPI.swift').read_tex
 start = platform.index('indirect enum JSONValue:')
 end = platform.index('\nenum PlatformError:', start)
 parts.append(platform[start:end])
+resources = Path('ios/CharacterHost/Features/Resources/CharacterInstalledResources.swift').read_text()
+parts.append('import os\n'+resources[resources.index('enum CharacterDeliveryPolicy {'):])
+# This harness checks bundled data and preference migration, not OSS install I/O.
+# Installed release registration/playback are exercised by the iOS UI tests.
+parts.append('enum CharacterInstalledResources { static func resource(_ name:String,extension ext:String)->URL? { nil } }')
 for source, boundary in [
     ('ios/CharacterHost/App/AppLanguage.swift', '@MainActor @Observable final class AppLanguageSettings'),
     ('ios/CharacterHost/Features/Companion/ConversationGoals.swift', 'struct ConversationGoalsPanel: View'),
@@ -59,6 +64,7 @@ if [ "${1:-}" = '--model-review' ]; then
  TESTS=(CharacterModelReviewTests)
  LAUNCH_ARGS=(--live-ai --live-reaction-prewarm --live-smart-replies)
 fi
+if [ "${1:-}" = '--audio' ]; then TESTS=(CharacterAudioUpgradeTests); fi
 
 for TEST in "${TESTS[@]}"; do
  swiftc -swift-version 6 -parse-as-library -module-cache-path .local/checks/starry-core/ModuleCache "${SOURCES[@]}" "scripts/tests/$TEST.swift" -o ".local/checks/starry-core/$TEST"

@@ -27,26 +27,20 @@ struct CharacterViewEditorPanel: View {
                     }.buttonStyle(.plain).accessibilityIdentifier("conversationSetting-"+section.rawValue)
                         .accessibilityAddTraits(editor.section == section ? .isSelected : [])
                 }
+                sectionReset
             }.padding(.horizontal,7).padding(.top,4)
             Rectangle().fill(Theme.ink.opacity(0.08)).frame(height:0.5).padding(.horizontal,15)
             Group {
                 switch editor.section {
                 case .position:
                     VStack(alignment:.leading,spacing:7) {
-                        Text("轻触角色，自在取景").font(.system(size:12,weight:.medium)).padding(.trailing,92)
+                        Text("轻触角色，自在取景").font(.system(size:12,weight:.medium))
                         Text("单指旋转 · 双指缩放或移动").font(.system(size:11)).foregroundStyle(Theme.ink.opacity(0.66))
                         Text(editor.status.isEmpty ? "自动记住 · 右上角轻点收起" : editor.status)
                             .font(.system(size:10)).foregroundStyle(Theme.ink.opacity(0.44)).lineLimit(1)
                     }.frame(maxWidth:.infinity,alignment:.leading).padding(.top,13)
-                        .overlay(alignment:.topTrailing) {
-                            reset("resetCharacterView",action:onReset)
-                                .offset(x:7)
-                        }
                 case .sound:
-                    VStack(spacing:0) {
-                        HStack {Spacer();reset("resetConversationSound",action:session.resetSoundVolumes)}
-                        ConversationSoundControls(session:session)
-                    }.padding(.top,1)
+                    ConversationSoundControls(session:session).padding(.top,6)
                 case .atmosphere: atmosphere.padding(.top,10)
                 }
             }.padding(.horizontal,15).frame(maxWidth:.infinity,alignment:.topLeading)
@@ -64,7 +58,6 @@ struct CharacterViewEditorPanel: View {
                 Spacer()
                 Text(session.atmosphereIntensity<=0 ? "关闭" : "\(Int((session.atmosphereIntensity*100).rounded()))%")
                     .font(.system(size:11)).foregroundStyle(Theme.accent)
-                reset("resetConversationAtmosphere",action:session.resetAtmosphereIntensity)
             }
             AtmosphereLevelSlider(intensity:Binding(get:{session.atmosphereIntensity},set:{session.atmospherePreviewIntensity=$0}),
                 onCommit:session.commitAtmosphereIntensity).frame(height:32)
@@ -72,12 +65,19 @@ struct CharacterViewEditorPanel: View {
         }.tint(Theme.accent).onDisappear {session.commitAtmosphereIntensity()}
             .onChange(of:scenePhase) {if scenePhase != .active {session.commitAtmosphereIntensity()}}
     }
+    @ViewBuilder private var sectionReset:some View {
+        switch editor.section {
+        case .position: reset("resetCharacterView",action:onReset)
+        case .sound: reset("resetConversationSound",action:session.resetSoundVolumes)
+        case .atmosphere: reset("resetConversationAtmosphere",action:session.resetAtmosphereIntensity)
+        }
+    }
     private func reset(_ id:String,action:@escaping()->Void)->some View {
         Button(action:action) {
-            Label("恢复默认",systemImage:"arrow.counterclockwise")
-                .font(.system(size:11,weight:.medium)).foregroundStyle(Theme.ink.opacity(0.82))
-                .frame(width:98,height:44).contentShape(Rectangle())
-        }.buttonStyle(.plain).accessibilityIdentifier(id)
+            Image(systemName:"arrow.counterclockwise")
+                .font(.system(size:12,weight:.medium)).foregroundStyle(Theme.ink.opacity(0.65))
+                .frame(width:44,height:44).contentShape(Rectangle())
+        }.buttonStyle(.plain).accessibilityLabel("恢复默认").accessibilityIdentifier(id)
     }
 }
 private struct CharacterViewGlass:ViewModifier {

@@ -16,8 +16,9 @@ private final class TouchThroughView: UIView {
     func inspectionPanelOwns(_ point:CGPoint)->Bool {
         guard let panel=inspectionPanel,!panel.isHidden,panel.alpha>0.01 else {return false}
         let local=panel.convert(point,from:self)
-        let reset=CGRect(x:panel.bounds.width-108,y:49,width:100,height:44)
-        return panel.bounds.contains(local) && (!inspectionPassesBody || local.y<50 || reset.contains(local))
+        // Tabs and the icon-only reset share the header. Position instructions
+        // below it must remain transparent to character adjustment gestures.
+        return panel.bounds.contains(local) && (!inspectionPassesBody || local.y<50)
     }
     private let bottomScrim = CAGradientLayer()
     private let sideScrim = CAGradientLayer()
@@ -220,7 +221,7 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
     }
     @objc private func languageChanged() {
         updatePositionButton()
-        positionButton.accessibilityHint=L10n.text("调整角色位置、心声音量、背景音乐与氛围效果")
+        positionButton.accessibilityHint=L10n.text("调整角色位置、角色语音音量、背景音乐与氛围效果")
         view.setNeedsLayout()
     }
     @objc private func togglePositionEditor() {
@@ -748,7 +749,7 @@ final class ViewerOverlayController: UIViewController, UISheetPresentationContro
         super.viewDidLoad()
         NotificationCenter.default.addObserver(self,selector:#selector(languageChanged),name:.appLanguageChanged,object:nil)
         positionButton.addTarget(self,action:#selector(togglePositionEditor),for:.touchUpInside)
-        positionButton.accessibilityHint=L10n.text("调整角色位置、心声音量、背景音乐与氛围效果")
+        positionButton.accessibilityHint=L10n.text("调整角色位置、角色语音音量、背景音乐与氛围效果")
         view.addSubview(positionButton)
         viewingButton.addTarget(self,action:#selector(toggleViewing),for:.touchUpInside)
         view.addSubview(viewingButton)

@@ -38,10 +38,10 @@ struct CharacterMarketControls:View {
             case .ready:action("进入会话",download:false)
             }
         }.padding(14).background(Theme.surface.opacity(0.7),in:RoundedRectangle(cornerRadius:16))
-            .confirmationDialog("下载「"+model.name+"」",isPresented:$confirmDownload,titleVisibility:.visible) {
-                Button("下载 · "+size) {startDownload()}
-                Button("暂不下载",role:.cancel) {}
-            } message: {Text("包含模型、动作、背景和声音，需要约 "+size+" 下载流量及额外安装空间。建议使用 Wi-Fi，并保持 App 打开。下载过程中可以取消，完成后无需再次下载。")}
+            .background {
+                CharacterDownloadConfirmationPresenter(isPresented:$confirmDownload,name:model.name,size:size,onDownload:startDownload)
+                    .frame(width:0,height:0).accessibilityHidden(true)
+            }
             .onAppear {visible=true}
             .onDisappear {visible=false;assets.stopAudition()}
     }

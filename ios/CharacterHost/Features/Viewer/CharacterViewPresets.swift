@@ -53,7 +53,7 @@ struct CharacterViewLibrary: Codable, Sendable {
         case position,sound,atmosphere
         var title:String {switch self {case .position:"位置";case .sound:"声音";case .atmosphere:"氛围"}}
         var symbol:String {switch self {case .position:"move.3d";case .sound:"speaker.wave.1";case .atmosphere:"sparkles"}}
-        var height:Double {switch self {case .position:132;case .sound:214;case .atmosphere:166}}
+        var height:Double {switch self {case .position:132;case .sound:166;case .atmosphere:134}}
     }
     var section = Section.position
     var pose = CharacterViewPose.original

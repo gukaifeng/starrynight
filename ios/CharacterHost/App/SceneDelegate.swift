@@ -28,7 +28,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             label.frame=CGRect(x:24,y:100,width:window.bounds.width-48,height:400)
             label.accessibilityIdentifier="modelReviewCoreResult"
             do {
-                let result=try CharacterModelReviewTests.run()
+                let result=try CharacterModelReviewTests.run()+"\n"+CharacterAudioUpgradeTests.run()
                 label.text=result
                 let report:[String:Any] = ["result":result,"previewModels":ModelDescriptor.all.filter(\.isPreviewOnly).map(\.id),
                     "conversationModels":ModelDescriptor.all.filter {!$0.isPreviewOnly}.map(\.id),
@@ -57,6 +57,11 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 #endif
 #endif
 #if DEBUG && targetEnvironment(simulator)
+        if ProcessInfo.processInfo.arguments.contains("--download-confirmation-check") {
+            isolatedGoalFixture=true
+            window.rootViewController=LanguageHostingController(rootView:CharacterDownloadConfirmationCheckView())
+            return
+        }
         if ProcessInfo.processInfo.arguments.contains("--developer-float-check") {
             isolatedGoalFixture=true
             let folder=FileManager.default.temporaryDirectory.appendingPathComponent("developer-float-\(UUID())/journal.json")

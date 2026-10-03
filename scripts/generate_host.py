@@ -121,12 +121,13 @@ if args.platform == 'simulator':
         ref=obj(relative,'PBXFileReference',lastKnownFileType='sourcecode.swift',path=relative,sourceTree='<group>')
         source_refs.append(ref); source_build.append(buildfile(relative,ref))
 
-# Model-only checks also run on the actual phone; this explicit development
+# Roster and sound-upgrade checks also run on the actual phone; this development
 # entry has no Unity dependency and constructs no network requests.
 if test_tools:
-    relative='../scripts/tests/CharacterModelReviewTests.swift'
-    ref=obj(relative,'PBXFileReference',lastKnownFileType='sourcecode.swift',path=relative,sourceTree='<group>')
-    source_refs.append(ref);source_build.append(buildfile(relative,ref))
+    for test_name in ['CharacterModelReviewTests', 'CharacterAudioUpgradeTests']:
+        relative=f'../scripts/tests/{test_name}.swift'
+        ref=obj(relative,'PBXFileReference',lastKnownFileType='sourcecode.swift',path=relative,sourceTree='<group>')
+        source_refs.append(ref);source_build.append(buildfile(relative,ref))
 
 # Restricted development gateway token only; the paid provider key is server-only.
 if test_tools:
@@ -192,7 +193,7 @@ settings={'PRODUCT_NAME':'$(TARGET_NAME)','PRODUCT_BUNDLE_IDENTIFIER':'com.model
     'FRAMEWORK_SEARCH_PATHS':['$(inherited)','$(BUILT_PRODUCTS_DIR)'],
     'OTHER_LDFLAGS':['$(inherited)','-lc++','-framework','CoreML','-framework','Accelerate'],
     'GCC_ENABLE_CPP_EXCEPTIONS':'YES',
-    'CODE_SIGN_STYLE':'Automatic','CURRENT_PROJECT_VERSION':'125','MARKETING_VERSION':'0.94.0',
+    'CODE_SIGN_STYLE':'Automatic','CURRENT_PROJECT_VERSION':'126','MARKETING_VERSION':'0.95.0',
     'ENABLE_USER_SCRIPT_SANDBOXING':'NO','SUPPORTS_MACCATALYST':'NO','SWIFT_EMIT_LOC_STRINGS':'YES',
     'ARCHS':'arm64','ENABLE_DEBUG_DYLIB':'NO','ASSETCATALOG_COMPILER_APPICON_NAME':'AppIcon'}
 if args.native_ui_fixture:

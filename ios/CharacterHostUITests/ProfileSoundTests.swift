@@ -57,12 +57,15 @@ final class ProfileSoundTests:XCTestCase {
     @MainActor func testTwoRealSoundChannelsMutePersistAndStayIsolated() {
         continueAfterFailure = false
         let app = XCUIApplication()
-        app.launchArguments = ["--ui-testing","--companion-testing","--auth-testing"]
+        app.launchArguments = ["--ui-testing","--companion-testing","--auth-testing","-starry.app.language.v1","zh-Hans"]
         app.launch()
         let sound = app.buttons["characterPositionButton"]
         XCTAssertTrue(sound.waitForExistence(timeout:65))
         app.openConversationSettings("sound")
         XCTAssertTrue(app.sliders["speechSoundVolume"].waitForExistence(timeout:5))
+        XCTAssertTrue(app.staticTexts["角色语音"].exists)
+        XCTAssertEqual(audio(app)["speechVolume"] as? Double,1,"A new companion starts audible")
+        XCTAssertEqual(app.buttons["resetConversationSound"].frame.midY,app.buttons["conversationSetting-sound"].frame.midY,accuracy:1,"Reset shares the tab header instead of consuming a row")
         XCTAssertEqual(app.sliders.count,2)
         XCTAssertFalse(app.sliders["effectsSoundVolume"].exists)
         app.sliders["speechSoundVolume"].adjust(toNormalizedSliderPosition:0)
@@ -86,9 +89,11 @@ final class ProfileSoundTests:XCTestCase {
         XCTAssertEqual(audio(app)["speechVolume"] as? Double,0)
         XCTAssertEqual(audio(app)["volume"] as? Double ?? -1,savedVolume,accuracy:0.0001)
         app.buttons["tab-discover"].tap()
-        XCTAssertTrue(app.buttons["discover-open-anime-mamehinata"].waitForExistence(timeout:8))
-        app.buttons["discover-open-anime-mamehinata"].tap(); app.buttons["profileChatButton"].tap()
-        app.waitForCharacter { $0["modelId"] as? String == "anime-mamehinata" }
+        let search=app.textFields["discoverSearch"]
+        XCTAssertTrue(search.waitForExistence(timeout:8));search.tap();search.typeText("Lime\n")
+        XCTAssertTrue(app.buttons["discover-open-anime-lime"].waitForExistence(timeout:8))
+        app.buttons["discover-open-anime-lime"].tap(); app.buttons["profileChatButton"].tap()
+        app.waitForCharacter { $0["modelId"] as? String == "anime-lime" }
         XCTAssertEqual(audio(app)["speechVolume"] as? Double,1,"A different character keeps its own volume")
         XCTAssertEqual(audio(app)["volume"] as? Double ?? -1,0.28,accuracy:0.001)
         app.openConversationSettings("sound"); XCTAssertTrue(app.sliders["speechSoundVolume"].waitForExistence(timeout:5))
