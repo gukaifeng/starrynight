@@ -13,6 +13,7 @@ import Observation
     private(set) var pendingID: String?
     private(set) var pendingOption: String?
     private(set) var error: String?
+    private(set) var emotionMappings:[EmotionCharacterMapping]=[]
     private(set) var hostMotionSupported=false
     private(set) var hostMotionEnabled=false
     private(set) var hostMotionSuppressed=false
@@ -28,7 +29,7 @@ import Observation
         selections.removeAll(); controlValues.removeAll(); ready = false; transitioning = false
         pendingID = nil; pendingOption = nil; error = nil
         hostMotionSupported=false;hostMotionEnabled=false;hostMotionSuppressed=false;hostMotionGesture=""
-        hostMotionExpression="";hostMotionExpressions=[]
+        hostMotionExpression="";hostMotionExpressions=[];emotionMappings=[]
 #if DEBUG
         confirmedCounts.removeAll()
 #endif
@@ -53,6 +54,7 @@ import Observation
                 hostMotionGesture=motion["gesture"] as? String ?? ""
                 hostMotionExpression=motion["expression"] as? String ?? ""
                 hostMotionExpressions=motion["expressions"] as? [String] ?? []
+                if let raw=motion["standardMappings"] as? [[String:Any]],!raw.isEmpty,let data=try? JSONSerialization.data(withJSONObject:raw),let mappings=try? JSONDecoder().decode([EmotionCharacterMapping].self,from:data) {emotionMappings=mappings}
             }
             selections = Set(selected); ready = true
             transitioning = platform["performanceTransitioning"] as? Bool ?? false

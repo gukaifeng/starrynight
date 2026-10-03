@@ -9,7 +9,7 @@ namespace ModelSpace
     {
         public string id,label,group,expression,secondary;
         public string[] intents=Array.Empty<string>();
-        public float duration,face,nod,shake,wave;
+        public float duration,face,nod,shake,wave,finger,stance;
         public int beats=1;
         // Pitch, yaw, roll, chest, lean, twist, L/R abduction, L/R forward,
         // L/R elbow flexion and wrist accent, in anatomical degrees.
@@ -41,7 +41,7 @@ namespace ModelSpace
                 catalog=parsed;return catalog;
             }
         }
-        public static HostEmotionGesture Find(string id)=>Array.Find(Catalog.gestures,p=>p.id==id);
+        public static HostEmotionGesture Find(string id)=>Array.Find(Catalog.gestures,p=>p.id==id)??EmotionPerformanceStandard.Gesture(id);
         public static string Normalize(string intent)
         {
             switch(intent) {

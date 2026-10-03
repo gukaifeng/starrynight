@@ -108,6 +108,10 @@ for path in sorted((ios/'StarryNight').rglob('*')):
     source_refs.append(ref)
     if path.suffix in ('.swift','.mm'): source_build.append(buildfile(relative,ref))
     elif path.suffix in ('.png','.txt','.json','.wav','.pcm', '.caf','.storyboard','.xcstrings'): resource_build.append(buildfile(relative,ref))
+# Semantic controls ship in release builds, independently of developer UI.
+relative='../unity/CharacterRuntime/Assets/Resources/EmotionPerformanceStandard.json'
+ref=obj(relative,'PBXFileReference',lastKnownFileType='text.json',path=relative,sourceTree='<group>')
+source_refs.append(ref);resource_build.append(buildfile(relative,ref))
 if test_tools:
     # Native UI and Unity consume the same host-authored gesture catalog.
     relative='../unity/CharacterRuntime/Assets/Resources/HostEmotionGestures.json'
@@ -198,7 +202,7 @@ settings={'PRODUCT_NAME':'StarryNight','PRODUCT_MODULE_NAME':'StarryNight','PROD
     'FRAMEWORK_SEARCH_PATHS':['$(inherited)','$(BUILT_PRODUCTS_DIR)'],
     'OTHER_LDFLAGS':['$(inherited)','-lc++','-framework','CoreML','-framework','Accelerate'],
     'GCC_ENABLE_CPP_EXCEPTIONS':'YES',
-    'CODE_SIGN_STYLE':'Automatic','CURRENT_PROJECT_VERSION':'135','MARKETING_VERSION':'0.103.1',
+    'CODE_SIGN_STYLE':'Automatic','CURRENT_PROJECT_VERSION':'136','MARKETING_VERSION':'0.104.0',
     'ENABLE_USER_SCRIPT_SANDBOXING':'NO','SUPPORTS_MACCATALYST':'NO','SWIFT_EMIT_LOC_STRINGS':'YES',
     'ARCHS':'arm64','ENABLE_DEBUG_DYLIB':'NO','ASSETCATALOG_COMPILER_APPICON_NAME':'AppIcon'}
 if args.native_ui_fixture:
@@ -229,7 +233,7 @@ island_settings={'PRODUCT_NAME':'$(TARGET_NAME)','PRODUCT_BUNDLE_IDENTIFIER':'co
     'PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]':'$(MODELSPACE_DEVICE_BUNDLE_IDENTIFIER).ConversationIsland',
     'INFOPLIST_FILE':'ConversationIsland/Info.plist','SWIFT_VERSION':'6.0','IPHONEOS_DEPLOYMENT_TARGET':'17.0',
     'TARGETED_DEVICE_FAMILY':'1,2','SDKROOT':sdk,'SUPPORTED_PLATFORMS':sdk,'CLANG_ENABLE_MODULES':'YES',
-    'CURRENT_PROJECT_VERSION':'135','MARKETING_VERSION':'0.103.1','CODE_SIGN_STYLE':'Automatic',
+    'CURRENT_PROJECT_VERSION':'136','MARKETING_VERSION':'0.104.0','CODE_SIGN_STYLE':'Automatic',
     'APPLICATION_EXTENSION_API_ONLY':'YES','SKIP_INSTALL':'YES','ARCHS':'arm64',
     'LD_RUNPATH_SEARCH_PATHS':['$(inherited)','@executable_path/Frameworks','@executable_path/../../Frameworks']}
 if args.native_ui_fixture:island_settings['PRODUCT_BUNDLE_IDENTIFIER']='app.starrynight.native-ui-fixture.ConversationIsland'

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace ModelSpace
@@ -9,13 +10,16 @@ namespace ModelSpace
         public int revision=3,started,completed,gestureCount=48;
         public bool supported,enabled,suppressed,speechLinked,speaking,automatic;
         public string gesture="",expression="",origin="starrynight.host-emotion.v3.experiment";
+        public EmotionMapping[] standardMappings=Array.Empty<EmotionMapping>();
+        public string standardEmotion="",standardStyle="plain",standardVocal="",standardStyleVariant="";
         public string[] expressions=Array.Empty<string>();
         public float weight,progress,peakDegrees;
     }
 
     // Optional, masked additive upper-body animation AFTER author animation and
     // gaze, BEFORE cloth/hair. Calibrated facial morphs are also overlaid, but
-    // never speech visemes. No root, legs, fingers, scale or camera writes.
+    // never speech visemes. Standard variants use calibrated fingers; the natural
+    // body layer supplies contact-preserving hips/knees/feet. No presentation root writes.
     // All offsets unwind before the next animation sample; cancellation also has
     // an explicit C2 release, so turning the experiment off never pops the pose.
     [DefaultExecutionOrder(90)]
@@ -31,16 +35,24 @@ namespace ModelSpace
         ViewerCharacter character;
         CharacterActions actions;
         AvatarControlDriver author;
+        HostEmotionRig.Joint[] joints=Array.Empty<HostEmotionRig.Joint>();
         Quaternion[] before=Array.Empty<Quaternion>();
         HostEmotionRig.Face face,secondaryFace;
-        HostEmotionGesture profile;
+        HostEmotionGesture profile,accentProfile;
+        HostEmotionRig.Face accentFace;
+        float[] accentBefore=Array.Empty<float>();
+        float accentElapsed,standardDuration;
         float[] faceBefore=Array.Empty<float>();
         float[] secondaryBefore=Array.Empty<float>();
         struct Guard {public int hash;public string kind;public float initial;}
         Guard[] guards=Array.Empty<Guard>();
-        bool applied,interacting,reportedPose;
+        bool applied,interacting,reportedPose,accentApplied;
         string queued="",speechIntent="neutral",lastAutomatic="";
         bool queuedAutomatic;
+        string lastStandardBase="",standardStyleVariant="";
+        readonly Dictionary<string,string> lastStandardKinds=new Dictionary<string,string>();
+        public float StanceAccent=>profile?.stance ?? 0;
+        public float GestureEnvelope=>profile!=null?Pulse(State.progress,.025f,.27f,.5f,.94f)*State.weight:0;
         int speechSequence;
         float elapsed,gap,intensity=1,release=-1,releaseStart=1,speechStartDelay;
         public void Bind(ViewerCharacter actor,CharacterActions source)
@@ -49,7 +61,9 @@ namespace ModelSpace
             author=actor.GetComponent<AvatarControlDriver>();
             State=new HostEmotionMotionState {supported=rig && rig.joints.Length>=10,gestureCount=Gestures.Length,
                 expressions=rig?Array.ConvertAll(rig.faces,f=>f.gesture+" · "+f.label):Array.Empty<string>()};
-            before=new Quaternion[rig?rig.joints.Length:0];
+            joints=rig?rig.joints.Concat(rig.naturalJoints??Array.Empty<HostEmotionRig.Joint>()).Where(j=>!j.human.Contains("Leg") && !j.human.EndsWith("Foot") && j.human!="Hips").GroupBy(j=>j.human).Select(g=>g.First()).ToArray():Array.Empty<HostEmotionRig.Joint>();
+            before=new Quaternion[joints.Length];
+
             var list=new List<Guard>();
             if(rig && author)foreach(string name in rig.blockingParameters) {
                 var p=Array.Find(author.profile.parameters,x=>x.name==name);
@@ -63,8 +77,8 @@ namespace ModelSpace
         {
             RestorePose();rig=null;character=null;author=null;queued="";
             elapsed=gap=0;release=-1;interacting=false;State=new HostEmotionMotionState();
-            face=secondaryFace=null;profile=null;faceBefore=secondaryBefore=Array.Empty<float>();
-            speechIntent="neutral";lastAutomatic="";speechSequence=0;queuedAutomatic=false;speechStartDelay=0;
+            face=secondaryFace=accentFace=null;profile=accentProfile=null;accentElapsed=standardDuration=0;faceBefore=secondaryBefore=Array.Empty<float>();
+            speechIntent="neutral";lastAutomatic="";lastStandardKinds.Clear();lastStandardBase=standardStyleVariant="";joints=Array.Empty<HostEmotionRig.Joint>();speechSequence=0;queuedAutomatic=false;speechStartDelay=0;
         }
         public void Configure(bool value)
         {
@@ -91,6 +105,7 @@ namespace ModelSpace
         {
             speechIntent=HostEmotionGestureLibrary.Normalize(intent);
             if(!State.speechLinked)return "HOST_MOTION_DEVELOPER_ONLY";
+            if(State.gesture.Contains("."))return null;
             if(!State.speaking)return null; // Beat cues can arrive just before audio begins.
             if(speechStartDelay>0)return null;
             if(State.gesture.Length>0 && (!State.automatic || elapsed<1.5f))return null;
@@ -143,14 +158,65 @@ namespace ModelSpace
         {
             State.gesture=gesture;elapsed=0;release=-1;State.weight=1;
             State.progress=State.peakDegrees=0;State.started++;reportedPose=false;
-            profile=HostEmotionGestureLibrary.Find(gesture);State.automatic=automatic;
+            profile=HostEmotionGestureLibrary.Find(gesture);State.automatic=automatic || (State.speaking && gesture.Contains("."));
+            State.origin=gesture.Contains(".")?"starrynight.emotion-standard.v1":"starrynight.host-emotion.v3.experiment";
             if(automatic)lastAutomatic=gesture;
-            face=Array.Find(rig.faces,f=>f.gesture==profile.expression);faceBefore=new float[face?.indices.Length ?? 0];
+            var executed=EmotionPerformanceStandard.Variant(gesture);
+            if(executed!=null) {lastStandardBase=executed.@base;lastStandardKinds[gesture.Split('.')[0]]=executed.@base;}
+            face=EmotionPerformanceStandard.Face(rig,profile.expression);faceBefore=new float[face?.indices.Length ?? 0];
             secondaryFace=Array.Find(rig.faces,f=>f.gesture==profile.secondary);secondaryBefore=new float[secondaryFace?.indices.Length ?? 0];
             State.expression=face?.label ?? "中性表情";
             if(secondaryFace!=null)State.expression+=" → "+secondaryFace.label;
+            if(State.gesture.StartsWith("emotion.") && standardStyleVariant.Length>0) {
+                var style=EmotionPerformanceStandard.Gesture(standardStyleVariant);
+                if(style!=null) {
+                    for(int i=0;i<profile.c.Length;i++)profile.c[i]=Mathf.Lerp(profile.c[i],style.c[i],.25f);
+                    lastStandardKinds["style"]=EmotionPerformanceStandard.Variant(standardStyleVariant).@base;
+                }
+            }
+            if(gesture.Contains(".") && standardDuration>0)profile.duration=Mathf.Clamp(standardDuration,1.2f,6.5f);
             // Stable alternation keeps a replay auditable, without frame-dependent noise.
             intensity=(State.started%2==0?.94f:1)*rig.amplitude;
+        }
+        public string PreviewStandard(string id) {
+            var v=EmotionPerformanceStandard.Variant(id);if(v==null)return "EMOTION_STANDARD_UNKNOWN";
+            RestorePose();accentProfile=null;accentFace=null;standardStyleVariant="";standardDuration=0;
+            var error=Request(id,true);State.automatic=false;
+            if(error==null) {
+                var entry=EmotionPerformanceStandard.Entry(id.Split('.')[0],id.Split('.')[1]);
+                var player=GetComponent<CharacterPerformanceDriver>();
+                if(player)foreach(var option in EmotionPerformanceStandard.Original(character,entry))player.Select(option.id,.65f);
+            }
+            return error;
+        }
+        public void PublishMappings() {
+            if(!rig || !character)return;
+            State.standardMappings=EmotionPerformanceStandard.Map(character,rig);
+            OnChanged?.Invoke();State.standardMappings=Array.Empty<EmotionMapping>();
+        }
+        public string Standard(string kind,string id,string style="plain",bool preview=false,float duration=0) {
+            var entry=EmotionPerformanceStandard.Entry(kind,id);if(entry==null)return "EMOTION_STANDARD_UNKNOWN";
+            if(!State.supported)return "HOST_MOTION_UNSUPPORTED";
+            if(!State.enabled)return "HOST_MOTION_DISABLED";
+            if(Blocked())return "HOST_MOTION_AUTHOR_PRIORITY";
+            if(kind=="emotion") {State.standardEmotion=id;State.standardStyle=style;State.standardVocal="";
+                standardStyleVariant=EmotionPerformanceStandard.Entry("style",style)==null?"":EmotionPerformanceStandard.Choose("style",style,lastStandardBase,lastStandardKinds.TryGetValue("style",out var priorStyle)?priorStyle:"");
+                State.standardStyleVariant=standardStyleVariant;}
+            if(kind=="vocal")State.standardVocal=id;
+            if(kind=="emotion")standardDuration=!preview?duration:0;
+            var chosen=EmotionPerformanceStandard.Choose(kind,id,lastStandardBase,lastStandardKinds.TryGetValue(kind,out var priorKind)?priorKind:"");
+            if(kind=="vocal" && !preview && State.gesture.Length>0) {
+                lastStandardBase=EmotionPerformanceStandard.Variant(chosen).@base;lastStandardKinds[kind]=lastStandardBase;
+                RestorePose();
+                accentProfile=EmotionPerformanceStandard.Gesture(chosen);accentElapsed=0;
+                accentFace=EmotionPerformanceStandard.Face(rig,accentProfile.expression);accentBefore=new float[accentFace?.indices.Length??0];
+                OnChanged?.Invoke();return null;
+            }
+            var error=Request(chosen,true);
+            if(!preview){State.automatic=true;queuedAutomatic=false;}
+            var player=GetComponent<CharacterPerformanceDriver>();
+            if(player && error==null && !Blocked())foreach(var option in EmotionPerformanceStandard.Original(character,entry))player.Select(option.id,.65f);
+            OnChanged?.Invoke();return error;
         }
         bool Blocked()
         {
@@ -188,7 +254,7 @@ namespace ModelSpace
                 } else return;
             }
             elapsed+=dt;
-            float duration=Duration(State.gesture);State.progress=Mathf.Clamp01(elapsed/duration);
+            float duration=profile?.duration ?? Duration(State.gesture);State.progress=Mathf.Clamp01(elapsed/duration);
             if(release>=0) {release+=dt;State.weight=releaseStart*(1-Smooth(release/.48f));}
             if(elapsed>=duration || (release>=.48f)) {
                 State.completed++;State.gesture=State.expression="";State.weight=0;State.progress=1;gap=.24f;release=-1;OnChanged?.Invoke();return;
@@ -202,9 +268,18 @@ namespace ModelSpace
                 float faceWeight=Pulse(elapsed/duration,.04f,.3f,.62f,1)*State.weight*profile.face*transition;
                 for(int i=0;i<secondaryFace.indices.Length;i++){var skin=secondaryFace.skins[i];secondaryBefore[i]=skin.GetBlendShapeWeight(secondaryFace.indices[i]);skin.SetBlendShapeWeight(secondaryFace.indices[i],Mathf.Lerp(secondaryBefore[i],secondaryFace.values[i],faceWeight));}
             }
-            for(int i=0;i<rig.joints.Length;i++) {
-                var j=rig.joints[i];before[i]=j.bone.localRotation;
+            float accent=0;
+            if(accentProfile!=null) {
+                accentElapsed+=dt;accent=Pulse(accentElapsed/1.25f,0,.2f,.55f,1)*State.weight;
+                if(accentFace!=null)for(int i=0;i<accentFace.indices.Length;i++) {
+                    var skin=accentFace.skins[i];accentBefore[i]=skin.GetBlendShapeWeight(accentFace.indices[i]);
+                    skin.SetBlendShapeWeight(accentFace.indices[i],Mathf.Lerp(accentBefore[i],accentFace.values[i],accent*.32f));accentApplied=true;
+                }
+            }
+            for(int i=0;i<joints.Length;i++) {
+                var j=joints[i];before[i]=j.bone.localRotation;
                 var euler=Sample(profile,j.human,elapsed)*intensity*State.weight;
+                if(accentProfile!=null)euler+=Sample(accentProfile,j.human,accentProfile.duration*.43f)*accent*.16f;
                 if(j.human.EndsWith("Shoulder",StringComparison.Ordinal) || j.human.EndsWith("UpperArm",StringComparison.Ordinal))
                     euler.z*=j.lateralSign*(j.human.StartsWith("Left",StringComparison.Ordinal)?1:-1);
                 var delta=j.elbowAxis.sqrMagnitude>.9f?Quaternion.AngleAxis(-euler.x,j.elbowAxis):
@@ -219,7 +294,10 @@ namespace ModelSpace
         public void RestorePose()
         {
             if(!applied || !rig)return;
-            for(int i=0;i<rig.joints.Length;i++)if(rig.joints[i].bone)rig.joints[i].bone.localRotation=before[i];
+            for(int i=0;i<joints.Length;i++)if(joints[i].bone)joints[i].bone.localRotation=before[i];
+            if(accentApplied && accentFace!=null)for(int i=0;i<accentFace.indices.Length;i++)if(accentFace.skins[i])accentFace.skins[i].SetBlendShapeWeight(accentFace.indices[i],accentBefore[i]);
+            accentApplied=false;
+            if(accentProfile!=null && accentElapsed>=1.25f){accentProfile=null;accentFace=null;}
             // Reverse order matters when two authored faces share morph channels.
             if(secondaryFace!=null)for(int i=0;i<secondaryFace.indices.Length;i++)if(secondaryFace.skins[i])secondaryFace.skins[i].SetBlendShapeWeight(secondaryFace.indices[i],secondaryBefore[i]);
             if(face!=null)for(int i=0;i<face.indices.Length;i++)if(face.skins[i])face.skins[i].SetBlendShapeWeight(face.indices[i],faceBefore[i]);
@@ -269,7 +347,7 @@ namespace ModelSpace
                 case "LeftUpperArm":case "RightUpperArm":return new Vector3(-forward,0,side*open);
                 case "LeftLowerArm":case "RightLowerArm":return new Vector3(-Mathf.Clamp(elbow,0,72),0,0);
                 case "LeftHand":case "RightHand":return new Vector3(0,side*wrist*.5f,side*wrist*.35f+(!left?12*wave:0));
-                default:return Vector3.zero;
+                default:return human.EndsWith("Proximal",StringComparison.Ordinal)?new Vector3(p.finger*arm,0,(left?1:-1)*p.finger*.25f*sway):Vector3.zero;
             }
         }
     }

@@ -30,6 +30,7 @@ namespace ModelSpace
         CharacterPerformanceDriver performance;
         HostEmotionRig rig;float clock,phase,weight,weightVelocity,height=1;
         AvatarClothingClearance clothing;
+        float emotionalLegAvailability;
         float leftWeight=1,rightWeight=1,leftVelocity,rightVelocity;
         bool applied;
         public AvatarNaturalMotionState State {get;private set;}=new AvatarNaturalMotionState();
@@ -61,6 +62,12 @@ namespace ModelSpace
                 map.Add(j.human,j);
             }
             joints=new List<Joint>(map.Values).ToArray();
+            float bend=90;
+            foreach(string side in new[]{"Left","Right"})if(map.TryGetValue(side+"UpperLeg",out var leg) && map.TryGetValue(side+"LowerLeg",out var knee) && map.TryGetValue(side+"Foot",out var foot))
+                bend=Mathf.Min(bend,180-Vector3.Angle(leg.bone.position-knee.bone.position,foot.bone.position-knee.bone.position));
+            // Near-straight author knees have no safe extra lateral budget.
+            // Retain natural breathing/contacts; substitute upper-body accents.
+            emotionalLegAvailability=Mathf.InverseLerp(8,20,bend);
             State.supported=map.ContainsKey("Chest") && map.ContainsKey("LeftUpperArm") && map.ContainsKey("RightUpperArm");
             State.joints=joints.Length;State.fingers=Array.FindAll(joints,j=>j.human.EndsWith("Proximal")).Length;
             height=Mathf.Max(.2f,actor.RestBounds().size.y*actor.transform.lossyScale.y);
@@ -123,7 +130,7 @@ namespace ModelSpace
             if(map.TryGetValue("Hips",out var hips) && lf && rf) {
                 // A millimetre-scale weight transfer drives the knees/ankles;
                 // solve to the author's CURRENT foot contacts, not world locks.
-                hips.bone.position+=actor.transform.right*(height*.002f*sway*weight)-actor.transform.up*(height*.0015f*(1.2f+.5f*breath)*weight);
+                hips.bone.position+=actor.transform.right*(height*(.002f*sway+(emotion?emotion.StanceAccent*emotion.GestureEnvelope*emotionalLegAvailability:0))*weight)-actor.transform.up*(height*(.0015f*(1.2f+.5f*breath)+(emotion?emotion.StanceAccent*.35f*emotion.GestureEnvelope*emotionalLegAvailability:0))*weight);
             }
             foreach(var j in joints) {
                 Vector3 e=Vector3.zero;float arm=j.human.StartsWith("Left")?leftWeight:rightWeight;

@@ -20,6 +20,8 @@ catalog=json.loads(catalog_path.read_text())
 if content.get('characterDeliveryRevision',0)<1:
     raise SystemExit('Unity export lacks verified downloaded-character loading; re-export this platform.')
 required={c['id'] for c in catalog['characters']}
+if content.get('emotionPerformanceRevision',0)<1:
+    raise SystemExit('Unity export lacks sentence emotion/style/vocal performance v1; re-export this platform before building.')
 if content.get('characterApi')!=1 or content.get('catalogSha256')!=hashlib.sha256(catalog_path.read_bytes()).hexdigest() or required!=set(content.get('models',[])):
     raise SystemExit('Character catalog differs from Unity export. Export the selected platform again before building.')
 environment_catalog=ROOT/'ios/StarryNight/Resources/EnvironmentCatalog.json'
@@ -43,6 +45,6 @@ if content.get('nativeGestureRevision', 0) < 2 or content.get('immersionRevision
                      f'Run: python3 scripts/export_unity_ios.py --platform {args.platform}; then rebuild StarryNight. '
                      'The previously installed app is unchanged.')
 print(f"Character API v1 / Environment API v1 catalog integrity PASS: {len(required)} characters, "
-      f"{len(json.loads(environment_catalog.read_text())['environments'])} environments; framing v8, gaze v1, portrait v1, immersion v2, native gestures v2, head-safe immersive framing / bidirectional zoom and position editing v14.")
+      f"{len(json.loads(environment_catalog.read_text())['environments'])} environments; framing v8, gaze v1, portrait v1, immersion v2, native gestures v2, sentence emotion/style/vocal performance v1, head-safe immersive framing / bidirectional zoom and position editing v14.")
 
 validate_collections()

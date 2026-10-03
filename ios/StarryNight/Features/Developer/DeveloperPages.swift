@@ -34,6 +34,9 @@ struct CharacterDeveloperPanel:View {
                 AIInspectionPanel(model:model,store:store,draft:session?.input ?? "")
                     .environment(\.softPanelCloseRequest,childClose).environment(\.softPanelDismiss,{childClose.request()})
                     .transition(.opacity)
+            } else if destination == "emotion",let state=performanceState {
+                EmotionStandardPanel(model:model,state:state)
+                    .environment(\.softPanelCloseRequest,childClose).environment(\.softPanelDismiss,{childClose.request()}).transition(.opacity)
             } else if destination == "motion",let state=performanceState {
                 HostEmotionMotionPanel(model:model,state:state)
                     .environment(\.softPanelCloseRequest,childClose).environment(\.softPanelDismiss,{childClose.request()}).transition(.opacity)
@@ -52,6 +55,7 @@ struct CharacterDeveloperPanel:View {
                             DeveloperEntry(title:"定制颜色",detail:"全部组件 · 主色、阴影与高光 · 保留原作纹理",symbol:"paintpalette",id:"openCharacterPalette") {open("palette")}
                             DeveloperEntry(title:"语音耗时",detail:"生成、网络、缓存、排队与播放的逐次拆解",symbol:"waveform.path",id:"openCharacterVoiceTimings") {open("voice")}
                             if let state=performanceState,state.hostMotionSupported {
+                                DeveloperEntry(title:"情感表演标准",detail:"42 项 · 126 组 · 当前角色匹配与播放",symbol:"face.smiling",id:"openEmotionStandard") {open("emotion")}
                                 DeveloperEntry(title:"动作实验",detail:"48 个情感组合 · 手动预览与语音联动",symbol:"figure.wave",id:"openHostEmotionMotion") {open("motion")}
                             }
                             if model.performance != nil {

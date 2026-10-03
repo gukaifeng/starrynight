@@ -42,6 +42,7 @@ struct AIBeat: Codable, Sendable, Identifiable {
     var vocalEvents: [AIVocalEvent]?
     var parts: [AIReplyPart]? = nil
     var readingDuration: Double? = nil
+    var sentences: [AISentenceEmotion]? = nil
     var id: String { beatId }
     var hasAudio: Bool { dialogue != nil || !(vocalEvents ?? []).isEmpty }
     var visibleNarrations:[AINarration] {narrations.filter(\.isVisible)}
@@ -71,6 +72,13 @@ struct AIBeat: Codable, Sendable, Identifiable {
         return metadata.contains(where:text.contains) || planning.contains(where:{text.range(of:$0,options:.regularExpression) != nil}) ? nil : text
     }
 }
+struct AISentenceEmotion:Codable,Sendable {
+    var at:Double
+    var emotion:String
+    var style:String? = nil
+    var thought:String? = nil
+    var vocals:[AIVocalEvent]? = nil
+}
 struct AIReplyPart: Codable, Sendable {
     var kind: String
     var text: String
@@ -81,11 +89,11 @@ struct AIReplyPart: Codable, Sendable {
     }
 }
 struct AIDialogue: Codable, Sendable {
-    struct Speech:Codable,Sendable {var emotion:String?}
+    struct Speech:Codable,Sendable {var emotion:String?;var style:String? = nil;var intensity:Double? = nil}
     var text: String
     var speech:Speech? = nil
 }
-struct AIVocalEvent: Codable, Sendable { var event: String }
+struct AIVocalEvent: Codable, Sendable { var event: String;var at:Double? = nil }
 struct AINarration: Codable, Sendable {
     var text: String; var mode: String; var grounding: String
     var isVisible:Bool {mode=="performed" || text.range(of:"头发|发色|长发|短发|棕色|金色|肤色|皮肤|眼睛|瞳孔|眼眸|身材|脸型|衣服|裙子|穿着|留着|一双|外貌",options:.regularExpression)==nil}

@@ -460,6 +460,7 @@ final class ViewerCoordinator: NSObject, UnityRuntimeBridgeDelegate {
         guard ready,desiredVisible,page == .viewer,
               notification.userInfo?["actor"] as? String == selectedModel.runtimeID else {return}
         if notification.userInfo?["kind"] as? String == "configure" { configureHostEmotionMotion() }
+        else if notification.userInfo?["kind"] as? String == "mapping" {signal(CharacterIntent(eventName:"emotion.mapping"))}
         else if notification.userInfo?["kind"] as? String == "stop" {signal(CharacterIntent(eventName:"host.motion.stop"))}
         else if let gesture=notification.userInfo?["gesture"] as? String {
             signal(CharacterIntent(eventName:"host.motion.preview",target:gesture))

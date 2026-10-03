@@ -13,11 +13,19 @@ struct CharacterOpening: Decodable, Sendable {
     let duration:Double?
     let parts:[AIReplyPart]?
     let readingDuration:Double?
+    let sentences:[AISentenceEmotion]?
+    private struct Metadata:Decodable {let sentences:[AISentenceEmotion];let parts:[AIReplyPart]}
+    private static let metadata:[String:Metadata] = {
+        guard let url=Bundle.main.url(forResource:"EmotionOpeningMetadata",withExtension:"json"),let data=try? Data(contentsOf:url) else{return [:]}
+        return (try? JSONDecoder().decode([String:Metadata].self,from:data)) ?? [:]
+    }()
 
     func script(characterID:String,messageID:UUID = UUID()) -> AIScript {
-        AIScript(messageId:messageID.uuidString,characterId:characterID,text:text,
-                 beats:[AIBeat(beatId:"opening",dialogue:AIDialogue(text:text),narrations:[],
-                               visuals:visuals,duration:duration,parts:parts ?? [AIReplyPart(kind:"dialogue",text:text,at:0)],readingDuration:readingDuration)],
+        let canonical=Self.metadata[id]
+        let cues=canonical?.sentences ?? sentences
+        return AIScript(messageId:messageID.uuidString,characterId:characterID,text:text,
+                 beats:[AIBeat(beatId:"opening",dialogue:AIDialogue(text:text,speech:.init(emotion:cues?.first?.emotion ?? "happy",style:"plain")),narrations:[],
+                               visuals:visuals,duration:duration,parts:canonical?.parts ?? parts ?? [AIReplyPart(kind:"dialogue",text:text,at:0)],readingDuration:readingDuration,sentences:cues)],
                  openingID:id)
     }
     func pcm(bundle:Bundle = .main) async throws -> Data {

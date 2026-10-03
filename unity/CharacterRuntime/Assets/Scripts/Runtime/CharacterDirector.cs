@@ -82,6 +82,11 @@ namespace ModelSpace
             State.accepted++;
             switch(s.eventName)
             {
+                case "emotion.mapping":
+                    hostEmotionMotion.PublishMappings();receipt.executed++;return Finish(receipt);
+                case "emotion.sentence":case "emotion.vocal":case "emotion.preview":
+                    string standardError=hostEmotionMotion.Standard(s.eventName=="emotion.vocal"?"vocal":s.eventName=="emotion.preview"?s.emotion:"emotion",s.eventName=="emotion.sentence"?s.emotion:s.target,s.eventName=="emotion.sentence"?s.target:"plain",s.eventName=="emotion.preview",s.audioTime);
+                    if(standardError!=null){receipt.status="rejected";receipt.code=standardError;}else receipt.executed++;return Finish(receipt);
                 case "host.motion.configure":
                     hostEmotionMotion.Configure(s.intensity>.5f);receipt.executed++;return Finish(receipt);
                 case "host.motion.speech.configure":
@@ -90,7 +95,7 @@ namespace ModelSpace
                     hostEmotionMotion.Cancel();receipt.executed++;return Finish(receipt);
                 case "host.motion.preview":case "host.motion.cue":
                     receipt.channel="host-emotion";receipt.target=s.target;
-                    string motionError=s.eventName=="host.motion.preview"?hostEmotionMotion.Request(s.target,true):hostEmotionMotion.CueOriginalExpression(s.target);
+                    string motionError=s.eventName=="host.motion.preview"?(EmotionPerformanceStandard.Variant(s.target)!=null?hostEmotionMotion.PreviewStandard(s.target):hostEmotionMotion.Request(s.target,true)):hostEmotionMotion.CueOriginalExpression(s.target);
                     if(motionError!=null) {receipt.status="degraded";receipt.code=motionError;receipt.skipped++;}
                     else receipt.executed++;
                     return Finish(receipt);

@@ -23,11 +23,18 @@ import Foundation
                 guard let opening=CharacterOpenings.variants(for:model.runtimeID).dropFirst(index-1).first else {
                     throw NSError(domain:"OpeningChecks",code:2,userInfo:[NSLocalizedDescriptionKey:"Missing opening for "+model.id])
                 }
-                let pcm=try await opening.pcm()
-                try require(abs(Double(pcm.count)/48000-(opening.duration ?? 0))<0.001,"Bundled audio duration mismatch")
+                // OSS-only roles intentionally omit their PCM from the host.
+                // Their metadata is checked below; downloaded media has its own installer checks.
+                if !CharacterDeliveryPolicy.isRemote(model.runtimeID) {
+                    let pcm=try await opening.pcm()
+                    try require(abs(Double(pcm.count)/48000-(opening.duration ?? 0))<0.001,"Bundled audio duration mismatch")
+                }
                 try require(opening.visuals.count>=2,"Opening needs real visual cues")
-                let parts=opening.script(characterID:model.id).beats[0].parts ?? []
-                try require(parts.filter {$0.kind == "thought" && $0.isVisible}.count==2,"Every introduction needs two visible inner asides")
+                let beat=opening.script(characterID:model.id).beats[0]
+                let parts=beat.parts ?? [],sentences=beat.sentences ?? []
+                try require(!sentences.isEmpty && parts.filter {$0.kind == "thought" && $0.isVisible}.count==sentences.count,"Every introduction sentence needs a visible psychological aside")
+                try require(sentences.first?.at==0 && sentences.allSatisfy {sentence in EmotionPerformanceCatalog.shared?.entries.contains(where:{$0.kind=="emotion" && $0.id==sentence.emotion}) == true},"First sentence and every emotion need standard metadata")
+                try require(zip(sentences,sentences.dropFirst()).allSatisfy {pair in pair.0.emotion != pair.1.emotion},"Adjacent fixed introduction sentences need different emotions")
                 try require(parts.filter {$0.kind == "dialogue"}.map(\.text).joined()==opening.text,"Aside composition must preserve every spoken character")
                 if ["anime-chiffon","anime-ichigo","anime-lime","anime-mafuyu","anime-plum"].contains(model.runtimeID) {
                     try require(CharacterOpenings.find(model.runtimeID+"-\(index)")?.audioReady == true,"Old first-meeting audio must remain replayable")

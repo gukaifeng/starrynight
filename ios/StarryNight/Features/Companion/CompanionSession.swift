@@ -127,6 +127,8 @@ final class CompanionSession {
         if !visuals.isEmpty {VoiceTimeline.shared.mark(activeVoiceTrace,"visuals_dispatched")}
         VoiceTimeline.shared.span(activeVoiceTrace,"conversation.visual_dispatch",start:start)
     }
+    @ObservationIgnored private var performedEmotionCues=Set<String>()
+    @ObservationIgnored private var previousSpokenEmotion=""
     @ObservationIgnored private var performedBeats = Set<String>()
     @ObservationIgnored private var registeredOpening:String?
     @ObservationIgnored private var openingRegistrationTask:Task<Void,Error>?
@@ -227,12 +229,40 @@ final class CompanionSession {
         }
         speech.onBeat = { [weak self] id in
             guard let self,self.presentationActive,let beat = self.activeScript?.beats.first(where:{ $0.beatId == id }) else { return }
+            self.performSentenceEmotions(beat,fraction:0)
             self.updateIsland(.speaking,emotion:beat.dialogue?.speech?.emotion)
             self.performedBeats.insert(id)
             self.dispatchVisuals(beat.visuals)
             self.replyReveal.advance(id,fraction:0)
         }
-        speech.onBeatProgress = { [weak self] id,fraction in self?.replyReveal.advance(id,fraction:fraction) }
+        speech.onBeatProgress = { [weak self] id,fraction in
+            guard let self else{return}
+            self.replyReveal.advance(id,fraction:fraction)
+            if self.presentationActive,let beat=self.activeScript?.beats.first(where:{$0.beatId==id}) {self.performSentenceEmotions(beat,fraction:fraction)}
+        }
+    }
+    private func performSentenceEmotions(_ beat:AIBeat,fraction:Double) {
+        guard presentationActive else{return}
+        let sentences=beat.sentences ?? [AISentenceEmotion(at:0,emotion:beat.dialogue?.speech?.emotion ?? "neutral",style:beat.dialogue?.speech?.style ?? "plain")]
+        for (i,sentence) in sentences.enumerated() where sentence.at<=fraction {
+            let key=token.uuidString+beat.beatId+"sentence"+String(i)
+            if performedEmotionCues.insert(key).inserted {
+                let emotion=EmotionPerformanceCatalog.alternate(sentence.emotion,previous:previousSpokenEmotion)
+                previousSpokenEmotion=emotion
+                onIntent?(CharacterIntent(eventName:"emotion.sentence",turnId:token.uuidString,emotion:emotion,target:sentence.style ?? "plain",intensity:beat.dialogue?.speech?.intensity ?? 0.55,audioTime:beat.sentences == nil ? (beat.duration ?? beat.readingDuration ?? 3) : (beat.duration ?? beat.readingDuration ?? 3)/Double(max(1,sentences.count))))
+                VoiceTimeline.shared.mark(activeVoiceTrace,"emotion."+emotion+".sentence."+beat.beatId)
+            }
+        }
+        let sentenceVocals=sentences.enumerated().flatMap {i,sentence -> [AIVocalEvent] in
+            let end=i+1<sentences.count ? sentences[i+1].at:1
+            return (sentence.vocals ?? []).map {AIVocalEvent(event:$0.event,at:sentence.at+(end-sentence.at)*($0.at ?? 0))}
+        }
+        for (i,vocal) in ((beat.vocalEvents ?? [])+sentenceVocals).enumerated() where (vocal.at ?? 0)<=fraction {
+            let key=token.uuidString+beat.beatId+"vocal"+String(i)
+            if performedEmotionCues.insert(key).inserted {
+                onIntent?(CharacterIntent(eventName:"emotion.vocal",turnId:token.uuidString,target:vocal.event))
+            }
+        }
     }
     func enterConversation(_ entry: ConversationEntry) {
         guard entry.characterID == model.id, entry.accountID == ownerID, store.accountID == ownerID else { return }
@@ -485,6 +515,7 @@ final class CompanionSession {
         if recent.last?.role == "user", recent.last?.text == text { recent.removeLast() }
         return ["request_id":UUID().uuidString,"character_id":model.id,"text":text,"trigger":trigger,
             "conversation_reset":record.conversationResetID ?? "",
+            "emotion_contract":1,"previous_emotion":record.messages.last(where:{$0.role=="assistant"})?.aiScript?.beats.last?.sentences?.last?.emotion ?? record.messages.last(where:{$0.role=="assistant"})?.aiScript?.beats.last?.dialogue?.speech?.emotion ?? "",
             "preferences":["nickname":store.effectiveNickname(for:model.id),"nicknameSource":store.nicknameSource(for:model.id),
                            "aboutMe":p.aboutMe,"relationship":p.relationship,"responseStyle":p.responseStyle,"avoidedTopics":p.avoidedTopics],
             "memories":record.memories.suffix(100).map { ["id":$0.id.uuidString,"text":$0.text] },
@@ -813,6 +844,7 @@ final class CompanionSession {
                 let steps=Int((duration.isFinite ? min(45,max(0.5,duration)) : 3)*10)
                 for step in 0...steps {
                     guard !Task.isCancelled else {return}
+                    performSentenceEmotions(beat,fraction:Double(step)/Double(steps))
                     replyReveal.advance(beat.beatId,fraction:Double(step)/Double(steps))
                     try? await Task.sleep(for:.milliseconds(100))
                 }
@@ -832,6 +864,7 @@ final class CompanionSession {
                 // A voice beat may have arrived since this fallback was queued.
                 guard !performedBeats.contains(beat.beatId) else { continue }
                 performedBeats.insert(beat.beatId)
+                performSentenceEmotions(beat,fraction:0)
                 dispatchVisuals(beat.visuals)
                 try? await Task.sleep(for:.milliseconds(beat.visuals.map{($0.offsetMs ?? 0)+$0.durationMs}.max() ?? 2500))
             }
@@ -884,7 +917,7 @@ final class CompanionSession {
         shakeTask?.cancel();shakeTask=nil
         if activeTurn { emit("turn.cancel") }
         activeTurn = false; token = UUID(); generating = false; activeScript = nil
-        performedBeats.removeAll()
+        performedBeats.removeAll();performedEmotionCues.removeAll()
         voiceInput.cancel();speech.stop(); onEndAIVisual?()
     }
 }
